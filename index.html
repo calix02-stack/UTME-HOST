@@ -1,1 +1,315 @@
-ge
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3080 Screening Calculator & Admission Path</title>
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Adsterra Anti-Adblock Popunder -->
+    <script src="https://recallscarce.com/a2/aa/e1/a2aae1f750a1d6f9b846531e3d18fd31.js"></script>
+
+    <style>
+        :root { --primary: #28a745; --dark: #111; --whatsapp: #25D366; }
+        body { margin:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; overflow-x: hidden; }
+        
+        #top-join-bar { background: var(--whatsapp); color: white; padding: 12px; text-align: center; font-size: 14px; font-weight: bold; position: fixed; top: 0; width: 100%; z-index: 1300; box-shadow: 0 2px 10px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
+        #top-join-bar a { color: white; background: #075E54; padding: 6px 12px; border-radius: 5px; text-decoration: none; font-size: 12px; transition: 0.3s; }
+        
+        #menu-icon { position: fixed; top: 55px; left: 15px; z-index: 1100; cursor: pointer; padding: 10px; background: rgba(0,0,0,0.6); border-radius: 8px; transition: 0.3s; }
+        .bar { width: 25px; height: 3px; background-color: white; margin: 5px 0; transition: 0.4s; }
+        #sidenav { height: 100%; width: 0; position: fixed; z-index: 1400; top: 0; left: 0; background-color: var(--dark); overflow-x: hidden; transition: 0.5s; padding-top: 60px; }
+        #sidenav a { padding: 15px 32px; text-decoration: none; font-size: 18px; color: #bbb; display: block; transition: 0.3s; cursor: pointer; border-bottom: 1px solid #222; }
+        #sidenav .closebtn { position: absolute; top: 10px; right: 25px; font-size: 36px; color: white; }
+
+        #welcome { display:flex; height:100vh; align-items:center; justify-content:center; text-align:center; background:#fff; position: fixed; width: 100%; z-index: 3000; transition: 0.5s; }
+        .logo-load { width:100px; border-radius:50%; margin-bottom: 20px; }
+        .loaderBox { width:200px; height:8px; background:#eee; border-radius:10px; overflow:hidden; margin: 10px auto; }
+        .loader { height:100%; width:0%; background: var(--primary); transition: 0.2s; }
+
+        #main { display:none; min-height:100vh; background:url("https://i.ibb.co/hRdVfWL8/UNIOSUN.jpg") center/cover no-repeat fixed; position:relative; }
+        #main::before { content:""; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); }
+        .content { position:relative; z-index:1; padding:120px 20px 40px 20px; color: white; max-width: 600px; margin: auto; }
+        .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:15px; margin-top: 20px; }
+        .card { background:rgba(255,255,255,0.1); padding:20px; border-radius:18px; text-align:center; cursor:pointer; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); color: white; text-decoration: none; transition: 0.3s; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 120px; box-sizing: border-box; }
+        .card img { width: 40px; height: 40px; margin-bottom: 10px; object-fit: contain; }
+
+        .page { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; color:#333; overflow-y:auto; padding:25px; z-index:1500; box-sizing: border-box; }
+        select, input, button { width:100%; padding:14px; margin:10px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; outline: none; }
+        button { background: var(--primary); color:#fff; border:none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .back-btn { background: #f0f0f0 !important; color: #333 !important; border: 1px solid #ddd !important; margin-top: 20px; }
+        #res { margin-top: 20px; padding: 20px; border-radius: 12px; text-align: center; border: 2px dashed #ddd; font-size: 16px; line-height: 1.5; }
+        .eligible { background: #d4edda; color: #155724; }
+        .not-eligible { background: #f8d7da; color: #721c24; }
+        #grade-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .help-card { background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 6px solid var(--primary); }
+        .wa-btn { background: var(--whatsapp); display: block; text-decoration: none; color: white; text-align: center; padding: 15px; border-radius: 10px; font-weight: bold; margin-top: 10px;}
+        #installBtn { background: var(--whatsapp); color: white; font-weight: bold; margin-top: 20px; border: none; padding: 15px; border-radius: 10px; display: none; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="top-join-bar">
+    <span>📢 Join 3080 Path Aspirants</span>
+    <a href="https://chat.whatsapp.com/Cd9VphU1PFg6VXsrFbwQuT" target="_blank">JOIN GROUP</a>
+</div>
+
+<div id="sidenav">
+    <a class="closebtn" onclick="closeNav()">&times;</a>
+    <a onclick="closeNav(); openPage('calc')">🧮 Aggregate Calculator</a>
+    <a onclick="closeNav(); openPage('about')">ℹ️ Admission Path Guide</a>
+    <a onclick="closeNav(); openPage('contact')">📞 Message Consultant</a>
+    <hr style="border-color:#333; margin: 10px 0;">
+    <a onclick="closeNav(); openPage('disclaimer-page')">⚠️ Disclaimer</a>
+    <a onclick="closeNav(); openPage('privacy')">🔒 Privacy Policy</a>
+    <a onclick="closeNav(); openPage('terms')">📜 Terms & Conditions</a>
+</div>
+
+<div id="welcome">
+    <div>
+        <img class="logo-load" src="https://i.ibb.co/RkqSXrXV/images-3.jpg">
+        <h2>3080 Admission Path</h2>
+        <div class="loaderBox"><div class="loader" id="loader"></div></div>
+        <p id="percent">0%</p>
+    </div>
+</div>
+
+<div id="main">
+    <div id="menu-icon" onclick="openNav()"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+    <div class="content">
+        <h2 style="text-align:center; color: white; border: none;">Aspirant Dashboard</h2>
+        <button id="installBtn">INSTALL APP</button>
+
+        <div class="grid">
+            <div class="card" onclick="openPage('calc')"><span>🧮</span><span>Calculator</span></div>
+            <a href="https://efacility.jamb.gov.ng/login" target="_blank" class="card"><img src="https://i.ibb.co/PZ99mX6/jamb-logo.png"><span>JAMB Portal</span></a>
+            <a href="https://admissions.uniosun.edu.ng/" target="_blank" class="card"><img src="https://i.ibb.co/RkqSXrXV/images-3.jpg" style="border-radius:50%"><span>School Portal</span></a>
+            <div class="card" onclick="openPage('about')"><span>ℹ️</span><span>The Path</span></div>
+        </div>
+
+        <!-- Adsterra Smartlink -->
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="https://recallscarce.com/zp00b3h7jt?key=a667dd7fb3caf7b653b09b0c9d621b47" style="background: #28a745; color: white; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: bold; display: inline-block;">View Admission Resources</a>
+        </div>
+    </div>
+</div>
+
+<div class="page" id="calc">
+    <h2>Screening Calculator</h2>
+    <div id="selection-zone">
+        <label><b>1. Select Your Programme (107 Courses):</b></label>
+        <input type="text" id="courseSearch" placeholder="Search course name..." onkeyup="filterCourses()">
+        <select id="course" size="10"></select>
+        <button onclick="confirmSelection()">CONTINUE</button>
+    </div>
+    <div id="calculator-inputs" style="display:none;">
+        <div id="selected-course-label" style="background:#f1f8f1; padding:10px; border-radius:10px; font-weight:bold; text-align:center; margin-bottom:10px;"></div>
+        <label><b>2. Origin/Catchment Status:</b></label>
+        <select id="state"><option value="Other">General Merit</option><option value="Osun">Indigene/Catchment</option></select>
+        <label><b>3. O'Level Grades (Best 5):</b></label>
+        <div id="grade-inputs"><select class="g"></select><select class="g"></select><select class="g"></select><select class="g"></select><select class="g"></select></div>
+        <label><b>4. UTME Score:</b></label>
+        <input id="jamb" type="number" placeholder="Enter Score (e.g. 210)">
+        <button onclick="calculate()">GET RESULT</button>
+        <div id="res"></div>
+        <button onclick="toggleBackToSearch()" class="back-btn">CHANGE COURSE</button>
+    </div>
+    <button class="back-btn" onclick="closePage('calc')">BACK TO DASHBOARD</button>
+</div>
+
+<div class="page" id="about">
+    <h2>The Path</h2>
+    <h3>Full Admission Path Guide</h3>
+    <div class="help-card">
+        <p>The university sets a general cut-off of 160 for eligibility to apply for Post-UTME screening. However, eligibility does not guarantee admission into competitive fields.</p>
+        <ul>
+            <li><b>Highly Competitive:</b> MBBS, Nursing, Law, Medical Laboratory Science. Aim for <b>200 - 300+</b>.</li>
+            <li><b>Competitive:</b> Computer Science, Mass Communication, Accounting, Public Health. Aim for <b>200+</b>.</li>
+        </ul>
+    </div>
+    <a href="https://wa.me/2347072853151" class="wa-btn">📲 Chat Consultant for questions and admission guide</a>
+    <button class="back-btn" onclick="closePage('about')">BACK TO HOME</button>
+</div>
+
+<div class="page" id="contact">
+    <h2>Message Consultant</h2>
+    <a href="https://wa.me/2347072853151" class="wa-btn">MESSAGE ON WHATSAPP</a>
+    <button class="back-btn" onclick="closePage('contact')">BACK</button>
+</div>
+
+<div class="page" id="disclaimer-page">
+    <h2>Disclaimer</h2>
+    <p>This is an independent educational platform and NOT the official university portal.</p>
+    <button class="back-btn" onclick="closePage('disclaimer-page')">BACK</button>
+</div>
+
+<div class="page" id="privacy">
+    <h2>Privacy Policy</h2>
+    <p>We do not store personal data. Calculations are performed locally.</p>
+    <button class="back-btn" onclick="closePage('privacy')">BACK</button>
+</div>
+
+<div class="page" id="terms">
+    <h2>Terms and Conditions</h2>
+    <p>Results provided are estimates based on historical cut-off marks.</p>
+    <button class="back-btn" onclick="closePage('terms')">BACK</button>
+</div>
+
+<script>
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') { installBtn.style.display = 'none'; }
+                deferredPrompt = null;
+            });
+        }
+    });
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+            .catch(err => console.log('SW Registration Failed', err));
+        });
+    }
+
+    const courseData = [
+        {name:"B. Agric. Economics", merit:57, indigene:46.4}, {name:"B. Agric. Extension", merit:56.5, indigene:44.5},
+        {name:"B. Agric. Forestry", merit:50, indigene:40}, {name:"B. Agric. Agronomy", merit:54.8, indigene:44.6},
+        {name:"B. Agric. Animal Science", merit:58.5, indigene:40.5}, {name:"B. Agric. Fisheries and Aquaculture", merit:55, indigene:45.5},
+        {name:"B. Agric. Wildlife Management", merit:54, indigene:44.8}, {name:"B.A. (Ed) English", merit:60.5, indigene:45.3},
+        {name:"B.A. (Ed) Chemistry", merit:55, indigene:45}, {name:"B.A. (Ed) Economics", merit:60.8, indigene:46.2},
+        {name:"B.A. (Ed) Education Guidance and Counseling", merit:63.5, indigene:50.9}, {name:"B.A. (Ed) Education Management", merit:59.9, indigene:50},
+        {name:"B.Sc. (Ed) Mathematics", merit:54.3, indigene:40}, {name:"B.Sc. (Ed) Political Science", merit:61.7, indigene:49.6},
+        {name:"B.Sc. (Ed) Biology", merit:56.8, indigene:44.4}, {name:"B.Sc. (Ed) Educational Technology", merit:55.2, indigene:44.2},
+        {name:"B.Sc. (Ed) Physics", merit:49.1, indigene:40}, {name:"B.Sc. (Ed) Computer Science", merit:54.6, indigene:44.3},
+        {name:"B.Sc. (Ed) Business Education", merit:59.4, indigene:45.9}, {name:"B.Sc. (Ed) Environmental Education", merit:47.6, indigene:40},
+        {name:"B. Ed. Adult Education", merit:40, indigene:40}, {name:"B. Sc. Anatomy", merit:60.4, indigene:50},
+        {name:"B. Health Information Management", merit:55.9, indigene:48}, {name:"B. Environmental Health Science", merit:54.7, indigene:40},
+        {name:"M.B.B.S", merit:83.2, indigene:79.3}, {name:"B.Sc. Nursing", merit:76.4, indigene:72.8},
+        {name:"B.Sc. Physiology", merit:61.1, indigene:49.8}, {name:"B.Sc. Public Health", merit:63, indigene:58.5},
+        {name:"B.MLS", merit:71.4, indigene:67.5}, {name:"B.Sc. Nutrition and Dietetics", merit:59.4, indigene:48.3},
+        {name:"B.Sc. Radiography and Radiation Science", merit:69.8, indigene:65}, {name:"B.Sc. Pharmacology", merit:64.7, indigene:58.6},
+        {name:"B.A. English & Intl. Studies", merit:63.5, indigene:55.1}, {name:"B.A. French & Intl. Studies", merit:60.2, indigene:45},
+        {name:"B.A. History & Intl. Studies", merit:62.8, indigene:48.4}, {name:"B.A. Linguistics & Com. Art", merit:66.5, indigene:61.1},
+        {name:"B.A. Philosophy", merit:63, indigene:49.3}, {name:"B.A. Theatre Arts", merit:61.5, indigene:54.6},
+        {name:"B.A. Tourism Studies", merit:56.2, indigene:42.9}, {name:"B.A. Yoruba", merit:45, indigene:40},
+        {name:"B.A. Arabic Language & Lit.", merit:62.5, indigene:50}, {name:"B.A. Islamic Studies", merit:58.3, indigene:50},
+        {name:"B.A. Christian Religion Studies", merit:47.5, indigene:45}, {name:"B.Sc. Mass Communication", merit:72, indigene:63.7},
+        {name:"B.Sc. Advertising", merit:47.6, indigene:45}, {name:"B.Sc. Public Relations", merit:54.9, indigene:45},
+        {name:"B.Sc. Broadcasting", merit:60.4, indigene:43}, {name:"B.Sc. Journalism and Media Studies", merit:64.1, indigene:47.3},
+        {name:"LLB (Bachelor of Law)", merit:79.4, indigene:75.6}, {name:"Common & Islamic Law", merit:73.3, indigene:69.7},
+        {name:"B.Sc. Criminology & Security Studies", merit:69.4, indigene:63.5}, {name:"B.Sc. Peace & Conflict Studies", merit:62.1, indigene:49.2},
+        {name:"B.Sc. Accounting", merit:70.7, indigene:64.9}, {name:"B.Sc. Banking & Finance", merit:65.8, indigene:60.6},
+        {name:"B.Sc. Marketing", merit:64, indigene:57}, {name:"B.Sc. Geography", merit:50, indigene:45},
+        {name:"B.Sc. Business Admin.", merit:66.2, indigene:61.3}, {name:"B.Sc. Economics", merit:68, indigene:60.3},
+        {name:"B.Sc. Entrepreneurial Studies", merit:61.4, indigene:48.9}, {name:"B.Sc. Industrial Relations & Personnel Mgmt", merit:62.2, indigene:52.8},
+        {name:"B.Sc. Political Science", merit:67.8, indigene:61.4}, {name:"B.Sc. Sociology", merit:67.2, indigene:60.5},
+        {name:"B.Sc. International Relations & Diplomacy", merit:70.2, indigene:63.4}, {name:"B.Sc. Cooperative & Rural Development", merit:56.5, indigene:45},
+        {name:"B.Sc. Public Administration", merit:62.9, indigene:56.7}, {name:"B.Sc. Psychology", merit:64.8, indigene:52},
+        {name:"B.Sc. Demography & Social Statistics", merit:58.4, indigene:45}, {name:"B.Sc. Social Work", merit:63.3, indigene:48.8},
+        {name:"B.Sc. Development Studies", merit:50, indigene:40}, {name:"B.Sc. Politics, Philosophy and Economics", merit:50, indigene:45},
+        {name:"B.Sc. Local Government and Dev. Studies", merit:50, indigene:40}, {name:"B.Sc. Social Standards Management", merit:50, indigene:40},
+        {name:"B.Eng. Agric. Engineering", merit:58.1, indigene:45.4}, {name:"B.Eng. Chemical Engineering", merit:64.1, indigene:48.6},
+        {name:"B.Sc. Building", merit:58.8, indigene:50.5}, {name:"B.Sc. Estate Management", merit:57, indigene:49.3},
+        {name:"B.Sc. Food Science & Tech.", merit:60.4, indigene:54.4}, {name:"B.Sc. Statistics", merit:56.5, indigene:43.3},
+        {name:"B.Eng. Civil Engineering", merit:67.1, indigene:61.6}, {name:"B.Eng. Electrical/Electronics", merit:65.9, indigene:59.5},
+        {name:"B.Eng. Mechanical Engineering", merit:66, indigene:59.8}, {name:"B.Sc. Biochemistry", merit:62.8, indigene:57},
+        {name:"B.Sc. Biotechnology", merit:59.8, indigene:46.1}, {name:"B.Sc. Chemistry", merit:58.2, indigene:47.1},
+        {name:"B.Sc. Computer Science", merit:68.1, indigene:62.3}, {name:"B.Sc. Cybersecurity", merit:66, indigene:61.2},
+        {name:"B.Sc. Geology", merit:57.7, indigene:43}, {name:"B.Sc. Industrial Chemistry", merit:59.2, indigene:43.5},
+        {name:"B.Sc. Information System", merit:54.4, indigene:46.3}, {name:"B.Sc. Mathematics", merit:58.2, indigene:45},
+        {name:"B.Sc. Microbiology", merit:62.5, indigene:56.2}, {name:"B.Sc. Plant Biology", merit:54.4, indigene:45},
+        {name:"B.Sc. Science Laboratory", merit:62.9, indigene:51.7}, {name:"B.Sc. Software Engineering", merit:65.9, indigene:58.9},
+        {name:"B.Sc. Urban & Regional Planning", merit:55.4, indigene:45}, {name:"B.Sc. Animal and Environmental Biology", merit:54.2, indigene:42.3},
+        {name:"B.Sc. Physics with Electronics", merit:57.2, indigene:46.7}, {name:"BLIS Library and Information Science", merit:55.9, indigene:46.1},
+        {name:"Industrial Mathematics", merit:50, indigene:45}, {name:"B.Sc. Quantity Survey", merit:58.3, indigene:53.7},
+        {name:"B.Sc. Architecture", merit:62.8, indigene:55.8}, {name:"B.Sc. Information Technology", merit:60.9, indigene:55},
+        {name:"B.Sc. Brewing Science and Technology", merit:50, indigene:40}, {name:"B.Sc. Family and Consumer Science", merit:50, indigene:45},
+        {name:"B.Eng. Computer Engineering", merit:63.1, indigene:56.3}, {name:"B.Eng. Mechatronics Engineering", merit:63.8, indigene:49.3},
+        {name:"B.Sc. Data Science", merit:59.6, indigene:45}
+    ];
+
+    const gradePoints = { "A1": 8, "B2": 7, "B3": 6, "C4": 5, "C5": 4, "C6": 3 };
+    let selectedIdx = -1;
+
+    function openNav() { document.getElementById("sidenav").style.width = "280px"; }
+    function closeNav() { document.getElementById("sidenav").style.width = "0"; }
+    function openPage(id) { document.getElementById(id).style.display = "block"; }
+    function closePage(id) { document.getElementById(id).style.display = "none"; }
+
+    window.onload = () => {
+        let p = 0;
+        let t = setInterval(() => {
+            p += 5;
+            document.getElementById("loader").style.width = p + "%";
+            document.getElementById("percent").innerText = p + "%";
+            if (p >= 100) { clearInterval(t); document.getElementById("welcome").style.display = "none"; document.getElementById("main").style.display = "block"; }
+        }, 30);
+
+        const sel = document.getElementById("course");
+        courseData.forEach((c, i) => {
+            let opt = document.createElement("option"); opt.value = i; opt.text = c.name; sel.add(opt);
+        });
+
+        document.querySelectorAll(".g").forEach(s => {
+            for (let g in gradePoints) {
+                let opt = document.createElement("option"); opt.value = g; opt.text = g; s.add(opt);
+            }
+        });
+    };
+
+    function filterCourses() {
+        const input = document.getElementById("courseSearch").value.toUpperCase();
+        const opts = document.getElementById("course").options;
+        for (let i = 0; i < opts.length; i++) {
+            opts[i].style.display = opts[i].text.toUpperCase().indexOf(input) > -1 ? "" : "none";
+        }
+    }
+
+    function confirmSelection() {
+        const val = document.getElementById("course").value;
+        if(val === "") { alert("Please select a programme!"); return; }
+        selectedIdx = val;
+        document.getElementById("selected-course-label").innerText = "Selected: " + courseData[selectedIdx].name;
+        document.getElementById("selection-zone").style.display = "none";
+        document.getElementById("calculator-inputs").style.display = "block";
+    }
+
+    function toggleBackToSearch() {
+        document.getElementById("selection-zone").style.display = "block";
+        document.getElementById("calculator-inputs").style.display = "none";
+    }
+
+    function calculate() {
+        const oSum = [...document.querySelectorAll(".g")].reduce((acc, s) => acc + gradePoints[s.value], 0);
+        const j = parseInt(document.getElementById("jamb").value);
+        if (isNaN(j) || j < 160) { alert("JAMB Score is required (Min 160)!"); return; }
+        const agg = ((oSum / 40) * 40) + ((j / 400) * 60);
+        const tar = document.getElementById("state").value === "Osun" ? courseData[selectedIdx].indigene : courseData[selectedIdx].merit;
+        const div = document.getElementById("res");
+        
+        div.className = agg >= tar ? "eligible" : "not-eligible";
+        div.innerHTML = `
+            Your Aggregate: <b>${agg.toFixed(2)}%</b><br>
+            2025 Target Cut-off: <b>${tar}%</b><br>
+            <p style="font-size:14px; margin-top:15px; color:#333; line-height:1.4;">
+                Please note: This calculation is based on the <b>2025 cut-off marks</b>.
+            </p>
+            <a href="https://wa.me/2347072853151" target="_blank" class="wa-btn">💬 Chat Consultant</a>
+            <a href="https://chat.whatsapp.com/Cd9VphU1PFg6VXsrFbwQuT" target="_blank" class="wa-btn" style="background:#075E54;">👥 Join WhatsApp Group</a>
+        `;
+    }
+</script>
+
+</body>
+</html>
