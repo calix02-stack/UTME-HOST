@@ -1900,4 +1900,118 @@ function selectQMode(mode) {
 function renderAdminSubjects() {
   document.getElementById('admin-subjects-grid').innerHTML=SUBJECTS.map(s=>{
     const count=(questions[currentQMode][s.id]||[]).length;
-    return `<div class="admin-subj-btn" onclick="openQuestionBuilder('${s
+    return `<div class="admin-subj-btn" onclick="openQuestionBuilder('${s.id}')"><div class="asb-icon">${s.icon}</div><div class="asb-name">${s.name}</div><div class="asb-count">${count} Qs</div></div>`;
+  }).join('');
+}
+function openQuestionBuilder(subjectId) {
+  currentQSubject=subjectId;
+  const subj=SUBJECTS.find(s=>s.id===subjectId);
+  document.getElementById('qb-mode-badge').textContent   =currentQMode==='cbt'?'💻 CBT':'⏰ Exam';
+  document.getElementById('qb-subject-name').textContent =subj.name;
+  document.getElementById('qp-step-mode').style.display  ='none';
+  document.getElementById('question-builder').classList.add('visible');
+  currentEditIndex=-1; renderQuestionList();
+}
+function closeQuestionBuilder() {
+  document.getElementById('question-builder').classList.remove('visible');
+  document.getElementById('qp-step-mode').style.display='block';
+  currentEditIndex=-1; renderAdminSubjects();
+}
+function renderQuestionList() {
+  const qs=questions[currentQMode][currentQSubject]||[];
+  document.getElementById('qb-count').textContent=qs.length+' question'+(qs.length!==1?'s':'');
+  const list=document.getElementById('question-list');
+  if(!qs.length){list.innerHTML='<div class="empty-state" style="color:rgba(255,255,255,0.25);"><div class="empty-state-icon">📭</div><div class="empty-state-text">No questions yet. Add one below.</div></div>';return;}
+  list.innerHTML=qs.map((q,i)=>`
+    <div class="question-item">
+      <div class="question-item-header" onclick="toggleQExpand(${i})">
+        <div class="qi-num">${i+1}</div>
+        <div class="qi-preview">${q.q||'Untitled question'}</div>
+        <div class="qi-actions">
+          <button class="qi-btn qi-btn-edit" onclick="event.stopPropagation();editQuestion(${i})">✏️</button>
+          <button class="qi-btn qi-btn-del"  onclick="event.stopPropagation();deleteQuestion(${i})">🗑️</button>
+        </div>
+      </div>
+      <div class="question-form" id="qform-${i}" style="display:${currentEditIndex===i?'block':'none'}">${questionFormHTML(q,i)}</div>
+    </div>`).join('');
+}
+function questionFormHTML(q,i){
+  return `<label class="qf-label">Question</label>
+    <textarea class="qf-textarea" id="qf-q-${i}">${q.q||''}</textarea>
+    <label class="qf-label">Options</label>
+    <div class="options-grid-admin">
+      <div class="option-wrap"><span class="option-label-admin">A</span><input class="qf-input" id="qf-a-${i}" value="${escHtml(q.a||'')}" placeholder="Option A"></div>
+      <div class="option-wrap"><span class="option-label-admin">B</span><input class="qf-input" id="qf-b-${i}" value="${escHtml(q.b||'')}" placeholder="Option B"></div>
+      <div class="option-wrap"><span class="option-label-admin">C</span><input class="qf-input" id="qf-c-${i}" value="${escHtml(q.c||'')}" placeholder="Option C"></div>
+      <div class="option-wrap"><span class="option-label-admin">D</span><input class="qf-input" id="qf-d-${i}" value="${escHtml(q.d||'')}" placeholder="Option D"></div>
+    </div>
+    <label class="qf-label">Correct Answer</label>
+    <select class="answer-select" id="qf-ans-${i}">
+      <option value="">— Select correct answer —</option>
+      <option value="A" ${q.ans==='A'?'selected':''}>A</option>
+      <option value="B" ${q.ans==='B'?'selected':''}>B</option>
+      <option value="C" ${q.ans==='C'?'selected':''}>C</option>
+      <option value="D" ${q.ans==='D'?'selected':''}>D</option>
+    </select>
+    <div class="qf-row">
+      <button class="qf-save-btn" onclick="saveQuestion(${i})">✓ Save Question</button>
+      <button class="qf-cancel-btn" onclick="cancelEdit(${i})">Cancel</button>
+    </div>`;
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function toggleQExpand(i){
+  const qs=questions[currentQMode][currentQSubject]||[];
+  qs.forEach((_,j)=>{const f=document.getElementById('qform-'+j);if(f)f.style.display='none';});
+  const form=document.getElementById('qform-'+i); if(!form)return;
+  if(currentEditIndex===i){currentEditIndex=-1;}else{form.style.display='block';currentEditIndex=i;}
+}
+function editQuestion(i){currentEditIndex=i;renderQuestionList();setTimeout(()=>{const f=document.getElementById('qform-'+i);if(f){f.style.display='block';f.scrollIntoView({behavior:'smooth',block:'center'});}},30);}
+function cancelEdit(i){const f=document.getElementById('qform-'+i);if(f)f.style.display='none';currentEditIndex=-1;}
+function addNewQuestion(){
+  if(!questions[currentQMode][currentQSubject])questions[currentQMode][currentQSubject]=[];
+  questions[currentQMode][currentQSubject].push({q:'',a:'',b:'',c:'',d:'',ans:''});
+  currentEditIndex=questions[currentQMode][currentQSubject].length-1;
+  renderQuestionList();
+  setTimeout(()=>{const f=document.getElementById('qform-'+currentEditIndex);if(f){f.style.display='block';f.scrollIntoView({behavior:'smooth',block:'center'});}},50);
+}
+function saveQuestion(i){
+  const q=document.getElementById('qf-q-'+i).value.trim();
+  const a=document.getElementById('qf-a-'+i).value.trim();
+  const b=document.getElementById('qf-b-'+i).value.trim();
+  const c=document.getElementById('qf-c-'+i).value.trim();
+  const d=document.getElementById('qf-d-'+i).value.trim();
+  const ans=document.getElementById('qf-ans-'+i).value;
+  if(!q){showToast('Please enter the question text',true);return;}
+  if(!a||!b||!c||!d){showToast('Please fill all 4 options',true);return;}
+  if(!ans){showToast('Please select the correct answer',true);return;}
+  questions[currentQMode][currentQSubject][i]={q,a,b,c,d,ans};
+  currentEditIndex=-1; renderQuestionList(); showToast('Question '+(i+1)+' saved locally ✓');
+}
+function deleteQuestion(i){
+  if(!confirm('Delete question '+(i+1)+'?'))return;
+  questions[currentQMode][currentQSubject].splice(i,1);
+  currentEditIndex=-1; renderQuestionList(); showToast('Question deleted');
+}
+async function saveAllQuestions() {
+  const qs=questions[currentQMode][currentQSubject]||[];
+  if(!qs.length){showToast('No questions to save',true);return;}
+  const incomplete=qs.filter(q=>!q.q||!q.a||!q.b||!q.c||!q.d||!q.ans);
+  if(incomplete.length){showToast(`${incomplete.length} incomplete question(s)`,true);return;}
+  localStorage.setItem('utme_questions',JSON.stringify(questions));
+  let dbSaved=false;
+  try {
+    const payload={mode:currentQMode,subject_id:currentQSubject,data:JSON.stringify(qs),updated_at:new Date().toISOString()};
+    const {error}=await client.from('questions').upsert(payload,{onConflict:'mode,subject_id'});
+    if(!error){dbSaved=true;}else{const {error:insErr}=await client.from('questions').insert(payload);if(!insErr)dbSaved=true;}
+  }catch(e){}
+  showToast(dbSaved?`✅ ${qs.length} questions saved to database!`:`💾 ${qs.length} questions saved locally (DB unavailable)`);
+  renderAdminSubjects(); renderOverview();
+}
+function showToast(msg,isError){
+  const t=document.getElementById('admin-toast');
+  t.textContent=msg; t.className='admin-toast'+(isError?' error':''); t.style.display='block';
+  clearTimeout(t._timer); t._timer=setTimeout(()=>t.style.display='none',2800);
+}
+</script>
+</body>
+</html>
