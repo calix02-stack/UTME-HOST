@@ -512,9 +512,8 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 <div id="topic-practice-page"><div class="picker-header"><div class="picker-back" onclick="closeTopicPractice()">‹ Back</div><div class="picker-mode-badge">🎯 Topic Practice</div><div class="picker-title">Topic-Based Practice</div><div class="picker-sub">Pick a subject then a topic</div></div><div class="picker-body"><div id="tp-subject-list"></div><div id="tp-topic-area" style="display:none"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><button onclick="document.getElementById('tp-topic-area').style.display='none';document.getElementById('tp-subject-list').style.display='block';" style="background:none;border:none;color:var(--accent);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1rem;color:var(--text)" id="tp-topic-title">Topics</div></div><div id="tp-topics-list"></div></div></div></div>
 <div id="waec-neco-page"><div class="wn-header"><div class="picker-back" onclick="closeWAECNECO()">‹ Back</div><div class="picker-mode-badge">🏫 WAEC / NECO</div><div class="picker-title">WAEC / NECO Practice</div><div class="picker-sub">Past Questions &amp; Topic Reading</div></div><div class="wn-tabs"><button class="wn-tab active" data-tab="waec" onclick="switchWNOrg('waec')"><span class="tab-icon">📋</span><span class="tab-label">WAEC</span></button><button class="wn-tab" data-tab="neco" onclick="switchWNOrg('neco')"><span class="tab-icon">📋</span><span class="tab-label">NECO</span></button></div><div class="wn-body"><div class="mode-toggle"><button class="exam-btn active" data-mode="exam" onclick="switchWNMode('exam')">⏰ Exam Mode</button><button class="read-btn" data-mode="read" onclick="switchWNMode('read')">📚 Topic Reading</button></div><div id="wn-exam-panel"><div id="wn-exam-subj-step"><div class="section-title">Select Subject</div><div class="subjects-grid" id="wn-exam-subjects-grid"></div></div><div id="wn-exam-year-step" class="hidden"><button class="back-link" onclick="document.getElementById('wn-exam-year-step').classList.add('hidden');document.getElementById('wn-exam-subj-step').classList.remove('hidden');">‹ Subjects</button><div class="picker-info"><span class="picker-info-icon">📅</span><div class="picker-info-text"><b>Choose Exam Year</b>Past questions from 2000 to 2025</div></div><div class="year-grid" id="wn-exam-year-grid"></div></div></div><div id="wn-read-panel" class="hidden"><div id="wn-read-subj-step"><div class="section-title">Select Subject</div><div class="subjects-grid" id="wn-read-subjects-grid"></div></div><div id="wn-read-topic-step" class="hidden"><button class="back-link" onclick="document.getElementById('wn-read-topic-step').classList.add('hidden');document.getElementById('wn-read-subj-step').classList.remove('hidden');">‹ Subjects</button><div id="wn-read-topics-list"></div></div></div></div></div>
 <div id="admin-dashboard"><div class="admin-topbar"><div class="admin-brand"><div class="admin-brand-icon">🛡️</div><div class="admin-brand-text">Admin Panel<small>My UTME · Enzo</small></div></div><div class="admin-topbar-right"><span class="admin-badge">ADMIN</span><button class="admin-exit-btn" onclick="closeAdmin()">✕ Exit</button></div></div><div class="admin-tabs"><div class="admin-tab active" onclick="switchTab('overview')" id="tab-overview">📊 Overview</div><div class="admin-tab" onclick="switchTab('users')" id="tab-users">👥 Users</div><div class="admin-tab" onclick="switchTab('questions')" id="tab-questions">📝 UTME Questions</div><div class="admin-tab" onclick="switchTab('topic-exam')" id="tab-topic-exam">🎯 Topic Exam Qs</div><div class="admin-tab" onclick="switchTab('wn-questions')" id="tab-wn-questions">🏫 WAEC/NECO Qs</div><div class="admin-tab" onclick="switchTab('wn-topics')" id="tab-wn-topics">📚 WAEC/NECO Topics</div><div class="admin-tab" onclick="switchTab('read-mode')" id="tab-read-mode">📄 Read Mode</div><div class="admin-tab" onclick="switchTab('syllabus')" id="tab-syllabus">📖 Syllabus</div><div class="admin-tab" onclick="switchTab('analytics')" id="tab-analytics">📈 Analytics</div></div><div class="admin-content"><div class="admin-panel active" id="panel-overview"><div class="stats-grid"><div class="stat-card s-blue"><div class="stat-icon">👥</div><div class="stat-num" id="stat-total-users">—</div><div class="stat-label">Total Users</div><div class="stat-trend up" id="stat-users-trend">Loading...</div></div><div class="stat-card s-orange"><div class="stat-icon">📝</div><div class="stat-num" id="stat-total-questions">—</div><div class="stat-label">Total Questions</div><div class="stat-trend up">All categories</div></div></div><div class="admin-section-title">Registered Users <span id="stat-qbank-label">0 total</span></div><div class="user-table"><div class="user-score-table-head"><div>User</div><div>Best CBT</div><div>Best Exam</div><div></div></div><div id="overview-users-list"><div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading...</div></div></div></div></div><div class="admin-panel" id="panel-users"><input class="admin-search" id="user-search" placeholder="🔍  Search by name or email..." oninput="filterUsers()"><div class="admin-section-title">Users <span id="users-count-badge">0</span></div><div class="user-table"><div class="user-score-table-head"><div>User</div><div>Best CBT</div><div>Best Exam</div><div></div></div><div id="users-list-body"><div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading...</div></div></div></div></div><div class="admin-panel" id="panel-questions"><div id="utme-step-mode"><div class="admin-section-title">Select Mode</div><div class="mode-cards"><div class="mode-card" id="qmode-cbt" onclick="selectQMode('cbt')"><div class="mode-card-icon">💻</div><div class="mode-card-title">CBT Mode</div><div class="mode-card-sub">Practice questions (no year)</div></div><div class="mode-card" id="qmode-exam" onclick="selectQMode('exam')"><div class="mode-card-icon">⏰</div><div class="mode-card-title">Exam Mode</div><div class="mode-card-sub">Year-specific questions</div></div></div><div id="utme-subj-section" style="display:none"><div class="admin-section-title">Select Subject <span id="qp-mode-badge-label">CBT</span></div><div class="admin-subjects-grid" id="utme-admin-subjects-grid"></div></div></div><div id="utme-question-builder" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;margin-bottom:16px"><div><div style="background:rgba(245,158,11,.15);color:#f59e0b;font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:4px;display:inline-block" id="utme-qb-mode-badge">💻 CBT</div><div style="color:#fff;font-weight:700;font-size:.9rem" id="utme-qb-subj-name">Subject</div></div><button style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);padding:8px 14px;border-radius:12px;font-size:.75rem;cursor:pointer;font-family:inherit" onclick="closeUTMEBuilder()">‹ Back</button></div><div id="utme-year-wrap" style="display:none;margin-bottom:12px"><label class="qf-label">Year <span style="font-size:.6rem;color:rgba(255,255,255,.3)">(Exam mode only)</span></label><select class="qf-year-select" id="utme-year-sel" onchange="onUTMEYearChange(this.value)"></select></div><div class="admin-section-title">Questions <span class="q-count-badge" id="utme-qb-count">0</span></div><div class="question-list" id="utme-question-list"></div><button class="add-question-btn" onclick="utmeAddQ()">＋ Add Question</button><button class="save-all-btn" onclick="utmeSaveAll()">💾 Save All to Database</button></div></div><div class="admin-panel" id="panel-topic-exam"><div id="te-step-subj"><div class="admin-section-title">Topic Exam Questions — Select Subject</div><div class="admin-subjects-grid" id="te-subjects-grid"></div></div><div id="te-step-topic" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><button onclick="closeTETopics()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="color:#fff;font-weight:700" id="te-subj-name">Subject</div></div><div class="admin-section-title">Topics <span class="q-count-badge" id="te-topics-count">0</span></div><div id="te-topics-list"></div><button class="add-question-btn" style="margin-top:12px" onclick="teAddTopic()">＋ Add Topic</button></div><div id="te-step-qbuilder" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;margin-bottom:16px"><div><div style="background:rgba(0,196,154,.15);color:#00c49a;font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-block">🎯 Topic Qs</div><div style="color:#fff;font-weight:700;font-size:.9rem;margin-top:4px" id="te-topic-name-label">Topic</div></div><button style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);padding:8px 14px;border-radius:12px;font-size:.75rem;cursor:pointer;font-family:inherit" onclick="closeTEQBuilder()">‹ Topics</button></div><div class="admin-section-title">Questions <span class="q-count-badge" id="te-qb-count">0</span></div><div class="question-list" id="te-question-list"></div><button class="add-question-btn" onclick="teAddQ()">＋ Add Question</button><button class="save-all-btn" onclick="teSaveAll()">💾 Save All Questions</button></div></div><div class="admin-panel" id="panel-wn-questions"><div class="wn-admin-org-tabs"><button class="wn-org-tab active" id="wnadm-org-waec" onclick="selectWNAdmOrg('waec','questions')">📋 WAEC</button><button class="wn-org-tab" id="wnadm-org-neco" onclick="selectWNAdmOrg('neco','questions')">📋 NECO</button></div><div id="wn-q-step-subj"><div class="admin-section-title">Select Subject</div><div class="admin-subjects-grid" id="wn-q-subjects-grid"></div></div><div id="wn-q-builder" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;margin-bottom:16px"><div><div style="background:rgba(224,123,0,.2);color:#f59e0b;font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-block" id="wn-q-org-badge">🏫 WAEC</div><div style="color:#fff;font-weight:700;font-size:.9rem;margin-top:4px" id="wn-q-subj-name">Subject</div></div><button style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);padding:8px 14px;border-radius:12px;font-size:.75rem;cursor:pointer;font-family:inherit" onclick="closeWNQBuilder()">‹ Back</button></div><div style="margin-bottom:12px"><label class="qf-label">Year <span style="font-size:.6rem;color:rgba(255,255,255,.3)">(2000–2025, required)</span></label><select class="qf-year-select" id="wn-q-year-sel" onchange="onWNYearChange(this.value)"></select></div><div class="admin-section-title">Questions <span class="q-count-badge" id="wn-q-count">0</span></div><div class="question-list" id="wn-question-list"></div><button class="add-question-btn" onclick="wnAddQ()">＋ Add Question</button><button class="save-all-btn" onclick="wnSaveAll()">💾 Save All to Database</button></div></div><div class="admin-panel" id="panel-wn-topics"><div class="wn-admin-org-tabs"><button class="wn-org-tab active" id="wntadm-org-waec" onclick="selectWNAdmOrg('waec','topics')">📋 WAEC</button><button class="wn-org-tab" id="wntadm-org-neco" onclick="selectWNAdmOrg('neco','topics')">📋 NECO</button></div><div id="wn-t-step-subj"><div class="admin-section-title">Select Subject</div><div class="admin-subjects-grid" id="wn-t-subjects-grid"></div></div><div id="wn-t-step-topics" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><button onclick="closeWNTopicList()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="color:#fff;font-weight:700" id="wn-t-subj-name">Subject</div></div><div class="admin-section-title">Topics <span class="q-count-badge" id="wn-t-topics-count">0</span></div><div id="wn-t-topics-list"></div><button class="add-question-btn" style="margin-top:12px" onclick="wnAddTopic()">＋ Add Topic</button></div><div id="wn-t-step-content" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;margin-bottom:16px"><div><div style="background:rgba(224,123,0,.2);color:#f59e0b;font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-block">📖 Topic Notes</div><div style="color:#fff;font-weight:700;font-size:.9rem;margin-top:4px" id="wn-t-topic-name-label">Topic</div></div><button style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);padding:8px 14px;border-radius:12px;font-size:.75rem;cursor:pointer;font-family:inherit" onclick="closeWNTopicContent()">‹ Topics</button></div><div class="admin-section-title">Notes / Questions <span class="q-count-badge" id="wn-t-content-count">0</span></div><div class="question-list" id="wn-t-content-list"></div><button class="add-question-btn" onclick="wnAddTopicItem()">＋ Add Note / Question</button><button class="save-all-btn" onclick="wnSaveTopicContent()">💾 Save All</button></div></div><div class="admin-panel" id="panel-read-mode"><div id="rm-step-subj"><div class="admin-section-title">📄 Read Mode — Select Subject</div><div class="admin-subjects-grid" id="rm-subjects-grid"></div></div><div id="rm-step-topics" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><button onclick="closeRMTopics()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="color:#fff;font-weight:700" id="rm-subj-name">Subject</div></div><div class="admin-section-title">Topics <span class="q-count-badge" id="rm-topics-count">0</span></div><div id="rm-topics-list"></div><button class="add-question-btn" style="margin-top:12px" onclick="rmAddTopic()">＋ Add Topic</button></div><div id="rm-step-materials" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><button onclick="closeRMMaterials()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;font-weight:700">‹ Topics</button><div style="color:#fff;font-weight:700" id="rm-topic-name-label">Topic</div></div><div class="admin-section-title">Materials <span class="q-count-badge" id="rm-materials-count">0</span></div><div id="rm-materials-list"></div><button class="add-question-btn" onclick="rmAddMaterial()">＋ Add Material</button><button class="save-all-btn" onclick="rmSaveAll()">💾 Save All</button></div></div><div class="admin-panel" id="panel-syllabus"><div id="syl-step-subj"><div class="admin-section-title">📖 Syllabus — Select Subject</div><div class="admin-subjects-grid" id="syl-subjects-grid"></div></div><div id="syl-step-edit" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><button onclick="closeSylEdit()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="color:#fff;font-weight:700" id="syl-subj-name">Subject</div></div><div class="admin-section-title">Syllabus Content</div><textarea class="qf-textarea" id="syl-textarea" style="min-height:200px;font-size:.9rem;color:#fff;background:#0d1f3c;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;width:100%;resize:vertical" placeholder="Enter syllabus topics, one per line or as plain text..."></textarea><button class="save-all-btn" onclick="sylSave()">💾 Save Syllabus</button></div></div><div class="admin-panel" id="panel-analytics"><div class="admin-section-title">Result Analytics by Exam Type</div><div class="admin-analytics-grid"><div class="admin-analytics-card"><div class="aac-label">UTME Total</div><div class="aac-val" id="adm-utme-total">—</div></div><div class="admin-analytics-card"><div class="aac-label">WAEC Total</div><div class="aac-val" id="adm-waec-total">—</div></div><div class="admin-analytics-card"><div class="aac-label">NECO Total</div><div class="aac-val" id="adm-neco-total">—</div></div><div class="admin-analytics-card"><div class="aac-label">Avg Score (All)</div><div class="aac-val" id="adm-avg-score">—%</div></div></div><div class="admin-section-title">Recent Results <span>Latest 30</span></div><div id="adm-results-list"><div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No results yet</div></div></div></div></div></div>
-<div class="user-modal-overlay" id="user-modal-overlay" onclick="closeUserModal(event)"><div class="user-modal"><div class="modal-handle"></div><div class="modal-avatar" id="modal-avatar">U</div><div class="modal-name" id="modal-name">Username</div><div class="modal-email" id="modal-email">email</div><div class="modal-info-grid"><div class="modal-info-card"><div class="mic-label">Status</div><div class="mic-value" id="modal-status">—</div></div><div class="modal-info-card"><div class="mic-label">Joined</div><div class="mic-value" id="modal-joined">—</div></div></div><div class="modal-actions"><button class="modal-btn modal-btn-ban" id="modal-ban-btn" onclick="toggleBanUser()">🚫 Ban User</button><button class="modal-btn modal-btn-close" onclick="closeUserModal()">Close</button></div></div></div>
-<div class="admin-toast" id="admin-toast"></div>
-<script>
+<div class="user-modal-overlay" id="user-modal-overlay" onclick="closeUserModal(event)"><div class="user-modal"><div class="modal-handle"></div><div class="modal-avatar" id="modal-avatar">U</div><div class="modal-name" id="modal-name">Username</div><div class="modal-email" id="modal-email">email</div><div class="modal-info-grid"><div class="modal-info-card"><div class="mic-label">Status</div><div class="mic-value" id="modal-status">—</div></div><div class="modal-info-card"><div class="mic-label">Joined</div><div class="mic-value" id="modal-joined">—</div></div></div><div class="modal-actions"><button class="modal-btn modal-btn-ban" id="modal-ban-btn" onclick="toggleBanUser()">🚫 Ban User</button><button class="modal-btn modal-btn-close" 
+
 // ─── SUPABASE ───────────────────────────────────────────────────────────
 const sb = supabase.createClient(
   'https://rofssssxyxamolmkypqz.supabase.co',
@@ -590,38 +589,91 @@ function loadLocal(){
 }
 
 async function loadFromDB(){
+  // First load local data
   loadLocal();
+  
   try{
+    // Fetch ALL questions from Supabase
     const{data,error}=await sb.from('questions').select('*');
-    if(error||!data?.length)return;
+    if(error){
+      console.log('⚠️ DB error:', error);
+      return;
+    }
+    
+    if(!data || !data.length) {
+      console.log('📭 No questions in database');
+      return;
+    }
+    
+    console.log('📚 Loaded', data.length, 'questions from database');
+    
+    // Process each question row
     data.forEach(row=>{
-      let parsed;try{parsed=JSON.parse(row.data);}catch(e){parsed=[];}
-      if(!parsed||!parsed.length)return;
-      const{mode,subject_id:sid,year}=row;
-      if(mode==='cbt'){questions.cbt[sid]=parsed;}
-      else if(mode==='exam'){if(!questions.exam[sid])questions.exam[sid]={};questions.exam[sid][year]=parsed;}
-      else if(mode==='topic'){if(!topicQs[sid])topicQs[sid]={};topicQs[sid][year]=parsed;}
-      else if(mode==='wn-exam-waec'){if(!wnQs.waec[sid])wnQs.waec[sid]={};wnQs.waec[sid][year]=parsed;}
-      else if(mode==='wn-exam-neco'){if(!wnQs.neco[sid])wnQs.neco[sid]={};wnQs.neco[sid][year]=parsed;}
-      else if(mode==='wn-topic-waec'){if(!wnTopics.waec[sid])wnTopics.waec[sid]={};wnTopics.waec[sid][year]=parsed;}
-      else if(mode==='wn-topic-neco'){if(!wnTopics.neco[sid])wnTopics.neco[sid]={};wnTopics.neco[sid][year]=parsed;}
-      else if(mode==='read-mode'){
-        if(parsed && parsed.length>0 && parsed[0] && typeof parsed[0]==='object'){
+      let parsed;
+      try{ parsed = JSON.parse(row.data); } 
+      catch(e){ 
+        console.log('⚠️ Failed to parse row:', row.id);
+        return; 
+      }
+      
+      if(!parsed || !parsed.length) return;
+      
+      const { mode, subject_id: sid, year } = row;
+      
+      // Store in the correct location
+      if(mode === 'cbt'){
+        questions.cbt[sid] = parsed;
+      }
+      else if(mode === 'exam'){
+        if(!questions.exam[sid]) questions.exam[sid] = {};
+        questions.exam[sid][year] = parsed;
+      }
+      else if(mode === 'topic'){
+        if(!topicQs[sid]) topicQs[sid] = {};
+        topicQs[sid][year] = parsed;
+      }
+      else if(mode === 'wn-exam-waec'){
+        if(!wnQs.waec[sid]) wnQs.waec[sid] = {};
+        wnQs.waec[sid][year] = parsed;
+      }
+      else if(mode === 'wn-exam-neco'){
+        if(!wnQs.neco[sid]) wnQs.neco[sid] = {};
+        wnQs.neco[sid][year] = parsed;
+      }
+      else if(mode === 'wn-topic-waec'){
+        if(!wnTopics.waec[sid]) wnTopics.waec[sid] = {};
+        wnTopics.waec[sid][year] = parsed;
+      }
+      else if(mode === 'wn-topic-neco'){
+        if(!wnTopics.neco[sid]) wnTopics.neco[sid] = {};
+        wnTopics.neco[sid][year] = parsed;
+      }
+      else if(mode === 'read-mode'){
+        if(parsed && parsed.length > 0 && parsed[0] && typeof parsed[0] === 'object'){
           readModeData[sid] = parsed[0];
           if(!readModeData[sid].topics) readModeData[sid].topics = {};
         } else {
           readModeData[sid] = {topics:{}};
         }
       }
-      else if(mode==='syllabus'){syllabi[sid]=parsed[0]||'';}
+      else if(mode === 'syllabus'){
+        syllabi[sid] = parsed[0] || '';
+      }
     });
-    lsSet('utme_questions',questions);
-    lsSet('utme_topic_qs',topicQs);
-    lsSet('wn_questions',wnQs);
-    lsSet('wn_topics',wnTopics);
-    lsSet('read_mode_data',readModeData);
-    lsSet('syllabi',syllabi);
-  }catch(e){}
+    
+    // Save to localStorage for offline use
+    lsSet('utme_questions', questions);
+    lsSet('utme_topic_qs', topicQs);
+    lsSet('wn_questions', wnQs);
+    lsSet('wn_topics', wnTopics);
+    lsSet('read_mode_data', readModeData);
+    lsSet('syllabi', syllabi);
+    
+    console.log('✅ Data synced to localStorage');
+    
+  } catch(e){
+    console.log('⚠️ Load error:', e);
+  }
 }
 
 async function dbUpsert(mode,sid,year,data){
@@ -629,11 +681,15 @@ async function dbUpsert(mode,sid,year,data){
   try{
     let conflict='mode,subject_id,year';
     const{error}=await sb.from('questions').upsert(payload,{onConflict:conflict});
-    if(error){await sb.from('questions').delete().match({mode,subject_id:sid,year:year||null});await sb.from('questions').insert(payload);}
+    if(error){
+      await sb.from('questions').delete().match({mode,subject_id:sid,year:year||null});
+      await sb.from('questions').insert(payload);
+    }
+    // Reload data after saving
+    await loadFromDB();
     return true;
-  }catch(e){return false;}
+  } catch(e){ return false; }
 }
-
 // ─── SPLASH ──────────────────────────────────────────────────────────────
 let _dotI=0,_dots=document.querySelectorAll('.dot');
 let _splash=setInterval(()=>{
