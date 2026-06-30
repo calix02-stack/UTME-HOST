@@ -994,8 +994,9 @@ async function sendResetEmail(){
   btn.disabled=true;btn.textContent='Sending...';err.style.display='none';
 
   try{
-    // Get current URL origin for redirect
-    const redirectUrl=window.location.origin+window.location.pathname;
+    // Build redirect URL - use current page URL (must match Supabase redirect URLs config)
+    const redirectUrl=window.location.href.split('#')[0].split('?')[0];
+    console.log('Sending reset email to:',email,'with redirect:',redirectUrl);
     const{error}=await sb.auth.resetPasswordForEmail(email,{
       redirectTo:redirectUrl
     });
@@ -1081,6 +1082,15 @@ async function submitNewPassword(){
   btn.disabled=true;btn.textContent='Updating...';err.style.display='none';
 
   try{
+    // First check if we have a valid session (required for updateUser)
+    const{data:sessionData}=await sb.auth.getSession();
+    if(!sessionData.session){
+      err.innerText='Your reset session has expired. Please request a new reset link.';
+      err.style.display='block';
+      btn.disabled=false;btn.textContent='Update Password';
+      return;
+    }
+
     const{error}=await sb.auth.updateUser({password:pw});
 
     if(error){
@@ -1092,8 +1102,10 @@ async function submitNewPassword(){
       err.innerText=msg;err.style.display='block';
     }else{
       alert('Password updated successfully! 🎉 Please sign in with your new password.');
-      // Sign out to clear the recovery session
+      // Sign out to clear the recovery session and redirect to login
       await sb.auth.signOut();
+      // Clear any remaining URL params
+      history.replaceState(null,null,window.location.pathname);
       showAuthPage();
     }
   }catch(e){
@@ -1104,16 +1116,44 @@ async function submitNewPassword(){
 }
 
 // ─── CHECK FOR PASSWORD RECOVERY FROM URL ───────────────────────────────
-function checkPasswordRecovery(){
+async function checkPasswordRecovery(){
   // Check URL hash for recovery tokens (Supabase sends #access_token=...&type=recovery)
   const hash=window.location.hash;
   const params=new URLSearchParams(hash.substring(1));
 
-  if(params.get('type')==='recovery'||params.get('type')==='invite'){
-    // Supabase will have already processed the token and set up the session
-    // We just need to show the reset page
-    showResetPage();
-    return true;
+  console.log('Checking password recovery. Hash:',hash);
+  console.log('Type param:',params.get('type'));
+  console.log('Access token present:',!!params.get('access_token'));
+
+  if(params.get('type')==='recovery' && params.get('access_token')){
+    // Supabase v2: We need to manually set the session from the URL tokens
+    // before updateUser will work
+    const access_token=params.get('access_token');
+    const refresh_token=params.get('refresh_token')||'';
+
+    try{
+      console.log('Setting session from recovery tokens...');
+      const{error:sessionError}=await sb.auth.setSession({
+        access_token:access_token,
+        refresh_token:refresh_token
+      });
+
+      if(sessionError){
+        console.error('Failed to set session:',sessionError);
+        showToast('Reset link expired or invalid. Please request a new one.',true);
+        return false;
+      }
+
+      console.log('Session set successfully. Showing reset page.');
+      // Clear the hash from URL for clean look
+      history.replaceState(null,null,window.location.pathname+window.location.search);
+      showResetPage();
+      return true;
+    }catch(e){
+      console.error('Error setting session:',e);
+      showToast('Invalid reset link. Please request a new one.',true);
+      return false;
+    }
   }
 
   // Also check query params (some Supabase configs use query instead of hash)
@@ -1131,7 +1171,8 @@ async function init(){
   loadLocal();
 
   // Check if user arrived from password recovery email
-  if(checkPasswordRecovery()){
+  const isRecovery=await checkPasswordRecovery();
+  if(isRecovery){
     document.getElementById('splash').style.display='none';
     return;
   }
