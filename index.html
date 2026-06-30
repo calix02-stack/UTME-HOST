@@ -509,6 +509,42 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 .copy-target{background:#0d1f3c;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;font-size:.82rem;color:rgba(255,255,255,.7);font-family:'Fira Code','Consolas',monospace;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto}
 [data-theme=dark] .copy-target{background:#0a1628}
 .copy-wrap .copy-target{padding-top:36px}
+
+/* Install App Button */
+.install-btn{background:linear-gradient(135deg,#00c49a,#00a07d);border:1px solid rgba(0,196,154,.4);color:#fff;padding:9px 14px;border-radius:20px;cursor:pointer;font-weight:700;font-size:.78rem;display:none;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,196,154,.25);transition:all .2s}
+.install-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,196,154,.35)}
+.install-btn:active{transform:scale(.96)}
+.install-btn.visible{display:flex}
+.install-btn .install-icon{font-size:1rem}
+
+/* Install Prompt Modal */
+.install-modal-overlay{display:none;position:fixed;inset:0;z-index:950;background:rgba(10,15,30,.75);align-items:flex-end;justify-content:center}
+.install-modal-overlay.visible{display:flex}
+.install-modal{background:var(--card);border-radius:28px 28px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;border-top:1px solid var(--border);animation:slideUp .3s ease}
+.install-modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+.install-modal-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.3rem;color:var(--text);text-align:center;margin-bottom:8px}
+.install-modal-sub{text-align:center;font-size:.85rem;color:var(--sub);margin-bottom:20px;line-height:1.5}
+.install-modal-actions{display:flex;gap:10px;margin-bottom:16px}
+.install-modal-btn{flex:1;padding:14px;border-radius:16px;font-weight:700;font-size:.9rem;cursor:pointer;font-family:inherit;border:none;transition:all .15s}
+.install-modal-btn.install{background:linear-gradient(135deg,#1a4fd6,#0e6fc9);color:#fff;box-shadow:0 4px 14px rgba(26,79,214,.3)}
+.install-modal-btn.install:active{transform:scale(.97)}
+.install-modal-btn.later{background:var(--surface);border:1.5px solid var(--border);color:var(--sub)}
+.install-modal-btn.later:active{transform:scale(.97)}
+.install-modal-footer{text-align:center;font-size:.72rem;color:var(--sub);opacity:.7}
+
+/* iOS Instructions */
+.ios-instructions{display:none;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px}
+.ios-instructions.visible{display:block}
+.ios-instructions-title{font-weight:700;font-size:.85rem;color:var(--text);margin-bottom:10px;text-align:center}
+.ios-step{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:.8rem;color:var(--sub)}
+.ios-step-num{width:24px;height:24px;border-radius:50%;background:var(--accent-light);color:var(--accent);font-weight:800;font-size:.7rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ios-step-text{flex:1}
+
+/* Hide install button when in standalone mode */
+@media all and (display-mode: standalone){
+  .install-btn{display:none !important}
+}
+
 </style>
 <link rel="manifest" href="https://progressier.app/HuEzcsrNBFarsHTtIeat/progressier.json"/>
 <script defer src="https://progressier.app/HuEzcsrNBFarsHTtIeat/script.js"></script>
@@ -519,7 +555,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 <div id="subject-picker"><div class="picker-header"><div class="picker-back" onclick="closePicker()">‹ Back</div><div class="picker-mode-badge" id="picker-mode-badge">💻 CBT Mode</div><div class="picker-title" id="picker-title">Pick Your Subjects</div><div class="picker-sub" id="picker-sub">Select exactly 4 subjects</div></div><div class="picker-body"><div class="counter-bar" id="counter-bar"><div class="counter-left"><div><div class="counter-num"><span id="sel-count">0</span><span id="sel-max">/4</span></div><div class="counter-label" id="counter-label">subjects selected</div><div class="counter-dots" id="counter-dots"><div class="counter-dot" id="dot-1"></div><div class="counter-dot" id="dot-2"></div><div class="counter-dot" id="dot-3"></div><div class="counter-dot" id="dot-4"></div></div></div></div><button class="start-btn" id="start-btn" disabled onclick="startSession()">Start →</button></div><div class="picker-info"><span class="picker-info-icon">ℹ️</span><div class="picker-info-text" id="picker-info-text"><b>English Language is required</b>Choose 3 more subjects.</div></div><div class="year-picker-section" id="year-picker-section" style="display:none"><label class="year-picker-label">📅 Select Year <span style="color:#e03c3c;font-size:.7rem">(Required)</span></label><select class="year-select" id="exam-year-select" onchange="updateCounter()"><option value="">— Choose exam year —</option></select></div><div class="subjects-grid" id="subjects-grid"></div></div></div>
 <div id="exam-session"><div class="exam-topbar"><div class="exam-back-btn" onclick="exitExam()">‹</div><div class="exam-topbar-center"><div class="exam-subject-name" id="exam-subject-name">Mathematics</div><div class="exam-mode-tag" id="exam-mode-tag">⏰ EXAM MODE</div></div><div class="exam-timer" id="exam-timer"><div class="exam-timer-num" id="exam-timer-num">30:00</div><div class="exam-timer-label">Remaining</div></div></div><div class="cbt-subjects-bar" id="cbt-subjects-bar" style="display:none"></div><div class="exam-progress-strip"><div class="exam-progress-bar"><div class="exam-progress-fill" id="exam-progress-fill" style="width:0%"></div></div><div class="exam-progress-text" id="exam-progress-text">0 / 0</div></div><div class="exam-q-nav" id="exam-q-nav"></div><div class="exam-body" id="exam-body"></div><div class="exam-action-bar" id="exam-action-bar"><button class="exam-prev-btn" id="exam-prev-btn" onclick="goToPrev()">← Prev</button><button class="exam-next-btn" id="exam-next-btn" onclick="goToNext()">Next →</button></div></div>
 <div class="results-overlay" id="results-overlay"><div class="results-card"><div class="results-handle"></div><div class="results-subject-label" id="res-subject-label">Mathematics</div><div class="results-title" id="res-title">Session Complete! 🎉</div><div class="results-score-ring" id="res-score-ring"><svg viewBox="0 0 120 120" width="120" height="120"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fill" id="ring-fill-circle" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg><div class="results-score-num" id="res-score-num">0</div><div class="results-score-denom" id="res-score-denom">out of 0</div></div><div class="results-stats"><div class="res-stat"><div class="res-stat-num rs-correct" id="res-correct">0</div><div class="res-stat-label">Correct ✓</div></div><div class="res-stat"><div class="res-stat-num rs-wrong" id="res-wrong">0</div><div class="res-stat-label">Wrong ✗</div></div><div class="res-stat"><div class="res-stat-num rs-skipped" id="res-skipped">0</div><div class="res-stat-label">Skipped —</div></div></div><div class="results-message" id="res-message">Keep practising!</div><div class="results-actions"><button class="res-btn-retry" onclick="retryExam()">🔁 Retry</button><button class="res-btn-review" onclick="reviewAnswers()">📋 Review Answers</button></div></div></div>
-<div id="main-site"><div class="top-header"><div class="header-left"><div class="header-greeting">Good day 👋</div><div class="user-name" id="user-display">Hi, User</div></div><div class="header-right"><div class="admin-btn" id="admin-btn" onclick="openAdmin()">⚙️ Admin</div><div class="login-btn" id="login-btn" onclick="showAuthPage()">Login / Signup</div></div></div><div id="home-page"><div class="home-stats-bar" id="home-stats-bar"><div class="hsb-card"><div class="hsb-num" id="hstat-attempts">0</div><div class="hsb-label">Sessions</div></div><div class="hsb-card"><div class="hsb-num" id="hstat-bestscore">—</div><div class="hsb-label">Best Score</div></div><div class="hsb-card"><div class="hsb-num" id="hstat-streak">0🔥</div><div class="hsb-label">Day Streak</div></div></div><div class="section-title">Study Modes</div><div class="study-grid"><div class="study-btn" onclick="openPicker('cbt')"><span class="big-icon">💻</span>CBT Mode<span class="btn-tag tag-blue">4 Subjects</span></div><div class="study-btn" onclick="openPicker('exam')"><span class="big-icon">⏰</span>Exam Mode<span class="btn-tag tag-orange">1 Subject</span></div><div class="study-btn" onclick="openReadMode()"><span class="big-icon">📚</span>Read Mode<span class="btn-tag tag-green">Learn</span></div><div class="study-btn" onclick="openSyllabus()"><span class="big-icon">📖</span>Syllabus<span class="btn-tag tag-blue">Guide</span></div><div class="study-btn full" onclick="openTopicPractice()"><span class="big-icon">🎯</span><div class="btn-detail">Topic-Based Practice<span>Focus on one topic at a time</span></div><span class="btn-arrow">›</span></div><div class="study-btn full" onclick="openWAECNECO()" style="background:linear-gradient(135deg,#fff4e6,#ffe8cc);border-color:#ffd599;"><span class="big-icon">🏫</span><div class="btn-detail" style="color:#7a3a00;">WAEC / NECO Practice<span style="color:#a05000;">Past Questions & Topic Reading</span></div><span class="btn-arrow" style="color:#7a3a00;">›</span></div></div></div><div id="menu-page" style="display:none;padding:10px 16px 100px;"><div class="section-title" style="margin-top:8px">Menu</div><div class="section-label">Connect With Us</div><div class="social-row"><div class="social-chip sc-wa"><span class="s-icon">💬</span>WhatsApp</div><div class="social-chip sc-tg"><span class="s-icon">✈️</span>Telegram</div><div class="social-chip sc-fb"><span class="s-icon">📘</span>Facebook</div><div class="social-chip sc-ig"><span class="s-icon">📷</span>Instagram</div><div class="social-chip sc-tt"><span class="s-icon">🎵</span>TikTok</div></div><div class="section-label">Settings</div><div class="toggle-card"><div class="toggle-row"><div class="tr-left"><div class="tr-icon c-navy">🌙</div><div><div class="tr-label">Dark Mode</div><div class="tr-sub">Switch app appearance</div></div></div><label class="ios-toggle"><input type="checkbox" id="dark-toggle" onchange="toggleDark()"><span class="ios-slider"></span></label></div></div><div style="margin-top:10px"><div class="chevron-row"><div class="cr-icon c-green">🛡️</div><div class="cr-text"><div class="cr-label">Privacy Policy</div><div class="cr-sub">How we protect your data</div></div><span class="cr-arrow">›</span></div><div class="chevron-row"><div class="cr-icon c-gray">📜</div><div class="cr-text"><div class="cr-label">Terms & Conditions</div><div class="cr-sub">Our usage agreement</div></div><span class="cr-arrow">›</span></div></div><div class="logout-btn" onclick="logout()">🚪 Sign Out</div></div><div id="analytics-page"><div class="section-title" style="margin-top:8px;padding:10px 16px 0">📊 Leaderboard & Analytics</div><div style="padding:0 16px 100px"><div class="analytics-card"><div class="analytics-title">🏆 UTME CBT Rankings</div><div id="cbt-leaderboard-list"><div class="analytics-empty">Loading…</div></div></div><div class="analytics-card"><div class="analytics-title">🏆 WAEC Exam Rankings</div><div id="waec-leaderboard-list"><div class="analytics-empty">No WAEC data yet.</div></div></div><div class="analytics-card"><div class="analytics-title">🏆 NECO Exam Rankings</div><div id="neco-leaderboard-list"><div class="analytics-empty">No NECO data yet.</div></div></div><div class="analytics-card"><div class="analytics-title">📚 Subject Averages (UTME)</div><div id="cbt-subject-bars"><div class="analytics-empty">No data yet.</div></div></div></div></div><div id="profile-page"><div style="color:var(--sub);text-align:center;padding:40px">Loading profile...</div></div><div class="bottom-nav"><div class="nav-item active" id="nav-home" onclick="showPage('home-page')"><span class="nav-icon">🏠</span>Home<div class="nav-pill"></div></div><div class="nav-item" id="nav-analytics" onclick="showPage('analytics-page')"><span class="nav-icon">📊</span>Analytics<div class="nav-pill"></div></div><div class="nav-item" id="nav-profile" onclick="showPage('profile-page')"><span class="nav-icon">👤</span>Profile<div class="nav-pill"></div></div><div class="nav-item" id="nav-menu" onclick="showPage('menu-page')"><span class="nav-icon">⚙️</span>Menu<div class="nav-pill"></div></div></div></div>
+<div id="main-site"><div class="top-header"><div class="header-left"><div class="header-greeting">Good day 👋</div><div class="user-name" id="user-display">Hi, User</div></div><div class="header-right"><button class="install-btn" id="install-btn" onclick="showInstallPrompt()"><span class="install-icon">📲</span>Install App</button><div class="admin-btn" id="admin-btn" onclick="openAdmin()">⚙️ Admin</div><div class="login-btn" id="login-btn" onclick="showAuthPage()">Login / Signup</div></div></div><div id="home-page"><div class="home-stats-bar" id="home-stats-bar"><div class="hsb-card"><div class="hsb-num" id="hstat-attempts">0</div><div class="hsb-label">Sessions</div></div><div class="hsb-card"><div class="hsb-num" id="hstat-bestscore">—</div><div class="hsb-label">Best Score</div></div><div class="hsb-card"><div class="hsb-num" id="hstat-streak">0🔥</div><div class="hsb-label">Day Streak</div></div></div><div class="section-title">Study Modes</div><div class="study-grid"><div class="study-btn" onclick="openPicker('cbt')"><span class="big-icon">💻</span>CBT Mode<span class="btn-tag tag-blue">4 Subjects</span></div><div class="study-btn" onclick="openPicker('exam')"><span class="big-icon">⏰</span>Exam Mode<span class="btn-tag tag-orange">1 Subject</span></div><div class="study-btn" onclick="openReadMode()"><span class="big-icon">📚</span>Read Mode<span class="btn-tag tag-green">Learn</span></div><div class="study-btn" onclick="openSyllabus()"><span class="big-icon">📖</span>Syllabus<span class="btn-tag tag-blue">Guide</span></div><div class="study-btn full" onclick="openTopicPractice()"><span class="big-icon">🎯</span><div class="btn-detail">Topic-Based Practice<span>Focus on one topic at a time</span></div><span class="btn-arrow">›</span></div><div class="study-btn full" onclick="openWAECNECO()" style="background:linear-gradient(135deg,#fff4e6,#ffe8cc);border-color:#ffd599;"><span class="big-icon">🏫</span><div class="btn-detail" style="color:#7a3a00;">WAEC / NECO Practice<span style="color:#a05000;">Past Questions & Topic Reading</span></div><span class="btn-arrow" style="color:#7a3a00;">›</span></div></div></div><div id="menu-page" style="display:none;padding:10px 16px 100px;"><div class="section-title" style="margin-top:8px">Menu</div><div class="section-label">Connect With Us</div><div class="social-row"><div class="social-chip sc-wa"><span class="s-icon">💬</span>WhatsApp</div><div class="social-chip sc-tg"><span class="s-icon">✈️</span>Telegram</div><div class="social-chip sc-fb"><span class="s-icon">📘</span>Facebook</div><div class="social-chip sc-ig"><span class="s-icon">📷</span>Instagram</div><div class="social-chip sc-tt"><span class="s-icon">🎵</span>TikTok</div></div><div class="section-label">Settings</div><div class="toggle-card"><div class="toggle-row"><div class="tr-left"><div class="tr-icon c-navy">🌙</div><div><div class="tr-label">Dark Mode</div><div class="tr-sub">Switch app appearance</div></div></div><label class="ios-toggle"><input type="checkbox" id="dark-toggle" onchange="toggleDark()"><span class="ios-slider"></span></label></div></div><div style="margin-top:10px"><div class="chevron-row"><div class="cr-icon c-green">🛡️</div><div class="cr-text"><div class="cr-label">Privacy Policy</div><div class="cr-sub">How we protect your data</div></div><span class="cr-arrow">›</span></div><div class="chevron-row"><div class="cr-icon c-gray">📜</div><div class="cr-text"><div class="cr-label">Terms & Conditions</div><div class="cr-sub">Our usage agreement</div></div><span class="cr-arrow">›</span></div></div><div class="logout-btn" onclick="logout()">🚪 Sign Out</div></div><div id="analytics-page"><div class="section-title" style="margin-top:8px;padding:10px 16px 0">📊 Leaderboard & Analytics</div><div style="padding:0 16px 100px"><div class="analytics-card"><div class="analytics-title">🏆 UTME CBT Rankings</div><div id="cbt-leaderboard-list"><div class="analytics-empty">Loading…</div></div></div><div class="analytics-card"><div class="analytics-title">🏆 WAEC Exam Rankings</div><div id="waec-leaderboard-list"><div class="analytics-empty">No WAEC data yet.</div></div></div><div class="analytics-card"><div class="analytics-title">🏆 NECO Exam Rankings</div><div id="neco-leaderboard-list"><div class="analytics-empty">No NECO data yet.</div></div></div><div class="analytics-card"><div class="analytics-title">📚 Subject Averages (UTME)</div><div id="cbt-subject-bars"><div class="analytics-empty">No data yet.</div></div></div></div></div><div id="profile-page"><div style="color:var(--sub);text-align:center;padding:40px">Loading profile...</div></div><div class="bottom-nav"><div class="nav-item active" id="nav-home" onclick="showPage('home-page')"><span class="nav-icon">🏠</span>Home<div class="nav-pill"></div></div><div class="nav-item" id="nav-analytics" onclick="showPage('analytics-page')"><span class="nav-icon">📊</span>Analytics<div class="nav-pill"></div></div><div class="nav-item" id="nav-profile" onclick="showPage('profile-page')"><span class="nav-icon">👤</span>Profile<div class="nav-pill"></div></div><div class="nav-item" id="nav-menu" onclick="showPage('menu-page')"><span class="nav-icon">⚙️</span>Menu<div class="nav-pill"></div></div></div></div>
 <div id="read-page"><div class="picker-header"><div class="picker-back" onclick="closeReadMode()">‹ Back</div><div class="picker-mode-badge">📚 Read Mode</div><div class="picker-title">Study Materials & Topics</div><div class="picker-sub">Select a subject to view its topics and materials</div></div><div class="picker-body"><div id="read-subject-list" class="read-subject-grid"></div><div id="read-content-area" style="display:none"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><button onclick="closeReadContent()" style="background:none;border:none;color:var(--accent);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.2rem;color:var(--text)" id="read-subj-title">Subject</div></div><div style="margin-bottom:20px"><div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:.9rem;color:var(--text);margin-bottom:10px">📚 Topics</div><div id="read-topics-list"></div></div><div class="read-materials-section" id="read-materials-section" style="display:none"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><button onclick="closeTopicMaterials()" style="background:none;border:none;color:var(--accent);font-size:.8rem;cursor:pointer;font-weight:600">‹ Back to topics</button><div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:.9rem;color:var(--text)" id="read-topic-title">Topic</div></div><div id="read-materials-list"></div></div></div></div></div>
 <div class="material-detail-overlay" id="material-detail-overlay" onclick="closeMaterialDetail(event)"><div class="material-detail-card"><button class="md-close" onclick="closeMaterialDetail()">✕</button><div class="md-title" id="md-title">Material Title</div><div id="md-content" style="white-space:pre-wrap;font-size:.9rem;color:var(--text);margin-top:10px"></div></div></div>
 <div id="syllabus-page"><div class="picker-header"><div class="picker-back" onclick="closeSyllabus()">‹ Back</div><div class="picker-mode-badge">📖 Syllabus</div><div class="picker-title">Subject Syllabi</div><div class="picker-sub">Official syllabi uploaded by admin</div></div><div class="picker-body" id="syllabus-body"></div></div>
@@ -700,6 +736,134 @@ let _splash=setInterval(()=>{
   if(_dotI>=5){clearInterval(_splash);init();}
 },600);
 
+
+// ─── PWA INSTALL BUTTON ─────────────────────────────────────────────────
+let deferredPrompt = null;
+let isIOS = false;
+let isStandalone = false;
+
+// Check if running as installed PWA
+function checkStandalone(){
+  isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+    || window.navigator.standalone === true
+    || document.referrer.includes('android-app://');
+  return isStandalone;
+}
+
+// Check if iOS
+function checkIOS(){
+  const ua = window.navigator.userAgent.toLowerCase();
+  isIOS = /iphone|ipad|ipod/.test(ua);
+  return isIOS;
+}
+
+// Listen for beforeinstallprompt event
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallButton();
+});
+
+// Show install button
+function showInstallButton(){
+  if(checkStandalone()) return;
+  const btn = document.getElementById('install-btn');
+  if(btn) btn.classList.add('visible');
+}
+
+// Show install prompt/modal
+function showInstallPrompt(){
+  if(checkStandalone()) return;
+
+  const overlay = document.getElementById('install-modal-overlay');
+  const installBtn = document.getElementById('install-modal-install-btn');
+  const iosInstructions = document.getElementById('ios-instructions');
+
+  if(!overlay) return;
+
+  checkIOS();
+
+  if(isIOS){
+    // iOS doesn't support beforeinstallprompt - show manual instructions
+    if(installBtn) installBtn.style.display = 'none';
+    if(iosInstructions) iosInstructions.classList.add('visible');
+  } else {
+    // Android/Desktop - show install button
+    if(installBtn) installBtn.style.display = 'block';
+    if(iosInstructions) iosInstructions.classList.remove('visible');
+
+    if(!deferredPrompt){
+      // No deferred prompt available - might be already installed or not eligible
+      if(installBtn){
+        installBtn.textContent = 'Open in Browser';
+        installBtn.onclick = () => {
+          showToast('Please use your browser menu to install this app');
+          closeInstallModal();
+        };
+      }
+    }
+  }
+
+  overlay.classList.add('visible');
+}
+
+// Trigger native install
+async function triggerInstall(){
+  if(!deferredPrompt){
+    showToast('Installation not available. Use your browser menu.');
+    closeInstallModal();
+    return;
+  }
+
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+
+  if(outcome === 'accepted'){
+    showToast('App installed successfully! 🎉');
+    hideInstallButton();
+  } else {
+    showToast('Installation cancelled');
+  }
+
+  deferredPrompt = null;
+  closeInstallModal();
+}
+
+// Close install modal
+function closeInstallModal(e){
+  if(e && e.target !== document.getElementById('install-modal-overlay')) return;
+  const overlay = document.getElementById('install-modal-overlay');
+  if(overlay) overlay.classList.remove('visible');
+}
+
+// Hide install button
+function hideInstallButton(){
+  const btn = document.getElementById('install-btn');
+  if(btn) btn.classList.remove('visible');
+}
+
+// Check install eligibility on load
+window.addEventListener('load', () => {
+  checkStandalone();
+  checkIOS();
+
+  // Show button if not standalone and not already dismissed
+  if(!isStandalone && !localStorage.getItem('install_dismissed')){
+    // For iOS, always show since they need manual install
+    if(isIOS){
+      setTimeout(showInstallButton, 2000);
+    }
+    // For others, beforeinstallprompt will trigger showInstallButton
+  }
+});
+
+// Track dismissal
+function dismissInstall(){
+  localStorage.setItem('install_dismissed', 'true');
+  hideInstallButton();
+}
+
+
 async function init(){
   loadLocal();
   let userData=null;
@@ -735,18 +899,47 @@ async function handleAuth(){
     if(loginMode){
       let iden=document.getElementById('auth-identifier').value.trim();if(!iden){showAE('Enter your email or username.');return;}
       let email=iden;
-      if(!iden.includes('@')){const{data}=await sb.from('profiles').select('email').ilike('username',iden).single();if(!data){showAE('No account found with that username.');return;}email=data.email;}
+      if(!iden.includes('@')){
+        try{
+          const{data,error:dbErr}=await sb.from('profiles').select('email').ilike('username',iden).single();
+          if(dbErr||!data){showAE('No account found with that username.');return;}
+          email=data.email;
+        }catch(e){showAE('Unable to verify username. Please use your email instead.');return;}
+      }
       const{error}=await sb.auth.signInWithPassword({email,password:pw});
-      if(error){showAE(error.message||'Login failed.');}else{hideAuthPage();init();}
+      if(error){
+        let msg='Login failed. Please check your credentials.';
+        if(error&&typeof error==='object'){
+          msg=error.message||error.msg||error.error_description||error.error||msg;
+          if(!msg||msg==='{}'||msg==='[object Object]')msg='Invalid login credentials. Please try again.';
+        }
+        showAE(msg);
+      }else{hideAuthPage();init();}
     }else{
       const email=document.getElementById('auth-email').value.trim(),username=document.getElementById('auth-username').value.trim();
       if(!email||!username){showAE('Fill in all fields.');return;}
       const{data,error}=await sb.auth.signUp({email,password:pw,options:{data:{username}}});
-      if(error){showAE(error.message||'Sign up failed.');}else{try{await sb.from('profiles').insert({id:data.user.id,email,username});}catch(e){}alert('Account created! Please sign in.');switchAuth();}
+      if(error){
+        let msg='Sign up failed. Please try again.';
+        if(error&&typeof error==='object'){
+          msg=error.message||error.msg||error.error_description||error.error||msg;
+          if(!msg||msg==='{}'||msg==='[object Object]')msg='Unable to create account. Email may already exist.';
+        }
+        showAE(msg);
+      }else{try{await sb.from('profiles').insert({id:data.user.id,email,username});}catch(e){}alert('Account created! Please sign in.');switchAuth();}
     }
   }finally{btn.disabled=false;btn.textContent=loginMode?'Sign In':'Create Account';}
 }
-function showAE(m){const b=document.getElementById('auth-error');b.innerText=m;b.style.display='block';}
+function showAE(m){
+  const b=document.getElementById('auth-error');
+  let msg=m;
+  if(typeof msg==='object'&&msg!==null){
+    msg=msg.message||msg.msg||msg.error_description||msg.error||JSON.stringify(msg);
+    if(!msg||msg==='{}'||msg==='null'||msg==='[object Object]')msg='An error occurred. Please try again.';
+  }
+  b.innerText=String(msg||'An error occurred.');
+  b.style.display='block';
+}
 async function logout(){await sb.auth.signOut();location.reload();}
 
 function showPage(id){
@@ -1727,16 +1920,7 @@ function teSaveQ(i){if(saveQFromForm('te',i,getTEQs())){lsSet('utme_topic_qs',to
 function teCancelQ(i){const f=document.getElementById('teqf-'+i);if(f)f.style.display='none';teEditIdx=-1;}
 function wnSaveQ(i){if(saveQFromForm('wn',i,getWNQs())){lsSet('wn_questions',wnQs);wnadmEditIdx=-1;renderWNQList();showToast('Saved ✓');}}
 function wnCancelQ(i){const f=document.getElementById('wnqf-'+i);if(f)f.style.display='none';wnadmEditIdx=-1;}
-</script>
-</body>
-</html>
 
-
-
-
-Copya and paste this code between the head head tag of the html
-<link rel="manifest" href="https://progressier.app/HuEzcsrNBFarsHTtIeat/progressier.json"/>
-<script defer src="https://progressier.app/HuEzcsrNBFarsHTtIeat/script.js">
 // ─── COPY TO CLIPBOARD ──────────────────────────────────────────────────
 function copyToClipboard(btn, targetId){
   const target = document.getElementById(targetId);
@@ -1771,3 +1955,32 @@ function createCopyable(text, label){
 }
 </script>
 
+
+</script>
+
+
+<!-- Install App Modal -->
+<div class="install-modal-overlay" id="install-modal-overlay" onclick="closeInstallModal(event)">
+  <div class="install-modal">
+    <div class="install-modal-handle"></div>
+    <div class="install-modal-title">📲 Install My UTME</div>
+    <div class="install-modal-sub">Add this app to your home screen for quick access — no browser needed!</div>
+
+    <!-- iOS Instructions -->
+    <div class="ios-instructions" id="ios-instructions">
+      <div class="ios-instructions-title">iPhone / iPad Users</div>
+      <div class="ios-step"><div class="ios-step-num">1</div><div class="ios-step-text">Tap the <b>Share</b> button <span style="font-size:1.1rem">⎋</span> in Safari's toolbar</div></div>
+      <div class="ios-step"><div class="ios-step-num">2</div><div class="ios-step-text">Scroll down and tap <b>"Add to Home Screen"</b></div></div>
+      <div class="ios-step"><div class="ios-step-num">3</div><div class="ios-step-text">Tap <b>Add</b> in the top right corner</div></div>
+    </div>
+
+    <div class="install-modal-actions">
+      <button class="install-modal-btn later" onclick="dismissInstall();closeInstallModal()">Not Now</button>
+      <button class="install-modal-btn install" id="install-modal-install-btn" onclick="triggerInstall()">Install Now</button>
+    </div>
+    <div class="install-modal-footer">Works on Android, iPhone & Desktop</div>
+  </div>
+</div>
+
+</body>
+</html>
