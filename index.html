@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My UTME · Enzo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<meta name="theme-color" content="#1a4fd6">
+<style>
+:root{--bg:#f0f4ff;--card:#fff;--text:#0d1b3e;--sub:#6b7a99;--border:#e8edf8;--accent:#1a4fd6;--accent-light:#dde8ff;--accent2:#00c49a;--accent2-light:#d0f5ec;--danger:#e03c3c;--surface:#f7f9ff;--shadow:rgba(26,79,214,.10);--nav-h:70px}
+[data-theme=dark]{--bg:#0a0f1e;--card:#111827;--text:#e8edf8;--sub:#8a9bb8;--border:#1e2a42;--accent:#4f87ff;--accent-light:#1a2744;--accent2:#00d4a7;--accent2-light:#0d2b24;--danger:#f06060;--surface:#0f172a;--shadow:rgba(0,0,0,.35)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
+#splash{background:linear-gradient(160deg,#0f2a7a 0%,#1a4fd6 55%,#0e9f7e 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;color:#fff;position:fixed;width:100%;z-index:1000}
+.splash-badge{width:84px;height:84px;background:rgba(255,255,255,.15);border:2.5px solid rgba(255,255,255,.35);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;backdrop-filter:blur(12px);animation:float 3s ease-in-out infinite;margin-bottom:10px}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.splash-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:2.6rem;letter-spacing:-.5px;color:#fff}
+.splash-title span{color:rgba(255,255,255,.6);font-weight:400;font-size:1rem;display:block;text-align:center;letter-spacing:3px;text-transform:uppercase;margin-top:2px}
+.score-ring{width:110px;height:110px;border-radius:50%;border:3px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:28px 0;position:relative}
+.score-ring::before{content:'';position:absolute;inset:-3px;border-radius:50%;border:3px solid transparent;border-top-color:#fff;border-right-color:rgba(255,255,255,.5);animation:spin 2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.score-num{font-size:2rem;font-weight:900;line-height:1}
+.score-label{font-size:.65rem;opacity:.7;text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
+.loading-text{font-size:.78rem;color:rgba(255,255,255,.65);margin-bottom:12px;text-align:center}
+.dots-container{display:flex;gap:8px;justify-content:center}
+.dot{width:8px;height:8px;background:rgba(255,255,255,.25);border-radius:50%;transition:all .3s}
+.dot.active{background:#fff;transform:scale(1.4);box-shadow:0 0 8px rgba(255,255,255,.7)}
+.splash-footer{position:absolute;bottom:28px;text-align:center;font-size:.73rem;color:rgba(255,255,255,.4)}
+.splash-footer b{color:rgba(255,255,255,.75);display:block;margin-bottom:3px;font-size:.8rem}
+#auth-page{display:none;min-height:100vh;background:var(--bg);padding:20px}
+#auth-page.visible{display:flex;align-items:center;justify-content:center}
+.auth-card{background:var(--card);padding:36px 32px;border-radius:28px;width:100%;max-width:400px;box-shadow:0 8px 40px var(--shadow);border:1px solid var(--border)}
+.auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.auth-brand-icon{width:44px;height:44px;background:linear-gradient(135deg,#1a4fd6,#0e9f7e);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.3rem}
+.auth-brand-text{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.2rem;color:var(--accent)}
+.auth-brand-text small{display:block;font-size:.68rem;font-weight:500;color:var(--sub);margin-top:-2px}
+.auth-card h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:6px}
+.auth-sub{font-size:.85rem;color:var(--sub);margin-bottom:24px}
+.auth-label{font-size:.75rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:block}
+.auth-field{margin-bottom:16px}
+.auth-input{width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);font-size:.95rem;font-family:inherit;transition:border-color .2s,box-shadow .2s;outline:none}
+.auth-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.pw-wrap{position:relative}
+.pw-wrap .auth-input{padding-right:50px}
+.pw-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--sub);padding:4px}
+.auth-btn{width:100%;padding:15px;background:linear-gradient(135deg,#1a4fd6,#0e6fc9);color:#fff;border:none;border-radius:14px;cursor:pointer;font-weight:700;font-size:1rem;font-family:inherit;margin-top:6px;box-shadow:0 4px 16px rgba(26,79,214,.35);transition:opacity .2s,transform .15s}
+.auth-btn:active{transform:scale(.98)}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed}
+.auth-link{text-align:center;margin-top:18px;color:var(--sub);font-size:.88rem}
+.auth-link span{color:var(--accent);cursor:pointer;font-weight:600}
+.forgot{text-align:right;font-size:.82rem;color:var(--accent);cursor:pointer;margin-top:8px;font-weight:500}
+.auth-error{background:#fef2f2;color:#c0392b;padding:12px 14px;border-radius:12px;margin:12px 0;font-size:.84rem;line-height:1.5;display:none;border:1px solid #fecaca}
+.auth-hint{font-size:.73rem;color:var(--sub);margin-top:5px;padding-left:2px}
+#main-site{display:none;padding-bottom:var(--nav-h)}
+.top-header{background:linear-gradient(135deg,#0f2a7a 0%,#1a4fd6 100%);padding:20px 20px 28px;display:flex;justify-content:space-between;align-items:center;color:#fff;position:relative;overflow:hidden}
+.top-header::after{content:'';position:absolute;bottom:-30px;left:0;right:0;height:50px;background:var(--bg);border-radius:28px 28px 0 0}
+.header-left{z-index:1}
+.header-greeting{font-size:.8rem;opacity:.75;letter-spacing:.5px;margin-bottom:3px}
+.user-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.25rem}
+.header-right{z-index:1;display:flex;gap:10px;align-items:center}
+.login-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;padding:9px 16px;border-radius:20px;cursor:pointer;font-weight:600;font-size:.82rem;backdrop-filter:blur(6px)}
+.admin-btn{background:rgba(255,200,0,.25);border:1px solid rgba(255,200,0,.5);color:#ffe066;padding:9px 14px;border-radius:20px;cursor:pointer;font-weight:700;font-size:.78rem;display:none}
+#home-page{padding:10px 16px 10px}
+.section-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1rem;color:var(--text);margin-bottom:14px}
+.study-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.study-btn{background:var(--card);padding:22px 14px;border-radius:20px;text-align:center;color:var(--text);font-weight:700;font-size:.88rem;box-shadow:0 2px 12px var(--shadow);display:block;border:1.5px solid var(--border);transition:transform .15s,box-shadow .15s;cursor:pointer}
+.study-btn:active{transform:scale(.96)}
+.study-btn.full{grid-column:span 2;display:flex;align-items:center;gap:14px;padding:18px 22px;text-align:left}
+.study-btn.full .big-icon{margin-bottom:0;font-size:2rem}
+.study-btn.full .btn-detail{flex:1}
+.study-btn.full .btn-detail span{display:block;font-size:.75rem;font-weight:500;color:var(--sub);margin-top:2px}
+.study-btn.full .btn-arrow{color:var(--sub);font-size:1.2rem}
+.big-icon{font-size:2.2rem;display:block;margin-bottom:8px}
+.btn-tag{display:inline-block;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:5px}
+.tag-blue{background:var(--accent-light);color:var(--accent)}
+.tag-green{background:var(--accent2-light);color:var(--accent2)}
+.tag-orange{background:#fff4e6;color:#e07b00}
+.home-stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.hsb-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;box-shadow:0 2px 8px var(--shadow)}
+.hsb-num{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.3rem;color:var(--accent)}
+.hsb-label{font-size:.62rem;color:var(--sub);margin-top:2px}
+#subject-picker{display:none;position:fixed;inset:0;z-index:800;background:var(--bg);overflow-y:auto;padding-bottom:100px}
+#subject-picker.visible{display:block}
+.picker-header{background:linear-gradient(135deg,#0f2a7a 0%,#1a4fd6 100%);padding:18px 16px 34px;color:#fff;position:relative}
+.picker-header::after{content:'';position:absolute;bottom:-22px;left:0;right:0;height:36px;background:var(--bg);border-radius:24px 24px 0 0}
+.picker-back{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:8px 14px;font-size:.82rem;font-weight:600;cursor:pointer;width:fit-content;margin-bottom:14px}
+.picker-mode-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:5px 12px;border-radius:20px;font-size:.72rem;font-weight:700;margin-bottom:8px;color:rgba(255,255,255,.9)}
+.picker-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.4rem}
+.picker-sub{font-size:.8rem;opacity:.75;margin-top:4px}
+.picker-body{padding:32px 16px 16px}
+.picker-info{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start}
+.picker-info-icon{font-size:1.3rem;flex-shrink:0;margin-top:1px}
+.picker-info-text{font-size:.8rem;color:var(--sub);line-height:1.5}
+.picker-info-text b{color:var(--text);display:block;font-size:.85rem;margin-bottom:2px}
+.subjects-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.subj-card{background:var(--card);border:2px solid var(--border);border-radius:18px;padding:16px 12px 14px;cursor:pointer;text-align:center;transition:border-color .18s,box-shadow .18s,transform .12s;position:relative;user-select:none}
+.subj-card:active{transform:scale(.95)}
+.subj-card.selected{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light);background:var(--accent-light)}
+.subj-check{position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;border:2px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:.65rem;transition:all .18s}
+.subj-card.selected .subj-check{background:var(--accent);border-color:var(--accent);color:#fff}
+.subj-icon-wrap{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:1.6rem;transition:transform .18s}
+.subj-card.selected .subj-icon-wrap{transform:scale(1.08)}
+.subj-name{font-size:.78rem;font-weight:700;color:var(--text);line-height:1.3}
+.subj-tag{font-size:.6rem;font-weight:600;margin-top:5px;padding:2px 7px;border-radius:20px;display:inline-block}
+.si-math{background:#e8f0fe}.si-eng{background:#fff4e6}.si-phy{background:#e0f7fa}.si-chem{background:#fce4ec}
+.si-bio{background:#e8f5e9}.si-geo{background:#fff8e1}.si-lit{background:#f3e5f5}.si-econ{background:#e8eaf6}
+.si-com{background:#fbe9e7}.si-acc{background:#e0f2f1}.si-gov{background:#e8eaf6}.si-crs{background:#fff3e0}
+.si-agr{background:#f1f8e9}.si-isl{background:#e0f4ff}
+.counter-bar{background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px var(--shadow)}
+.counter-left{display:flex;align-items:center;gap:10px}
+.counter-num{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.5rem;color:var(--accent)}
+.counter-label{font-size:.75rem;color:var(--sub);font-weight:500}
+.counter-dots{display:flex;gap:5px;margin-top:4px}
+.counter-dot{width:22px;height:5px;border-radius:3px;background:var(--border);transition:background .2s}
+.counter-dot.filled{background:var(--accent)}
+.start-btn{background:linear-gradient(135deg,#1a4fd6,#0e6fc9);color:#fff;border:none;padding:12px 20px;border-radius:14px;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(26,79,214,.3);transition:opacity .2s,transform .12s;white-space:nowrap}
+.start-btn:disabled{opacity:.4;cursor:not-allowed}
+.start-btn:not(:disabled):active{transform:scale(.96)}
+.year-picker-section{margin-bottom:20px}
+.year-picker-label{font-size:.75rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:block}
+.year-select{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:16px;background:var(--card);color:var(--text);font-size:.95rem;font-family:inherit;outline:none;cursor:pointer}
+.year-select:focus{border-color:var(--accent)}
+#exam-session{display:none;position:fixed;inset:0;z-index:850;background:var(--bg);overflow-y:auto}
+#exam-session.visible{display:block}
+.exam-topbar{background:linear-gradient(135deg,#0f2a7a 0%,#1a4fd6 100%);padding:0 16px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+.exam-back-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:#fff;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;flex-shrink:0}
+.exam-topbar-center{flex:1;text-align:center}
+.exam-subject-name{color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.95rem}
+.exam-mode-tag{display:inline-block;background:rgba(255,255,255,.15);color:rgba(255,255,255,.85);font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:2px;letter-spacing:.5px}
+.exam-timer{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:14px;padding:6px 12px;text-align:center;min-width:68px}
+.exam-timer-num{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1rem;color:#fff;line-height:1}
+.exam-timer-label{font-size:.5rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px}
+.exam-timer.warning .exam-timer-num{color:#ffd54f}
+.exam-timer.danger .exam-timer-num{color:#ff6b6b;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.exam-progress-strip{background:var(--card);padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.exam-progress-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.exam-progress-fill{height:100%;background:linear-gradient(90deg,#1a4fd6,#00c49a);border-radius:3px;transition:width .4s ease}
+.exam-progress-text{font-size:.72rem;font-weight:700;color:var(--sub);white-space:nowrap}
+.exam-q-nav{padding:10px 16px 6px;overflow-x:auto;display:flex;gap:6px;scrollbar-width:none}
+.exam-q-nav::-webkit-scrollbar{display:none}
+.exam-q-dot{width:32px;height:32px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--sub);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .18s}
+.exam-q-dot.current{border-color:var(--accent);background:var(--accent);color:#fff}
+.exam-q-dot.answered{border-color:#00c49a;background:#d0f5ec;color:#00836a}
+.exam-q-dot.answered.current{background:#00c49a;color:#fff;border-color:#00c49a}
+.exam-body{padding:12px 16px 120px}
+.question-card{background:var(--card);border:1.5px solid var(--border);border-radius:24px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow)}
+.question-card-header{background:linear-gradient(135deg,#0f2a7a08,#1a4fd610);padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
+.question-num-badge{background:var(--accent);color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.72rem;padding:4px 10px;border-radius:20px;flex-shrink:0;margin-top:2px}
+.question-text{font-size:.95rem;font-weight:600;color:var(--text);line-height:1.6;flex:1}
+.question-topic-badge{display:inline-block;background:var(--accent-light);color:var(--accent);font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:8px;letter-spacing:.3px}
+[data-theme=dark] .question-topic-badge{background:#1a2744}
+.options-list{padding:16px 16px 20px;display:flex;flex-direction:column;gap:10px}
+.option-btn{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:16px;border:2px solid var(--border);background:var(--surface);cursor:pointer;transition:all .2s;text-align:left;width:100%;font-family:inherit}
+.option-btn:active{transform:scale(.98)}
+.option-btn:hover{border-color:var(--accent);background:var(--accent-light)}
+.option-btn.selected{border-color:var(--accent);background:var(--accent-light)}
+.option-btn.correct{border-color:#00c49a;background:#d0f5ec}
+.option-btn.wrong{border-color:var(--danger);background:#fef2f2}
+.option-btn.show-correct{border-color:#00c49a;background:#d0f5ec;opacity:.85}
+[data-theme=dark] .option-btn.correct{background:#0d2b24}
+[data-theme=dark] .option-btn.wrong{background:#2b0d0d}
+[data-theme=dark] .option-btn.show-correct{background:#0d2b24}
+.option-letter{width:30px;height:30px;border-radius:10px;background:var(--border);color:var(--sub);font-weight:800;font-size:.78rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.option-btn.selected .option-letter{background:var(--accent);color:#fff}
+.option-btn.correct .option-letter{background:#00c49a;color:#fff}
+.option-btn.wrong .option-letter{background:var(--danger);color:#fff}
+.option-btn.show-correct .option-letter{background:#00c49a;color:#fff}
+.option-text{font-size:.88rem;color:var(--text);line-height:1.5;flex:1;padding-top:4px}
+.option-result-icon{font-size:1rem;flex-shrink:0;padding-top:4px;display:none}
+.option-btn.correct .option-result-icon,.option-btn.wrong .option-result-icon,.option-btn.show-correct .option-result-icon{display:block}
+.explanation-box{margin:0 16px 20px;background:linear-gradient(135deg,#e8f5e9,#d0f5ec);border:1.5px solid #00c49a;border-radius:16px;padding:14px 16px;display:none}
+.explanation-box.visible{display:block}
+[data-theme=dark] .explanation-box{background:#0d2b24}
+.explanation-label{font-size:.68rem;font-weight:800;color:#00836a;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.explanation-text{font-size:.82rem;color:var(--text);line-height:1.5}
+.exam-action-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:12px 16px 24px;display:flex;gap:10px;box-shadow:0 -4px 20px var(--shadow);z-index:30}
+.exam-prev-btn,.exam-next-btn{flex:1;padding:14px;border-radius:16px;font-weight:700;font-size:.9rem;font-family:inherit;cursor:pointer;border:none;transition:all .18s}
+.exam-prev-btn{background:var(--surface);border:1.5px solid var(--border);color:var(--sub)}
+.exam-prev-btn:disabled{opacity:.35;cursor:not-allowed}
+.exam-next-btn{background:linear-gradient(135deg,#1a4fd6,#0e6fc9);color:#fff;box-shadow:0 4px 14px rgba(26,79,214,.3)}
+.exam-next-btn:active{transform:scale(.97)}
+.exam-submit-btn{flex:1;padding:14px;border-radius:16px;font-weight:800;font-size:.9rem;font-family:inherit;cursor:pointer;border:none;background:linear-gradient(135deg,#00c49a,#00a07d);color:#fff;box-shadow:0 4px 14px rgba(0,196,154,.3)}
+.exam-submit-btn:active{transform:scale(.97)}
+.exam-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;gap:16px}
+.exam-empty-icon{font-size:3.5rem}
+.exam-empty-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.2rem;color:var(--text)}
+.exam-empty-sub{font-size:.85rem;color:var(--sub);line-height:1.5}
+.exam-empty-btn{background:var(--accent);color:#fff;border:none;padding:14px 28px;border-radius:16px;font-weight:700;font-size:.9rem;font-family:inherit;cursor:pointer}
+.cbt-subjects-bar{background:#0f2a7a;border-bottom:1px solid rgba(255,255,255,.1);display:flex;overflow-x:auto;scrollbar-width:none}
+.cbt-subjects-bar::-webkit-scrollbar{display:none}
+.cbt-subj-tab{flex-shrink:0;padding:10px 14px;color:rgba(255,255,255,.55);font-size:.72rem;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:all .2s}
+.cbt-subj-tab.active{color:#fff;border-bottom-color:#00c49a}
+.cbt-subj-tab .cbt-tab-count{background:rgba(255,255,255,.15);border-radius:10px;padding:1px 6px;font-size:.58rem}
+.cbt-subj-tab.done .cbt-tab-count{background:rgba(0,196,154,.3);color:#00c49a}
+.review-banner{background:linear-gradient(135deg,#fff4e6,#fde8c8);border:1.5px solid #ffd599;border-radius:16px;padding:12px 16px;margin:0 16px 14px;display:flex;align-items:center;gap:10px;font-size:.82rem;color:#7a4500;font-weight:600}
+[data-theme=dark] .review-banner{background:#2b1a00;border-color:#6b3a00;color:#ffd599}
+.results-overlay{display:none;position:fixed;inset:0;z-index:900;background:rgba(10,15,30,.82);align-items:flex-end;justify-content:center}
+.results-overlay.visible{display:flex}
+.results-card{background:var(--card);border-radius:28px 28px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;border-top:1px solid var(--border);animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.results-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+.results-subject-label{text-align:center;font-size:.72rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px}
+.results-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.4rem;color:var(--text);text-align:center;margin-bottom:20px}
+.results-score-ring{width:120px;height:120px;border-radius:50%;margin:0 auto 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+.results-score-ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.results-score-ring svg circle{fill:none;stroke-width:8}
+.ring-bg{stroke:var(--border)}
+.ring-fill{stroke:#1a4fd6;stroke-linecap:round;transition:stroke-dashoffset .8s ease}
+.ring-fill.good{stroke:#00c49a}
+.ring-fill.average{stroke:#f59e0b}
+.ring-fill.poor{stroke:var(--danger)}
+.results-score-num{font-family:'Plus Jakarta Sans',sans-serif;font-weight:900;font-size:2rem;color:var(--text);line-height:1;position:relative;z-index:1}
+.results-score-denom{font-size:.7rem;color:var(--sub);font-weight:600;margin-top:2px;position:relative;z-index:1}
+.results-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
+.res-stat{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:14px 8px;text-align:center}
+.res-stat-num{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.3rem;line-height:1}
+.res-stat-label{font-size:.65rem;color:var(--sub);margin-top:4px;font-weight:500}
+.rs-correct{color:#00c49a}.rs-wrong{color:var(--danger)}.rs-skipped{color:#f59e0b}
+.results-message{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:18px;font-size:.84rem;color:var(--sub);line-height:1.5;text-align:center}
+.results-message b{color:var(--text)}
+.results-actions{display:flex;gap:10px}
+.res-btn-retry{flex:1;padding:14px;border-radius:16px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-weight:700;font-size:.88rem;cursor:pointer;font-family:inherit}
+.res-btn-review{flex:1.5;padding:14px;border-radius:16px;border:none;background:linear-gradient(135deg,#1a4fd6,#0e6fc9);color:#fff;font-weight:700;font-size:.88rem;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(26,79,214,.3)}
+#menu-page{display:none;padding:10px 16px 100px}
+.section-label{font-size:.7rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1.4px;margin:22px 0 12px 2px}
+.social-row{display:flex;gap:8px}
+.social-chip{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:13px 4px;border-radius:16px;cursor:pointer;gap:5px;font-size:.62rem;font-weight:700;border:1.5px solid transparent}
+.s-icon{font-size:1.3rem}
+.sc-wa{background:#edfaf3;color:#25D366;border-color:#c3f0d8}.sc-tg{background:#e8f4fd;color:#0088cc;border-color:#c3e0f5}
+.sc-fb{background:#eaf0fb;color:#1877F2;border-color:#c3d5f7}.sc-ig{background:#fdeef7;color:#C13584;border-color:#f5c3e4}.sc-tt{background:#f4f4f4;color:#333;border-color:#e0e0e0}
+.toggle-card{background:var(--card);border-radius:18px;border:1.5px solid var(--border);overflow:hidden}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid var(--border);gap:12px}
+.toggle-row:last-child{border-bottom:none}
+.tr-left{display:flex;align-items:center;gap:12px}
+.tr-icon{font-size:1.1rem;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tr-label{font-size:.9rem;font-weight:600}
+.tr-sub{font-size:.7rem;color:var(--sub);margin-top:2px}
+.ios-toggle{position:relative;width:44px;height:26px;flex-shrink:0}
+.ios-toggle input{opacity:0;width:0;height:0;position:absolute}
+.ios-slider{position:absolute;inset:0;background:#d1d5e0;border-radius:26px;transition:.3s;cursor:pointer}
+.ios-slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.ios-toggle input:checked+.ios-slider{background:var(--accent)}
+.ios-toggle input:checked+.ios-slider:before{transform:translateX(18px)}
+.chevron-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;cursor:pointer;margin-bottom:8px;background:var(--card);border:1.5px solid var(--border)}
+.cr-icon{font-size:1.1rem;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cr-text{flex:1}
+.cr-label{font-size:.88rem;font-weight:600}
+.cr-sub{font-size:.7rem;color:var(--sub);margin-top:2px}
+.cr-arrow{color:var(--sub);font-size:1.1rem}
+.logout-btn{background:#fff5f5;color:var(--danger);padding:15px;border-radius:16px;text-align:center;margin:20px 0 0;border:1.5px solid #fecaca;cursor:pointer;font-weight:700;font-size:.92rem}
+[data-theme=dark] .logout-btn{background:rgba(224,60,60,.1);border-color:rgba(224,60,60,.35)}
+.c-navy{background:#e8eaf6;color:#3949ab}.c-green{background:#e6f9f0;color:#1e8a5e}.c-gray{background:#f3f4f6;color:#555}.c-orange{background:#fff4e6;color:#e07b00}
+#analytics-page{display:none;padding:10px 16px 100px}
+.analytics-card{background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px}
+.analytics-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:.95rem;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.analytics-empty{text-align:center;padding:30px 20px;color:var(--sub);font-size:.85rem}
+.analytics-bar-wrap{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.analytics-bar-label{font-size:.72rem;color:var(--sub);width:80px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.analytics-bar-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.analytics-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .5s ease}
+.analytics-bar-pct{font-size:.7rem;font-weight:700;color:var(--text);width:36px;text-align:right;flex-shrink:0}
+.lb-table-head{display:grid;grid-template-columns:32px 1fr 80px 80px;padding:8px 12px;background:rgba(26,79,214,.05);font-size:.6rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;border-radius:10px 10px 0 0;border-bottom:1px solid var(--border)}
+.lb-row{display:grid;grid-template-columns:32px 1fr 80px 80px;padding:11px 12px;border-bottom:1px solid var(--border);align-items:center}
+.lb-row:last-child{border-bottom:none}
+.lb-row.me{background:var(--accent-light)}
+.lb-rank{font-size:.75rem;font-weight:800;color:var(--sub);text-align:center}
+.lb-rank.gold{color:#f59e0b}.lb-rank.silver{color:#94a3b8}.lb-rank.bronze{color:#cd7c3a}
+.lb-user{display:flex;align-items:center;gap:8px}
+.lb-avatar{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#1a4fd6,#0e9f7e);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff;flex-shrink:0}
+.lb-username{font-size:.78rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{text-align:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.9rem;color:var(--accent)}
+.lb-total{text-align:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:900;font-size:.95rem;color:#00c49a}
+#profile-page{display:none;padding:10px 16px 100px}
+.profile-header-card{background:linear-gradient(135deg,#0f2a7a 0%,#1a4fd6 100%);border-radius:22px;padding:24px 20px;color:#fff;margin-bottom:16px;text-align:center}
+.profile-avatar{width:72px;height:72px;border-radius:22px;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 12px}
+.profile-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.3rem}
+.profile-email{font-size:.78rem;opacity:.65;margin-top:3px}
+.profile-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.profile-stat{background:rgba(255,255,255,.12);border-radius:14px;padding:12px 8px;text-align:center}
+.ps-num{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.3rem}
+.ps-label{font-size:.6rem;opacity:.7;margin-top:2px}
+.profile-result-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.prc-left{flex:1}
+.prc-mode{font-size:.66rem;font-weight:700;color:var(--accent);background:var(--accent-light);padding:2px 7px;border-radius:10px;display:inline-block;margin-bottom:4px}
+.prc-subject{font-size:.84rem;font-weight:600;color:var(--text)}
+.prc-date{font-size:.68rem;color:var(--sub);margin-top:2px}
+.prc-score{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.2rem}
+.prc-score.good{color:#00c49a}.prc-score.avg{color:#f59e0b}.prc-score.poor{color:var(--danger)}
+#read-page,#syllabus-page,#topic-practice-page,#waec-neco-page{display:none;position:fixed;inset:0;z-index:800;background:var(--bg);overflow-y:auto;padding-bottom:100px}
+#read-page.visible,#syllabus-page.visible,#waec-neco-page.visible{display:block}
+.read-subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.read-subj-card{background:var(--card);border:2px solid var(--border);border-radius:18px;padding:16px;cursor:pointer;text-align:center;transition:border-color .2s,transform .12s}
+.read-subj-card:active{transform:scale(.95)}
+.read-subj-card .rsj-icon{font-size:2rem;margin-bottom:8px}
+.read-subj-card .rsj-name{font-size:.8rem;font-weight:700;color:var(--text)}
+.read-topic-item{border-bottom:1px solid var(--border);padding:12px 0;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+.read-topic-item:last-child{border-bottom:none}
+.rti-name{font-size:.88rem;font-weight:600;color:var(--text)}
+.rti-count{font-size:.72rem;color:var(--sub)}
+.read-materials-section{margin-top:16px}
+.read-materials-section .section-label{font-size:.8rem;font-weight:700;color:var(--sub);margin:0 0 8px 0;text-transform:none;letter-spacing:0}
+.material-item{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer}
+.material-item:active{transform:scale(.98)}
+.material-title{font-weight:700;font-size:.9rem;color:var(--text)}
+.material-type{font-size:.7rem;color:var(--sub);margin-top:3px}
+.material-content{font-size:.85rem;color:var(--text);margin-top:6px;white-space:pre-wrap}
+.material-content a{color:var(--accent);text-decoration:underline}
+.material-detail-overlay{display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.6);align-items:center;justify-content:center}
+.material-detail-overlay.visible{display:flex}
+.material-detail-card{background:var(--card);border-radius:24px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto}
+.md-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);margin-bottom:12px}
+.md-close{float:right;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--sub)}
+.md-image{max-width:100%;max-height:400px;display:block;margin:10px auto}
+.md-pdf-link{display:inline-block;padding:10px 20px;background:var(--accent);color:#fff;border-radius:12px;text-decoration:none;font-weight:600;margin:10px 0}
+.syllabus-subj{background:var(--card);border:1.5px solid var(--border);border-radius:16px;margin-bottom:10px;overflow:hidden}
+.syllabus-subj-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.ss-icon{font-size:1.4rem}
+.ss-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:.9rem;flex:1}
+.ss-arrow{color:var(--sub);transition:transform .2s}
+.ss-arrow.open{transform:rotate(90deg)}
+.syllabus-topics{display:none;padding:0 16px 14px}
+.syllabus-topics.open{display:block}
+.syl-topic{padding:8px 0;border-bottom:1px solid var(--border);font-size:.84rem;color:var(--sub)}
+.syl-topic:last-child{border-bottom:none}
+.syllabus-content{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;font-size:.9rem;color:var(--text);line-height:1.7;white-space:pre-wrap}
+.bottom-nav{position:fixed;bottom:0;width:100%;background:var(--card);display:flex;border-top:1px solid var(--border);z-index:500;height:var(--nav-h);box-shadow:0 -4px 20px var(--shadow)}
+.nav-item{text-align:center;cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:.68rem;font-weight:600;color:var(--sub);transition:color .2s;padding-bottom:4px}
+.nav-item .nav-icon{font-size:1.35rem}
+.nav-item.active{color:var(--accent)}
+.nav-pill{position:absolute;bottom:10px;width:5px;height:5px;background:var(--accent);border-radius:50%;display:none}
+.nav-item.active .nav-pill{display:block}
+#admin-dashboard{display:none;position:fixed;inset:0;z-index:900;background:#050d1f;overflow-y:auto;font-family:'Inter',sans-serif}
+#admin-dashboard.visible{display:block}
+.admin-topbar{background:linear-gradient(135deg,#0a1628 0%,#0d2044 100%);padding:0 20px;height:60px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;z-index:50}
+.admin-brand{display:flex;align-items:center;gap:10px}
+.admin-brand-icon{width:36px;height:36px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem}
+.admin-brand-text{color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1rem}
+.admin-brand-text small{display:block;font-size:.6rem;color:rgba(255,255,255,.45);font-weight:400;margin-top:-2px}
+.admin-topbar-right{display:flex;align-items:center;gap:10px}
+.admin-exit-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:7px 14px;border-radius:20px;font-size:.75rem;font-weight:600;cursor:pointer}
+.admin-badge{background:#f59e0b;color:#000;font-size:.6rem;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.5px}
+.admin-tabs{display:flex;background:#0a1628;border-bottom:1px solid rgba(255,255,255,.06);overflow-x:auto;scrollbar-width:none}
+.admin-tabs::-webkit-scrollbar{display:none}
+.admin-tab{padding:14px 18px;font-size:.75rem;font-weight:600;color:rgba(255,255,255,.4);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;display:flex;align-items:center;gap:6px}
+.admin-tab.active{color:#f59e0b;border-bottom-color:#f59e0b}
+.admin-content{padding:20px 16px 40px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.stat-card{background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:18px 16px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:-20px;right:-20px;width:70px;height:70px;border-radius:50%;opacity:.07}
+.stat-card.s-blue::before{background:#4f87ff}.stat-card.s-green::before{background:#00d4a7}.stat-card.s-orange::before{background:#f59e0b}.stat-card.s-red::before{background:#f06060}
+.stat-icon{font-size:1.4rem;margin-bottom:10px}
+.stat-num{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.8rem;color:#fff;line-height:1}
+.stat-label{font-size:.68rem;color:rgba(255,255,255,.45);margin-top:4px;font-weight:500}
+.stat-trend{font-size:.68rem;margin-top:8px;font-weight:600}
+.stat-trend.up{color:#00d4a7}.stat-trend.down{color:#f06060}
+.admin-section-title{color:rgba(255,255,255,.85);font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:.9rem;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.admin-section-title span{background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:700}
+.user-table{background:#0d1f3c;border-radius:18px;border:1px solid rgba(255,255,255,.07);overflow:hidden}
+.user-score-table-head{display:grid;grid-template-columns:1fr 90px 90px 60px;padding:10px 16px;background:rgba(255,255,255,.04);font-size:.62rem;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid rgba(255,255,255,.06)}
+.user-score-row{display:grid;grid-template-columns:1fr 90px 90px 60px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.04);align-items:center;cursor:pointer}
+.user-score-row:last-child{border-bottom:none}
+.user-score-row:hover{background:rgba(255,255,255,.03)}
+.usr-info{display:flex;align-items:center;gap:10px}
+.usr-avatar{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#1a4fd6,#0e9f7e);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#fff;font-weight:700;flex-shrink:0}
+.usr-name{font-size:.8rem;font-weight:600;color:#fff}
+.usr-email{font-size:.62rem;color:rgba(255,255,255,.35);margin-top:1px}
+.usr-score-badge{text-align:center}
+.usb-num{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1rem;color:#f59e0b}
+.usb-label{font-size:.55rem;color:rgba(255,255,255,.3);text-transform:uppercase}
+.usr-attempts{text-align:center;font-size:.72rem;color:rgba(255,255,255,.5)}
+.admin-subjects-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.admin-subj-btn{background:#0d1f3c;border:1.5px solid rgba(255,255,255,.07);border-radius:16px;padding:14px 8px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+.admin-subj-btn:hover{border-color:#f59e0b}
+.admin-subj-btn.active{border-color:#f59e0b;background:rgba(245,158,11,.08)}
+.asb-icon{font-size:1.5rem;margin-bottom:6px}
+.asb-name{font-size:.65rem;font-weight:700;color:rgba(255,255,255,.7);line-height:1.3}
+.asb-count{font-size:.58rem;color:rgba(255,255,255,.3);margin-top:3px}
+.mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.mode-card{background:#0d1f3c;border:2px solid rgba(255,255,255,.07);border-radius:20px;padding:20px 16px;cursor:pointer;text-align:center;transition:border-color .2s,transform .15s}
+.mode-card:hover{border-color:rgba(245,158,11,.4);transform:translateY(-2px)}
+.mode-card.selected{border-color:#f59e0b;background:rgba(245,158,11,.06)}
+.mode-card-icon{font-size:2.2rem;margin-bottom:10px}
+.mode-card-title{color:#fff;font-weight:700;font-size:.9rem}
+.mode-card-sub{font-size:.7rem;color:rgba(255,255,255,.4);margin-top:4px}
+.question-item{background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;margin-bottom:12px}
+.question-item-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05)}
+.qi-num{background:#f59e0b;color:#000;width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0}
+.qi-preview{flex:1;margin:0 10px;font-size:.78rem;color:rgba(255,255,255,.6);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qi-actions{display:flex;gap:6px}
+.qi-btn{width:28px;height:28px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem}
+.qi-btn-edit{background:rgba(79,135,255,.15);color:#4f87ff}
+.qi-btn-del{background:rgba(240,96,96,.15);color:#f06060}
+.question-form{padding:14px}
+.qf-label{font-size:.68rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:block}
+.qf-textarea{width:100%;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;color:#fff;font-size:.85rem;font-family:inherit;resize:vertical;min-height:80px;outline:none;margin-bottom:12px}
+.qf-textarea:focus{border-color:#f59e0b}
+.options-grid-admin{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.option-wrap{position:relative}
+.option-label-admin{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.7rem;font-weight:800;color:#f59e0b}
+.qf-input{width:100%;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 10px 10px 28px;color:#fff;font-size:.82rem;font-family:inherit;outline:none}
+.qf-input:focus{border-color:#f59e0b}
+.answer-select,.qf-year-select,.qf-topic-input,.qf-explanation-area{width:100%;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 12px;color:#fff;font-size:.82rem;font-family:inherit;outline:none;margin-bottom:12px}
+.answer-select:focus,.qf-year-select:focus,.qf-topic-input:focus,.qf-explanation-area:focus{border-color:#f59e0b}
+.answer-select option,.qf-year-select option{background:#0d1f3c}
+.qf-explanation-area{resize:vertical;min-height:60px}
+.qf-explanation-area::placeholder,.qf-topic-input::placeholder{color:rgba(255,255,255,.25)}
+.qf-row{display:flex;gap:8px}
+.qf-save-btn{flex:1;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;border:none;border-radius:12px;padding:12px;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit}
+.qf-cancel-btn{background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);border-radius:12px;padding:12px 16px;font-size:.82rem;cursor:pointer;font-family:inherit}
+.add-question-btn{width:100%;background:rgba(245,158,11,.1);border:1.5px dashed rgba(245,158,11,.35);border-radius:14px;padding:14px;color:#f59e0b;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+.save-all-btn{width:100%;background:linear-gradient(135deg,#00d4a7,#00a880);color:#000;border:none;border-radius:14px;padding:14px;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(0,212,167,.3)}
+.q-count-badge{background:rgba(245,158,11,.15);color:#f59e0b;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:20px}
+.user-modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);align-items:flex-end}
+.user-modal-overlay.visible{display:flex}
+.user-modal{background:#0d1f3c;border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;border-top:1px solid rgba(255,255,255,.08);animation:slideUp .25s ease}
+.modal-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 20px}
+.modal-avatar{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,#1a4fd6,#0e9f7e);display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:#fff;font-weight:800;margin:0 auto 12px}
+.modal-name{text-align:center;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.15rem}
+.modal-email{text-align:center;color:rgba(255,255,255,.4);font-size:.8rem;margin-bottom:20px}
+.modal-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.modal-info-card{background:rgba(255,255,255,.04);border-radius:14px;padding:12px}
+.mic-label{font-size:.62rem;color:rgba(255,255,255,.35);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.mic-value{color:#fff;font-weight:700;font-size:.85rem;margin-top:4px}
+.modal-actions{display:flex;gap:10px}
+.modal-btn{flex:1;padding:13px;border-radius:14px;border:none;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit}
+.modal-btn-ban{background:rgba(240,96,96,.12);color:#f06060;border:1.5px solid rgba(240,96,96,.25)}
+.modal-btn-close{background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1.5px solid rgba(255,255,255,.1)}
+.admin-toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#00d4a7;color:#000;padding:10px 20px;border-radius:20px;font-weight:700;font-size:.82rem;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.3);white-space:nowrap}
+.admin-toast.error{background:#f06060;color:#fff}
+.empty-state{text-align:center;padding:40px 20px;color:rgba(255,255,255,.3)}
+.empty-state-icon{font-size:2.5rem;margin-bottom:12px}
+.empty-state-text{font-size:.85rem}
+.admin-panel{display:none}
+.admin-panel.active{display:block}
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-chip{padding:7px 14px;border-radius:20px;font-size:.72rem;font-weight:600;cursor:pointer;border:1.5px solid rgba(255,255,255,.1);color:rgba(255,255,255,.45);background:transparent}
+.filter-chip.active{background:#f59e0b;color:#000;border-color:#f59e0b}
+.admin-search{background:#0d1f3c;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.82rem;font-family:inherit;outline:none;width:100%;margin-bottom:12px}
+.admin-search::placeholder{color:rgba(255,255,255,.25)}
+.admin-search:focus{border-color:#f59e0b}
+.banned-row{background:rgba(240,96,96,.05);border:1px solid rgba(240,96,96,.15);border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.br-left{display:flex;align-items:center;gap:12px}
+.br-avatar{width:36px;height:36px;border-radius:10px;background:rgba(240,96,96,.2);display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#f06060;font-weight:700}
+.br-name{color:#fff;font-weight:600;font-size:.85rem}
+.br-reason{font-size:.68rem;color:rgba(240,96,96,.7);margin-top:2px}
+.unban-btn{background:rgba(0,212,167,.12);border:1px solid rgba(0,212,167,.25);color:#00d4a7;border-radius:10px;padding:7px 12px;font-size:.72rem;font-weight:700;cursor:pointer}
+.admin-analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.admin-analytics-card{background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 12px}
+.aac-label{font-size:.62rem;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.aac-val{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.4rem;color:#fff}
+.admin-result-row{background:#0d1f3c;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.arr-left{flex:1}
+.arr-name{color:#fff;font-size:.8rem;font-weight:600}
+.arr-detail{font-size:.65rem;color:rgba(255,255,255,.35);margin-top:2px}
+.arr-score{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1rem;color:#f59e0b}
+#waec-neco-page{display:none;position:fixed;inset:0;z-index:800;background:var(--bg);overflow-y:auto;padding-bottom:100px}
+#waec-neco-page .wn-header{background:linear-gradient(135deg,#7a3a00 0%,#e07b00 100%);padding:18px 16px 20px;color:#fff;border-radius:0 0 28px 28px}
+#waec-neco-page .wn-header .picker-back{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:8px 14px;font-size:.82rem;font-weight:600;cursor:pointer;width:fit-content;margin-bottom:14px}
+#waec-neco-page .wn-header .picker-mode-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:5px 12px;border-radius:20px;font-size:.72rem;font-weight:700;margin-bottom:6px;color:rgba(255,255,255,.9)}
+#waec-neco-page .wn-header .picker-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.4rem}
+#waec-neco-page .wn-header .picker-sub{font-size:.8rem;opacity:.75;margin-top:4px}
+#waec-neco-page .wn-tabs{display:flex;background:#fff;border-bottom:2px solid var(--border);padding:0 16px;gap:0;position:relative;z-index:2;border-radius:0 0 16px 16px;box-shadow:0 2px 8px rgba(26,79,214,.06);margin:-8px 16px 0 16px}
+[data-theme=dark] #waec-neco-page .wn-tabs{background:#111827;border-bottom-color:#1e2a42}
+#waec-neco-page .wn-tab{flex:1;padding:14px 12px 12px 12px;font-size:.78rem;font-weight:700;color:var(--sub);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s;text-align:center;background:transparent;border-top:none;border-left:none;border-right:none;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+#waec-neco-page .wn-tab:hover{color:var(--text)}
+#waec-neco-page .wn-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(26,79,214,.04);border-radius:0 0 8px 8px}
+[data-theme=dark] #waec-neco-page .wn-tab.active{background:rgba(79,135,255,.08)}
+#waec-neco-page .wn-tab .tab-icon{font-size:1rem}
+#waec-neco-page .wn-tab .tab-label{font-size:.78rem}
+#waec-neco-page .wn-body{padding:20px 16px 16px}
+#waec-neco-page .mode-toggle{display:flex;gap:10px;margin-bottom:20px}
+#waec-neco-page .mode-toggle button{flex:1;padding:12px;border-radius:14px;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;border:none;transition:all .2s}
+#waec-neco-page .mode-toggle .exam-btn{background:linear-gradient(135deg,#1a4fd6,#0e6fc9);color:#fff;box-shadow:0 4px 14px rgba(26,79,214,.3)}
+#waec-neco-page .mode-toggle .read-btn{background:var(--card);color:var(--text);border:1.5px solid var(--border)}
+#waec-neco-page .mode-toggle .read-btn.active{background:linear-gradient(135deg,#1a4fd6,#0e6fc9);color:#fff;border:none;box-shadow:0 4px 14px rgba(26,79,214,.3)}
+#waec-neco-page .back-link{display:flex;align-items:center;gap:10px;margin-bottom:16px;background:none;border:none;color:var(--accent);font-size:.9rem;cursor:pointer;font-weight:700;font-family:inherit}
+#waec-neco-page .back-link:hover{opacity:.8}
+#waec-neco-page .year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+#waec-neco-page .year-chip{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:14px 8px;text-align:center;cursor:pointer;transition:all .15s}
+#waec-neco-page .year-chip:active{transform:scale(.95)}
+#waec-neco-page .year-chip.has-data{border-color:#e07b00}
+#waec-neco-page .year-chip .yc-year{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.95rem;color:var(--text)}
+#waec-neco-page .year-chip .yc-count{font-size:.6rem;color:var(--sub);margin-top:2px}
+#waec-neco-page .year-chip.has-data .yc-year{color:#e07b00}
+[data-theme=dark] #waec-neco-page .year-chip{background:#111827;border-color:#1e2a42}
+[data-theme=dark] #waec-neco-page .year-chip .yc-year{color:#e8edf8}
+@media (max-width:400px){#waec-neco-page .wn-tab{font-size:.7rem;padding:12px 8px 10px 8px}
+#waec-neco-page .wn-tab .tab-label{font-size:.7rem}
+#waec-neco-page .subjects-grid{grid-template-columns:1fr 1fr;gap:8px}
+#waec-neco-page .subj-card{padding:12px 8px 10px}
+#waec-neco-page .subj-card .subj-icon-wrap{width:42px;height:42px;font-size:1.3rem}
+#waec-neco-page .wn-header .picker-title{font-size:1.2rem}
+#waec-neco-page .year-grid{grid-template-columns:repeat(3,1fr);gap:8px}}
+@media (max-width:350px){#waec-neco-page .wn-tabs{padding:0 8px}
+#waec-neco-page .wn-tab{font-size:.65rem;padding:10px 6px 8px 6px}
+#waec-neco-page .wn-tab .tab-label{font-size:.65rem}
+#waec-neco-page .subjects-grid{grid-template-columns:1fr 1fr;gap:6px}
+#waec-neco-page .year-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* ─── Copy to Clipboard ─────────────────────────────────────────────── */
+.copy-wrap{position:relative;margin:12px 0}
+.copy-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.8);padding:5px 12px;border-radius:8px;font-size:.7rem;font-weight:600;cursor:pointer;backdrop-filter:blur(6px);transition:all .2s;z-index:10;display:flex;align-items:center;gap:5px}
+.copy-btn:hover{background:rgba(255,255,255,.25);color:#fff}
+.copy-btn.copied{background:#00c49a;color:#fff;border-color:#00c49a}
+.copy-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.copy-target{background:#0d1f3c;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;font-size:.82rem;color:rgba(255,255,255,.7);font-family:'Fira Code','Consolas',monospace;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto}
+[data-theme=dark] .copy-target{background:#0a1628}
+.copy-wrap .copy-target{padding-top:36px}
+</style>
+<link rel="manifest" href="https://progressier.app/HuEzcsrNBFarsHTtIeat/progressier.json"/>
+<script defer src="https://progressier.app/HuEzcsrNBFarsHTtIeat/script.js"></script>
+
+</head>
+<body>
+<div id="splash"><div class="splash-badge">🧑‍🎓</div><div class="splash-title">My UTME<span>by Enzo</span></div><div class="score-ring"><div class="score-num">300+</div><div class="score-label">Target</div></div><div class="loading-text">Setting things up...</div><div class="dots-container"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="splash-footer"><b>Powered by Enzo</b>Version 2.0 · System Ready</div></div>
+<div id="auth-page"><div class="auth-card"><div class="auth-brand"><div class="auth-brand-icon">🎓</div><div class="auth-brand-text">My UTME<small>by Enzo · Success Starts Here</small></div></div><h2 id="auth-title">Welcome back</h2><div class="auth-sub" id="auth-sub-text">Sign in to continue your preparation</div><div id="login-fields"><div class="auth-field"><label class="auth-label">Email or Username</label><input class="auth-input" type="text" id="auth-identifier" placeholder="you@example.com or username"><div class="auth-hint">You can use your email or username</div></div></div><div id="signup-fields" style="display:none"><div class="auth-field"><label class="auth-label">Email Address</label><input class="auth-input" type="email" id="auth-email" placeholder="you@example.com"></div><div class="auth-field"><label class="auth-label">Username</label><input class="auth-input" type="text" id="auth-username" placeholder="Choose a username"></div></div><div class="auth-field"><label class="auth-label">Password</label><div class="pw-wrap"><input class="auth-input" type="password" id="auth-password" placeholder="Min. 6 characters"><button class="pw-eye" type="button" onclick="togglePW()" id="pw-eye-btn">👁️</button></div></div><div class="forgot" id="forgot-link">Forgot password?</div><div class="auth-error" id="auth-error"></div><button class="auth-btn" id="auth-button" onclick="handleAuth()">Sign In</button><div class="auth-link" id="switch-text">Don't have an account? <span onclick="switchAuth()">Create one</span></div></div></div>
+<div id="subject-picker"><div class="picker-header"><div class="picker-back" onclick="closePicker()">‹ Back</div><div class="picker-mode-badge" id="picker-mode-badge">💻 CBT Mode</div><div class="picker-title" id="picker-title">Pick Your Subjects</div><div class="picker-sub" id="picker-sub">Select exactly 4 subjects</div></div><div class="picker-body"><div class="counter-bar" id="counter-bar"><div class="counter-left"><div><div class="counter-num"><span id="sel-count">0</span><span id="sel-max">/4</span></div><div class="counter-label" id="counter-label">subjects selected</div><div class="counter-dots" id="counter-dots"><div class="counter-dot" id="dot-1"></div><div class="counter-dot" id="dot-2"></div><div class="counter-dot" id="dot-3"></div><div class="counter-dot" id="dot-4"></div></div></div></div><button class="start-btn" id="start-btn" disabled onclick="startSession()">Start →</button></div><div class="picker-info"><span class="picker-info-icon">ℹ️</span><div class="picker-info-text" id="picker-info-text"><b>English Language is required</b>Choose 3 more subjects.</div></div><div class="year-picker-section" id="year-picker-section" style="display:none"><label class="year-picker-label">📅 Select Year <span style="color:#e03c3c;font-size:.7rem">(Required)</span></label><select class="year-select" id="exam-year-select" onchange="updateCounter()"><option value="">— Choose exam year —</option></select></div><div class="subjects-grid" id="subjects-grid"></div></div></div>
+<div id="exam-session"><div class="exam-topbar"><div class="exam-back-btn" onclick="exitExam()">‹</div><div class="exam-topbar-center"><div class="exam-subject-name" id="exam-subject-name">Mathematics</div><div class="exam-mode-tag" id="exam-mode-tag">⏰ EXAM MODE</div></div><div class="exam-timer" id="exam-timer"><div class="exam-timer-num" id="exam-timer-num">30:00</div><div class="exam-timer-label">Remaining</div></div></div><div class="cbt-subjects-bar" id="cbt-subjects-bar" style="display:none"></div><div class="exam-progress-strip"><div class="exam-progress-bar"><div class="exam-progress-fill" id="exam-progress-fill" style="width:0%"></div></div><div class="exam-progress-text" id="exam-progress-text">0 / 0</div></div><div class="exam-q-nav" id="exam-q-nav"></div><div class="exam-body" id="exam-body"></div><div class="exam-action-bar" id="exam-action-bar"><button class="exam-prev-btn" id="exam-prev-btn" onclick="goToPrev()">← Prev</button><button class="exam-next-btn" id="exam-next-btn" onclick="goToNext()">Next →</button></div></div>
+<div class="results-overlay" id="results-overlay"><div class="results-card"><div class="results-handle"></div><div class="results-subject-label" id="res-subject-label">Mathematics</div><div class="results-title" id="res-title">Session Complete! 🎉</div><div class="results-score-ring" id="res-score-ring"><svg viewBox="0 0 120 120" width="120" height="120"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fill" id="ring-fill-circle" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg><div class="results-score-num" id="res-score-num">0</div><div class="results-score-denom" id="res-score-denom">out of 0</div></div><div class="results-stats"><div class="res-stat"><div class="res-stat-num rs-correct" id="res-correct">0</div><div class="res-stat-label">Correct ✓</div></div><div class="res-stat"><div class="res-stat-num rs-wrong" id="res-wrong">0</div><div class="res-stat-label">Wrong ✗</div></div><div class="res-stat"><div class="res-stat-num rs-skipped" id="res-skipped">0</div><div class="res-stat-label">Skipped —</div></div></div><div class="results-message" id="res-message">Keep practising!</div><div class="results-actions"><button class="res-btn-retry" onclick="retryExam()">🔁 Retry</button><button class="res-btn-review" onclick="reviewAnswers()">📋 Review Answers</button></div></div></div>
+<div id="main-site"><div class="top-header"><div class="header-left"><div class="header-greeting">Good day 👋</div><div class="user-name" id="user-display">Hi, User</div></div><div class="header-right"><div class="admin-btn" id="admin-btn" onclick="openAdmin()">⚙️ Admin</div><div class="login-btn" id="login-btn" onclick="showAuthPage()">Login / Signup</div></div></div><div id="home-page"><div class="home-stats-bar" id="home-stats-bar"><div class="hsb-card"><div class="hsb-num" id="hstat-attempts">0</div><div class="hsb-label">Sessions</div></div><div class="hsb-card"><div class="hsb-num" id="hstat-bestscore">—</div><div class="hsb-label">Best Score</div></div><div class="hsb-card"><div class="hsb-num" id="hstat-streak">0🔥</div><div class="hsb-label">Day Streak</div></div></div><div class="section-title">Study Modes</div><div class="study-grid"><div class="study-btn" onclick="openPicker('cbt')"><span class="big-icon">💻</span>CBT Mode<span class="btn-tag tag-blue">4 Subjects</span></div><div class="study-btn" onclick="openPicker('exam')"><span class="big-icon">⏰</span>Exam Mode<span class="btn-tag tag-orange">1 Subject</span></div><div class="study-btn" onclick="openReadMode()"><span class="big-icon">📚</span>Read Mode<span class="btn-tag tag-green">Learn</span></div><div class="study-btn" onclick="openSyllabus()"><span class="big-icon">📖</span>Syllabus<span class="btn-tag tag-blue">Guide</span></div><div class="study-btn full" onclick="openTopicPractice()"><span class="big-icon">🎯</span><div class="btn-detail">Topic-Based Practice<span>Focus on one topic at a time</span></div><span class="btn-arrow">›</span></div><div class="study-btn full" onclick="openWAECNECO()" style="background:linear-gradient(135deg,#fff4e6,#ffe8cc);border-color:#ffd599;"><span class="big-icon">🏫</span><div class="btn-detail" style="color:#7a3a00;">WAEC / NECO Practice<span style="color:#a05000;">Past Questions & Topic Reading</span></div><span class="btn-arrow" style="color:#7a3a00;">›</span></div></div></div><div id="menu-page" style="display:none;padding:10px 16px 100px;"><div class="section-title" style="margin-top:8px">Menu</div><div class="section-label">Connect With Us</div><div class="social-row"><div class="social-chip sc-wa"><span class="s-icon">💬</span>WhatsApp</div><div class="social-chip sc-tg"><span class="s-icon">✈️</span>Telegram</div><div class="social-chip sc-fb"><span class="s-icon">📘</span>Facebook</div><div class="social-chip sc-ig"><span class="s-icon">📷</span>Instagram</div><div class="social-chip sc-tt"><span class="s-icon">🎵</span>TikTok</div></div><div class="section-label">Settings</div><div class="toggle-card"><div class="toggle-row"><div class="tr-left"><div class="tr-icon c-navy">🌙</div><div><div class="tr-label">Dark Mode</div><div class="tr-sub">Switch app appearance</div></div></div><label class="ios-toggle"><input type="checkbox" id="dark-toggle" onchange="toggleDark()"><span class="ios-slider"></span></label></div></div><div style="margin-top:10px"><div class="chevron-row"><div class="cr-icon c-green">🛡️</div><div class="cr-text"><div class="cr-label">Privacy Policy</div><div class="cr-sub">How we protect your data</div></div><span class="cr-arrow">›</span></div><div class="chevron-row"><div class="cr-icon c-gray">📜</div><div class="cr-text"><div class="cr-label">Terms & Conditions</div><div class="cr-sub">Our usage agreement</div></div><span class="cr-arrow">›</span></div></div><div class="logout-btn" onclick="logout()">🚪 Sign Out</div></div><div id="analytics-page"><div class="section-title" style="margin-top:8px;padding:10px 16px 0">📊 Leaderboard & Analytics</div><div style="padding:0 16px 100px"><div class="analytics-card"><div class="analytics-title">🏆 UTME CBT Rankings</div><div id="cbt-leaderboard-list"><div class="analytics-empty">Loading…</div></div></div><div class="analytics-card"><div class="analytics-title">🏆 WAEC Exam Rankings</div><div id="waec-leaderboard-list"><div class="analytics-empty">No WAEC data yet.</div></div></div><div class="analytics-card"><div class="analytics-title">🏆 NECO Exam Rankings</div><div id="neco-leaderboard-list"><div class="analytics-empty">No NECO data yet.</div></div></div><div class="analytics-card"><div class="analytics-title">📚 Subject Averages (UTME)</div><div id="cbt-subject-bars"><div class="analytics-empty">No data yet.</div></div></div></div></div><div id="profile-page"><div style="color:var(--sub);text-align:center;padding:40px">Loading profile...</div></div><div class="bottom-nav"><div class="nav-item active" id="nav-home" onclick="showPage('home-page')"><span class="nav-icon">🏠</span>Home<div class="nav-pill"></div></div><div class="nav-item" id="nav-analytics" onclick="showPage('analytics-page')"><span class="nav-icon">📊</span>Analytics<div class="nav-pill"></div></div><div class="nav-item" id="nav-profile" onclick="showPage('profile-page')"><span class="nav-icon">👤</span>Profile<div class="nav-pill"></div></div><div class="nav-item" id="nav-menu" onclick="showPage('menu-page')"><span class="nav-icon">⚙️</span>Menu<div class="nav-pill"></div></div></div></div>
+<div id="read-page"><div class="picker-header"><div class="picker-back" onclick="closeReadMode()">‹ Back</div><div class="picker-mode-badge">📚 Read Mode</div><div class="picker-title">Study Materials & Topics</div><div class="picker-sub">Select a subject to view its topics and materials</div></div><div class="picker-body"><div id="read-subject-list" class="read-subject-grid"></div><div id="read-content-area" style="display:none"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><button onclick="closeReadContent()" style="background:none;border:none;color:var(--accent);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.2rem;color:var(--text)" id="read-subj-title">Subject</div></div><div style="margin-bottom:20px"><div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:.9rem;color:var(--text);margin-bottom:10px">📚 Topics</div><div id="read-topics-list"></div></div><div class="read-materials-section" id="read-materials-section" style="display:none"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><button onclick="closeTopicMaterials()" style="background:none;border:none;color:var(--accent);font-size:.8rem;cursor:pointer;font-weight:600">‹ Back to topics</button><div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:.9rem;color:var(--text)" id="read-topic-title">Topic</div></div><div id="read-materials-list"></div></div></div></div></div>
+<div class="material-detail-overlay" id="material-detail-overlay" onclick="closeMaterialDetail(event)"><div class="material-detail-card"><button class="md-close" onclick="closeMaterialDetail()">✕</button><div class="md-title" id="md-title">Material Title</div><div id="md-content" style="white-space:pre-wrap;font-size:.9rem;color:var(--text);margin-top:10px"></div></div></div>
+<div id="syllabus-page"><div class="picker-header"><div class="picker-back" onclick="closeSyllabus()">‹ Back</div><div class="picker-mode-badge">📖 Syllabus</div><div class="picker-title">Subject Syllabi</div><div class="picker-sub">Official syllabi uploaded by admin</div></div><div class="picker-body" id="syllabus-body"></div></div>
+<div id="topic-practice-page"><div class="picker-header"><div class="picker-back" onclick="closeTopicPractice()">‹ Back</div><div class="picker-mode-badge">🎯 Topic Practice</div><div class="picker-title">Topic-Based Practice</div><div class="picker-sub">Pick a subject then a topic</div></div><div class="picker-body"><div id="tp-subject-list"></div><div id="tp-topic-area" style="display:none"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><button onclick="document.getElementById('tp-topic-area').style.display='none';document.getElementById('tp-subject-list').style.display='block';" style="background:none;border:none;color:var(--accent);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1rem;color:var(--text)" id="tp-topic-title">Topics</div></div><div id="tp-topics-list"></div></div></div></div>
+<div id="waec-neco-page"><div class="wn-header"><div class="picker-back" onclick="closeWAECNECO()">‹ Back</div><div class="picker-mode-badge">🏫 WAEC / NECO</div><div class="picker-title">WAEC / NECO Practice</div><div class="picker-sub">Past Questions &amp; Topic Reading</div></div><div class="wn-tabs"><button class="wn-tab active" data-tab="waec" onclick="switchWNOrg('waec')"><span class="tab-icon">📋</span><span class="tab-label">WAEC</span></button><button class="wn-tab" data-tab="neco" onclick="switchWNOrg('neco')"><span class="tab-icon">📋</span><span class="tab-label">NECO</span></button></div><div class="wn-body"><div class="mode-toggle"><button class="exam-btn active" data-mode="exam" onclick="switchWNMode('exam')">⏰ Exam Mode</button><button class="read-btn" data-mode="read" onclick="switchWNMode('read')">📚 Topic Reading</button></div><div id="wn-exam-panel"><div id="wn-exam-subj-step"><div class="section-title">Select Subject</div><div class="subjects-grid" id="wn-exam-subjects-grid"></div></div><div id="wn-exam-year-step" class="hidden"><button class="back-link" onclick="document.getElementById('wn-exam-year-step').classList.add('hidden');document.getElementById('wn-exam-subj-step').classList.remove('hidden');">‹ Subjects</button><div class="picker-info"><span class="picker-info-icon">📅</span><div class="picker-info-text"><b>Choose Exam Year</b>Past questions from 2000 to 2025</div></div><div class="year-grid" id="wn-exam-year-grid"></div></div></div><div id="wn-read-panel" class="hidden"><div id="wn-read-subj-step"><div class="section-title">Select Subject</div><div class="subjects-grid" id="wn-read-subjects-grid"></div></div><div id="wn-read-topic-step" class="hidden"><button class="back-link" onclick="document.getElementById('wn-read-topic-step').classList.add('hidden');document.getElementById('wn-read-subj-step').classList.remove('hidden');">‹ Subjects</button><div id="wn-read-topics-list"></div></div></div></div></div>
+<div id="admin-dashboard"><div class="admin-topbar"><div class="admin-brand"><div class="admin-brand-icon">🛡️</div><div class="admin-brand-text">Admin Panel<small>My UTME · Enzo</small></div></div><div class="admin-topbar-right"><span class="admin-badge">ADMIN</span><button class="admin-exit-btn" onclick="closeAdmin()">✕ Exit</button></div></div><div class="admin-tabs"><div class="admin-tab active" onclick="switchTab('overview')" id="tab-overview">📊 Overview</div><div class="admin-tab" onclick="switchTab('users')" id="tab-users">👥 Users</div><div class="admin-tab" onclick="switchTab('questions')" id="tab-questions">📝 UTME Questions</div><div class="admin-tab" onclick="switchTab('topic-exam')" id="tab-topic-exam">🎯 Topic Exam Qs</div><div class="admin-tab" onclick="switchTab('wn-questions')" id="tab-wn-questions">🏫 WAEC/NECO Qs</div><div class="admin-tab" onclick="switchTab('wn-topics')" id="tab-wn-topics">📚 WAEC/NECO Topics</div><div class="admin-tab" onclick="switchTab('read-mode')" id="tab-read-mode">📄 Read Mode</div><div class="admin-tab" onclick="switchTab('syllabus')" id="tab-syllabus">📖 Syllabus</div><div class="admin-tab" onclick="switchTab('analytics')" id="tab-analytics">📈 Analytics</div></div><div class="admin-content"><div class="admin-panel active" id="panel-overview"><div class="stats-grid"><div class="stat-card s-blue"><div class="stat-icon">👥</div><div class="stat-num" id="stat-total-users">—</div><div class="stat-label">Total Users</div><div class="stat-trend up" id="stat-users-trend">Loading...</div></div><div class="stat-card s-orange"><div class="stat-icon">📝</div><div class="stat-num" id="stat-total-questions">—</div><div class="stat-label">Total Questions</div><div class="stat-trend up">All categories</div></div></div><div class="admin-section-title">Registered Users <span id="stat-qbank-label">0 total</span></div><div class="user-table"><div class="user-score-table-head"><div>User</div><div>Best CBT</div><div>Best Exam</div><div></div></div><div id="overview-users-list"><div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading...</div></div></div></div></div><div class="admin-panel" id="panel-users"><input class="admin-search" id="user-search" placeholder="🔍  Search by name or email..." oninput="filterUsers()"><div class="admin-section-title">Users <span id="users-count-badge">0</span></div><div class="user-table"><div class="user-score-table-head"><div>User</div><div>Best CBT</div><div>Best Exam</div><div></div></div><div id="users-list-body"><div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading...</div></div></div></div></div><div class="admin-panel" id="panel-questions"><div id="utme-step-mode"><div class="admin-section-title">Select Mode</div><div class="mode-cards"><div class="mode-card" id="qmode-cbt" onclick="selectQMode('cbt')"><div class="mode-card-icon">💻</div><div class="mode-card-title">CBT Mode</div><div class="mode-card-sub">Practice questions (no year)</div></div><div class="mode-card" id="qmode-exam" onclick="selectQMode('exam')"><div class="mode-card-icon">⏰</div><div class="mode-card-title">Exam Mode</div><div class="mode-card-sub">Year-specific questions</div></div></div><div id="utme-subj-section" style="display:none"><div class="admin-section-title">Select Subject <span id="qp-mode-badge-label">CBT</span></div><div class="admin-subjects-grid" id="utme-admin-subjects-grid"></div></div></div><div id="utme-question-builder" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;margin-bottom:16px"><div><div style="background:rgba(245,158,11,.15);color:#f59e0b;font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:4px;display:inline-block" id="utme-qb-mode-badge">💻 CBT</div><div style="color:#fff;font-weight:700;font-size:.9rem" id="utme-qb-subj-name">Subject</div></div><button style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);padding:8px 14px;border-radius:12px;font-size:.75rem;cursor:pointer;font-family:inherit" onclick="closeUTMEBuilder()">‹ Back</button></div><div id="utme-year-wrap" style="display:none;margin-bottom:12px"><label class="qf-label">Year <span style="font-size:.6rem;color:rgba(255,255,255,.3)">(Exam mode only)</span></label><select class="qf-year-select" id="utme-year-sel" onchange="onUTMEYearChange(this.value)"></select></div><div class="admin-section-title">Questions <span class="q-count-badge" id="utme-qb-count">0</span></div><div class="question-list" id="utme-question-list"></div><button class="add-question-btn" onclick="utmeAddQ()">＋ Add Question</button><button class="save-all-btn" onclick="utmeSaveAll()">💾 Save All to Database</button></div></div><div class="admin-panel" id="panel-topic-exam"><div id="te-step-subj"><div class="admin-section-title">Topic Exam Questions — Select Subject</div><div class="admin-subjects-grid" id="te-subjects-grid"></div></div><div id="te-step-topic" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><button onclick="closeTETopics()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="color:#fff;font-weight:700" id="te-subj-name">Subject</div></div><div class="admin-section-title">Topics <span class="q-count-badge" id="te-topics-count">0</span></div><div id="te-topics-list"></div><button class="add-question-btn" style="margin-top:12px" onclick="teAddTopic()">＋ Add Topic</button></div><div id="te-step-qbuilder" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;margin-bottom:16px"><div><div style="background:rgba(0,196,154,.15);color:#00c49a;font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-block">🎯 Topic Qs</div><div style="color:#fff;font-weight:700;font-size:.9rem;margin-top:4px" id="te-topic-name-label">Topic</div></div><button style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);padding:8px 14px;border-radius:12px;font-size:.75rem;cursor:pointer;font-family:inherit" onclick="closeTEQBuilder()">‹ Topics</button></div><div class="admin-section-title">Questions <span class="q-count-badge" id="te-qb-count">0</span></div><div class="question-list" id="te-question-list"></div><button class="add-question-btn" onclick="teAddQ()">＋ Add Question</button><button class="save-all-btn" onclick="teSaveAll()">💾 Save All Questions</button></div></div><div class="admin-panel" id="panel-wn-questions"><div class="wn-admin-org-tabs"><button class="wn-org-tab active" id="wnadm-org-waec" onclick="selectWNAdmOrg('waec','questions')">📋 WAEC</button><button class="wn-org-tab" id="wnadm-org-neco" onclick="selectWNAdmOrg('neco','questions')">📋 NECO</button></div><div id="wn-q-step-subj"><div class="admin-section-title">Select Subject</div><div class="admin-subjects-grid" id="wn-q-subjects-grid"></div></div><div id="wn-q-builder" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;margin-bottom:16px"><div><div style="background:rgba(224,123,0,.2);color:#f59e0b;font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-block" id="wn-q-org-badge">🏫 WAEC</div><div style="color:#fff;font-weight:700;font-size:.9rem;margin-top:4px" id="wn-q-subj-name">Subject</div></div><button style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);padding:8px 14px;border-radius:12px;font-size:.75rem;cursor:pointer;font-family:inherit" onclick="closeWNQBuilder()">‹ Back</button></div><div style="margin-bottom:12px"><label class="qf-label">Year <span style="font-size:.6rem;color:rgba(255,255,255,.3)">(2000–2025, required)</span></label><select class="qf-year-select" id="wn-q-year-sel" onchange="onWNYearChange(this.value)"></select></div><div class="admin-section-title">Questions <span class="q-count-badge" id="wn-q-count">0</span></div><div class="question-list" id="wn-question-list"></div><button class="add-question-btn" onclick="wnAddQ()">＋ Add Question</button><button class="save-all-btn" onclick="wnSaveAll()">💾 Save All to Database</button></div></div><div class="admin-panel" id="panel-wn-topics"><div class="wn-admin-org-tabs"><button class="wn-org-tab active" id="wntadm-org-waec" onclick="selectWNAdmOrg('waec','topics')">📋 WAEC</button><button class="wn-org-tab" id="wntadm-org-neco" onclick="selectWNAdmOrg('neco','topics')">📋 NECO</button></div><div id="wn-t-step-subj"><div class="admin-section-title">Select Subject</div><div class="admin-subjects-grid" id="wn-t-subjects-grid"></div></div><div id="wn-t-step-topics" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><button onclick="closeWNTopicList()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="color:#fff;font-weight:700" id="wn-t-subj-name">Subject</div></div><div class="admin-section-title">Topics <span class="q-count-badge" id="wn-t-topics-count">0</span></div><div id="wn-t-topics-list"></div><button class="add-question-btn" style="margin-top:12px" onclick="wnAddTopic()">＋ Add Topic</button></div><div id="wn-t-step-content" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;background:#0d1f3c;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;margin-bottom:16px"><div><div style="background:rgba(224,123,0,.2);color:#f59e0b;font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-block">📖 Topic Notes</div><div style="color:#fff;font-weight:700;font-size:.9rem;margin-top:4px" id="wn-t-topic-name-label">Topic</div></div><button style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);padding:8px 14px;border-radius:12px;font-size:.75rem;cursor:pointer;font-family:inherit" onclick="closeWNTopicContent()">‹ Topics</button></div><div class="admin-section-title">Notes / Questions <span class="q-count-badge" id="wn-t-content-count">0</span></div><div class="question-list" id="wn-t-content-list"></div><button class="add-question-btn" onclick="wnAddTopicItem()">＋ Add Note / Question</button><button class="save-all-btn" onclick="wnSaveTopicContent()">💾 Save All</button></div></div><div class="admin-panel" id="panel-read-mode"><div id="rm-step-subj"><div class="admin-section-title">📄 Read Mode — Select Subject</div><div class="admin-subjects-grid" id="rm-subjects-grid"></div></div><div id="rm-step-topics" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><button onclick="closeRMTopics()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="color:#fff;font-weight:700" id="rm-subj-name">Subject</div></div><div class="admin-section-title">Topics <span class="q-count-badge" id="rm-topics-count">0</span></div><div id="rm-topics-list"></div><button class="add-question-btn" style="margin-top:12px" onclick="rmAddTopic()">＋ Add Topic</button></div><div id="rm-step-materials" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><button onclick="closeRMMaterials()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;font-weight:700">‹ Topics</button><div style="color:#fff;font-weight:700" id="rm-topic-name-label">Topic</div></div><div class="admin-section-title">Materials <span class="q-count-badge" id="rm-materials-count">0</span></div><div id="rm-materials-list"></div><button class="add-question-btn" onclick="rmAddMaterial()">＋ Add Material</button><button class="save-all-btn" onclick="rmSaveAll()">💾 Save All</button></div></div><div class="admin-panel" id="panel-syllabus"><div id="syl-step-subj"><div class="admin-section-title">📖 Syllabus — Select Subject</div><div class="admin-subjects-grid" id="syl-subjects-grid"></div></div><div id="syl-step-edit" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><button onclick="closeSylEdit()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;font-weight:700">‹ Subjects</button><div style="color:#fff;font-weight:700" id="syl-subj-name">Subject</div></div><div class="admin-section-title">Syllabus Content</div><textarea class="qf-textarea" id="syl-textarea" style="min-height:200px;font-size:.9rem;color:#fff;background:#0d1f3c;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;width:100%;resize:vertical" placeholder="Enter syllabus topics, one per line or as plain text..."></textarea><button class="save-all-btn" onclick="sylSave()">💾 Save Syllabus</button></div></div><div class="admin-panel" id="panel-analytics"><div class="admin-section-title">Result Analytics by Exam Type</div><div class="admin-analytics-grid"><div class="admin-analytics-card"><div class="aac-label">UTME Total</div><div class="aac-val" id="adm-utme-total">—</div></div><div class="admin-analytics-card"><div class="aac-label">WAEC Total</div><div class="aac-val" id="adm-waec-total">—</div></div><div class="admin-analytics-card"><div class="aac-label">NECO Total</div><div class="aac-val" id="adm-neco-total">—</div></div><div class="admin-analytics-card"><div class="aac-label">Avg Score (All)</div><div class="aac-val" id="adm-avg-score">—%</div></div></div><div class="admin-section-title">Recent Results <span>Latest 30</span></div><div id="adm-results-list"><div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No results yet</div></div></div></div></div></div>
+<div class="user-modal-overlay" id="user-modal-overlay" onclick="closeUserModal(event)"><div class="user-modal"><div class="modal-handle"></div><div class="modal-avatar" id="modal-avatar">U</div><div class="modal-name" id="modal-name">Username</div><div class="modal-email" id="modal-email">email</div><div class="modal-info-grid"><div class="modal-info-card"><div class="mic-label">Status</div><div class="mic-value" id="modal-status">—</div></div><div class="modal-info-card"><div class="mic-label">Joined</div><div class="mic-value" id="modal-joined">—</div></div></div><div class="modal-actions"><button class="modal-btn modal-btn-ban" id="modal-ban-btn" onclick="toggleBanUser()">🚫 Ban User</button><button class="modal-btn modal-btn-close" onclick="closeUserModal()">Close</button></div></div></div>
+<div class="admin-toast" id="admin-toast"></div>
+<script>
+// ─── SUPABASE ───────────────────────────────────────────────────────────
+const sb = supabase.createClient(
+  'https://rofssssxyxamolmkypqz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvZnNzc3N4eXhhbW9sbWt5cHF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0ODIwMzAsImV4cCI6MjA5ODA1ODAzMH0.d04t7fcQDDr0FGeixgwzc8OT2fnm-jgjM-BQfuv7hLM'
+);
+const ADMIN_EMAILS = ['admin@myutme.com','enzo@myutme.com'];
+let currentUser = null;
+
+// ─── SUBJECTS ────────────────────────────────────────────────────────────
+const SUBJECTS = [
+  {id:'english',   name:'English Language',            icon:'📝',color:'si-eng',  tag:'Required',required:true},
+  {id:'maths',     name:'Mathematics',                 icon:'📐',color:'si-math', tag:'Core'},
+  {id:'physics',   name:'Physics',                     icon:'⚛️',color:'si-phy',  tag:'Science'},
+  {id:'chemistry', name:'Chemistry',                   icon:'🧪',color:'si-chem', tag:'Science'},
+  {id:'biology',   name:'Biology',                     icon:'🧬',color:'si-bio',  tag:'Science'},
+  {id:'geography', name:'Geography',                   icon:'🌍',color:'si-geo',  tag:'Arts/SS'},
+  {id:'lit',       name:'Literature in English',       icon:'📖',color:'si-lit',  tag:'Arts'},
+  {id:'economics', name:'Economics',                   icon:'📈',color:'si-econ', tag:'Social Sci'},
+  {id:'commerce',  name:'Commerce',                    icon:'🏪',color:'si-com',  tag:'Social Sci'},
+  {id:'accounts',  name:'Accounts',                    icon:'🧾',color:'si-acc',  tag:'Social Sci'},
+  {id:'government',name:'Government',                  icon:'🏛️',color:'si-gov', tag:'Social Sci'},
+  {id:'crs',       name:'Christian Religious Studies', icon:'✝️',color:'si-crs',  tag:'Arts'},
+  {id:'agric',     name:'Agricultural Science',        icon:'🌾',color:'si-agr',  tag:'Science'},
+  {id:'islamic',   name:'Islamic Religious Studies',   icon:'☪️',color:'si-isl',  tag:'Arts'},
+];
+const WN_SUBJECTS = [
+  {id:'english',   name:'English Language',            icon:'📝'},
+  {id:'maths',     name:'Mathematics',                 icon:'📐'},
+  {id:'physics',   name:'Physics',                     icon:'⚛️'},
+  {id:'chemistry', name:'Chemistry',                   icon:'🧪'},
+  {id:'biology',   name:'Biology',                     icon:'🧬'},
+  {id:'geography', name:'Geography',                   icon:'🌍'},
+  {id:'lit',       name:'Literature in English',       icon:'📖'},
+  {id:'economics', name:'Economics',                   icon:'📈'},
+  {id:'commerce',  name:'Commerce',                    icon:'🏪'},
+  {id:'accounts',  name:'Financial Accounting',        icon:'🧾'},
+  {id:'government',name:'Government',                  icon:'🏛️'},
+  {id:'crs',       name:'Christian Religious Studies', icon:'✝️'},
+  {id:'agric',     name:'Agricultural Science',        icon:'🌾'},
+  {id:'islamic',   name:'Islamic Religious Studies',   icon:'☪️'},
+  {id:'further-maths',name:'Further Mathematics',      icon:'➕'},
+  {id:'data-processing',name:'Data Processing',        icon:'💾'},
+  {id:'civic',     name:'Civic Education',             icon:'🗳️'},
+  {id:'yoruba',    name:'Yoruba Language',             icon:'🗣️'},
+  {id:'igbo',      name:'Igbo Language',               icon:'🗣️'},
+  {id:'hausa',     name:'Hausa Language',              icon:'🗣️'},
+];
+
+// ─── DATA STORES ──────────────────────────────────────────────────────────
+let questions = {cbt:{},exam:{}};
+let topicQs = {};
+let wnQs = {waec:{},neco:{}};
+let wnTopics = {waec:{},neco:{}};
+let readModeData = {};
+let syllabi = {};
+
+function lsGet(k,def={}){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+function loadLocal(){
+  questions = lsGet('utme_questions',{cbt:{},exam:{}});
+  if(!questions.cbt)questions.cbt={};
+  if(!questions.exam)questions.exam={};
+  topicQs  = lsGet('utme_topic_qs',{});
+  wnQs     = lsGet('wn_questions',{waec:{},neco:{}});
+  if(!wnQs.waec)wnQs.waec={};
+  if(!wnQs.neco)wnQs.neco={};
+  wnTopics = lsGet('wn_topics',{waec:{},neco:{}});
+  if(!wnTopics.waec)wnTopics.waec={};
+  if(!wnTopics.neco)wnTopics.neco={};
+  readModeData = lsGet('read_mode_data',{});
+  syllabi = lsGet('syllabi',{});
+}
+
+async function loadFromDB(){
+  loadLocal();
+  try{
+    const{data,error}=await sb.from('questions').select('*');
+    if(error){
+      console.log('⚠️ DB error:', error);
+      return;
+    }
+    if(!data || !data.length) {
+      console.log('📭 No questions in database');
+      return;
+    }
+    console.log('📚 Loaded', data.length, 'questions from database');
+    data.forEach(row=>{
+      let parsed;
+      try{ parsed = JSON.parse(row.data); } 
+      catch(e){ 
+        console.log('⚠️ Failed to parse row:', row.id);
+        return; 
+      }
+      if(!parsed || !parsed.length) return;
+      const { mode, subject_id: sid, year } = row;
+      if(mode === 'cbt'){
+        questions.cbt[sid] = parsed;
+      }
+      else if(mode === 'exam'){
+        if(!questions.exam[sid]) questions.exam[sid] = {};
+        questions.exam[sid][year] = parsed;
+      }
+      else if(mode === 'topic'){
+        if(!topicQs[sid]) topicQs[sid] = {};
+        topicQs[sid][year] = parsed;
+      }
+      else if(mode === 'wn-exam-waec'){
+        if(!wnQs.waec[sid]) wnQs.waec[sid] = {};
+        wnQs.waec[sid][year] = parsed;
+      }
+      else if(mode === 'wn-exam-neco'){
+        if(!wnQs.neco[sid]) wnQs.neco[sid] = {};
+        wnQs.neco[sid][year] = parsed;
+      }
+      else if(mode === 'wn-topic-waec'){
+        if(!wnTopics.waec[sid]) wnTopics.waec[sid] = {};
+        wnTopics.waec[sid][year] = parsed;
+      }
+      else if(mode === 'wn-topic-neco'){
+        if(!wnTopics.neco[sid]) wnTopics.neco[sid] = {};
+        wnTopics.neco[sid][year] = parsed;
+      }
+      else if(mode === 'read-mode'){
+        if(parsed && parsed.length > 0 && parsed[0] && typeof parsed[0] === 'object'){
+          readModeData[sid] = parsed[0];
+          if(!readModeData[sid].topics) readModeData[sid].topics = {};
+        } else {
+          readModeData[sid] = {topics:{}};
+        }
+      }
+      else if(mode === 'syllabus'){
+        syllabi[sid] = parsed[0] || '';
+      }
+    });
+    // Save to localStorage
+    lsSet('utme_questions', questions);
+    lsSet('utme_topic_qs', topicQs);
+    lsSet('wn_questions', wnQs);
+    lsSet('wn_topics', wnTopics);
+    lsSet('read_mode_data', readModeData);
+    lsSet('syllabi', syllabi);
+    console.log('✅ Data synced to localStorage');
+  } catch(e){
+    console.log('⚠️ Load error:', e);
+  }
+}
+
+async function dbUpsert(mode,sid,year,data){
+  const payload={mode,subject_id:sid,year:year||null,data:JSON.stringify(data),updated_at:new Date().toISOString()};
+  try{
+    let conflict='mode,subject_id,year';
+    const{error}=await sb.from('questions').upsert(payload,{onConflict:conflict});
+    if(error){
+      await sb.from('questions').delete().match({mode,subject_id:sid,year:year||null});
+      await sb.from('questions').insert(payload);
+    }
+    await loadFromDB();
+    return true;
+  } catch(e){ return false; }
+}
+
+// ─── SPLASH ──────────────────────────────────────────────────────────────
+let _dotI=0,_dots=document.querySelectorAll('.dot');
+let _splash=setInterval(()=>{
+  _dots.forEach(d=>d.classList.remove('active'));
+  if(_dots[_dotI])_dots[_dotI].classList.add('active');
+  _dotI++;
+  if(_dotI>=5){clearInterval(_splash);init();}
+},600);
+
+async function init(){
+  loadLocal();
+  let userData=null;
+  try{const{data}=await sb.auth.getUser();if(data?.user)userData=data.user;}catch(e){}
+  document.getElementById('splash').style.display='none';
+  if(userData){
+    currentUser=userData;
+    document.getElementById('main-site').style.display='block';
+    document.getElementById('login-btn').style.display='none';
+    const name=userData.user_metadata?.username||userData.email?.split('@')[0]||'User';
+    document.getElementById('user-display').textContent='Hi, '+name+' 👋';
+    if(ADMIN_EMAILS.includes(userData.email))document.getElementById('admin-btn').style.display='block';
+    try{await sb.from('profiles').upsert({id:userData.id,email:userData.email,username:userData.user_metadata?.username||userData.email?.split('@')[0],last_sign_in_at:new Date().toISOString()},{onConflict:'id'});}catch(e){}
+    await loadFromDB();
+    renderHomeStats();
+  }else{showAuthPage();}
+}
+
+function toggleDark(){const on=document.getElementById('dark-toggle').checked;document.documentElement.setAttribute('data-theme',on?'dark':'light');lsSet('theme',on?'dark':'light');}
+if(lsGet('theme','light')==='dark'){document.documentElement.setAttribute('data-theme','dark');document.getElementById('dark-toggle').checked=true;}
+
+let loginMode=true;
+function showAuthPage(){document.getElementById('main-site').style.display='none';document.getElementById('auth-page').classList.add('visible');document.getElementById('auth-page').style.display='flex';}
+function hideAuthPage(){document.getElementById('auth-page').classList.remove('visible');document.getElementById('auth-page').style.display='none';document.getElementById('main-site').style.display='block';}
+function switchAuth(){loginMode=!loginMode;document.getElementById('auth-title').innerText=loginMode?'Welcome back':'Create account';document.getElementById('auth-sub-text').innerText=loginMode?'Sign in to continue':'Join thousands of UTME candidates';document.getElementById('auth-button').innerText=loginMode?'Sign In':'Create Account';document.getElementById('login-fields').style.display=loginMode?'block':'none';document.getElementById('signup-fields').style.display=loginMode?'none':'block';document.getElementById('forgot-link').style.display=loginMode?'block':'none';document.getElementById('switch-text').innerHTML=loginMode?"Don't have an account? <span onclick='switchAuth()'>Create one</span>":"Already have an account? <span onclick='switchAuth()'>Sign in</span>";document.getElementById('auth-error').style.display='none';}
+function togglePW(){const i=document.getElementById('auth-password'),b=document.getElementById('pw-eye-btn');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='text'?'🙈':'👁️';}
+async function handleAuth(){
+  document.getElementById('auth-error').style.display='none';
+  const pw=document.getElementById('auth-password').value;
+  if(pw.length<6){showAE('Password must be at least 6 characters.');return;}
+  const btn=document.getElementById('auth-button');btn.disabled=true;btn.textContent=loginMode?'Signing in...':'Creating account...';
+  try{
+    if(loginMode){
+      let iden=document.getElementById('auth-identifier').value.trim();if(!iden){showAE('Enter your email or username.');return;}
+      let email=iden;
+      if(!iden.includes('@')){const{data}=await sb.from('profiles').select('email').ilike('username',iden).single();if(!data){showAE('No account found with that username.');return;}email=data.email;}
+      const{error}=await sb.auth.signInWithPassword({email,password:pw});
+      if(error){showAE(error.message||'Login failed.');}else{hideAuthPage();init();}
+    }else{
+      const email=document.getElementById('auth-email').value.trim(),username=document.getElementById('auth-username').value.trim();
+      if(!email||!username){showAE('Fill in all fields.');return;}
+      const{data,error}=await sb.auth.signUp({email,password:pw,options:{data:{username}}});
+      if(error){showAE(error.message||'Sign up failed.');}else{try{await sb.from('profiles').insert({id:data.user.id,email,username});}catch(e){}alert('Account created! Please sign in.');switchAuth();}
+    }
+  }finally{btn.disabled=false;btn.textContent=loginMode?'Sign In':'Create Account';}
+}
+function showAE(m){const b=document.getElementById('auth-error');b.innerText=m;b.style.display='block';}
+async function logout(){await sb.auth.signOut();location.reload();}
+
+function showPage(id){
+  ['home-page','menu-page','analytics-page','profile-page'].forEach(p=>{const el=document.getElementById(p);if(el)el.style.display='none';});
+  const el=document.getElementById(id);if(el)el.style.display='block';
+  ['nav-home','nav-analytics','nav-profile','nav-menu'].forEach(n=>{const e=document.getElementById(n);if(e)e.classList.remove('active');});
+  const map={'home-page':'nav-home','analytics-page':'nav-analytics','profile-page':'nav-profile','menu-page':'nav-menu'};
+  if(map[id]){const e=document.getElementById(map[id]);if(e)e.classList.add('active');}
+  if(id==='analytics-page')renderAnalytics();
+  if(id==='profile-page')renderProfile();
+  if(id==='home-page')renderHomeStats();
+}
+
+function renderHomeStats(){
+  const hist=lsGet('utme_results',[]).filter(r=>!currentUser||r.user_id===currentUser.id);
+  document.getElementById('hstat-attempts').textContent=hist.length;
+  let best=null;hist.forEach(r=>{const v=r.mode==='cbt'?r.score:(r.maxScore>0?Math.round(r.score/r.maxScore*100):0);if(best===null||v>best)best=v;});
+  document.getElementById('hstat-bestscore').textContent=best!==null?(best>100?best+'/400':best+'%'):'—';
+  const days=new Set(hist.map(r=>new Date(r.date).toDateString()));let streak=0,d=new Date();while(days.has(d.toDateString())){streak++;d.setDate(d.getDate()-1);}
+  document.getElementById('hstat-streak').textContent=streak+'🔥';
+}
+
+let selSubjects=new Set(['english']),pickerMode='cbt';
+function openPicker(mode){
+  pickerMode=mode;const isExam=mode==='exam';
+  selSubjects=new Set();
+  document.getElementById('picker-mode-badge').innerHTML=isExam?'⏰ Exam Mode':'💻 CBT Mode';
+  document.getElementById('picker-title').textContent=isExam?'Pick a Subject':'Pick Your Subjects';
+  document.getElementById('picker-sub').textContent=isExam?'Select 1 subject & year':'Select exactly 4 subjects';
+  document.getElementById('sel-max').textContent=isExam?'/1':'/4';
+  document.getElementById('counter-label').textContent=isExam?'subject selected':'subjects selected';
+  document.getElementById('counter-dots').innerHTML=isExam?'<div class="counter-dot" id="dot-1"></div>':'<div class="counter-dot" id="dot-1"></div><div class="counter-dot" id="dot-2"></div><div class="counter-dot" id="dot-3"></div><div class="counter-dot" id="dot-4"></div>';
+  document.getElementById('picker-info-text').innerHTML=isExam?'<b>Select subject + year to start</b>Both required to begin.':'<b>English Language is required</b>Choose 3 more subjects.';
+  if(!isExam)selSubjects.add('english');
+  const ys=document.getElementById('year-picker-section');
+  if(isExam){ys.style.display='block';buildYearSelect('exam-year-select');}else{ys.style.display='none';}
+  renderPickerSubjects();updateCounter();
+  document.getElementById('subject-picker').classList.add('visible');
+  document.getElementById('main-site').style.display='none';
+}
+function closePicker(){document.getElementById('subject-picker').classList.remove('visible');document.getElementById('main-site').style.display='block';}
+function buildYearSelect(id){const el=document.getElementById(id);if(!el)return;let o='<option value="">— Choose a year —</option>';for(let y=2025;y>=2000;y--)o+=`<option value="${y}">${y}</option>`;el.innerHTML=o;el.value='';}
+function renderPickerSubjects(){
+  const isExam=pickerMode==='exam';
+  document.getElementById('subjects-grid').innerHTML=SUBJECTS.map(s=>{
+    const sel=selSubjects.has(s.id),req=!isExam&&s.required;
+    return`<div class="subj-card ${sel?'selected':''}" onclick="toggleSubj('${s.id}',${req})">
+      <div class="subj-check">${sel?'✓':''}</div>
+      <div class="subj-icon-wrap ${s.color}">${s.icon}</div>
+      <div class="subj-name">${s.name}</div>
+      <div class="subj-tag" style="background:${req?'#fef3cd':s.tag==='Science'?'#e8f5e9':'#f3e5f5'};color:${req?'#a06000':s.tag==='Science'?'#1e8a5e':'#8e44ad'}">${req?'🔒 Required':s.tag}</div>
+    </div>`;
+  }).join('');
+}
+function toggleSubj(id,required){
+  if(required)return;const isExam=pickerMode==='exam',max=isExam?1:4;
+  if(selSubjects.has(id)){selSubjects.delete(id);}else{if(selSubjects.size>=max){if(isExam)selSubjects.clear();else return;}selSubjects.add(id);}
+  renderPickerSubjects();updateCounter();
+}
+function updateCounter(){
+  const isExam=pickerMode==='exam',req=isExam?1:4,n=selSubjects.size;
+  document.getElementById('sel-count').textContent=n;
+  for(let i=1;i<=req;i++){const d=document.getElementById('dot-'+i);if(d)d.classList.toggle('filled',i<=n);}
+  if(isExam){const y=document.getElementById('exam-year-select').value;document.getElementById('start-btn').disabled=n<1||!y;}
+  else{document.getElementById('start-btn').disabled=n<req;}
+}
+function startSession(){
+  if(pickerMode==='exam'){const sid=Array.from(selSubjects)[0],year=document.getElementById('exam-year-select').value;launchExam('exam',sid,year);}
+  else{launchCBT(Array.from(selSubjects));}
+}
+
+let ES={mode:'',subjectId:'',subjectName:'',questions:[],answers:{},curIdx:0,isReview:false,timerSeconds:0,timerInterval:null,year:'',cbtSubjects:[],cbtActiveIdx:0,examType:'utme'};
+
+function launchCBT(ids){
+  document.getElementById('subject-picker').classList.remove('visible');
+  document.getElementById('main-site').style.display='none';
+  const cbtS=ids.map(id=>{const subj=SUBJECTS.find(s=>s.id===id);const qs=shuffle([...(questions.cbt[id]||[])]).slice(0,25);return{id,name:subj?subj.name:id,icon:subj?subj.icon:'📝',questions:qs,answers:{}};});
+  ES={mode:'cbt',subjectId:ids[0],subjectName:'CBT Session',questions:[],answers:{},curIdx:0,isReview:false,timerSeconds:7200,timerInterval:null,year:'',cbtSubjects:cbtS,cbtActiveIdx:0,examType:'utme'};
+  switchCBTSubj(0);
+  document.getElementById('exam-mode-tag').textContent='💻 CBT MODE';
+  document.getElementById('exam-subject-name').textContent='💻 CBT Session';
+  document.getElementById('cbt-subjects-bar').style.display='flex';
+  renderCBTTabs();
+  document.getElementById('exam-session').classList.add('visible');
+  renderQ();renderQNav();updateProgress();startTimer();
+}
+function switchCBTSubj(idx){
+  if(ES.cbtSubjects[ES.cbtActiveIdx])ES.cbtSubjects[ES.cbtActiveIdx].answers={...ES.answers};
+  ES.cbtActiveIdx=idx;const s=ES.cbtSubjects[idx];
+  ES.questions=s.questions;ES.answers={...s.answers};ES.curIdx=0;ES.subjectId=s.id;ES.subjectName=s.name;
+  renderCBTTabs();renderQ();renderQNav();updateProgress();
+}
+function renderCBTTabs(){
+  document.getElementById('cbt-subjects-bar').innerHTML=ES.cbtSubjects.map((s,i)=>{
+    const ans=Object.keys(s.answers).length,tot=s.questions.length,done=ans>=tot&&tot>0;
+    return`<div class="cbt-subj-tab ${i===ES.cbtActiveIdx?'active':''} ${done?'done':''}" onclick="switchCBTSubj(${i})">${s.icon} ${s.name} <span class="cbt-tab-count">${ans}/${tot}</span></div>`;
+  }).join('');
+}
+
+function launchExam(mode,sid,year,examType='utme',extraData={}){
+  document.getElementById('subject-picker').classList.remove('visible');
+  document.getElementById('main-site').style.display='none';
+  document.getElementById('cbt-subjects-bar').style.display='none';
+  let subj=SUBJECTS.find(s=>s.id===sid);
+  let qs=[];
+  let typeLabel='⏰ EXAM MODE';
+  if(examType==='utme'){
+    if(mode==='exam')qs=(questions.exam[sid]||{})[year]||[];
+    else if(mode==='topic')qs=(topicQs[sid]||{})[year]||[];
+    subj=SUBJECTS.find(s=>s.id===sid);
+    typeLabel='⏰ EXAM MODE';
+  }else if(examType==='waec'||examType==='neco'){
+    qs=(wnQs[examType][sid]||{})[year]||[];
+    subj=WN_SUBJECTS.find(s=>s.id===sid);
+    typeLabel=examType==='waec'?'🏫 WAEC EXAM':'🏫 NECO EXAM';
+  }
+  const nameStr=(subj?subj.icon+' ':'')+(subj?subj.name:sid)+(year?' · '+year:'');
+  ES={mode,subjectId:sid,subjectName:nameStr,questions:qs,answers:{},curIdx:0,isReview:false,timerSeconds:Math.max(qs.length*90,1800),timerInterval:null,year,cbtSubjects:[],cbtActiveIdx:0,examType};
+  document.getElementById('exam-subject-name').textContent=nameStr;
+  document.getElementById('exam-mode-tag').textContent=typeLabel;
+  document.getElementById('exam-session').classList.add('visible');
+  if(!qs.length){renderEmpty();return;}
+  renderQ();renderQNav();updateProgress();startTimer();
+}
+function launchTopicExam(sid,topicName){
+  document.getElementById('main-site').style.display='none';
+  document.getElementById('cbt-subjects-bar').style.display='none';
+  document.getElementById('topic-practice-page').style.display='none';
+  const subj=SUBJECTS.find(s=>s.id===sid);
+  const qs=shuffle([...((topicQs[sid]||{})[topicName]||[])]);
+  ES={mode:'topic',subjectId:sid,subjectName:(subj?subj.name:sid)+' · '+topicName,questions:qs,answers:{},curIdx:0,isReview:false,timerSeconds:Math.max(qs.length*90,900),timerInterval:null,year:topicName,cbtSubjects:[],cbtActiveIdx:0,examType:'utme'};
+  document.getElementById('exam-subject-name').textContent=(subj?subj.icon+' ':'')+subj?.name;
+  document.getElementById('exam-mode-tag').textContent='🎯 TOPIC · '+topicName;
+  document.getElementById('exam-session').classList.add('visible');
+  if(!qs.length){renderEmpty();return;}
+  renderQ();renderQNav();updateProgress();startTimer();
+}
+function launchWNExam(org,sid,year){launchExam('exam',sid,year,org);}
+function launchTopicRead(examType,org,sid,topicName){
+  document.getElementById('main-site').style.display='none';
+  document.getElementById('cbt-subjects-bar').style.display='none';
+  let items=[];
+  if(examType==='waec'||examType==='neco'){
+    items=((wnTopics[org]||{})[sid]||{})[topicName]||[];
+  }
+  const subj=WN_SUBJECTS.find(s=>s.id===sid);
+  ES={mode:'read',subjectId:sid,subjectName:(subj?subj.name:sid)+' · '+topicName,questions:items,answers:{},curIdx:0,isReview:false,timerSeconds:items.length*60,timerInterval:null,year:topicName,cbtSubjects:[],cbtActiveIdx:0,examType:examType};
+  document.getElementById('exam-subject-name').textContent=(subj?subj.icon+' ':'')+subj?.name;
+  document.getElementById('exam-mode-tag').textContent='📚 READ · '+topicName;
+  document.getElementById('exam-session').classList.add('visible');
+  if(!items.length){renderEmpty();return;}
+  renderQ();renderQNav();updateProgress();startTimer();
+}
+
+function renderQ(){
+  const i=ES.curIdx,q=ES.questions[i];
+  if(!q)return;
+  const chosen=ES.answers[i],isReview=ES.isReview,letters=['A','B','C','D'],vals=[q.a,q.b,q.c,q.d];
+  const topicBadge=q.topic?`<div class="question-topic-badge">${q.topic}</div>`:'';
+  const opts=letters.map((l,idx)=>{
+    if(!vals[idx])return'';
+    let cls='option-btn',icon='';
+    if(isReview){if(l===q.ans){cls+=' show-correct';icon='✅';}if(chosen===l&&chosen!==q.ans){cls+=' wrong';icon='❌';}}
+    else if(chosen===l)cls+=' selected';
+    return`<button class="${cls}" onclick="selectAns(${i},'${l}')" ${isReview?'disabled':''}><div class="option-letter">${l}</div><div class="option-text">${vals[idx]}</div><div class="option-result-icon">${icon}</div></button>`;
+  }).join('');
+  let expBox='';
+  if(isReview&&chosen){const ok=chosen===q.ans;const exp=q.explanation||(ok?'Correct!':'The correct answer is Option '+q.ans+'.');expBox=`<div class="explanation-box visible"><div class="explanation-label">${ok?'✅ Correct!':'❌ Incorrect'}</div><div class="explanation-text">${exp}</div></div>`;}
+  const reviewBanner=isReview?`<div class="review-banner">📋 <span>Review Mode — correct answers highlighted</span></div>`:'';
+  document.getElementById('exam-body').innerHTML=`${reviewBanner}<div class="question-card"><div class="question-card-header"><div class="question-num-badge">Q${i+1}</div>${topicBadge}<div class="question-text">${q.q}</div></div><div class="options-list">${opts}</div></div>${expBox}`;
+  const isLast=i===ES.questions.length-1;
+  const bar=document.getElementById('exam-action-bar');bar.style.display='flex';
+  if(isReview){bar.innerHTML=`<button class="exam-prev-btn" onclick="goToPrev()" ${i===0?'disabled':''}>← Prev</button><button class="exam-next-btn" onclick="goToNext()">${isLast?'Done ✓':'Next →'}</button>`;}
+  else{bar.innerHTML=`<button class="exam-prev-btn" onclick="goToPrev()" ${i===0?'disabled':''}>← Prev</button><button class="${isLast?'exam-submit-btn':'exam-next-btn'}" onclick="${isLast?'submitExam()':'goToNext()'}">  ${isLast?'✅ Submit':'Next →'}</button>`;}
+  updateProgress();renderQNav();
+  document.getElementById('exam-session').scrollTo({top:0,behavior:'smooth'});
+}
+function selectAns(idx,l){if(ES.isReview)return;ES.answers[idx]=l;if(ES.mode==='cbt'&&ES.cbtSubjects.length)ES.cbtSubjects[ES.cbtActiveIdx].answers={...ES.answers};renderQ();}
+function goToNext(){if(ES.curIdx<ES.questions.length-1){ES.curIdx++;renderQ();}else if(ES.isReview)exitExam();}
+function goToPrev(){if(ES.curIdx>0){ES.curIdx--;renderQ();}}
+function jumpQ(i){ES.curIdx=i;renderQ();}
+function renderQNav(){const nav=document.getElementById('exam-q-nav');nav.innerHTML=ES.questions.map((_,i)=>{let c='exam-q-dot';if(ES.answers[i]!==undefined)c+=' answered';if(i===ES.curIdx)c+=' current';return`<div class="${c}" onclick="jumpQ(${i})">${i+1}</div>`;}).join('');const a=nav.children[ES.curIdx];if(a)a.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}
+function updateProgress(){const tot=ES.questions.length,ans=Object.keys(ES.answers).length,pct=tot?(ans/tot*100):0;document.getElementById('exam-progress-fill').style.width=pct+'%';document.getElementById('exam-progress-text').textContent=ans+' / '+tot+' answered';}
+function renderEmpty(){document.getElementById('exam-body').innerHTML=`<div class="exam-empty"><div class="exam-empty-icon">📭</div><div class="exam-empty-title">No Questions Yet</div><div class="exam-empty-sub">Questions for this selection haven't been uploaded yet.<br>Please check back later or try another option.</div><button class="exam-empty-btn" onclick="exitExam()">← Go Back</button></div>`;document.getElementById('exam-action-bar').style.display='none';document.getElementById('exam-progress-strip').style.display='none';document.getElementById('exam-q-nav').style.display='none';document.getElementById('exam-timer').style.display='none';}
+function startTimer(){clearInterval(ES.timerInterval);const tn=document.getElementById('exam-timer-num'),te=document.getElementById('exam-timer');te.style.display='';function tick(){const s=ES.timerSeconds,h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;tn.textContent=h>0?`${h}:${pad(m)}:${pad(sec)}`:`${pad(m)}:${pad(sec)}`;te.className='exam-timer'+(s<=60?' danger':s<=300?' warning':'');if(s<=0){clearInterval(ES.timerInterval);submitExam(true);return;}ES.timerSeconds--;}tick();ES.timerInterval=setInterval(tick,1000);}
+function pad(n){return String(n).padStart(2,'0');}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function submitExam(timeUp){
+  clearInterval(ES.timerInterval);
+  if(ES.mode==='cbt'){if(ES.cbtSubjects[ES.cbtActiveIdx])ES.cbtSubjects[ES.cbtActiveIdx].answers={...ES.answers};}
+  const qs=ES.questions;let correct=0,wrong=0,skipped=0;
+  qs.forEach((q,i)=>{const a=ES.answers[i];if(!a)skipped++;else if(a===q.ans)correct++;else wrong++;});
+  const total=qs.length,pct=total?Math.round(correct/total*100):0;
+  let cat=ES.examType||'utme';
+  if(cat==='utme'&&ES.mode==='cbt')cat='utme-cbt';
+  else if(cat==='utme')cat='utme-exam';
+  saveResult({mode:cat,subject:ES.subjectName,year:ES.year,correct,wrong,skipped,total,score:correct,maxScore:total,date:new Date().toISOString(),user_id:currentUser?.id,username:currentUser?.user_metadata?.username||currentUser?.email?.split('@')[0]||'Guest',examType:cat});
+  document.getElementById('res-subject-label').textContent=ES.subjectName;
+  document.getElementById('res-title').textContent=timeUp?'Time Up! ⏰':'Session Complete! 🎉';
+  document.getElementById('res-score-num').textContent=correct;
+  document.getElementById('res-score-denom').textContent='out of '+total;
+  document.getElementById('res-correct').textContent=correct;
+  document.getElementById('res-wrong').textContent=wrong;
+  document.getElementById('res-skipped').textContent=skipped;
+  const circ=326.7,offset=circ-(pct/100*circ),ring=document.getElementById('ring-fill-circle');
+  ring.className='ring-fill'+(pct>=70?' good':pct>=50?' average':' poor');
+  setTimeout(()=>{ring.style.strokeDashoffset=offset;},100);
+  const msg=pct>=80?'<b>Excellent!</b> Outstanding! 🏆':pct>=60?'<b>Good job!</b> Review wrong answers.':pct>=40?'<b>Fair attempt.</b> Focus on weak areas.':'<b>Keep going!</b> More practice builds confidence.';
+  document.getElementById('res-message').innerHTML=msg;
+  document.getElementById('results-overlay').classList.add('visible');
+}
+function saveResult(r){const hist=lsGet('utme_results',[]);hist.unshift(r);if(hist.length>200)hist.splice(200);lsSet('utme_results',hist);try{sb.from('results').insert(r);}catch(e){}}
+function retryExam(){document.getElementById('results-overlay').classList.remove('visible');if(ES.mode==='cbt')launchCBT(ES.cbtSubjects.map(s=>s.id));else if(ES.examType==='waec'||ES.examType==='neco')launchWNExam(ES.examType,ES.subjectId,ES.year);else launchExam(ES.mode,ES.subjectId,ES.year,ES.examType);}
+function reviewAnswers(){document.getElementById('results-overlay').classList.remove('visible');ES.isReview=true;ES.curIdx=0;renderQ();renderQNav();}
+function exitExam(){
+  clearInterval(ES.timerInterval);
+  document.getElementById('exam-session').classList.remove('visible');
+  document.getElementById('results-overlay').classList.remove('visible');
+  document.getElementById('cbt-subjects-bar').style.display='none';
+  ['exam-action-bar','exam-progress-strip','exam-q-nav'].forEach(id=>{const el=document.getElementById(id);if(el){el.style.display='';if(id==='exam-action-bar')el.style.display='flex';}});
+  document.getElementById('exam-timer').style.display='';
+  document.getElementById('main-site').style.display='block';
+}
+
+function renderAnalytics(){
+  const all=lsGet('utme_results',[]);
+  const cbtOnly=all.filter(r=>r.mode==='cbt'||r.mode==='utme-cbt');
+  renderLeaderboard(cbtOnly,'cbt-leaderboard-list','CBT');
+  const waecOnly=all.filter(r=>r.mode==='waec'||r.mode==='wn-exam-waec');
+  renderLeaderboard(waecOnly,'waec-leaderboard-list','WAEC');
+  const necoOnly=all.filter(r=>r.mode==='neco'||r.mode==='wn-exam-neco');
+  renderLeaderboard(necoOnly,'neco-leaderboard-list','NECO');
+  renderSubjectAverages(cbtOnly,'cbt-subject-bars');
+}
+function renderLeaderboard(rows,elId,label){
+  const el=document.getElementById(elId);
+  if(!rows.length){el.innerHTML=`<div class="analytics-empty">No ${label} results yet.</div>`;return;}
+  const userMap={};
+  rows.forEach(r=>{const uid=r.user_id||r.username||'Guest',uname=r.username||'Unknown';if(!userMap[uid])userMap[uid]={username:uname,best:0,attempts:0};userMap[uid].attempts++;if((r.score||0)>userMap[uid].best)userMap[uid].best=r.score||0;});
+  const ranked=Object.values(userMap).sort((a,b)=>b.best-a.best);
+  const myUid=currentUser?.id;
+  el.innerHTML=`<div class="lb-table-head"><div>#</div><div>User</div><div>Best Score</div><div>Attempts</div></div>`+ranked.map((u,i)=>{
+    const rankIcon=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);const rankCls=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const isMe=myUid&&Object.keys(userMap).find(k=>userMap[k].username===u.username&&k===myUid);
+    return`<div class="lb-row${isMe?' me':''}"><div class="lb-rank ${rankCls}">${rankIcon}</div><div class="lb-user"><div class="lb-avatar">${u.username.slice(0,2).toUpperCase()}</div><div class="lb-username">${u.username}${isMe?' (you)':''}</div></div><div class="lb-score">${u.best}</div><div class="lb-total" style="color:var(--sub);font-size:.8rem">${u.attempts}</div></div>`;
+  }).join('');
+}
+function renderSubjectAverages(rows,elId){
+  const el=document.getElementById(elId);
+  if(!rows.length){el.innerHTML='<div class="analytics-empty">No data yet.</div>';return;}
+  const subjAvg={};
+  rows.forEach(r=>{if(r.subjects)r.subjects.forEach(s=>{if(!subjAvg[s.name])subjAvg[s.name]={total:0,max:0};subjAvg[s.name].total+=s.correct||0;subjAvg[s.name].max+=s.total||0;});});
+  const entries=Object.entries(subjAvg);
+  if(!entries.length){el.innerHTML='<div class="analytics-empty">No subject data yet.</div>';return;}
+  el.innerHTML=entries.map(([name,d])=>{const pct=d.max>0?Math.round(d.total/d.max*100):0;const color=pct>=70?'#00c49a':pct>=50?'#f59e0b':'#e03c3c';return`<div class="analytics-bar-wrap"><span class="analytics-bar-label">${name}</span><div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="analytics-bar-pct">${pct}%</span></div>`;}).join('');
+}
+
+function renderProfile(){
+  const page=document.getElementById('profile-page');
+  const hist=lsGet('utme_results',[]).filter(r=>!currentUser||r.user_id===currentUser.id);
+  const name=currentUser?(currentUser.user_metadata?.username||currentUser.email?.split('@')[0]||'Guest'):'Guest';
+  const email=currentUser?.email||'Not signed in';
+  const init=name.slice(0,2).toUpperCase();
+  const groups={
+    'utme-cbt':{label:'UTME CBT',icon:'💻',results:[]},
+    'utme-exam':{label:'UTME Exam',icon:'⏰',results:[]},
+    'waec':{label:'WAEC',icon:'🏫',results:[]},
+    'neco':{label:'NECO',icon:'🏫',results:[]},
+  };
+  hist.forEach(r=>{
+    let key=r.mode||'utme-cbt';
+    if(key==='cbt')key='utme-cbt';
+    else if(key==='exam')key='utme-exam';
+    else if(key==='wn-exam-waec')key='waec';
+    else if(key==='wn-exam-neco')key='neco';
+    if(groups[key])groups[key].results.push(r);
+  });
+  let sections='';
+  for(const [key,g] of Object.entries(groups)){
+    if(!g.results.length)continue;
+    const items=g.results.slice(0,10).map(r=>{
+      const pct=r.maxScore>0?Math.round(r.score/r.maxScore*100):0;
+      const cls=pct>=70?'good':pct>=50?'avg':'poor';
+      const d=new Date(r.date).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'});
+      const subj=r.subject||'Exam';
+      return`<div class="profile-result-card"><div class="prc-left"><div class="prc-mode">${g.icon} ${g.label}</div><div class="prc-subject">${subj}</div><div class="prc-date">${d}</div></div><div class="prc-score ${cls}">${r.score}/${r.maxScore}</div></div>`;
+    }).join('');
+    sections+=`<div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:.9rem;color:var(--text);margin:16px 0 10px">${g.icon} ${g.label}</div>${items}`;
+  }
+  if(!sections)sections='<div style="color:var(--sub);text-align:center;padding:20px">No results yet. Start practising!</div>';
+  const cbt=hist.filter(r=>r.mode==='cbt'||r.mode==='utme-cbt'),exam=hist.filter(r=>r.mode!=='cbt'&&r.mode!=='utme-cbt');
+  let bestCBT=0,bestExam=0;
+  cbt.forEach(r=>{if((r.score||0)>bestCBT)bestCBT=r.score||0;});
+  exam.forEach(r=>{const p=r.maxScore>0?Math.round(r.score/r.maxScore*100):0;if(p>bestExam)bestExam=p;});
+  page.innerHTML=`<div style="padding:10px 16px 100px"><div class="profile-header-card"><div class="profile-avatar">${init}</div><div class="profile-name">${name}</div><div class="profile-email">${email}</div><div class="profile-stats-row"><div class="profile-stat"><div class="ps-num">${hist.length}</div><div class="ps-label">Sessions</div></div><div class="profile-stat"><div class="ps-num">${bestCBT||'—'}</div><div class="ps-label">Best CBT</div></div><div class="profile-stat"><div class="ps-num">${bestExam?bestExam+'%':'—'}</div><div class="ps-label">Best Exam</div></div></div></div>${sections}${currentUser?`<div class="logout-btn" style="margin-top:20px" onclick="logout()">🚪 Sign Out</div>`:`<button class="auth-btn" style="margin-top:20px" onclick="showAuthPage()">Login / Sign Up</button>`}</div>`;
+}
+
+// ─── READ MODE (student) ──────────────────────────────────────────────────
+let readSubjectId = null;
+let readCurrentTopic = null;
+
+function openReadMode(){
+  document.getElementById('read-page').classList.add('visible');
+  document.getElementById('main-site').style.display='none';
+  document.getElementById('read-content-area').style.display='none';
+  document.getElementById('read-materials-section').style.display='none';
+  const grid=document.getElementById('read-subject-list');
+  grid.innerHTML=SUBJECTS.map(s=>{
+    const data=readModeData[s.id]||{topics:{}};
+    const topicCount=Object.keys(data.topics).length;
+    return`<div class="read-subj-card" onclick="openReadSubject('${s.id}')"><div class="rsj-icon">${s.icon}</div><div class="rsj-name">${s.name}</div><div style="font-size:.68rem;color:var(--sub);margin-top:4px">${topicCount} topic${topicCount!==1?'s':''}</div></div>`;
+  }).join('');
+}
+
+function openReadSubject(sid){
+  readSubjectId = sid;
+  const subj=SUBJECTS.find(s=>s.id===sid);
+  document.getElementById('read-subj-title').textContent=(subj?subj.icon+' ':'')+subj?.name;
+  document.getElementById('read-subject-list').style.display='none';
+  document.getElementById('read-content-area').style.display='block';
+  document.getElementById('read-materials-section').style.display='none';
+  const data=readModeData[sid]||{topics:{}};
+  const topics=Object.keys(data.topics);
+  const topicsList=document.getElementById('read-topics-list');
+  if(topics.length){
+    topicsList.innerHTML=topics.map(t=>`<div class="read-topic-item" onclick="openTopicMaterials('${sid}','${encodeURIComponent(t)}')"><div class="rti-name">${t}</div><div class="rti-count">${data.topics[t].length} materials ›</div></div>`).join('');
+  }else{
+    topicsList.innerHTML='<div style="color:var(--sub);padding:12px 0;text-align:center">No topics available.</div>';
+  }
+}
+
+function openTopicMaterials(sid,encTopic){
+  const topic=decodeURIComponent(encTopic);
+  readCurrentTopic=topic;
+  const data=readModeData[sid]||{topics:{}};
+  const materials=data.topics[topic]||[];
+  document.getElementById('read-topic-title').textContent=topic;
+  document.getElementById('read-topics-list').style.display='none';
+  const section=document.getElementById('read-materials-section');
+  section.style.display='block';
+  const list=document.getElementById('read-materials-list');
+  if(materials.length){
+    list.innerHTML=materials.map((m,i)=>{
+      const typeLabel=m.type==='pdf'?'📄 PDF':m.type==='image'?'🖼️ Image':'📝 Text';
+      return`<div class="material-item" onclick="viewMaterial2('${sid}','${encodeURIComponent(topic)}',${i})"><div class="material-title">${m.title}</div><div class="material-type">${typeLabel}</div></div>`;
+    }).join('');
+  }else{
+    list.innerHTML='<div style="color:var(--sub);padding:12px 0;text-align:center">No materials for this topic.</div>';
+  }
+}
+
+function closeTopicMaterials(){
+  document.getElementById('read-materials-section').style.display='none';
+  document.getElementById('read-topics-list').style.display='block';
+}
+
+function closeReadContent(){
+  document.getElementById('read-content-area').style.display='none';
+  document.getElementById('read-subject-list').style.display='grid';
+  document.getElementById('read-materials-section').style.display='none';
+}
+
+function viewMaterial2(sid,encTopic,index){
+  const topic=decodeURIComponent(encTopic);
+  const materials=(readModeData[sid]||{topics:{}}).topics[topic]||[];
+  const m=materials[index];
+  if(!m)return;
+  const overlay=document.getElementById('material-detail-overlay');
+  document.getElementById('md-title').textContent=m.title;
+  let content='';
+  if(m.type==='pdf'){
+    content=`<a href="${m.fileUrl}" target="_blank" class="md-pdf-link">📄 Open PDF</a>`;
+  }else if(m.type==='image'){
+    content=`<img src="${m.fileUrl}" class="md-image" alt="${m.title}">`;
+  }else{
+    content=m.content||'No content.';
+  }
+  document.getElementById('md-content').innerHTML=content;
+  overlay.classList.add('visible');
+}
+
+function closeMaterialDetail(e){
+  if(!e || e.target===document.getElementById('material-detail-overlay')){
+    document.getElementById('material-detail-overlay').classList.remove('visible');
+  }
+}
+
+function closeReadMode(){
+  document.getElementById('read-page').classList.remove('visible');
+  document.getElementById('main-site').style.display='block';
+  document.getElementById('material-detail-overlay').classList.remove('visible');
+}
+
+// ─── SYLLABUS (Home Page) ──────────────────────────────────────────────────
+function openSyllabus(){
+  document.getElementById('syllabus-page').classList.add('visible');
+  document.getElementById('main-site').style.display='none';
+  const container=document.getElementById('syllabus-body');
+  let html=SUBJECTS.map(s=>{
+    const text=syllabi[s.id]||'';
+    const hasContent=text.trim().length>0;
+    return`<div class="syllabus-subj"><div class="syllabus-subj-header" onclick="toggleSyl(this)"><span class="ss-icon">${s.icon}</span><span class="ss-name">${s.name}</span><span class="ss-arrow">${hasContent?'›':'›'}</span></div><div class="syllabus-topics">${hasContent?`<div class="syllabus-content">${text}</div>`:'<div class="syl-topic" style="font-style:italic;color:var(--sub)">No syllabus uploaded yet.</div>'}</div></div>`;
+  }).join('');
+  container.innerHTML=html;
+}
+function toggleSyl(h){const a=h.querySelector('.ss-arrow'),t=h.nextElementSibling,isOpen=t.classList.contains('open');document.querySelectorAll('.syllabus-topics.open').forEach(x=>x.classList.remove('open'));document.querySelectorAll('.ss-arrow.open').forEach(x=>x.classList.remove('open'));if(!isOpen){t.classList.add('open');a.classList.add('open');}}
+function closeSyllabus(){document.getElementById('syllabus-page').classList.remove('visible');document.getElementById('main-site').style.display='block';}
+
+// ─── TOPIC PRACTICE (student) ─────────────────────────────────────────────
+function openTopicPractice(){
+  document.getElementById('topic-practice-page').style.display='block';document.getElementById('main-site').style.display='none';
+  document.getElementById('tp-topic-area').style.display='none';document.getElementById('tp-subject-list').style.display='block';
+  document.getElementById('tp-subject-list').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">`+SUBJECTS.map(s=>{const tops=Object.keys(topicQs[s.id]||{});return`<div class="read-subj-card" onclick="openTopicSubj('${s.id}')"><div class="rsj-icon">${s.icon}</div><div class="rsj-name">${s.name}</div><div style="font-size:.68rem;color:var(--sub);margin-top:4px">${tops.length} topic${tops.length!==1?'s':''}</div></div>`;}).join('')+'</div>';
+}
+function openTopicSubj(sid){
+  const subj=SUBJECTS.find(s=>s.id===sid),tops=Object.keys(topicQs[sid]||{});
+  document.getElementById('tp-topic-title').textContent=(subj?subj.icon+' ':'')+subj?.name;
+  document.getElementById('tp-subject-list').style.display='none';document.getElementById('tp-topic-area').style.display='block';
+  document.getElementById('tp-topics-list').innerHTML=tops.length?tops.map(t=>{const qCount=((topicQs[sid]||{})[t]||[]).length;return`<div class="read-topic-item" onclick="launchTopicExam('${sid}','${encodeURIComponent(t)}')"><div class="rti-name">🎯 ${t}</div><div class="rti-count">${qCount} Qs ›</div></div>`;}).join(''):'<div style="color:var(--sub);padding:20px 0;text-align:center">No topics uploaded yet.</div>';
+}
+function closeTopicPractice(){document.getElementById('topic-practice-page').style.display='none';document.getElementById('main-site').style.display='block';}
+
+// ─── WAEC / NECO (student) ────────────────────────────────────────────────
+let wnOrg='waec',wnMode='exam',wnExamSubj=null;
+
+function openWAECNECO(){
+  document.getElementById('waec-neco-page').style.display='block';
+  document.getElementById('main-site').style.display='none';
+  wnOrg='waec'; wnMode='exam';
+  document.querySelector('#waec-neco-page .wn-tab[data-tab="waec"]').classList.add('active');
+  document.querySelector('#waec-neco-page .wn-tab[data-tab="neco"]').classList.remove('active');
+  document.querySelector('#waec-neco-page .mode-toggle .exam-btn').classList.add('active');
+  document.querySelector('#waec-neco-page .mode-toggle .read-btn').classList.remove('active');
+  document.getElementById('wn-exam-panel').classList.remove('hidden');
+  document.getElementById('wn-read-panel').classList.add('hidden');
+  document.getElementById('wn-exam-subj-step').classList.remove('hidden');
+  document.getElementById('wn-exam-year-step').classList.add('hidden');
+  document.getElementById('wn-read-subj-step').classList.remove('hidden');
+  document.getElementById('wn-read-topic-step').classList.add('hidden');
+  renderWNExamSubjects();
+}
+function closeWAECNECO(){
+  document.getElementById('waec-neco-page').style.display='none';
+  document.getElementById('main-site').style.display='block';
+}
+function switchWNOrg(org){
+  wnOrg=org;
+  document.querySelectorAll('#waec-neco-page .wn-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===org));
+  if(wnMode==='exam') renderWNExamSubjects();
+  else renderWNReadSubjects();
+}
+function switchWNMode(mode){
+  wnMode=mode;
+  const examPanel=document.getElementById('wn-exam-panel');
+  const readPanel=document.getElementById('wn-read-panel');
+  const examBtn=document.querySelector('#waec-neco-page .mode-toggle .exam-btn');
+  const readBtn=document.querySelector('#waec-neco-page .mode-toggle .read-btn');
+  if(mode==='exam'){
+    examBtn.classList.add('active'); readBtn.classList.remove('active');
+    examPanel.classList.remove('hidden'); readPanel.classList.add('hidden');
+    document.getElementById('wn-exam-subj-step').classList.remove('hidden');
+    document.getElementById('wn-exam-year-step').classList.add('hidden');
+    renderWNExamSubjects();
+  }else{
+    readBtn.classList.add('active'); examBtn.classList.remove('active');
+    examPanel.classList.add('hidden'); readPanel.classList.remove('hidden');
+    document.getElementById('wn-read-subj-step').classList.remove('hidden');
+    document.getElementById('wn-read-topic-step').classList.add('hidden');
+    renderWNReadSubjects();
+  }
+}
+function renderWNExamSubjects(){
+  const grid=document.getElementById('wn-exam-subjects-grid');
+  const data=wnQs[wnOrg]||{};
+  grid.innerHTML=WN_SUBJECTS.map(s=>{
+    const years=Object.keys(data[s.id]||{});
+    const count=years.length;
+    return`<div class="subj-card" onclick="selectWNExamSubject('${s.id}')"><div class="subj-check">${count>0?'›':''}</div><div class="subj-icon-wrap">${s.icon}</div><div class="subj-name">${s.name}</div><div class="subj-tag">${count} year${count!==1?'s':''}</div></div>`;
+  }).join('');
+}
+function selectWNExamSubject(sid){
+  wnExamSubj=sid;
+  const subj=WN_SUBJECTS.find(s=>s.id===sid);
+  document.getElementById('wn-exam-subj-step').classList.add('hidden');
+  document.getElementById('wn-exam-year-step').classList.remove('hidden');
+  const data=(wnQs[wnOrg]||{})[sid]||{};
+  const years=Object.keys(data).sort((a,b)=>b-a);
+  const grid=document.getElementById('wn-exam-year-grid');
+  if(!years.length){
+    grid.innerHTML='<div class="empty-state" style="grid-column:span 3;padding:20px;"><div class="empty-state-icon">📭</div><div class="empty-state-text">No questions available.</div></div>';
+    return;
+  }
+  grid.innerHTML=years.map(y=>`<div class="year-chip has-data" onclick="launchWNExam('${wnOrg}','${sid}',${y})"><div class="yc-year">${y}</div><div class="yc-count">${data[y].length} Qs</div></div>`).join('');
+}
+function renderWNReadSubjects(){
+  const grid=document.getElementById('wn-read-subjects-grid');
+  const data=wnTopics[wnOrg]||{};
+  grid.innerHTML=WN_SUBJECTS.map(s=>{
+    const topics=Object.keys(data[s.id]||{});
+    const count=topics.length;
+    return`<div class="subj-card" onclick="selectWNReadSubject('${s.id}')"><div class="subj-check">${count>0?'›':''}</div><div class="subj-icon-wrap">${s.icon}</div><div class="subj-name">${s.name}</div><div class="subj-tag">${count} topic${count!==1?'s':''}</div></div>`;
+  }).join('');
+}
+function selectWNReadSubject(sid){
+  const subj=WN_SUBJECTS.find(s=>s.id===sid);
+  document.getElementById('wn-read-subj-step').classList.add('hidden');
+  document.getElementById('wn-read-topic-step').classList.remove('hidden');
+  const data=(wnTopics[wnOrg]||{})[sid]||{};
+  const topics=Object.keys(data);
+  const list=document.getElementById('wn-read-topics-list');
+  if(!topics.length){
+    list.innerHTML='<div class="empty-state" style="padding:20px;"><div class="empty-state-icon">📭</div><div class="empty-state-text">No topics available.</div></div>';
+    return;
+  }
+  list.innerHTML=topics.map(t=>{
+    const items=data[t]||[];
+    return`<div class="read-topic-item" onclick="launchTopicRead('${wnOrg}','${wnOrg}','${sid}','${encodeURIComponent(t)}')"><div class="rti-name">📖 ${t}</div><div class="rti-count">${items.length} item${items.length!==1?'s':''} ›</div></div>`;
+  }).join('');
+}
+
+// ─── ADMIN ────────────────────────────────────────────────────────────────
+let allUsers=[],allResults=[],bannedUsers=new Set(lsGet('utme_banned',[]));
+let selectedUser=null;
+function showToast(m,err){const t=document.getElementById('admin-toast');t.textContent=m;t.className='admin-toast'+(err?' error':'');t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2800);}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function openAdmin(){
+  document.getElementById('admin-dashboard').classList.add('visible');document.getElementById('main-site').style.display='none';
+  await loadAdminData();
+}
+function closeAdmin(){document.getElementById('admin-dashboard').classList.remove('visible');document.getElementById('main-site').style.display='block';}
+async function loadAdminData(){
+  try{const{data}=await sb.from('profiles').select('*').order('created_at',{ascending:false});allUsers=data||[];}catch(e){allUsers=[];}
+  try{const{data}=await sb.from('results').select('*').order('date',{ascending:false});allResults=data||[];}catch(e){allResults=[];}
+  await loadFromDB();
+  renderOverview();
+}
+function switchTab(tab){
+  document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');
+  if(tab==='users')renderUsers();
+  if(tab==='overview')renderOverview();
+  if(tab==='analytics')renderAdmAnalytics();
+  if(tab==='questions'){resetUTMEBuilder();}
+  if(tab==='topic-exam')renderTESubjects();
+  if(tab==='wn-questions'){wnadmOrg='waec';renderWNQSubjects();}
+  if(tab==='wn-topics'){wntadmOrg='waec';renderWNTSubjects();}
+  if(tab==='read-mode'){renderRMSubjects();}
+  if(tab==='syllabus'){renderSylSubjects();}
+}
+function getUserBest(uid){const ur=allResults.filter(r=>r.user_id===uid);let cbt=null,exam=null;ur.forEach(r=>{if(r.mode==='cbt'||r.mode==='utme-cbt'){if(cbt===null||(r.score||0)>cbt)cbt=r.score||0;}else{const p=r.maxScore>0?Math.round(r.score/r.maxScore*100):0;if(exam===null||p>exam)exam=p;}});return{cbt,exam,attempts:ur.length};}
+function userRowHTML(u){const b=getUserBest(u.id),isBanned=bannedUsers.has(u.id);const init=(u.username||'U').slice(0,2).toUpperCase();return`<div class="user-score-row" onclick="openUserModal('${u.id}')"><div class="usr-info"><div class="usr-avatar">${init}</div><div><div class="usr-name">${isBanned?'🚫':''} ${u.username||u.email?.split('@')[0]||'Unknown'}</div><div class="usr-email">${u.email||''}</div></div></div><div class="usr-score-badge"><div class="usb-num">${b.cbt!==null?b.cbt+'/400':'—'}</div><div class="usb-label">CBT</div></div><div class="usr-score-badge"><div class="usb-num" style="color:${b.exam>=70?'#00d4a7':b.exam>=50?'#f59e0b':'#f06060'}">${b.exam!==null?b.exam+'%':'—'}</div><div class="usb-label">Exam</div></div><div><button class="qi-btn qi-btn-edit">›</button></div></div>`;}
+function renderOverview(){
+  document.getElementById('stat-total-users').textContent=allUsers.length;
+  let totalQ=0;
+  SUBJECTS.forEach(s=>{
+    const cbtQs = questions.cbt[s.id] || [];
+    totalQ += cbtQs.length;
+    const examMap = questions.exam[s.id] || {};
+    Object.values(examMap).forEach(a => { if(Array.isArray(a)) totalQ += a.length; });
+  });
+  Object.values(wnQs).forEach(o=>{
+    if(o && typeof o==='object'){
+      Object.values(o).forEach(s=>{
+        if(s && typeof s==='object'){
+          Object.values(s).forEach(a=>{ if(Array.isArray(a)) totalQ += a.length; });
+        }
+      });
+    }
+  });
+  document.getElementById('stat-total-questions').textContent=totalQ;
+  document.getElementById('stat-users-trend').textContent='↑ '+allUsers.length+' registered';
+  document.getElementById('stat-qbank-label').textContent=allUsers.length+' total';
+  const listEl=document.getElementById('overview-users-list');
+  if(!allUsers.length){listEl.innerHTML='<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">No users yet</div></div>';return;}
+  listEl.innerHTML=allUsers.slice(0,8).map(u=>userRowHTML(u)).join('');
+}
+function renderUsers(){
+  const search=(document.getElementById('user-search').value||'').toLowerCase();
+  const filtered=allUsers.filter(u=>!search||(u.username||'').toLowerCase().includes(search)||(u.email||'').toLowerCase().includes(search));
+  document.getElementById('users-count-badge').textContent=filtered.length;
+  document.getElementById('users-list-body').innerHTML=filtered.length?filtered.map(u=>userRowHTML(u)).join(''):'<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">No users match</div></div>';
+}
+function filterUsers(){renderUsers();}
+function formatDate(s){if(!s)return'—';return new Date(s).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'});}
+function openUserModal(id){
+  const u=allUsers.find(x=>x.id===id);if(!u)return;selectedUser=u;
+  document.getElementById('modal-avatar').textContent=(u.username||'U').slice(0,2).toUpperCase();
+  document.getElementById('modal-name').textContent=u.username||u.email?.split('@')[0]||'Unknown';
+  document.getElementById('modal-email').textContent=u.email||'';
+  document.getElementById('modal-status').textContent=bannedUsers.has(u.id)?'🚫 Banned':'🟢 Active';
+  document.getElementById('modal-joined').textContent=formatDate(u.created_at);
+  const bb=document.getElementById('modal-ban-btn');if(bannedUsers.has(u.id)){bb.textContent='✅ Unban User';bb.className='modal-btn modal-btn-close';}else{bb.textContent='🚫 Ban User';bb.className='modal-btn modal-btn-ban';}
+  document.getElementById('user-modal-overlay').classList.add('visible');
+}
+function closeUserModal(e){if(!e||e.target===document.getElementById('user-modal-overlay'))document.getElementById('user-modal-overlay').classList.remove('visible');}
+function toggleBanUser(){if(!selectedUser)return;const id=selectedUser.id;if(bannedUsers.has(id)){bannedUsers.delete(id);showToast('User unbanned ✓');}else{bannedUsers.add(id);showToast('User banned 🚫');}lsSet('utme_banned',[...bannedUsers]);document.getElementById('user-modal-overlay').classList.remove('visible');renderUsers();renderOverview();}
+function renderAdmAnalytics(){
+  const rows=allResults.length?allResults:lsGet('utme_results',[]);
+  const utme=rows.filter(r=>r.mode==='cbt'||r.mode==='utme-cbt'||r.mode==='exam'||r.mode==='utme-exam');
+  const waec=rows.filter(r=>r.mode==='waec'||r.mode==='wn-exam-waec');
+  const neco=rows.filter(r=>r.mode==='neco'||r.mode==='wn-exam-neco');
+  document.getElementById('adm-utme-total').textContent=utme.length;
+  document.getElementById('adm-waec-total').textContent=waec.length;
+  document.getElementById('adm-neco-total').textContent=neco.length;
+  const tot=rows.length;const avg=tot?Math.round(rows.reduce((s,r)=>s+(r.maxScore>0?r.score/r.maxScore*100:0),0)/tot):0;
+  document.getElementById('adm-avg-score').textContent=avg+'%';
+  const list=document.getElementById('adm-results-list');
+  if(!rows.length){list.innerHTML='<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No results yet</div></div>';return;}
+  list.innerHTML=rows.slice(0,30).map(r=>{const pct=r.maxScore>0?Math.round(r.score/r.maxScore*100):0;const d=new Date(r.date).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'});return`<div class="admin-result-row"><div class="arr-left"><div class="arr-name">${r.username||r.user_id?.slice(0,8)||'Unknown'} — ${r.subject||r.mode}</div><div class="arr-detail">${r.mode.toUpperCase()} · ${d}</div></div><div class="arr-score">${r.score}/${r.maxScore} (${pct}%)</div></div>`;}).join('');
+}
+
+// ════════════════════════════════════════
+// ADMIN — UTME QUESTIONS (CBT + Exam Mode)
+// ════════════════════════════════════════
+let utmeQMode=null,utmeQSubj=null,utmeQYear='2024',utmeEditIdx=-1;
+function resetUTMEBuilder(){document.getElementById('utme-step-mode').style.display='block';document.getElementById('utme-question-builder').style.display='none';document.getElementById('utme-subj-section').style.display='none';['cbt','exam'].forEach(m=>document.getElementById('qmode-'+m).classList.remove('selected'));utmeQMode=null;utmeQSubj=null;}
+function selectQMode(mode){
+  utmeQMode=mode;['cbt','exam'].forEach(m=>document.getElementById('qmode-'+m).classList.toggle('selected',m===mode));
+  document.getElementById('utme-subj-section').style.display='block';
+  document.getElementById('qp-mode-badge-label').textContent=mode==='cbt'?'CBT':'EXAM';
+  renderUTMESubjects();
+}
+function renderUTMESubjects(){
+  document.getElementById('utme-admin-subjects-grid').innerHTML=SUBJECTS.map(s=>{
+    let cnt=0;if(utmeQMode==='cbt'){cnt=(questions.cbt[s.id]||[]).length;}else{cnt=Object.values(questions.exam[s.id]||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);}
+    return`<div class="admin-subj-btn" onclick="openUTMEBuilder('${s.id}')"><div class="asb-icon">${s.icon}</div><div class="asb-name">${s.name}</div><div class="asb-count">${cnt} Qs</div></div>`;
+  }).join('');
+}
+function openUTMEBuilder(sid){utmeQSubj=sid;utmeEditIdx=-1;const subj=SUBJECTS.find(s=>s.id===sid);document.getElementById('utme-step-mode').style.display='none';document.getElementById('utme-question-builder').style.display='block';document.getElementById('utme-qb-mode-badge').textContent=utmeQMode==='cbt'?'💻 CBT':'⏰ Exam';document.getElementById('utme-qb-subj-name').textContent=subj?.name||sid;const yw=document.getElementById('utme-year-wrap');if(utmeQMode==='exam'){yw.style.display='block';const sel=document.getElementById('utme-year-sel');let opts='<option value="">— Select Year —</option>';for(let y=2025;y>=2000;y--)opts+=`<option value="${y}" ${y==utmeQYear?'selected':''}>${y}</option>`;sel.innerHTML=opts;}else{yw.style.display='none';}renderUTMEQList();}
+function closeUTMEBuilder(){document.getElementById('utme-question-builder').style.display='none';document.getElementById('utme-step-mode').style.display='block';renderUTMESubjects();}
+function onUTMEYearChange(y){utmeQYear=y;utmeEditIdx=-1;renderUTMEQList();}
+function getUTMEQs(){if(utmeQMode==='cbt'){if(!questions.cbt[utmeQSubj])questions.cbt[utmeQSubj]=[];return questions.cbt[utmeQSubj];}else{if(!questions.exam[utmeQSubj])questions.exam[utmeQSubj]={};if(!questions.exam[utmeQSubj][utmeQYear])questions.exam[utmeQSubj][utmeQYear]=[];return questions.exam[utmeQSubj][utmeQYear];}}
+function renderUTMEQList(){
+  if(utmeQMode==='exam'&&!utmeQYear){document.getElementById('utme-question-list').innerHTML='<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📅</div><div class="empty-state-text">Select a year first</div></div>';document.getElementById('utme-qb-count').textContent='—';return;}
+  const qs=getUTMEQs();document.getElementById('utme-qb-count').textContent=qs.length;
+  if(!qs.length){document.getElementById('utme-question-list').innerHTML='<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📭</div><div class="empty-state-text">No questions yet. Add one below.</div></div>';return;}
+  document.getElementById('utme-question-list').innerHTML=qs.map((q,i)=>`<div class="question-item"><div class="question-item-header" onclick="utmeToggle(${i})"><div class="qi-num">${i+1}</div><div class="qi-preview">${q.topic?'['+q.topic+'] ':''} ${escH((q.q||'Untitled').slice(0,50))}</div><div class="qi-actions"><button class="qi-btn qi-btn-edit" onclick="event.stopPropagation();utmeEdit(${i})">✏️</button><button class="qi-btn qi-btn-del" onclick="event.stopPropagation();utmeDel(${i})">🗑️</button></div></div><div class="question-form" id="uqf-${i}" style="display:${utmeEditIdx===i?'block':'none'}">${qFormHTML('u',q,i)}</div></div>`).join('');
+}
+function utmeToggle(i){const f=document.getElementById('uqf-'+i);if(!f)return;const open=f.style.display!=='none';document.querySelectorAll('[id^="uqf-"]').forEach(x=>x.style.display='none');utmeEditIdx=open?-1:i;if(!open)f.style.display='block';}
+function utmeEdit(i){utmeEditIdx=i;renderUTMEQList();setTimeout(()=>{const f=document.getElementById('uqf-'+i);if(f){f.style.display='block';f.scrollIntoView({behavior:'smooth',block:'center'});}},30);}
+function utmeDel(i){if(!confirm('Delete question '+(i+1)+'?'))return;getUTMEQs().splice(i,1);lsSet('utme_questions',questions);utmeEditIdx=-1;renderUTMEQList();showToast('Deleted');}
+function utmeAddQ(){getUTMEQs().push({q:'',a:'',b:'',c:'',d:'',ans:'',topic:'',explanation:''});utmeEditIdx=getUTMEQs().length-1;renderUTMEQList();setTimeout(()=>{const f=document.getElementById('uqf-'+utmeEditIdx);if(f){f.style.display='block';f.scrollIntoView({behavior:'smooth',block:'center'});}},50);}
+function utmeSaveQ(i){saveQFromForm('u',i,getUTMEQs());lsSet('utme_questions',questions);utmeEditIdx=-1;renderUTMEQList();showToast('Question '+(i+1)+' saved ✓');}
+function utmeCancelQ(i){const f=document.getElementById('uqf-'+i);if(f)f.style.display='none';utmeEditIdx=-1;}
+async function utmeSaveAll(){
+  const qs=getUTMEQs();if(!qs.length){showToast('No questions to save',true);return;}
+  lsSet('utme_questions',questions);
+  const mode=utmeQMode==='cbt'?'cbt':'exam',year=utmeQMode==='cbt'?null:utmeQYear;
+  const ok=await dbUpsert(mode,utmeQSubj,year,qs);
+  showToast(ok?'✅ '+qs.length+' questions saved to DB!':'💾 Saved locally (DB unavailable)');
+  renderUTMESubjects();
+}
+
+// ════════════════════════════════════════
+// ADMIN — TOPIC EXAM QUESTIONS
+// ════════════════════════════════════════
+let teSubj=null,teTopic=null,teEditIdx=-1;
+function renderTESubjects(){
+  document.getElementById('te-step-subj').style.display='block';document.getElementById('te-step-topic').style.display='none';document.getElementById('te-step-qbuilder').style.display='none';
+  document.getElementById('te-subjects-grid').innerHTML=SUBJECTS.map(s=>{const tops=Object.keys(topicQs[s.id]||{});const qCnt=Object.values(topicQs[s.id]||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);return`<div class="admin-subj-btn" onclick="openTESubj('${s.id}')"><div class="asb-icon">${s.icon}</div><div class="asb-name">${s.name}</div><div class="asb-count">${tops.length} topics · ${qCnt} Qs</div></div>`;}).join('');
+}
+function openTESubj(sid){teSubj=sid;teEditIdx=-1;const subj=SUBJECTS.find(s=>s.id===sid);document.getElementById('te-step-subj').style.display='none';document.getElementById('te-step-topic').style.display='block';document.getElementById('te-subj-name').textContent=subj?.name||sid;renderTETopics();}
+function closeTETopics(){document.getElementById('te-step-topic').style.display='none';renderTESubjects();}
+function renderTETopics(){
+  const tops=Object.keys(topicQs[teSubj]||{});document.getElementById('te-topics-count').textContent=tops.length;
+  document.getElementById('te-topics-list').innerHTML=tops.length?tops.map(t=>{const cnt=((topicQs[teSubj]||{})[t]||[]).length;return`<div class="topic-item-row"><div><div class="tir-name">🎯 ${t}</div><div class="tir-count">${cnt} question${cnt!==1?'s':''}</div></div><div class="tir-actions"><button class="qi-btn qi-btn-edit" onclick="openTEQBuilder('${encodeURIComponent(t)}')">✏️ Edit</button><button class="qi-btn qi-btn-del" onclick="teDeletTopic('${encodeURIComponent(t)}')">🗑️</button></div></div>`;}).join(''):'<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📭</div><div class="empty-state-text">No topics yet. Add one below.</div></div>';
+}
+function teDeletTopic(enc){const t=decodeURIComponent(enc);if(!confirm('Delete topic "'+t+'" and all questions?'))return;if(topicQs[teSubj])delete topicQs[teSubj][t];lsSet('utme_topic_qs',topicQs);renderTETopics();showToast('Topic deleted');}
+function teAddTopic(){const name=prompt('Enter topic name:');if(!name?.trim())return;if(!topicQs[teSubj])topicQs[teSubj]={};if(topicQs[teSubj][name.trim()]){showToast('Topic exists',true);return;}topicQs[teSubj][name.trim()]=[];lsSet('utme_topic_qs',topicQs);renderTETopics();showToast('Topic "'+name.trim()+'" added ✓');}
+function openTEQBuilder(enc){teTopic=decodeURIComponent(enc);teEditIdx=-1;document.getElementById('te-step-topic').style.display='none';document.getElementById('te-step-qbuilder').style.display='block';document.getElementById('te-topic-name-label').textContent=teTopic;renderTEQList();}
+function closeTEQBuilder(){document.getElementById('te-step-qbuilder').style.display='none';document.getElementById('te-step-topic').style.display='block';renderTETopics();}
+function getTEQs(){if(!topicQs[teSubj])topicQs[teSubj]={};if(!topicQs[teSubj][teTopic])topicQs[teSubj][teTopic]=[];return topicQs[teSubj][teTopic];}
+function renderTEQList(){const qs=getTEQs();document.getElementById('te-qb-count').textContent=qs.length;if(!qs.length){document.getElementById('te-question-list').innerHTML='<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📭</div><div class="empty-state-text">No questions yet.</div></div>';return;}document.getElementById('te-question-list').innerHTML=qs.map((q,i)=>`<div class="question-item"><div class="question-item-header" onclick="teToggle(${i})"><div class="qi-num">${i+1}</div><div class="qi-preview">${escH((q.q||'Untitled').slice(0,50))}</div><div class="qi-actions"><button class="qi-btn qi-btn-edit" onclick="event.stopPropagation();teEdit(${i})">✏️</button><button class="qi-btn qi-btn-del" onclick="event.stopPropagation();teDel(${i})">🗑️</button></div></div><div class="question-form" id="teqf-${i}" style="display:${teEditIdx===i?'block':'none'}">${qFormHTML('te',q,i)}</div></div>`).join('');}
+function teToggle(i){const f=document.getElementById('teqf-'+i);if(!f)return;const open=f.style.display!=='none';document.querySelectorAll('[id^="teqf-"]').forEach(x=>x.style.display='none');teEditIdx=open?-1:i;if(!open)f.style.display='block';}
+function teEdit(i){teEditIdx=i;renderTEQList();setTimeout(()=>{const f=document.getElementById('teqf-'+i);if(f){f.style.display='block';f.scrollIntoView({behavior:'smooth',block:'center'});}},30);}
+function teDel(i){if(!confirm('Delete question '+(i+1)+'?'))return;getTEQs().splice(i,1);lsSet('utme_topic_qs',topicQs);teEditIdx=-1;renderTEQList();showToast('Deleted');}
+function teAddQ(){getTEQs().push({q:'',a:'',b:'',c:'',d:'',ans:'',topic:teTopic,explanation:''});teEditIdx=getTEQs().length-1;renderTEQList();setTimeout(()=>{const f=document.getElementById('teqf-'+teEditIdx);if(f){f.style.display='block';f.scrollIntoView({behavior:'smooth',block:'center'});}},50);}
+function teSaveQ(i){saveQFromForm('te',i,getTEQs());lsSet('utme_topic_qs',topicQs);teEditIdx=-1;renderTEQList();showToast('Saved ✓');}
+function teCancelQ(i){const f=document.getElementById('teqf-'+i);if(f)f.style.display='none';teEditIdx=-1;}
+async function teSaveAll(){const qs=getTEQs();if(!qs.length){showToast('No questions',true);return;}lsSet('utme_topic_qs',topicQs);const ok=await dbUpsert('topic',teSubj,teTopic,qs);showToast(ok?'✅ '+qs.length+' questions saved!':'💾 Saved locally');}
+
+// ════════════════════════════════════════
+// ADMIN — WAEC/NECO EXAM QUESTIONS
+// ════════════════════════════════════════
+let wnadmOrg='waec',wnadmSubj=null,wnadmYear='2024',wnadmEditIdx=-1;
+function selectWNAdmOrg(org,panel){
+  if(panel==='questions'){wnadmOrg=org;document.getElementById('wnadm-org-waec').classList.toggle('active',org==='waec');document.getElementById('wnadm-org-neco').classList.toggle('active',org==='neco');closeWNQBuilder();renderWNQSubjects();}
+  else{wntadmOrg=org;document.getElementById('wntadm-org-waec').classList.toggle('active',org==='waec');document.getElementById('wntadm-org-neco').classList.toggle('active',org==='neco');closeWNTopicList();closeWNTopicContent();renderWNTSubjects();}
+}
+function renderWNQSubjects(){
+  document.getElementById('wn-q-step-subj').style.display='block';document.getElementById('wn-q-builder').style.display='none';
+  document.getElementById('wn-q-subjects-grid').innerHTML=WN_SUBJECTS.map(s=>{const cnt=Object.values((wnQs[wnadmOrg]||{})[s.id]||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);return`<div class="admin-subj-btn" onclick="openWNQBuilder('${s.id}')"><div class="asb-icon">${s.icon}</div><div class="asb-name">${s.name}</div><div class="asb-count">${cnt} Qs</div></div>`;}).join('');
+}
+function openWNQBuilder(sid){wnadmSubj=sid;wnadmEditIdx=-1;const subj=WN_SUBJECTS.find(s=>s.id===sid);document.getElementById('wn-q-step-subj').style.display='none';document.getElementById('wn-q-builder').style.display='block';document.getElementById('wn-q-org-badge').textContent='🏫 '+wnadmOrg.toUpperCase();document.getElementById('wn-q-subj-name').textContent=subj?.name||sid;const sel=document.getElementById('wn-q-year-sel');let opts='<option value="">— Select Year —</option>';for(let y=2025;y>=2000;y--)opts+=`<option value="${y}" ${y==wnadmYear?'selected':''}>${y}</option>`;sel.innerHTML=opts;renderWNQList();}
+function closeWNQBuilder(){document.getElementById('wn-q-builder').style.display='none';document.getElementById('wn-q-step-subj').style.display='block';renderWNQSubjects();}
+function onWNYearChange(y){wnadmYear=y;wnadmEditIdx=-1;renderWNQList();}
+function getWNQs(){if(!wnQs[wnadmOrg][wnadmSubj])wnQs[wnadmOrg][wnadmSubj]={};if(!wnQs[wnadmOrg][wnadmSubj][wnadmYear])wnQs[wnadmOrg][wnadmSubj][wnadmYear]=[];return wnQs[wnadmOrg][wnadmSubj][wnadmYear];}
+function renderWNQList(){
+  if(!wnadmYear){document.getElementById('wn-question-list').innerHTML='<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📅</div><div class="empty-state-text">Select a year first</div></div>';document.getElementById('wn-q-count').textContent='—';return;}
+  const qs=getWNQs();document.getElementById('wn-q-count').textContent=qs.length;
+  if(!qs.length){document.getElementById('wn-question-list').innerHTML='<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📭</div><div class="empty-state-text">No questions yet.</div></div>';return;}
+  document.getElementById('wn-question-list').innerHTML=qs.map((q,i)=>`<div class="question-item"><div class="question-item-header" onclick="wnToggle(${i})"><div class="qi-num">${i+1}</div><div class="qi-preview">${q.topic?'['+q.topic+'] ':''} ${escH((q.q||'Untitled').slice(0,50))}</div><div class="qi-actions"><button class="qi-btn qi-btn-edit" onclick="event.stopPropagation();wnEdit(${i})">✏️</button><button class="qi-btn qi-btn-del" onclick="event.stopPropagation();wnDel(${i})">🗑️</button></div></div><div class="question-form" id="wnqf-${i}" style="display:${wnadmEditIdx===i?'block':'none'}">${qFormHTML('wn',q,i)}</div></div>`).join('');
+}
+function wnToggle(i){const f=document.getElementById('wnqf-'+i);if(!f)return;const open=f.style.display!=='none';document.querySelectorAll('[id^="wnqf-"]').forEach(x=>x.style.display='none');wnadmEditIdx=open?-1:i;if(!open)f.style.display='block';}
+function wnEdit(i){wnadmEditIdx=i;renderWNQList();setTimeout(()=>{const f=document.getElementById('wnqf-'+i);if(f){f.style.display='block';f.scrollIntoView({behavior:'smooth',block:'center'});}},30);}
+function wnDel(i){if(!confirm('Delete?'))return;getWNQs().splice(i,1);lsSet('wn_questions',wnQs);wnadmEditIdx=-1;renderWNQList();showToast('Deleted');}
+function wnAddQ(){getWNQs().push({q:'',a:'',b:'',c:'',d:'',ans:'',topic:'',explanation:''});wnadmEditIdx=getWNQs().length-1;renderWNQList();setTimeout(()=>{const f=document.getElementById('wnqf-'+wnadmEditIdx);if(f){f.style.display='block';f.scrollIntoView({behavior:'smooth',block:'center'});}},50);}
+function wnSaveQ(i){saveQFromForm('wn',i,getWNQs());lsSet('wn_questions',wnQs);wnadmEditIdx=-1;renderWNQList();showToast('Saved ✓');}
+function wnCancelQ(i){const f=document.getElementById('wnqf-'+i);if(f)f.style.display='none';wnadmEditIdx=-1;}
+async function wnSaveAll(){const qs=getWNQs();if(!qs.length){showToast('No questions',true);return;}lsSet('wn_questions',wnQs);const mode='wn-exam-'+wnadmOrg;const ok=await dbUpsert(mode,wnadmSubj,wnadmYear,qs);showToast(ok?'✅ '+qs.length+' questions saved!':'💾 Saved locally');renderWNQSubjects();}
+
+// ════════════════════════════════════════
+// ADMIN — WAEC/NECO TOPIC READING
+// ════════════════════════════════════════
+let wntadmOrg='waec',wntadmSubj=null,wntadmTopic=null,wntadmEditIdx=-1;
+function renderWNTSubjects(){
+  document.getElementById('wn-t-step-subj').style.display='block';document.getElementById('wn-t-step-topics').style.display='none';document.getElementById('wn-t-step-content').style.display='none';
+  document.getElementById('wn-t-subjects-grid').innerHTML=WN_SUBJECTS.map(s=>{const cnt=Object.keys((wnTopics[wntadmOrg]||{})[s.id]||{}).length;return`<div class="admin-subj-btn" onclick="openWNTSubj('${s.id}')"><div class="asb-icon">${s.icon}</div><div class="asb-name">${s.name}</div><div class="asb-count">${cnt} topic${cnt!==1?'s':''}</div></div>`;}).join('');
+}
+function openWNTSubj(sid){wntadmSubj=sid;const subj=WN_SUBJECTS.find(s=>s.id===sid);document.getElementById('wn-t-step-subj').style.display='none';document.getElementById('wn-t-step-topics').style.display='block';document.getElementById('wn-t-subj-name').textContent=subj?.name||sid;renderWNTTopics();}
+function closeWNTopicList(){document.getElementById('wn-t-step-topics').style.display='none';document.getElementById('wn-t-step-subj').style.display='block';}
+function renderWNTTopics(){
+  const tops=Object.keys((wnTopics[wntadmOrg]||{})[wntadmSubj]||{});document.getElementById('wn-t-topics-count').textContent=tops.length;
+  document.getElementById('wn-t-topics-list').innerHTML=tops.length?tops.map(t=>{const cnt=((wnTopics[wntadmOrg]||{})[wntadmSubj]||{})[t]?.length||0;return`<div class="topic-item-row"><div><div class="tir-name">📖 ${t}</div><div class="tir-count">${cnt} item${cnt!==1?'s':''}</div></div><div class="tir-actions"><button class="qi-btn qi-btn-edit" onclick="openWNTContent('${encodeURIComponent(t)}')">✏️ Edit</button><button class="qi-btn qi-btn-del" onclick="wnDelTopic('${encodeURIComponent(t)}')">🗑️</button></div></div>`;}).join(''):'<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📭</div><div class="empty-state-text">No topics yet.</div></div>';
+}
+function wnDelTopic(enc){const t=decodeURIComponent(enc);if(!confirm('Delete topic "'+t+'"?'))return;if(wnTopics[wntadmOrg][wntadmSubj])delete wnTopics[wntadmOrg][wntadmSubj][t];lsSet('wn_topics',wnTopics);renderWNTTopics();showToast('Deleted');}
+function wnAddTopic(){const name=prompt('Enter topic name:');if(!name?.trim())return;if(!wnTopics[wntadmOrg])wnTopics[wntadmOrg]={};if(!wnTopics[wntadmOrg][wntadmSubj])wnTopics[wntadmOrg][wntadmSubj]={};if(wnTopics[wntadmOrg][wntadmSubj][name.trim()]){showToast('Topic exists',true);return;}wnTopics[wntadmOrg][wntadmSubj][name.trim()]=[];lsSet('wn_topics',wnTopics);renderWNTTopics();showToast('Topic added ✓');}
+function openWNTContent(enc){wntadmTopic=decodeURIComponent(enc);wntadmEditIdx=-1;document.getElementById('wn-t-step-topics').style.display='none';document.getElementById('wn-t-step-content').style.display='block';document.getElementById('wn-t-topic-name-label').textContent=wntadmTopic;renderWNTContentList();}
+function closeWNTopicContent(){document.getElementById('wn-t-step-content').style.display='none';document.getElementById('wn-t-step-topics').style.display='block';renderWNTTopics();}
+function getWNTItems(){if(!wnTopics[wntadmOrg])wnTopics[wntadmOrg]={};if(!wnTopics[wntadmOrg][wntadmSubj])wnTopics[wntadmOrg][wntadmSubj]={};if(!wnTopics[wntadmOrg][wntadmSubj][wntadmTopic])wnTopics[wntadmOrg][wntadmSubj][wntadmTopic]=[];return wnTopics[wntadmOrg][wntadmSubj][wntadmTopic];}
+function renderWNTContentList(){
+  const items=getWNTItems();document.getElementById('wn-t-content-count').textContent=items.length;
+  if(!items.length){document.getElementById('wn-t-content-list').innerHTML='<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📭</div><div class="empty-state-text">No items. Add a note or question.</div></div>';return;}
+  document.getElementById('wn-t-content-list').innerHTML=items.map((item,i)=>`<div class="question-item"><div class="question-item-header" onclick="wntToggle(${i})"><div class="qi-num">${item.type==='note'?'📝':'❓'}</div><div class="qi-preview">${escH((item.title||item.content||'Item').slice(0,50))}</div><div class="qi-actions"><button class="qi-btn qi-btn-edit" onclick="event.stopPropagation();wntEdit(${i})">✏️</button><button class="qi-btn qi-btn-del" onclick="event.stopPropagation();wntDel(${i})">🗑️</button></div></div><div class="question-form" id="wntf-${i}" style="display:${wntadmEditIdx===i?'block':'none'}">${wntItemFormHTML(item,i)}</div></div>`).join('');
+}
+function wntItemFormHTML(item,i){const isQ=item.type==='question';return`<label class="qf-label">Type</label><select class="qf-year-select" id="wnttype-${i}" onchange="wntTypeChange(${i},this.value)"><option value="note" ${!isQ?'selected':''}>📝 Note / Explanation</option><option value="question" ${isQ?'selected':''}>❓ Multiple Choice</option></select><label class="qf-label">Title / Question</label><textarea class="qf-textarea" id="wnttitle-${i}">${escH(item.title||item.content||'')}</textarea><div id="wntnotew-${i}" style="display:${!isQ?'block':'none'}"><label class="qf-label">Note Content</label><textarea class="qf-explanation-area" style="min-height:100px" id="wntcontent-${i}">${escH(!isQ?item.content||'':'')}</textarea></div><div id="wntqw-${i}" style="display:${isQ?'block':'none'}"><div class="options-grid-admin"><div class="option-wrap"><span class="option-label-admin">A</span><input class="qf-input" id="wnta-${i}" value="${escH(item.a||'')}"></div><div class="option-wrap"><span class="option-label-admin">B</span><input class="qf-input" id="wntb-${i}" value="${escH(item.b||'')}"></div><div class="option-wrap"><span class="option-label-admin">C</span><input class="qf-input" id="wntc-${i}" value="${escH(item.c||'')}"></div><div class="option-wrap"><span class="option-label-admin">D</span><input class="qf-input" id="wntd-${i}" value="${escH(item.d||'')}"></div></div><label class="qf-label">Correct Answer</label><select class="answer-select" id="wntans-${i}"><option value="">— Select —</option><option value="A" ${item.ans==='A'?'selected':''}>A</option><option value="B" ${item.ans==='B'?'selected':''}>B</option><option value="C" ${item.ans==='C'?'selected':''}>C</option><option value="D" ${item.ans==='D'?'selected':''}>D</option></select><label class="qf-label">Explanation</label><textarea class="qf-explanation-area" id="wntexp-${i}">${escH(item.explanation||'')}</textarea></div><div class="qf-row"><button class="qf-save-btn" onclick="wntSaveItem(${i})">✓ Save</button><button class="qf-cancel-btn" onclick="wntCancelItem(${i})">Cancel</button></div>`;}
+function wntTypeChange(i,type){document.getElementById('wntnotew-'+i).style.display=type==='note'?'block':'none';document.getElementById('wntqw-'+i).style.display=type==='question'?'block':'none';}
+function wntToggle(i){const f=document.getElementById('wntf-'+i);if(!f)return;const open=f.style.display!=='none';document.querySelectorAll('[id^="wntf-"]').forEach(x=>x.style.display='none');wntadmEditIdx=open?-1:i;if(!open)f.style.display='block';}
+function wntEdit(i){wntadmEditIdx=i;renderWNTContentList();setTimeout(()=>{const f=document.getElementById('wntf-'+i);if(f){f.style.display='block';f.scrollIntoView({behavior:'smooth',block:'center'});}},30);}
+function wntCancelItem(i){const f=document.getElementById('wntf-'+i);if(f)f.style.display='none';wntadmEditIdx=-1;}
+function wntDel(i){if(!confirm('Delete?'))return;getWNTItems().splice(i,1);lsSet('wn_topics',wnTopics);wntadmEditIdx=-1;renderWNTContentList();showToast('Deleted');}
+function wnAddTopicItem(){getWNTItems().push({type:'note',title:'',content:'',a:'',b:'',c:'',d:'',ans:'',explanation:''});wntadmEditIdx=getWNTItems().length-1;renderWNTContentList();setTimeout(()=>{const f=document.getElementById('wntf-'+wntadmEditIdx);if(f){f.style.display='block';f.scrollIntoView({behavior:'smooth',block:'center'});}},50);}
+function wntSaveItem(i){
+  const type=document.getElementById('wnttype-'+i)?.value;const title=document.getElementById('wnttitle-'+i)?.value.trim();if(!title){showToast('Enter title/question',true);return;}
+  let item={type,title,content:'',a:'',b:'',c:'',d:'',ans:'',explanation:''};
+  if(type==='note'){item.content=document.getElementById('wntcontent-'+i)?.value.trim()||'';}
+  else{item.a=document.getElementById('wnta-'+i)?.value.trim()||'';item.b=document.getElementById('wntb-'+i)?.value.trim()||'';item.c=document.getElementById('wntc-'+i)?.value.trim()||'';item.d=document.getElementById('wntd-'+i)?.value.trim()||'';item.ans=document.getElementById('wntans-'+i)?.value||'';item.explanation=document.getElementById('wntexp-'+i)?.value.trim()||'';item.content=title;}
+  getWNTItems()[i]=item;lsSet('wn_topics',wnTopics);wntadmEditIdx=-1;renderWNTContentList();showToast('Saved ✓');
+}
+async function wnSaveTopicContent(){const items=getWNTItems();lsSet('wn_topics',wnTopics);const mode='wn-topic-'+wntadmOrg;const ok=await dbUpsert(mode,wntadmSubj,wntadmTopic,items);showToast(ok?'✅ Saved to DB!':'💾 Saved locally');}
+
+// ════════════════════════════════════════
+// ADMIN — READ MODE (with topics and file uploads)
+// ════════════════════════════════════════
+let rmSubj=null, rmTopic=null, rmEditIdx=-1;
+
+function renderRMSubjects(){
+  document.getElementById('rm-step-subj').style.display='block';
+  document.getElementById('rm-step-topics').style.display='none';
+  document.getElementById('rm-step-materials').style.display='none';
+  document.getElementById('rm-subjects-grid').innerHTML=SUBJECTS.map(s=>{
+    const data=readModeData[s.id]||{topics:{}};
+    const cnt=Object.keys(data.topics).length;
+    return`<div class="admin-subj-btn" onclick="openRMTopics('${s.id}')"><div class="asb-icon">${s.icon}</div><div class="asb-name">${s.name}</div><div class="asb-count">${cnt} topic${cnt!==1?'s':''}</div></div>`;
+  }).join('');
+}
+
+function openRMTopics(sid){
+  rmSubj=sid; rmTopic=null; rmEditIdx=-1;
+  const subj=SUBJECTS.find(s=>s.id===sid);
+  document.getElementById('rm-step-subj').style.display='none';
+  document.getElementById('rm-step-topics').style.display='block';
+  document.getElementById('rm-step-materials').style.display='none';
+  document.getElementById('rm-subj-name').textContent=subj?.name||sid;
+  renderRMTopics();
+}
+
+function closeRMTopics(){
+  document.getElementById('rm-step-topics').style.display='none';
+  renderRMSubjects();
+}
+
+function renderRMTopics(){
+  const data=readModeData[rmSubj]||{topics:{}};
+  const topics=Object.keys(data.topics);
+  document.getElementById('rm-topics-count').textContent=topics.length;
+  if(!topics.length){
+    document.getElementById('rm-topics-list').innerHTML='<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📭</div><div class="empty-state-text">No topics. Add one below.</div></div>';
+    return;
+  }
+  document.getElementById('rm-topics-list').innerHTML=topics.map(t=>{
+    const cnt=data.topics[t].length;
+    return`<div class="topic-item-row"><div><div class="tir-name">📚 ${t}</div><div class="tir-count">${cnt} material${cnt!==1?'s':''}</div></div><div class="tir-actions"><button class="qi-btn qi-btn-edit" onclick="openRMMaterials('${encodeURIComponent(t)}')">✏️ Edit</button><button class="qi-btn qi-btn-del" onclick="rmDeleteTopic('${encodeURIComponent(t)}')">🗑️</button></div></div>`;
+  }).join('');
+}
+
+function rmDeleteTopic(enc){
+  const t=decodeURIComponent(enc);
+  if(!confirm('Delete topic "'+t+'" and all materials?'))return;
+  if(readModeData[rmSubj]) delete readModeData[rmSubj].topics[t];
+  lsSet('read_mode_data',readModeData);
+  renderRMTopics();
+  showToast('Topic deleted');
+}
+
+function rmAddTopic(){
+  const name=prompt('Enter topic name:');
+  if(!name?.trim())return;
+  if(!readModeData[rmSubj]) readModeData[rmSubj]={topics:{}};
+  if(readModeData[rmSubj].topics[name.trim()]){showToast('Topic exists',true);return;}
+  readModeData[rmSubj].topics[name.trim()]=[];
+  lsSet('read_mode_data',readModeData);
+  renderRMTopics();
+  showToast('Topic added ✓');
+}
+
+function openRMMaterials(enc){
+  rmTopic=decodeURIComponent(enc);
+  rmEditIdx=-1;
+  document.getElementById('rm-step-topics').style.display='none';
+  document.getElementById('rm-step-materials').style.display='block';
+  document.getElementById('rm-topic-name-label').textContent=rmTopic;
+  renderRMMaterials();
+}
+
+function closeRMMaterials(){
+  document.getElementById('rm-step-materials').style.display='none';
+  document.getElementById('rm-step-topics').style.display='block';
+  renderRMTopics();
+}
+
+function getRMMaterials(){
+  if(!readModeData[rmSubj]) readModeData[rmSubj]={topics:{}};
+  if(!readModeData[rmSubj].topics[rmTopic]) readModeData[rmSubj].topics[rmTopic]=[];
+  return readModeData[rmSubj].topics[rmTopic];
+}
+
+function renderRMMaterials(){
+  const items=getRMMaterials();
+  document.getElementById('rm-materials-count').textContent=items.length;
+  if(!items.length){
+    document.getElementById('rm-materials-list').innerHTML='<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📭</div><div class="empty-state-text">No materials. Add one below.</div></div>';
+    return;
+  }
+  document.getElementById('rm-materials-list').innerHTML=items.map((m,i)=>{
+    const isEdit=(rmEditIdx===i);
+    const typeLabel=m.type==='pdf'?'📄 PDF':m.type==='image'?'🖼️ Image':'📝 Text';
+    return`<div class="question-item"><div class="question-item-header" onclick="rmToggle(${i})"><div class="qi-num">${i+1}</div><div class="qi-preview">${escH(m.title||'Untitled')} (${typeLabel})</div><div class="qi-actions"><button class="qi-btn qi-btn-edit" onclick="event.stopPropagation();rmEdit(${i})">✏️</button><button class="qi-btn qi-btn-del" onclick="event.stopPropagation();rmDel(${i})">🗑️</button></div></div><div class="question-form" style="display:${isEdit?'block':'none'}">
+      <label class="qf-label">Title</label><input class="qf-input" id="rm-title-${i}" value="${escH(m.title||'')}" placeholder="Material title">
+      <label class="qf-label">Type</label><select class="qf-year-select" id="rm-type-${i}" onchange="rmTypeChange(${i},this.value)"><option value="text" ${m.type!=='pdf'&&m.type!=='image'?'selected':''}>📝 Text</option><option value="pdf" ${m.type==='pdf'?'selected':''}>📄 PDF</option><option value="image" ${m.type==='image'?'selected':''}>🖼️ Image</option></select>
+      <div id="rm-text-${i}" style="display:${m.type!=='pdf'&&m.type!=='image'?'block':'none'}"><label class="qf-label">Content</label><textarea class="qf-explanation-area" style="min-height:80px" id="rm-content-${i}">${escH(m.type!=='pdf'&&m.type!=='image'?m.content||'':'')}</textarea></div>
+      <div id="rm-file-${i}" style="display:${m.type==='pdf'||m.type==='image'?'block':'none'}"><label class="qf-label">Upload File</label><input type="file" id="rm-fileinput-${i}" accept="${m.type==='pdf'?'.pdf':m.type==='image'?'image/*':''}" onchange="rmFileChange(${i})"><div style="font-size:.7rem;color:rgba(255,255,255,.3);margin-top:4px">${m.fileUrl?'File uploaded: '+m.fileName:'No file uploaded'}</div></div>
+      <div class="qf-row"><button class="qf-save-btn" onclick="rmSaveItem(${i})">✓ Save</button><button class="qf-cancel-btn" onclick="rmCancelItem(${i})">Cancel</button></div>
+    </div></div>`;
+  }).join('');
+}
+
+function rmTypeChange(i,type){
+  document.getElementById('rm-text-'+i).style.display=type==='text'?'block':'none';
+  document.getElementById('rm-file-'+i).style.display=(type==='pdf'||type==='image')?'block':'none';
+}
+
+function rmToggle(i){rmEditIdx=rmEditIdx===i?-1:i;renderRMMaterials();}
+function rmEdit(i){rmEditIdx=i;renderRMMaterials();}
+function rmDel(i){if(!confirm('Delete material?'))return;getRMMaterials().splice(i,1);lsSet('read_mode_data',readModeData);rmEditIdx=-1;renderRMMaterials();showToast('Deleted');}
+function rmAddMaterial(){getRMMaterials().push({id:Date.now()+Math.random(), title:'', type:'text', content:'', fileUrl:'', fileName:''});rmEditIdx=getRMMaterials().length-1;renderRMMaterials();}
+
+async function rmFileChange(i){
+  const input=document.getElementById('rm-fileinput-'+i);
+  if(!input.files||!input.files[0])return;
+  const file=input.files[0];
+  const items=getRMMaterials();
+  const type=document.getElementById('rm-type-'+i)?.value;
+  const fileExt=file.name.split('.').pop();
+  const fileName=`${Date.now()}.${fileExt}`;
+  const path=`read-mode/${rmSubj}/${rmTopic}/${fileName}`;
+  try{
+    const {data,error}=await sb.storage.from('read-mode-files').upload(path, file);
+    if(error){showToast('Upload failed: '+error.message,true);return;}
+    const {data:urlData}=sb.storage.from('read-mode-files').getPublicUrl(path);
+    items[i].fileUrl=urlData.publicUrl;
+    items[i].fileName=file.name;
+    lsSet('read_mode_data',readModeData);
+    renderRMMaterials();
+    showToast('File uploaded ✓');
+  }catch(e){showToast('Upload error',true);}
+}
+
+function rmSaveItem(i){
+  const items=getRMMaterials();
+  const title=document.getElementById('rm-title-'+i)?.value.trim();
+  const type=document.getElementById('rm-type-'+i)?.value;
+  if(!title){showToast('Enter a title',true);return;}
+  let content='',fileUrl='',fileName='';
+  if(type==='text'){
+    content=document.getElementById('rm-content-'+i)?.value.trim()||'';
+    if(!content){showToast('Enter content',true);return;}
+  }else{
+    const existing=items[i]||{};
+    fileUrl=existing.fileUrl||'';
+    fileName=existing.fileName||'';
+    if(!fileUrl){showToast('Please upload a file first',true);return;}
+  }
+  items[i]={id:items[i].id||Date.now()+Math.random(), title, type, content, fileUrl, fileName};
+  lsSet('read_mode_data',readModeData);
+  rmEditIdx=-1;
+  renderRMMaterials();
+  showToast('Saved ✓');
+}
+
+function rmCancelItem(i){rmEditIdx=-1;renderRMMaterials();}
+
+async function rmSaveAll(){
+  const items=getRMMaterials();
+  if(!items.length){showToast('No materials to save',true);return;}
+  lsSet('read_mode_data',readModeData);
+  const subjectData = readModeData[rmSubj] || {topics:{}};
+  const ok=await dbUpsert('read-mode',rmSubj,null,[subjectData]);
+  showToast(ok?'✅ Materials saved to DB!':'💾 Saved locally');
+  renderRMTopics();
+}
+
+// ════════════════════════════════════════
+// ADMIN — SYLLABUS
+// ════════════════════════════════════════
+let sylSubj=null;
+
+function renderSylSubjects(){
+  document.getElementById('syl-step-subj').style.display='block';
+  document.getElementById('syl-step-edit').style.display='none';
+  document.getElementById('syl-subjects-grid').innerHTML=SUBJECTS.map(s=>{
+    const has=!!(syllabi[s.id]||'').trim();
+    return`<div class="admin-subj-btn" onclick="openSylEdit('${s.id}')"><div class="asb-icon">${s.icon}</div><div class="asb-name">${s.name}</div><div class="asb-count">${has?'📖 Uploaded':'—'}</div></div>`;
+  }).join('');
+}
+function openSylEdit(sid){
+  sylSubj=sid;
+  const subj=SUBJECTS.find(s=>s.id===sid);
+  document.getElementById('syl-step-subj').style.display='none';
+  document.getElementById('syl-step-edit').style.display='block';
+  document.getElementById('syl-subj-name').textContent=subj?.name||sid;
+  document.getElementById('syl-textarea').value=syllabi[sid]||'';
+}
+function closeSylEdit(){
+  document.getElementById('syl-step-edit').style.display='none';
+  renderSylSubjects();
+}
+async function sylSave(){
+  const text=document.getElementById('syl-textarea').value.trim();
+  syllabi[sylSubj]=text;
+  lsSet('syllabi',syllabi);
+  if(text){
+    const ok=await dbUpsert('syllabus',sylSubj,null,[text]);
+    showToast(ok?'✅ Syllabus saved to DB!':'💾 Saved locally');
+  }else{
+    try{await sb.from('questions').delete().match({mode:'syllabus',subject_id:sylSubj});}catch(e){}
+    showToast('Syllabus cleared');
+  }
+  renderSylSubjects();
+}
+
+// ════════════════════════════════════════
+// SHARED — QUESTION FORM HTML & SAVE
+// ════════════════════════════════════════
+function qFormHTML(pre,q,i){return`<label class="qf-label">Topic <span style="font-size:.6rem;color:rgba(255,255,255,.3)">(optional)</span></label><input class="qf-topic-input" id="${pre}topic-${i}" value="${escH(q.topic||'')}" placeholder="e.g. Alkanes, Civil War..."><label class="qf-label">Question</label><textarea class="qf-textarea" id="${pre}q-${i}">${escH(q.q||'')}</textarea><label class="qf-label">Options</label><div class="options-grid-admin"><div class="option-wrap"><span class="option-label-admin">A</span><input class="qf-input" id="${pre}a-${i}" value="${escH(q.a||'')}"></div><div class="option-wrap"><span class="option-label-admin">B</span><input class="qf-input" id="${pre}b-${i}" value="${escH(q.b||'')}"></div><div class="option-wrap"><span class="option-label-admin">C</span><input class="qf-input" id="${pre}c-${i}" value="${escH(q.c||'')}"></div><div class="option-wrap"><span class="option-label-admin">D</span><input class="qf-input" id="${pre}d-${i}" value="${escH(q.d||'')}"></div></div><label class="qf-label">Correct Answer</label><select class="answer-select" id="${pre}ans-${i}"><option value="">— Select —</option><option value="A" ${q.ans==='A'?'selected':''}>A</option><option value="B" ${q.ans==='B'?'selected':''}>B</option><option value="C" ${q.ans==='C'?'selected':''}>C</option><option value="D" ${q.ans==='D'?'selected':''}>D</option></select><label class="qf-label">Explanation <span style="font-size:.6rem;color:rgba(255,255,255,.3)">(shown in review)</span></label><textarea class="qf-explanation-area" id="${pre}exp-${i}" placeholder="Why is the answer correct?">${escH(q.explanation||'')}</textarea><div class="qf-row"><button class="qf-save-btn" onclick="${pre}SaveQ(${i})">✓ Save</button><button class="qf-cancel-btn" onclick="${pre}CancelQ(${i})">Cancel</button></div>`;}
+function saveQFromForm(pre,i,arr){
+  const qv=document.getElementById(pre+'q-'+i)?.value.trim();const av=document.getElementById(pre+'a-'+i)?.value.trim();const bv=document.getElementById(pre+'b-'+i)?.value.trim();const cv=document.getElementById(pre+'c-'+i)?.value.trim();const dv=document.getElementById(pre+'d-'+i)?.value.trim();const ans=document.getElementById(pre+'ans-'+i)?.value;const topic=document.getElementById(pre+'topic-'+i)?.value.trim();const exp=document.getElementById(pre+'exp-'+i)?.value.trim();
+  if(!qv){showToast('Enter question text',true);return false;}if(!av||!bv||!cv||!dv){showToast('Fill all 4 options',true);return false;}if(!ans){showToast('Select correct answer',true);return false;}
+  arr[i]={q:qv,a:av,b:bv,c:cv,d:dv,ans,topic:topic||'',explanation:exp||''};return true;
+}
+
+// ─── ALIASES ─────────────────────────────────────────────────────────────
+function uSaveQ(i){if(saveQFromForm('u',i,getUTMEQs())){lsSet('utme_questions',questions);utmeEditIdx=-1;renderUTMEQList();showToast('Saved ✓');}}
+function uCancelQ(i){utmeCancelQ(i);}
+function teSaveQ(i){if(saveQFromForm('te',i,getTEQs())){lsSet('utme_topic_qs',topicQs);teEditIdx=-1;renderTEQList();showToast('Saved ✓');}}
+function teCancelQ(i){const f=document.getElementById('teqf-'+i);if(f)f.style.display='none';teEditIdx=-1;}
+function wnSaveQ(i){if(saveQFromForm('wn',i,getWNQs())){lsSet('wn_questions',wnQs);wnadmEditIdx=-1;renderWNQList();showToast('Saved ✓');}}
+function wnCancelQ(i){const f=document.getElementById('wnqf-'+i);if(f)f.style.display='none';wnadmEditIdx=-1;}
+</script>
+</body>
+</html>
+
+Copya and paste this code between the head head tag of the html
+
