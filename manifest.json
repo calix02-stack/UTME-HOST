@@ -1,24 +1,50 @@
-{
-  "name": "My UTME · Enzo",
-  "short_name": "My UTME",
-  "description": "UTME, WAEC & NECO practice app by Enzo",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#f0f4ff",
-  "theme_color": "#1a4fd6",
-  "orientation": "portrait",
-  "icons": [
-    {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%231a4fd6'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='white'>🎓</text></svg>",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='64' fill='%231a4fd6'/><text x='256' y='360' font-size='280' text-anchor='middle' fill='white'>🎓</text></svg>",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
-  ]
-}
+const CACHE_NAME = "my-utme-v1";
+const urlsToCache = [
+  "/",
+  "/index.html",
+  "/manifest.json"
+];
+
+// Install event — cache files
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log("✅ Caching app files");
+        return cache.addAll(urlsToCache);
+      })
+      .catch((err) => console.log("❌ Cache error:", err))
+  );
+  self.skipWaiting();
+});
+
+// Activate event — clean old caches
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      );
+    })
+  );
+  return self.clients.claim();
+});
+
+// Fetch event — serve from cache, fallback to network
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        // Return cached response if found, else fetch from network
+        return response || fetch(event.request);
+      })
+      .catch(() => {
+        // Offline fallback
+        return new Response("Offline — please connect to the internet", {
+          status: 503,
+          statusText: "Service Unavailable"
+        });
+      })
+  );
+});
