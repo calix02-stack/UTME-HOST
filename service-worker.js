@@ -32,6 +32,11 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  // Skip Progressier requests to avoid conflicts
+  if (event.request.url.includes("progressier.app")) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
