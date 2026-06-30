@@ -145,15 +145,15 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 .exam-q-dot.current{border-color:var(--accent);background:var(--accent);color:#fff}
 .exam-q-dot.answered{border-color:#00c49a;background:#d0f5ec;color:#00836a}
 .exam-q-dot.answered.current{background:#00c49a;color:#fff;border-color:#00c49a}
-.exam-body{padding:12px 16px 120px}
-.question-card{background:var(--card);border:1.5px solid var(--border);border-radius:24px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow)}
-.question-card-header{background:linear-gradient(135deg,#0f2a7a08,#1a4fd610);padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
-.question-num-badge{background:var(--accent);color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.72rem;padding:4px 10px;border-radius:20px;flex-shrink:0;margin-top:2px}
-.question-text{font-size:.95rem;font-weight:600;color:var(--text);line-height:1.6;flex:1}
-.question-topic-badge{display:inline-block;background:var(--accent-light);color:var(--accent);font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:8px;letter-spacing:.3px}
-[data-theme=dark] .question-topic-badge{background:#1a2744}
-.options-list{padding:16px 16px 20px;display:flex;flex-direction:column;gap:10px}
-.option-btn{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:16px;border:2px solid var(--border);background:var(--surface);cursor:pointer;transition:all .2s;text-align:left;width:100%;font-family:inherit}
+.exam-body{padding:10px 14px 120px}
+.question-card{background:var(--card);border:1.5px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:12px;box-shadow:0 4px 16px var(--shadow)}
+.question-card-header{background:linear-gradient(135deg,#0f2a7a08,#1a4fd610);padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+.question-num-badge{background:var(--accent);color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.65rem;padding:3px 8px;border-radius:12px;flex-shrink:0;display:inline-block;width:fit-content}
+.question-text{font-size:.92rem;font-weight:600;color:var(--text);line-height:1.55;word-wrap:break-word;overflow-wrap:break-word;hyphens:auto}
+.question-topic-badge{display:inline-block;background:var(--accent-light);color:var(--accent);font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.3px;width:fit-content;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+[data-theme=dark] .question-topic-badge{background:#1a2744;color:#4f87ff}
+.options-list{padding:12px 14px 16px;display:flex;flex-direction:column;gap:8px}
+.option-btn{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:14px;border:2px solid var(--border);background:var(--surface);cursor:pointer;transition:all .2s;text-align:left;width:100%;font-family:inherit}
 .option-btn:active{transform:scale(.98)}
 .option-btn:hover{border-color:var(--accent);background:var(--accent-light)}
 .option-btn.selected{border-color:var(--accent);background:var(--accent-light)}
@@ -163,12 +163,12 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 [data-theme=dark] .option-btn.correct{background:#0d2b24}
 [data-theme=dark] .option-btn.wrong{background:#2b0d0d}
 [data-theme=dark] .option-btn.show-correct{background:#0d2b24}
-.option-letter{width:30px;height:30px;border-radius:10px;background:var(--border);color:var(--sub);font-weight:800;font-size:.78rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.option-letter{width:26px;height:26px;border-radius:8px;background:var(--border);color:var(--sub);font-weight:800;font-size:.72rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
 .option-btn.selected .option-letter{background:var(--accent);color:#fff}
 .option-btn.correct .option-letter{background:#00c49a;color:#fff}
 .option-btn.wrong .option-letter{background:var(--danger);color:#fff}
 .option-btn.show-correct .option-letter{background:#00c49a;color:#fff}
-.option-text{font-size:.88rem;color:var(--text);line-height:1.5;flex:1;padding-top:4px}
+.option-text{font-size:.85rem;color:var(--text);line-height:1.45;flex:1;padding-top:2px;word-wrap:break-word;overflow-wrap:break-word}
 .option-result-icon{font-size:1rem;flex-shrink:0;padding-top:4px;display:none}
 .option-btn.correct .option-result-icon,.option-btn.wrong .option-result-icon,.option-btn.show-correct .option-result-icon{display:block}
 .explanation-box{margin:0 16px 20px;background:linear-gradient(135deg,#e8f5e9,#d0f5ec);border:1.5px solid #00c49a;border-radius:16px;padding:14px 16px;display:none}
@@ -545,13 +545,105 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
   .install-btn{display:none !important}
 }
 
+
+/* ─── Forgot Password Page ─────────────────────────────────────────────── */
+#forgot-page{display:none;min-height:100vh;background:var(--bg);padding:20px;align-items:center;justify-content:center}
+#forgot-page.visible{display:flex}
+.forgot-card{background:var(--card);padding:36px 32px;border-radius:28px;width:100%;max-width:400px;box-shadow:0 8px 40px var(--shadow);border:1px solid var(--border)}
+.forgot-card h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:6px}
+.forgot-sub{font-size:.85rem;color:var(--sub);margin-bottom:24px;line-height:1.5}
+.forgot-success{background:linear-gradient(135deg,#e6f9f0,#d0f5ec);border:1.5px solid #00c49a;border-radius:16px;padding:16px;text-align:center;margin-bottom:20px;display:none}
+.forgot-success.visible{display:block}
+.forgot-success-icon{font-size:2.5rem;margin-bottom:8px}
+.forgot-success-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.1rem;color:#00836a;margin-bottom:4px}
+.forgot-success-text{font-size:.82rem;color:var(--sub);line-height:1.5}
+.forgot-back{display:flex;align-items:center;gap:6px;color:var(--accent);font-size:.85rem;font-weight:600;cursor:pointer;margin-bottom:20px;transition:opacity .2s}
+.forgot-back:hover{opacity:.7}
+
+/* ─── Reset Password Page ──────────────────────────────────────────────── */
+#reset-page{display:none;min-height:100vh;background:var(--bg);padding:20px;align-items:center;justify-content:center}
+#reset-page.visible{display:flex}
+.reset-card{background:var(--card);padding:36px 32px;border-radius:28px;width:100%;max-width:400px;box-shadow:0 8px 40px var(--shadow);border:1px solid var(--border)}
+.reset-card h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:6px}
+.reset-sub{font-size:.85rem;color:var(--sub);margin-bottom:24px;line-height:1.5}
+.reset-lock-icon{width:64px;height:64px;background:linear-gradient(135deg,#1a4fd6,#0e9f7e);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 20px;box-shadow:0 4px 16px rgba(26,79,214,.25)}
+.pw-strength-bar{height:4px;border-radius:2px;background:var(--border);margin-top:6px;overflow:hidden;transition:all .3s}
+.pw-strength-fill{height:100%;border-radius:2px;transition:width .3s,background .3s;width:0%}
+.pw-strength-text{font-size:.7rem;color:var(--sub);margin-top:4px;text-align:right}
+.pw-strength-weak{background:#e03c3c}
+.pw-strength-fair{background:#f59e0b}
+.pw-strength-good{background:#00c49a}
+.pw-strength-strong{background:#1a4fd6}
+
 </style>
 <link rel="manifest" href="https://progressier.app/HuEzcsrNBFarsHTtIeat/progressier.json"/>
 <script defer src="https://progressier.app/HuEzcsrNBFarsHTtIeat/script.js"></script>
 </head>
 <body>
 <div id="splash"><div class="splash-badge">🧑‍🎓</div><div class="splash-title">My UTME<span>by Enzo</span></div><div class="score-ring"><div class="score-num">300+</div><div class="score-label">Target</div></div><div class="loading-text">Setting things up...</div><div class="dots-container"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="splash-footer"><b>Powered by Enzo</b>Version 2.0 · System Ready</div></div>
-<div id="auth-page"><div class="auth-card"><div class="auth-brand"><div class="auth-brand-icon">🎓</div><div class="auth-brand-text">My UTME<small>by Enzo · Success Starts Here</small></div></div><h2 id="auth-title">Welcome back</h2><div class="auth-sub" id="auth-sub-text">Sign in to continue your preparation</div><div id="login-fields"><div class="auth-field"><label class="auth-label">Email or Username</label><input class="auth-input" type="text" id="auth-identifier" placeholder="you@example.com or username"><div class="auth-hint">You can use your email or username</div></div></div><div id="signup-fields" style="display:none"><div class="auth-field"><label class="auth-label">Email Address</label><input class="auth-input" type="email" id="auth-email" placeholder="you@example.com"></div><div class="auth-field"><label class="auth-label">Username</label><input class="auth-input" type="text" id="auth-username" placeholder="Choose a username"></div></div><div class="auth-field"><label class="auth-label">Password</label><div class="pw-wrap"><input class="auth-input" type="password" id="auth-password" placeholder="Min. 6 characters"><button class="pw-eye" type="button" onclick="togglePW()" id="pw-eye-btn">👁️</button></div></div><div class="forgot" id="forgot-link">Forgot password?</div><div class="auth-error" id="auth-error"></div><button class="auth-btn" id="auth-button" onclick="handleAuth()">Sign In</button><div class="auth-link" id="switch-text">Don't have an account? <span onclick="switchAuth()">Create one</span></div></div></div>
+<div id="auth-page"><div class="auth-card"><div class="auth-brand"><div class="auth-brand-icon">🎓</div>
+
+<!-- ─── FORGOT PASSWORD PAGE ─────────────────────────────────────────── -->
+<div id="forgot-page">
+  <div class="forgot-card">
+    <div class="auth-brand">
+      <div class="auth-brand-icon">🎓</div>
+      <div class="auth-brand-text">My UTME<small>by Enzo · Success Starts Here</small></div>
+    </div>
+    <div class="forgot-back" onclick="closeForgotPage()">← Back to Sign In</div>
+    <h2>Reset Password</h2>
+    <div class="forgot-sub">Enter your email and we'll send you a link to reset your password.</div>
+    <div class="forgot-success" id="forgot-success">
+      <div class="forgot-success-icon">📧</div>
+      <div class="forgot-success-title">Check your inbox!</div>
+      <div class="forgot-success-text">We've sent a password reset link to <b id="forgot-email-display"></b>.<br>Click the link in the email to set a new password.</div>
+    </div>
+    <div id="forgot-form">
+      <div class="auth-field">
+        <label class="auth-label">Email Address</label>
+        <input class="auth-input" type="email" id="forgot-email" placeholder="you@example.com">
+      </div>
+      <div class="auth-error" id="forgot-error"></div>
+      <button class="auth-btn" id="forgot-btn" onclick="sendResetEmail()">Send Reset Link</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── RESET PASSWORD PAGE ────────────────────────────────────────────── -->
+<div id="reset-page">
+  <div class="reset-card">
+    <div class="auth-brand">
+      <div class="auth-brand-icon">🎓</div>
+      <div class="auth-brand-text">My UTME<small>by Enzo · Success Starts Here</small></div>
+    </div>
+    <div class="reset-lock-icon">🔐</div>
+    <h2 style="text-align:center">Create New Password</h2>
+    <div class="reset-sub" style="text-align:center">Enter a new password for your account. Make it strong and memorable!</div>
+    <div class="auth-field">
+      <label class="auth-label">New Password</label>
+      <div class="pw-wrap">
+        <input class="auth-input" type="password" id="reset-password" placeholder="Min. 6 characters" oninput="checkPasswordStrength()">
+        <button class="pw-eye" type="button" onclick="toggleResetPW()" id="reset-pw-eye-btn">👁️</button>
+      </div>
+      <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
+      <div class="pw-strength-text" id="pw-strength-text"></div>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Confirm Password</label>
+      <div class="pw-wrap">
+        <input class="auth-input" type="password" id="reset-password-confirm" placeholder="Repeat your password">
+        <button class="pw-eye" type="button" onclick="toggleResetConfirmPW()" id="reset-confirm-pw-eye-btn">👁️</button>
+      </div>
+    </div>
+    <div class="auth-error" id="reset-error"></div>
+    <button class="auth-btn" id="reset-btn" onclick="submitNewPassword()">Update Password</button>
+    <div style="text-align:center;margin-top:16px;font-size:.85rem;color:var(--sub)">
+      <span style="color:var(--accent);cursor:pointer;font-weight:600" onclick="showAuthPage()">← Back to Sign In</span>
+    </div>
+  </div>
+</div>
+
+<div class="auth-brand-text">My UTME<small>by Enzo · Success Starts Here</small></div></div><h2 id="auth-title">Welcome back</h2><div class="auth-sub" id="auth-sub-text">Sign in to continue your preparation</div><div id="login-fields"><div class="auth-field"><label class="auth-label">Email or Username</label><input class="auth-input" type="text" id="auth-identifier" placeholder="you@example.com or username"><div class="auth-hint">You can use your email or username</div></div></div><div id="signup-fields" style="display:none"><div class="auth-field"><label class="auth-label">Email Address</label><input class="auth-input" type="email" id="auth-email" placeholder="you@example.com"></div><div class="auth-field"><label class="auth-label">Username</label><input class="auth-input" type="text" id="auth-username" placeholder="Choose a username"></div></div><div class="auth-field"><label class="auth-label">Password</label><div class="pw-wrap"><input class="auth-input" type="password" id="auth-password" placeholder="Min. 6 characters"><button class="pw-eye" type="button" onclick="togglePW()" id="pw-eye-btn">👁️</button></div></div><div class="forgot" id="forgot-link" onclick="showForgotPage()">Forgot password?</div><div class="auth-error" id="auth-error"></div><button class="auth-btn" id="auth-button" onclick="handleAuth()">Sign In</button><div class="auth-link" id="switch-text">Don't have an account? <span onclick="switchAuth()">Create one</span></div></div></div>
 <div id="subject-picker"><div class="picker-header"><div class="picker-back" onclick="closePicker()">‹ Back</div><div class="picker-mode-badge" id="picker-mode-badge">💻 CBT Mode</div><div class="picker-title" id="picker-title">Pick Your Subjects</div><div class="picker-sub" id="picker-sub">Select exactly 4 subjects</div></div><div class="picker-body"><div class="counter-bar" id="counter-bar"><div class="counter-left"><div><div class="counter-num"><span id="sel-count">0</span><span id="sel-max">/4</span></div><div class="counter-label" id="counter-label">subjects selected</div><div class="counter-dots" id="counter-dots"><div class="counter-dot" id="dot-1"></div><div class="counter-dot" id="dot-2"></div><div class="counter-dot" id="dot-3"></div><div class="counter-dot" id="dot-4"></div></div></div></div><button class="start-btn" id="start-btn" disabled onclick="startSession()">Start →</button></div><div class="picker-info"><span class="picker-info-icon">ℹ️</span><div class="picker-info-text" id="picker-info-text"><b>English Language is required</b>Choose 3 more subjects.</div></div><div class="year-picker-section" id="year-picker-section" style="display:none"><label class="year-picker-label">📅 Select Year <span style="color:#e03c3c;font-size:.7rem">(Required)</span></label><select class="year-select" id="exam-year-select" onchange="updateCounter()"><option value="">— Choose exam year —</option></select></div><div class="subjects-grid" id="subjects-grid"></div></div></div>
 <div id="exam-session"><div class="exam-topbar"><div class="exam-back-btn" onclick="exitExam()">‹</div><div class="exam-topbar-center"><div class="exam-subject-name" id="exam-subject-name">Mathematics</div><div class="exam-mode-tag" id="exam-mode-tag">⏰ EXAM MODE</div></div><div class="exam-timer" id="exam-timer"><div class="exam-timer-num" id="exam-timer-num">30:00</div><div class="exam-timer-label">Remaining</div></div></div><div class="cbt-subjects-bar" id="cbt-subjects-bar" style="display:none"></div><div class="exam-progress-strip"><div class="exam-progress-bar"><div class="exam-progress-fill" id="exam-progress-fill" style="width:0%"></div></div><div class="exam-progress-text" id="exam-progress-text">0 / 0</div></div><div class="exam-q-nav" id="exam-q-nav"></div><div class="exam-body" id="exam-body"></div><div class="exam-action-bar" id="exam-action-bar"><button class="exam-prev-btn" id="exam-prev-btn" onclick="goToPrev()">← Prev</button><button class="exam-next-btn" id="exam-next-btn" onclick="goToNext()">Next →</button></div></div>
 <div class="results-overlay" id="results-overlay"><div class="results-card"><div class="results-handle"></div><div class="results-subject-label" id="res-subject-label">Mathematics</div><div class="results-title" id="res-title">Session Complete! 🎉</div><div class="results-score-ring" id="res-score-ring"><svg viewBox="0 0 120 120" width="120" height="120"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fill" id="ring-fill-circle" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg><div class="results-score-num" id="res-score-num">0</div><div class="results-score-denom" id="res-score-denom">out of 0</div></div><div class="results-stats"><div class="res-stat"><div class="res-stat-num rs-correct" id="res-correct">0</div><div class="res-stat-label">Correct ✓</div></div><div class="res-stat"><div class="res-stat-num rs-wrong" id="res-wrong">0</div><div class="res-stat-label">Wrong ✗</div></div><div class="res-stat"><div class="res-stat-num rs-skipped" id="res-skipped">0</div><div class="res-stat-label">Skipped —</div></div></div><div class="results-message" id="res-message">Keep practising!</div><div class="results-actions"><button class="res-btn-retry" onclick="retryExam()">🔁 Retry</button><button class="res-btn-review" onclick="reviewAnswers()">📋 Review Answers</button></div></div></div>
@@ -570,6 +662,14 @@ const sb = supabase.createClient(
   'https://rofssssxyxamolmkypqz.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvZnNzc3N4eXhhbW9sbWt5cHF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0ODIwMzAsImV4cCI6MjA5ODA1ODAzMH0.d04t7fcQDDr0FGeixgwzc8OT2fnm-jgjM-BQfuv7hLM'
 );
+
+// Listen for password recovery events
+sb.auth.onAuthStateChange((event, session) => {
+  if(event === 'PASSWORD_RECOVERY'){
+    console.log('Password recovery event detected');
+    showResetPage();
+  }
+});
 const ADMIN_EMAILS = ['admin@myutme.com','enzo@myutme.com'];
 let currentUser = null;
 
@@ -864,8 +964,178 @@ function dismissInstall(){
 }
 
 
+
+// ─── FORGOT PASSWORD ────────────────────────────────────────────────────
+function showForgotPage(){
+  document.getElementById('auth-page').classList.remove('visible');
+  document.getElementById('auth-page').style.display='none';
+  document.getElementById('forgot-page').classList.add('visible');
+  document.getElementById('forgot-page').style.display='flex';
+  document.getElementById('forgot-error').style.display='none';
+  document.getElementById('forgot-success').classList.remove('visible');
+  document.getElementById('forgot-form').style.display='block';
+  document.getElementById('forgot-email').value='';
+}
+
+function closeForgotPage(){
+  document.getElementById('forgot-page').classList.remove('visible');
+  document.getElementById('forgot-page').style.display='none';
+  document.getElementById('auth-page').classList.add('visible');
+  document.getElementById('auth-page').style.display='flex';
+}
+
+async function sendResetEmail(){
+  const email=document.getElementById('forgot-email').value.trim();
+  const btn=document.getElementById('forgot-btn');
+  const err=document.getElementById('forgot-error');
+
+  if(!email||!email.includes('@')){err.innerText='Please enter a valid email address.';err.style.display='block';return;}
+
+  btn.disabled=true;btn.textContent='Sending...';err.style.display='none';
+
+  try{
+    // Get current URL origin for redirect
+    const redirectUrl=window.location.origin+window.location.pathname;
+    const{error}=await sb.auth.resetPasswordForEmail(email,{
+      redirectTo:redirectUrl
+    });
+
+    if(error){
+      let msg='Failed to send reset email. Please try again.';
+      if(error&&typeof error==='object'){
+        msg=error.message||error.msg||error.error_description||error.error||msg;
+        if(!msg||msg==='{}'||msg==='[object Object]')msg='Unable to send reset email. Please check your email address.';
+      }
+      err.innerText=msg;err.style.display='block';
+    }else{
+      document.getElementById('forgot-form').style.display='none';
+      document.getElementById('forgot-email-display').textContent=email;
+      document.getElementById('forgot-success').classList.add('visible');
+    }
+  }catch(e){
+    err.innerText='Network error. Please check your connection and try again.';err.style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent='Send Reset Link';
+  }
+}
+
+// ─── RESET PASSWORD (from email link) ───────────────────────────────────
+function showResetPage(){
+  document.getElementById('splash').style.display='none';
+  document.getElementById('auth-page').style.display='none';
+  document.getElementById('forgot-page').style.display='none';
+  document.getElementById('main-site').style.display='none';
+  document.getElementById('reset-page').classList.add('visible');
+  document.getElementById('reset-page').style.display='flex';
+  document.getElementById('reset-error').style.display='none';
+  document.getElementById('reset-password').value='';
+  document.getElementById('reset-password-confirm').value='';
+  document.getElementById('pw-strength-fill').style.width='0%';
+  document.getElementById('pw-strength-text').textContent='';
+}
+
+function toggleResetPW(){
+  const i=document.getElementById('reset-password'),b=document.getElementById('reset-pw-eye-btn');
+  i.type=i.type==='password'?'text':'password';
+  b.textContent=i.type==='text'?'🙈':'👁️';
+}
+
+function toggleResetConfirmPW(){
+  const i=document.getElementById('reset-password-confirm'),b=document.getElementById('reset-confirm-pw-eye-btn');
+  i.type=i.type==='password'?'text':'password';
+  b.textContent=i.type==='text'?'🙈':'👁️';
+}
+
+function checkPasswordStrength(){
+  const pw=document.getElementById('reset-password').value;
+  const fill=document.getElementById('pw-strength-fill');
+  const text=document.getElementById('pw-strength-text');
+
+  if(!pw){fill.style.width='0%';text.textContent='';return;}
+
+  let score=0;
+  if(pw.length>=6)score++;
+  if(pw.length>=10)score++;
+  if(/[A-Z]/.test(pw))score++;
+  if(/[0-9]/.test(pw))score++;
+  if(/[^A-Za-z0-9]/.test(pw))score++;
+
+  const pct=Math.min(score*20,100);
+  fill.style.width=pct+'%';
+
+  if(score<=1){fill.className='pw-strength-fill pw-strength-weak';text.textContent='Weak';}
+  else if(score===2){fill.className='pw-strength-fill pw-strength-fair';text.textContent='Fair';}
+  else if(score===3){fill.className='pw-strength-fill pw-strength-good';text.textContent='Good';}
+  else{fill.className='pw-strength-fill pw-strength-strong';text.textContent='Strong';}
+}
+
+async function submitNewPassword(){
+  const pw=document.getElementById('reset-password').value;
+  const confirm=document.getElementById('reset-password-confirm').value;
+  const btn=document.getElementById('reset-btn');
+  const err=document.getElementById('reset-error');
+
+  if(pw.length<6){err.innerText='Password must be at least 6 characters.';err.style.display='block';return;}
+  if(pw!==confirm){err.innerText='Passwords do not match. Please try again.';err.style.display='block';return;}
+
+  btn.disabled=true;btn.textContent='Updating...';err.style.display='none';
+
+  try{
+    const{error}=await sb.auth.updateUser({password:pw});
+
+    if(error){
+      let msg='Failed to update password. Please try again.';
+      if(error&&typeof error==='object'){
+        msg=error.message||error.msg||error.error_description||error.error||msg;
+        if(!msg||msg==='{}'||msg==='[object Object]')msg='Unable to update password. Please try again.';
+      }
+      err.innerText=msg;err.style.display='block';
+    }else{
+      alert('Password updated successfully! 🎉 Please sign in with your new password.');
+      // Sign out to clear the recovery session
+      await sb.auth.signOut();
+      showAuthPage();
+    }
+  }catch(e){
+    err.innerText='Network error. Please check your connection and try again.';err.style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent='Update Password';
+  }
+}
+
+// ─── CHECK FOR PASSWORD RECOVERY FROM URL ───────────────────────────────
+function checkPasswordRecovery(){
+  // Check URL hash for recovery tokens (Supabase sends #access_token=...&type=recovery)
+  const hash=window.location.hash;
+  const params=new URLSearchParams(hash.substring(1));
+
+  if(params.get('type')==='recovery'||params.get('type')==='invite'){
+    // Supabase will have already processed the token and set up the session
+    // We just need to show the reset page
+    showResetPage();
+    return true;
+  }
+
+  // Also check query params (some Supabase configs use query instead of hash)
+  const qParams=new URLSearchParams(window.location.search);
+  if(qParams.get('type')==='recovery'){
+    showResetPage();
+    return true;
+  }
+
+  return false;
+}
+
+
 async function init(){
   loadLocal();
+
+  // Check if user arrived from password recovery email
+  if(checkPasswordRecovery()){
+    document.getElementById('splash').style.display='none';
+    return;
+  }
+
   let userData=null;
   try{const{data}=await sb.auth.getUser();if(data?.user)userData=data.user;}catch(e){}
   document.getElementById('splash').style.display='none';
@@ -1109,7 +1379,7 @@ function renderQ(){
   let expBox='';
   if(isReview&&chosen){const ok=chosen===q.ans;const exp=q.explanation||(ok?'Correct!':'The correct answer is Option '+q.ans+'.');expBox=`<div class="explanation-box visible"><div class="explanation-label">${ok?'✅ Correct!':'❌ Incorrect'}</div><div class="explanation-text">${exp}</div></div>`;}
   const reviewBanner=isReview?`<div class="review-banner">📋 <span>Review Mode — correct answers highlighted</span></div>`:'';
-  document.getElementById('exam-body').innerHTML=`${reviewBanner}<div class="question-card"><div class="question-card-header"><div class="question-num-badge">Q${i+1}</div>${topicBadge}<div class="question-text">${q.q}</div></div><div class="options-list">${opts}</div></div>${expBox}`;
+  document.getElementById('exam-body').innerHTML=`${reviewBanner}<div class="question-card"><div class="question-card-header">${topicBadge}<div style="display:flex;align-items:flex-start;gap:10px"><div class="question-num-badge">Q${i+1}</div><div class="question-text">${q.q}</div></div></div><div class="options-list">${opts}</div></div>${expBox}`;
   const isLast=i===ES.questions.length-1;
   const bar=document.getElementById('exam-action-bar');bar.style.display='flex';
   if(isReview){bar.innerHTML=`<button class="exam-prev-btn" onclick="goToPrev()" ${i===0?'disabled':''}>← Prev</button><button class="exam-next-btn" onclick="goToNext()">${isLast?'Done ✓':'Next →'}</button>`;}
