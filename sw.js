@@ -1,4 +1,4 @@
-importScripts("https://progressier.app/HuEzcsrNBFarsHTtIeat/sw.js");
+importScripts("https://progressier.app/HuEcsrNBFarsHTtIeat/sw.js");
 
 const CACHE_NAME = "my-utme-v1";
 const urlsToCache = [
