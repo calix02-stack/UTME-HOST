@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My UTME · Enzo</title>
+
+<!-- ✅ PWA MANIFEST LINK (ADDED) -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- ✅ THEME COLOR FOR INSTALL BANNER (ADDED) -->
+<meta name="theme-color" content="#1a4fd6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -1713,6 +1722,13 @@ function teSaveQ(i){if(saveQFromForm('te',i,getTEQs())){lsSet('utme_topic_qs',to
 function teCancelQ(i){const f=document.getElementById('teqf-'+i);if(f)f.style.display='none';teEditIdx=-1;}
 function wnSaveQ(i){if(saveQFromForm('wn',i,getWNQs())){lsSet('wn_questions',wnQs);wnadmEditIdx=-1;renderWNQList();showToast('Saved ✓');}}
 function wnCancelQ(i){const f=document.getElementById('wnqf-'+i);if(f)f.style.display='none';wnadmEditIdx=-1;}
+
+// ✅ PWA — SERVICE WORKER REGISTRATION
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/service-worker.js")
+    .then(() => console.log("✅ Service Worker registered"))
+    .catch((err) => console.log("❌ SW registration failed:", err));
+}
 </script>
 </body>
 </html>
