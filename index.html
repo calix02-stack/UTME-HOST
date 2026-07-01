@@ -39,22 +39,25 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 .notif-bell:hover{background:rgba(255,255,255,.25)}
 .notif-bell .badge{position:absolute;top:-4px;right:-4px;background:#ff4444;color:#fff;font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:20px;min-width:20px;text-align:center;display:none}
 .notif-bell .badge.visible{display:block}
-.notif-dropdown{position:fixed;top:70px;left:12px;right:12px;max-width:400px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:0 8px 40px rgba(0,0,0,.2);z-index:601;display:none;max-height:420px;overflow-y:auto;padding:8px 0}
-.notif-dropdown.visible{display:block}
-.notif-item{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:background .2s}
-.notif-item:hover{background:var(--surface)}
-.notif-item:last-child{border-bottom:none}
-.notif-item.unread{background:var(--accent-light)}
-.notif-item .ni-icon{font-size:1.2rem;margin-top:2px}
-.notif-item .ni-content{flex:1}
-.notif-item .ni-title{font-weight:700;font-size:.9rem;color:var(--text)}
-.notif-item .ni-text{font-size:.85rem;color:var(--sub);margin-top:3px;white-space:pre-wrap;word-break:break-word}
-.notif-item .ni-image{max-width:100%;max-height:150px;border-radius:8px;margin-top:8px;border:1px solid var(--border);object-fit:cover}
-.notif-item .ni-time{font-size:.65rem;color:var(--sub);margin-top:5px}
-.notif-item .ni-views{font-size:.6rem;color:var(--sub);margin-top:3px}
-.notif-item .ni-delete{background:none;border:none;color:var(--sub);cursor:pointer;font-size:1rem;padding:4px;transition:color .2s}
-.notif-item .ni-delete:hover{color:var(--danger)}
-.notif-empty{padding:24px;text-align:center;color:var(--sub);font-size:.9rem}
+
+/* ─── NOTIFICATIONS PAGE ────────────────────────────────────────────────── */
+#notifications-page{display:none;position:fixed;inset:0;z-index:700;background:var(--bg);overflow-y:auto;padding-bottom:80px}
+#notifications-page.visible{display:block}
+.notif-page-header{background:linear-gradient(135deg,#0f2a7a 0%,#1a4fd6 100%);padding:20px 20px 30px;color:#fff;position:sticky;top:0;z-index:10}
+.notif-page-header .np-back{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:22px;padding:8px 16px;font-size:.9rem;font-weight:600;cursor:pointer;width:fit-content;margin-bottom:12px;backdrop-filter:blur(6px);transition:all .2s}
+.notif-page-header .np-back:hover{background:rgba(255,255,255,.2)}
+.notif-page-header .np-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.5rem}
+.notif-page-header .np-sub{font-size:.85rem;opacity:.7;margin-top:4px}
+.notif-page-body{padding:16px 18px}
+.notif-page-item{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 8px var(--shadow)}
+.notif-page-item .npi-icon{font-size:1.2rem;margin-right:10px}
+.notif-page-item .npi-title{font-weight:700;font-size:.95rem;color:var(--text)}
+.notif-page-item .npi-text{font-size:.85rem;color:var(--sub);margin-top:4px;white-space:pre-wrap;word-break:break-word}
+.notif-page-item .npi-image{max-width:100%;max-height:200px;border-radius:8px;margin-top:8px;border:1px solid var(--border);object-fit:cover}
+.notif-page-item .npi-time{font-size:.65rem;color:var(--sub);margin-top:6px}
+.notif-page-item .npi-views{font-size:.6rem;color:var(--sub);margin-top:3px}
+.notif-empty-page{padding:60px 24px;text-align:center;color:var(--sub)}
+.notif-empty-page .nep-icon{font-size:3rem;display:block;margin-bottom:16px}
 
 /* ─── AUTH ────────────────────────────────────────────────────────────────── */
 #auth-page{display:none;min-height:100vh;background:var(--bg);padding:24px;align-items:center;justify-content:center}
@@ -203,6 +206,16 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 .flag-btn:hover{background:rgba(255,200,0,.25)}
 .flag-btn.flagged{background:rgba(255,68,68,.2);border-color:rgba(255,68,68,.4);color:#ff4444}
 
+/* ─── CBT SUBMIT BUTTON (Top) ───────────────────────────────────────────── */
+.cbt-submit-top{position:sticky;top:72px;z-index:15;background:var(--card);padding:10px 16px;border-bottom:2px solid var(--border);display:none;align-items:center;justify-content:space-between;box-shadow:0 2px 12px var(--shadow)}
+.cbt-submit-top.visible{display:flex}
+.cbt-submit-top .cst-info{display:flex;align-items:center;gap:12px}
+.cbt-submit-top .cst-info .cst-label{font-size:.75rem;font-weight:700;color:var(--sub)}
+.cbt-submit-top .cst-info .cst-progress{font-size:.8rem;font-weight:700;color:var(--accent)}
+.cbt-submit-top .cst-btn{background:linear-gradient(135deg,#00c49a,#00a07d);color:#fff;border:none;padding:8px 20px;border-radius:var(--radius-sm);font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;box-shadow:0 2px 12px rgba(0,196,154,.3);transition:all .2s}
+.cbt-submit-top .cst-btn:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,196,154,.4)}
+.cbt-submit-top .cst-btn:active{transform:scale(.96)}
+
 .cbt-subjects-bar{background:#0f2a7a;border-bottom:1px solid rgba(255,255,255,.08);display:flex;overflow-x:auto;scrollbar-width:none;padding:0 14px}
 .cbt-subjects-bar::-webkit-scrollbar{display:none}
 .cbt-subj-tab{flex-shrink:0;padding:12px 18px;color:rgba(255,255,255,.5);font-size:.78rem;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:8px;white-space:nowrap;transition:all .2s}
@@ -270,6 +283,9 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 .exam-submit-btn{flex:1;padding:16px;border-radius:var(--radius);font-weight:800;font-size:1rem;font-family:inherit;cursor:pointer;border:none;background:linear-gradient(135deg,#00c49a,#00a07d);color:#fff;box-shadow:0 4px 16px rgba(0,196,154,.35)}
 .exam-submit-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,196,154,.45)}
 .exam-submit-btn:active{transform:scale(.97)}
+.exam-next-subject-btn{flex:1;padding:16px;border-radius:var(--radius);font-weight:800;font-size:1rem;font-family:inherit;cursor:pointer;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;box-shadow:0 4px 16px rgba(245,158,11,.35)}
+.exam-next-subject-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(245,158,11,.45)}
+.exam-next-subject-btn:active{transform:scale(.97)}
 .exam-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;text-align:center;gap:20px}
 .exam-empty-icon{font-size:4rem}
 .exam-empty-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.3rem;color:var(--text)}
@@ -376,8 +392,9 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 .lb-rank-avatar{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#1a4fd6,#0e9f7e);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;flex-shrink:0}
 .lb-rank-username{font-size:.88rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lb-rank-score{text-align:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1rem;color:var(--accent)}
-.lb-rank-breakdown{font-size:.65rem;color:var(--sub);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 8px}
+.lb-rank-breakdown{font-size:.65rem;color:var(--sub);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 8px}
 .lb-rank-breakdown span{background:var(--surface);padding:2px 8px;border-radius:10px;border:1px solid var(--border)}
+.lb-rank-no-subjects{font-size:.6rem;color:var(--sub);margin-top:4px;font-style:italic}
 
 .lb-subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
 .lb-subject-card{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;text-align:center;transition:all .2s;box-shadow:0 2px 10px var(--shadow)}
@@ -385,6 +402,16 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 .lb-subject-card .lb-s-icon{font-size:2rem;display:block;margin-bottom:8px}
 .lb-subject-card .lb-s-name{font-size:.88rem;font-weight:700;color:var(--text)}
 .lb-subject-card .lb-s-count{font-size:.7rem;color:var(--sub);margin-top:3px}
+
+/* ─── SUBJECT LEADERBOARD PAGE ─────────────────────────────────────────── */
+#subject-lb-page{display:none;position:fixed;inset:0;z-index:800;background:var(--bg);overflow-y:auto;padding-bottom:100px}
+#subject-lb-page.visible{display:block}
+.subject-lb-header{background:linear-gradient(135deg,#0f2a7a 0%,#1a4fd6 100%);padding:20px 20px 30px;color:#fff;position:sticky;top:0;z-index:10}
+.subject-lb-header .slb-back{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:22px;padding:8px 16px;font-size:.9rem;font-weight:600;cursor:pointer;width:fit-content;margin-bottom:12px;backdrop-filter:blur(6px);transition:all .2s}
+.subject-lb-header .slb-back:hover{background:rgba(255,255,255,.2)}
+.subject-lb-header .slb-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.4rem}
+.subject-lb-header .slb-sub{font-size:.85rem;opacity:.7;margin-top:4px}
+.subject-lb-body{padding:16px 18px}
 
 /* ─── PROFILE ────────────────────────────────────────────────────────────── */
 #profile-page{display:none}
@@ -722,12 +749,19 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 </div>
 
 <!-- Notification Bell -->
-<div class="notif-bell" id="notif-bell" onclick="toggleNotifications()">
+<div class="notif-bell" id="notif-bell" onclick="openNotificationsPage()">
   🔔
   <span class="badge" id="notif-badge">0</span>
 </div>
-<div class="notif-dropdown" id="notif-dropdown">
-  <div id="notif-list"></div>
+
+<!-- Notifications Page -->
+<div id="notifications-page">
+  <div class="notif-page-header">
+    <div class="np-back" onclick="closeNotificationsPage()">‹ Back to Home</div>
+    <div class="np-title">🔔 Notifications</div>
+    <div class="np-sub">All your announcements and updates</div>
+  </div>
+  <div class="notif-page-body" id="notif-page-body"></div>
 </div>
 
 <!-- Auth Page -->
@@ -919,6 +953,15 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
     </div>
   </div>
   
+  <!-- CBT Submit Top Bar -->
+  <div class="cbt-submit-top" id="cbt-submit-top">
+    <div class="cst-info">
+      <span class="cst-label">📋 CBT Progress</span>
+      <span class="cst-progress" id="cbt-progress-text">0/4 subjects completed</span>
+    </div>
+    <button class="cst-btn" id="cbt-submit-top-btn" onclick="showConfirmModal()">✅ Submit All</button>
+  </div>
+  
   <div class="cbt-subjects-bar" id="cbt-subjects-bar" style="display:none"></div>
   
   <div class="exam-progress-strip">
@@ -962,6 +1005,19 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
     <div class="results-actions">
       <button class="res-btn-retry" onclick="retryExam()">🔁 Retry</button>
       <button class="res-btn-review" onclick="reviewAnswers()">📋 Review Answers</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Submit Modal -->
+<div class="results-overlay" id="confirm-modal" style="z-index:950">
+  <div class="results-card" style="max-width:440px">
+    <div class="results-handle"></div>
+    <div class="results-title" style="font-size:1.1rem">⚠️ Confirm Submission</div>
+    <div class="results-message" id="confirm-message">You have not answered all questions. Are you sure you want to submit?</div>
+    <div class="results-actions">
+      <button class="res-btn-retry" onclick="closeConfirmModal()">Go Back</button>
+      <button class="res-btn-review" onclick="confirmSubmit()">Submit</button>
     </div>
   </div>
 </div>
@@ -1196,9 +1252,18 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
       
       <div id="lb-subject-content" style="display:none">
         <div class="lb-subject-grid" id="subject-leaderboard-grid"></div>
-        <div id="subject-rank-list"></div>
       </div>
     </div>
+  </div>
+  
+  <!-- Subject Leaderboard Page -->
+  <div id="subject-lb-page">
+    <div class="subject-lb-header">
+      <div class="slb-back" onclick="closeSubjectLB()">‹ Back to Leaderboard</div>
+      <div class="slb-title" id="slb-title">Subject Leaderboard</div>
+      <div class="slb-sub" id="slb-sub">Rankings for this subject</div>
+    </div>
+    <div class="subject-lb-body" id="slb-body"></div>
   </div>
   
   <!-- Profile Page -->
@@ -1625,10 +1690,9 @@ async function loadFromDB(){
     if(!annErr && annData && annData.length){
       announcements = annData;
       lsSet('announcements', announcements);
-      // Show in notifications (only new ones)
       const existingIds = new Set(notifications.map(n => n.id));
       announcements.forEach(a => {
-        if(!existingIds.has(a.id)){
+        if(!existingIds.has(a.id) || a.id){
           addNotification('📢 ' + a.title, a.text, '📢', a.image, a.id);
         }
       });
@@ -1978,7 +2042,7 @@ async function init(){
     await loadFromDB();
     renderHomeStats();
     updateCountdown();
-    renderNotifications();
+    renderNotificationsPage();
     updateNotificationBadge();
   }else{showAuthPage();}
 }
@@ -2004,6 +2068,7 @@ function showAuthPage(){document.getElementById('main-site').style.display='none
 function hideAuthPage(){document.getElementById('auth-page').classList.remove('visible');document.getElementById('auth-page').style.display='none';document.getElementById('main-site').style.display='block';}
 function switchAuth(){loginMode=!loginMode;document.getElementById('auth-title').innerText=loginMode?'Welcome back':'Create account';document.getElementById('auth-sub-text').innerText=loginMode?'Sign in to continue':'Join thousands of UTME candidates';document.getElementById('auth-button').innerText=loginMode?'Sign In':'Create Account';document.getElementById('login-fields').style.display=loginMode?'block':'none';document.getElementById('signup-fields').style.display=loginMode?'none':'block';document.getElementById('forgot-link').style.display=loginMode?'block':'none';document.getElementById('switch-text').innerHTML=loginMode?"Don't have an account? <span onclick='switchAuth()'>Create one</span>":"Already have an account? <span onclick='switchAuth()'>Sign in</span>";document.getElementById('auth-error').style.display='none';}
 function togglePW(){const i=document.getElementById('auth-password'),b=document.getElementById('pw-eye-btn');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='text'?'🙈':'👁️';}
+
 async function handleAuth(){
   document.getElementById('auth-error').style.display='none';
   const pw=document.getElementById('auth-password').value;
@@ -2030,8 +2095,20 @@ async function handleAuth(){
         showAE(msg);
       }else{hideAuthPage();init();}
     }else{
-      const email=document.getElementById('auth-email').value.trim(),username=document.getElementById('auth-username').value.trim();
+      const email=document.getElementById('auth-email').value.trim();
+      const username=document.getElementById('auth-username').value.trim();
       if(!email||!username){showAE('Fill in all fields.');return;}
+      
+      // Check if username already exists
+      try{
+        const {data: existingUser, error: checkErr} = await sb.from('profiles').select('username').eq('username', username).single();
+        if(existingUser){
+          showAE('Username "' + username + '" is already taken. Please choose another.');
+          btn.disabled=false;btn.textContent='Create Account';
+          return;
+        }
+      } catch(e){}
+      
       const{data,error}=await sb.auth.signUp({email,password:pw,options:{data:{username}}});
       if(error){
         let msg='Sign up failed. Please try again.';
@@ -2063,7 +2140,10 @@ function showPage(id){
   ['nav-home','nav-leaderboard','nav-profile','nav-menu'].forEach(n=>{const e=document.getElementById(n);if(e)e.classList.remove('active');});
   const map={'home-page':'nav-home','leaderboard-page':'nav-leaderboard','profile-page':'nav-profile','menu-page':'nav-menu'};
   if(map[id]){const e=document.getElementById(map[id]);if(e)e.classList.add('active');}
-  if(id==='leaderboard-page')renderLeaderboard();
+  if(id==='leaderboard-page'){
+    // Force re-render with a small delay to ensure data is loaded
+    setTimeout(() => renderLeaderboard(), 100);
+  }
   if(id==='profile-page')renderProfile();
   if(id==='home-page')renderHomeStats();
 }
@@ -2071,17 +2151,15 @@ function showPage(id){
 // ─── EXAM COUNTDOWN ──────────────────────────────────────────────────────
 function updateCountdown(){
   const now = new Date();
-  const target = new Date(now.getFullYear() + 1, 3, 10); // April 10 next year
-  const targetEnd = new Date(now.getFullYear() + 1, 4, 5); // May 5 next year
+  const target = new Date(now.getFullYear() + 1, 3, 10);
+  const targetEnd = new Date(now.getFullYear() + 1, 4, 5);
   
-  // If we're past April 10, check if we're still within exam period
   if(now > target && now < targetEnd){
     document.getElementById('countdown-days').textContent = '📝';
     document.querySelector('.countdown-banner .cd-sub').textContent = 'exam in progress!';
     return;
   }
   
-  // If after May 5, use next year's date
   if(now > targetEnd){
     target.setFullYear(now.getFullYear() + 2);
   }
@@ -2096,48 +2174,50 @@ function updateCountdown(){
 }
 
 // ─── NOTIFICATIONS ──────────────────────────────────────────────────────
-function toggleNotifications(){
-  const dropdown = document.getElementById('notif-dropdown');
-  dropdown.classList.toggle('visible');
-  if(dropdown.classList.contains('visible')){
-    renderNotifications();
-    // Mark all as read
-    notifications.forEach(n => n.read = true);
-    lsSet('notifications', notifications);
-    updateNotificationBadge();
+function openNotificationsPage(){
+  document.getElementById('notifications-page').classList.add('visible');
+  document.getElementById('main-site').style.display = 'none';
+  renderNotificationsPage();
+  notifications.forEach(n => n.read = true);
+  lsSet('notifications', notifications);
+  updateNotificationBadge();
+}
+
+function closeNotificationsPage(){
+  document.getElementById('notifications-page').classList.remove('visible');
+  document.getElementById('main-site').style.display = 'block';
+  // Re-render leaderboard if it was showing
+  const lbPage = document.getElementById('leaderboard-page');
+  if(lbPage && lbPage.style.display !== 'none'){
+    setTimeout(() => renderLeaderboard(), 100);
   }
 }
 
-function renderNotifications(){
-  const list = document.getElementById('notif-list');
+function renderNotificationsPage(){
+  const body = document.getElementById('notif-page-body');
   if(!notifications.length){
-    list.innerHTML = '<div class="notif-empty">No notifications</div>';
+    body.innerHTML = `<div class="notif-empty-page">
+      <span class="nep-icon">🔔</span>
+      <div>No notifications yet</div>
+      <div style="font-size:.8rem;margin-top:8px;">Announcements will appear here</div>
+    </div>`;
     return;
   }
-  list.innerHTML = notifications.map((n, i) => `
-    <div class="notif-item ${n.read ? '' : 'unread'}">
-      <span class="ni-icon">${n.icon || '📢'}</span>
-      <div class="ni-content">
-        <div class="ni-title">${n.title}</div>
-        <div class="ni-text">${n.text}</div>
-        ${n.image ? `<img src="${n.image}" class="ni-image" alt="Announcement">` : ''}
-        <div class="ni-time">${n.time || 'Just now'}</div>
-        <div class="ni-views">👁️ ${n.views || 0} views</div>
+  body.innerHTML = notifications.map(n => `
+    <div class="notif-page-item">
+      <div>
+        <span class="npi-icon">${n.icon || '📢'}</span>
+        <span class="npi-title">${n.title}</span>
       </div>
-      <button class="ni-delete" onclick="deleteNotification(${i})">✕</button>
+      <div class="npi-text">${n.text}</div>
+      ${n.image ? `<img src="${n.image}" class="npi-image" alt="Announcement">` : ''}
+      <div class="npi-time">${n.time || 'Just now'}</div>
+      <div class="npi-views">👁️ ${n.views || 0} views</div>
     </div>
   `).join('');
 }
 
-function deleteNotification(index){
-  notifications.splice(index, 1);
-  lsSet('notifications', notifications);
-  renderNotifications();
-  updateNotificationBadge();
-}
-
 function addNotification(title, text, icon = '📢', image = null, id = null){
-  // Check if notification already exists to avoid duplicates
   const exists = notifications.some(n => n.title === title && n.text === text);
   if(exists) return;
   
@@ -2154,7 +2234,6 @@ function addNotification(title, text, icon = '📢', image = null, id = null){
   lsSet('notifications', notifications);
   updateNotificationBadge();
   
-  // Trigger browser notification if permitted
   if('Notification' in window && Notification.permission === 'granted'){
     new Notification('My UTME', { body: title + ': ' + text, icon: '🎓' });
   }
@@ -2169,7 +2248,6 @@ function updateNotificationBadge(){
   } else {
     badge.classList.remove('visible');
   }
-  // Update app badge if available
   if('setAppBadge' in navigator && unread > 0){
     navigator.setAppBadge(unread);
   } else if('setAppBadge' in navigator){
@@ -2177,7 +2255,6 @@ function updateNotificationBadge(){
   }
 }
 
-// Request notification permission
 if('Notification' in window && Notification.permission === 'default'){
   Notification.requestPermission();
 }
@@ -2369,6 +2446,7 @@ function openSmartRevision(){
     document.getElementById('exam-subject-name').textContent = '🧠 Smart Revision';
     document.getElementById('exam-mode-tag').textContent = '🎯 WEAK SPOTS';
     document.getElementById('cbt-subjects-bar').style.display = 'none';
+    document.getElementById('cbt-submit-top').style.display = 'none';
     document.getElementById('exam-session').classList.add('visible');
     renderQ();
     renderQNav();
@@ -2418,7 +2496,6 @@ async function publishAnnouncement(){
   
   let imageUrl = null;
   
-  // Upload image if exists
   if(announcementImageFile){
     try{
       const ext = announcementImageFile.name.split('.').pop();
@@ -2447,7 +2524,6 @@ async function publishAnnouncement(){
   announcements.unshift(announcement);
   lsSet('announcements', announcements);
   
-  // Save to Supabase
   try{
     await sb.from('announcements').insert(announcement);
   } catch(e){}
@@ -2456,10 +2532,8 @@ async function publishAnnouncement(){
   closeAnnouncementEditor();
   showToast('✅ Announcement published!');
   
-  // Send notification to all users
   addNotification('📢 ' + announcement.title, announcement.text, '📢', announcement.image, announcement.id);
   
-  // Broadcast to all users via Supabase channel
   try{
     const channel = sb.channel('announcements');
     channel.subscribe();
@@ -2561,6 +2635,7 @@ function submitFlag(){
   const report = {
     id: Date.now(),
     question: q,
+    questionNumber: flagQuestionIndex + 1,
     subject: ES.subjectId,
     subjectName: ES.subjectName,
     mode: ES.mode,
@@ -2596,7 +2671,7 @@ function renderReports(){
   list.innerHTML = reports.map((r, i) => `
     <div class="admin-result-row" style="flex-direction:column;align-items:stretch;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div><strong style="color:#ffc107">${r.reason}</strong> - ${r.subjectName}</div>
+        <div><strong style="color:#ffc107">Q${r.questionNumber || '?'} - ${r.reason}</strong> - ${r.subjectName}</div>
         <div style="display:flex;gap:8px;">
           <button class="qi-btn qi-btn-edit" onclick="resolveReport(${i})">✅ Resolve</button>
           <button class="qi-btn qi-btn-del" onclick="deleteReport(${i})">🗑️</button>
@@ -2610,10 +2685,10 @@ function renderReports(){
 }
 
 function resolveReport(index){
-  reports[index].status = 'resolved';
+  reports.splice(index, 1);
   lsSet('reports', reports);
   renderReports();
-  showToast('✅ Report resolved');
+  showToast('✅ Report resolved and removed');
 }
 
 function deleteReport(index){
@@ -2632,6 +2707,25 @@ function renderHomeStats(){
   document.getElementById('hstat-bestscore').textContent=best!==null?(best>100?best+'/400':best+'%'):'—';
   const days=new Set(hist.map(r=>new Date(r.date).toDateString()));let streak=0,d=new Date();while(days.has(d.toDateString())){streak++;d.setDate(d.getDate()-1);}
   document.getElementById('hstat-streak').textContent=streak+'🔥';
+}
+
+// ─── CONFIRM SUBMIT MODAL ────────────────────────────────────────────
+let pendingSubmit = false;
+
+function closeConfirmModal(){
+  document.getElementById('confirm-modal').classList.remove('visible');
+  pendingSubmit = false;
+}
+
+function confirmSubmit(){
+  pendingSubmit = true;
+  document.getElementById('confirm-modal').classList.remove('visible');
+  doSubmitExam();
+}
+
+function showConfirmModal(){
+  document.getElementById('confirm-message').textContent = 'You have not answered all questions. Are you sure you want to submit?';
+  document.getElementById('confirm-modal').classList.add('visible');
 }
 
 // ─── LEADERBOARD ──────────────────────────────────────────────────────
@@ -2664,31 +2758,51 @@ function renderCBTLeaderboard(){
         username: r.username || r.user_id?.slice(0,8) || 'Guest',
         subjects: {},
         totalScore: 0,
-        attempts: 0
+        hasAttempted: false,
+        subjectIds: []
       };
     }
-    userMap[uid].attempts++;
   });
   
-  // Add current user if not present
   if(currentUser && !userMap[currentUser.id]){
     userMap[currentUser.id] = {
       id: currentUser.id,
       username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User',
       subjects: {},
       totalScore: 0,
-      attempts: 0
+      hasAttempted: false,
+      subjectIds: []
     };
   }
   
-  // Process CBT results for each user
+  // Process CBT results for each user - track all 4 subjects they selected
   Object.keys(userMap).forEach(uid => {
     const user = userMap[uid];
     const userResults = allResults.filter(r => (r.user_id === uid || r.username === user.username) && (r.mode === 'cbt' || r.mode === 'utme-cbt'));
     
-    // Initialize subject scores
-    SUBJECTS.forEach(s => {
-      user.subjects[s.id] = 0;
+    let hasAnyAttempt = false;
+    let selectedSubjectIds = [];
+    
+    // First pass - get the selected subjects from the most recent result
+    userResults.forEach(r => {
+      if(r.subjects && Array.isArray(r.subjects) && r.subjects.length > 0){
+        selectedSubjectIds = r.subjects.map(s => s.id);
+      }
+    });
+    
+    // If no selected subjects found, try to infer from the subject breakdown
+    if(selectedSubjectIds.length === 0 && userResults.length > 0){
+      const lastResult = userResults[0];
+      if(lastResult.subjects && Array.isArray(lastResult.subjects)){
+        selectedSubjectIds = lastResult.subjects.map(s => s.id);
+      }
+    }
+    
+    user.subjectIds = selectedSubjectIds.length > 0 ? selectedSubjectIds : SUBJECTS.map(s => s.id).slice(0, 4);
+    
+    // Initialize all subjects with 0
+    user.subjectIds.forEach(sid => {
+      user.subjects[sid] = 0;
     });
     
     // Process each CBT result
@@ -2696,25 +2810,29 @@ function renderCBTLeaderboard(){
       if(r.subjects && Array.isArray(r.subjects)){
         r.subjects.forEach(subj => {
           const score = (subj.correct || 0) * 4;
-          if(score > (user.subjects[subj.id] || 0)){
-            user.subjects[subj.id] = score;
+          if(user.subjectIds.includes(subj.id)){
+            if(score > (user.subjects[subj.id] || 0)){
+              user.subjects[subj.id] = score;
+              if(score > 0) hasAnyAttempt = true;
+            }
           }
         });
       } else {
         // Try to match by subject name
         const subjName = r.subject || '';
         const matched = SUBJECTS.find(s => subjName.toLowerCase().includes(s.name.toLowerCase()));
-        if(matched){
+        if(matched && user.subjectIds.includes(matched.id)){
           const score = (r.score || 0) * 4;
           if(score > (user.subjects[matched.id] || 0)){
             user.subjects[matched.id] = score;
+            if(score > 0) hasAnyAttempt = true;
           }
         }
       }
     });
     
-    // Calculate total score
-    user.totalScore = Object.values(user.subjects).reduce((sum, score) => sum + score, 0);
+    user.hasAttempted = hasAnyAttempt;
+    user.totalScore = user.subjectIds.reduce((sum, sid) => sum + (user.subjects[sid] || 0), 0);
   });
   
   const ranked = Object.values(userMap).sort((a,b) => b.totalScore - a.totalScore);
@@ -2732,16 +2850,21 @@ function renderCBTLeaderboard(){
     const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     const isMe = myUid && user.id === myUid;
     
-    // Build breakdown HTML
-    const breakdownHTML = Object.keys(user.subjects)
-      .filter(sid => user.subjects[sid] > 0 || SUBJECTS.find(s => s.id === sid))
-      .map(sid => {
-        const subj = SUBJECTS.find(s => s.id === sid);
-        if(!subj) return '';
-        return `<span>${subj.icon} ${subj.name}: ${user.subjects[sid] || 0}/100</span>`;
-      })
-      .filter(Boolean)
-      .join('');
+    let breakdownHTML = '';
+    let noSubjectsHTML = '';
+    
+    if(user.subjectIds && user.subjectIds.length > 0){
+      breakdownHTML = user.subjectIds
+        .map(sid => {
+          const subj = SUBJECTS.find(s => s.id === sid);
+          if(!subj) return '';
+          return `<span>${subj.icon} ${subj.name}: ${user.subjects[sid] || 0}/100</span>`;
+        })
+        .filter(Boolean)
+        .join('');
+    } else {
+      noSubjectsHTML = '<div class="lb-rank-no-subjects">No subjects recorded</div>';
+    }
     
     return `<div class="lb-rank-list">
       <div class="lb-rank-row ${isMe ? 'me' : ''}">
@@ -2750,7 +2873,7 @@ function renderCBTLeaderboard(){
           <div class="lb-rank-avatar">${(user.username || 'U').slice(0,2).toUpperCase()}</div>
           <div>
             <div class="lb-rank-username">${user.username}${isMe ? ' (you)' : ''}</div>
-            <div class="lb-rank-breakdown">${breakdownHTML}</div>
+            ${breakdownHTML ? `<div class="lb-rank-breakdown">${breakdownHTML}</div>` : noSubjectsHTML}
           </div>
         </div>
         <div class="lb-rank-score">${user.totalScore}/400</div>
@@ -2762,39 +2885,51 @@ function renderCBTLeaderboard(){
 function renderSubjectLeaderboard(){
   const allResults = lsGet('utme_results', []);
   const grid = document.getElementById('subject-leaderboard-grid');
-  const rankList = document.getElementById('subject-rank-list');
   
-  // Build user subject scores map
-  const userSubjectScores = {};
+  // Build user -> selected subjects and scores
+  const userData = {};
   
-  // Get all users from results
   allResults.forEach(r => {
     const uid = r.user_id || r.username || 'Guest';
-    if(!userSubjectScores[uid]){
-      userSubjectScores[uid] = {
+    if(!userData[uid]){
+      userData[uid] = {
         username: r.username || r.user_id?.slice(0,8) || 'Guest',
+        selectedSubjects: [],
         scores: {}
       };
     }
   });
   
-  // Add current user if not present
-  if(currentUser && !userSubjectScores[currentUser.id]){
-    userSubjectScores[currentUser.id] = {
+  if(currentUser && !userData[currentUser.id]){
+    userData[currentUser.id] = {
       username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User',
+      selectedSubjects: [],
       scores: {}
     };
   }
   
-  // Process results
+  // First pass - collect selected subjects from CBT results
   allResults.forEach(r => {
     const uid = r.user_id || r.username || 'Guest';
-    if(userSubjectScores[uid]){
+    if(userData[uid]){
+      if(r.subjects && Array.isArray(r.subjects) && r.subjects.length > 0){
+        const subjectIds = r.subjects.map(s => s.id);
+        if(subjectIds.length > userData[uid].selectedSubjects.length){
+          userData[uid].selectedSubjects = subjectIds;
+        }
+      }
+    }
+  });
+  
+  // Second pass - collect scores
+  allResults.forEach(r => {
+    const uid = r.user_id || r.username || 'Guest';
+    if(userData[uid]){
       if(r.subjects && Array.isArray(r.subjects)){
         r.subjects.forEach(subj => {
           const score = (subj.correct || 0) * 4;
-          if(!userSubjectScores[uid].scores[subj.id] || score > userSubjectScores[uid].scores[subj.id]){
-            userSubjectScores[uid].scores[subj.id] = score;
+          if(!userData[uid].scores[subj.id] || score > userData[uid].scores[subj.id]){
+            userData[uid].scores[subj.id] = score;
           }
         });
       } else {
@@ -2802,120 +2937,152 @@ function renderSubjectLeaderboard(){
         const matched = SUBJECTS.find(s => subjName.toLowerCase().includes(s.name.toLowerCase()));
         if(matched){
           const score = (r.score || 0) * 4;
-          if(!userSubjectScores[uid].scores[matched.id] || score > userSubjectScores[uid].scores[matched.id]){
-            userSubjectScores[uid].scores[matched.id] = score;
+          if(!userData[uid].scores[matched.id] || score > userData[uid].scores[matched.id]){
+            userData[uid].scores[matched.id] = score;
           }
         }
       }
     }
   });
   
-  // Build subject cards
+  // Build subject cards with count of users who selected this subject
   grid.innerHTML = SUBJECTS.map(s => {
-    const usersWithSubject = Object.keys(userSubjectScores).filter(uid => {
-      return userSubjectScores[uid].scores[s.id] !== undefined;
+    const usersWithSubject = Object.keys(userData).filter(uid => {
+      return userData[uid].selectedSubjects && userData[uid].selectedSubjects.includes(s.id);
     });
-    return `<div class="lb-subject-card" onclick="showSubjectRank('${s.id}')">
+    return `<div class="lb-subject-card" onclick="openSubjectLB('${s.id}')">
       <span class="lb-s-icon">${s.icon}</span>
       <div class="lb-s-name">${s.name}</div>
       <div class="lb-s-count">${usersWithSubject.length} users</div>
     </div>`;
   }).join('');
-  
-  // Show first subject by default
-  if(SUBJECTS.length > 0){
-    showSubjectRank('english');
-  }
 }
 
-function showSubjectRank(subjectId){
+function openSubjectLB(subjectId){
   const subject = SUBJECTS.find(s => s.id === subjectId);
   if(!subject) return;
   
+  document.getElementById('subject-lb-page').classList.add('visible');
+  document.getElementById('main-site').style.display = 'none';
+  document.getElementById('slb-title').textContent = subject.icon + ' ' + subject.name;
+  document.getElementById('slb-sub').textContent = 'Rankings for ' + subject.name;
+  
   const allResults = lsGet('utme_results', []);
-  const rankList = document.getElementById('subject-rank-list');
   const userScores = {};
   
-  // Get all users
+  // First, get all users who selected this subject
   allResults.forEach(r => {
     const uid = r.user_id || r.username || 'Guest';
-    if(!userScores[uid]){
-      userScores[uid] = {
-        username: r.username || r.user_id?.slice(0,8) || 'Guest',
-        score: 0
-      };
-    }
-  });
-  
-  // Add current user if not present
-  if(currentUser && !userScores[currentUser.id]){
-    userScores[currentUser.id] = {
-      username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User',
-      score: 0
-    };
-  }
-  
-  // Process results for this subject
-  allResults.forEach(r => {
-    const uid = r.user_id || r.username || 'Guest';
-    if(userScores[uid]){
-      if(r.subjects && Array.isArray(r.subjects)){
-        const subjData = r.subjects.find(s => s.id === subjectId);
-        if(subjData){
-          const score = (subjData.correct || 0) * 4;
-          if(score > userScores[uid].score){
-            userScores[uid].score = score;
-          }
+    if(r.subjects && Array.isArray(r.subjects)){
+      const subjectIds = r.subjects.map(s => s.id);
+      if(subjectIds.includes(subjectId)){
+        if(!userScores[uid]){
+          userScores[uid] = {
+            username: r.username || r.user_id?.slice(0,8) || 'Guest',
+            score: 0
+          };
         }
-      } else {
-        const subjName = r.subject || '';
-        if(subjName.toLowerCase().includes(subject.name.toLowerCase())){
-          const score = (r.score || 0) * 4;
-          if(score > userScores[uid].score){
-            userScores[uid].score = score;
-          }
+      }
+    } else {
+      // Try to infer from subject name
+      const subjName = r.subject || '';
+      if(subjName.toLowerCase().includes(subject.name.toLowerCase())){
+        if(!userScores[uid]){
+          userScores[uid] = {
+            username: r.username || r.user_id?.slice(0,8) || 'Guest',
+            score: 0
+          };
         }
       }
     }
   });
   
-  // Filter users who have this subject in their scores
-  const filteredScores = {};
-  Object.keys(userScores).forEach(uid => {
-    if(userScores[uid].score !== undefined){
-      filteredScores[uid] = userScores[uid];
+  // Add current user if they selected this subject
+  if(currentUser){
+    const uid = currentUser.id;
+    // Check if current user has this subject in their selected subjects
+    const hasSubject = allResults.some(r => {
+      if(r.user_id === uid || r.username === currentUser.user_metadata?.username){
+        if(r.subjects && Array.isArray(r.subjects)){
+          return r.subjects.some(s => s.id === subjectId);
+        }
+        const subjName = r.subject || '';
+        return subjName.toLowerCase().includes(subject.name.toLowerCase());
+      }
+      return false;
+    });
+    
+    if(hasSubject && !userScores[uid]){
+      userScores[uid] = {
+        username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User',
+        score: 0
+      };
     }
+  }
+  
+  // Now get scores for these users
+  Object.keys(userScores).forEach(uid => {
+    const user = userScores[uid];
+    allResults.forEach(r => {
+      if(r.user_id === uid || r.username === user.username){
+        if(r.subjects && Array.isArray(r.subjects)){
+          const subjData = r.subjects.find(s => s.id === subjectId);
+          if(subjData){
+            const score = (subjData.correct || 0) * 4;
+            if(score > user.score){
+              user.score = score;
+            }
+          }
+        } else {
+          const subjName = r.subject || '';
+          if(subjName.toLowerCase().includes(subject.name.toLowerCase())){
+            const score = (r.score || 0) * 4;
+            if(score > user.score){
+              user.score = score;
+            }
+          }
+        }
+      }
+    });
   });
   
-  const ranked = Object.values(filteredScores).sort((a,b) => b.score - a.score);
+  const ranked = Object.values(userScores).sort((a,b) => b.score - a.score);
   const myUid = currentUser?.id;
   
+  const body = document.getElementById('slb-body');
   if(!ranked.length){
-    rankList.innerHTML = `<div class="analytics-empty">No users have attempted ${subject.name}.</div>`;
+    body.innerHTML = '<div class="analytics-empty">No users have selected this subject.</div>';
     return;
   }
   
-  rankList.innerHTML = `
-    <div style="margin-top:18px">
-      <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1rem;color:var(--text);margin-bottom:12px">${subject.icon} ${subject.name} Rankings</div>
-      <div class="lb-rank-list">
-        <div class="lb-rank-header"><div>#</div><div>User</div><div>Score</div></div>
-        ${ranked.map((user, i) => {
-          const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-          const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-          const isMe = myUid && Object.keys(filteredScores).find(k => filteredScores[k].username === user.username && k === myUid);
-          return `<div class="lb-rank-row ${isMe ? 'me' : ''}">
-            <div class="lb-rank-pos ${rankCls}">${rankIcon}</div>
-            <div class="lb-rank-user">
-              <div class="lb-rank-avatar">${(user.username || 'U').slice(0,2).toUpperCase()}</div>
-              <div class="lb-rank-username">${user.username}${isMe ? ' (you)' : ''}</div>
-            </div>
-            <div class="lb-rank-score">${user.score}/100</div>
-          </div>`;
-        }).join('')}
-      </div>
+  body.innerHTML = `
+    <div class="lb-rank-list">
+      <div class="lb-rank-header"><div>#</div><div>User</div><div>Score</div></div>
+      ${ranked.map((user, i) => {
+        const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+        const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+        const isMe = myUid && Object.keys(userScores).find(k => userScores[k].username === user.username && k === myUid);
+        return `<div class="lb-rank-row ${isMe ? 'me' : ''}">
+          <div class="lb-rank-pos ${rankCls}">${rankIcon}</div>
+          <div class="lb-rank-user">
+            <div class="lb-rank-avatar">${(user.username || 'U').slice(0,2).toUpperCase()}</div>
+            <div class="lb-rank-username">${user.username}${isMe ? ' (you)' : ''}</div>
+          </div>
+          <div class="lb-rank-score">${user.score}/100</div>
+        </div>`;
+      }).join('')}
     </div>
   `;
+}
+
+function closeSubjectLB(){
+  document.getElementById('subject-lb-page').classList.remove('visible');
+  document.getElementById('main-site').style.display = 'block';
+  // Re-render the subject leaderboard page to refresh data
+  const lbPage = document.getElementById('leaderboard-page');
+  if(lbPage && lbPage.style.display !== 'none'){
+    setTimeout(() => renderLeaderboard(), 100);
+  }
 }
 
 // ─── EXAM SESSION ──────────────────────────────────────────────────────
@@ -2933,12 +3100,17 @@ let ES = {
   cbtSubjects: [],
   cbtActiveIdx: 0,
   examType: 'utme',
-  flaggedQuestions: {}
+  flaggedQuestions: {},
+  completedSubjects: [],
+  isCBTComplete: false,
+  selectedSubjectIds: []
 };
 
 function launchCBT(ids){
   document.getElementById('subject-picker').classList.remove('visible');
   document.getElementById('main-site').style.display='none';
+  
+  ES.selectedSubjectIds = ids;
   
   const cbtS = ids.map(id => {
     const subj = SUBJECTS.find(s => s.id === id);
@@ -2948,7 +3120,8 @@ function launchCBT(ids){
       name: subj ? subj.name : id,
       icon: subj ? subj.icon : '📝',
       questions: qs,
-      answers: {}
+      answers: {},
+      completed: false
     };
   });
   
@@ -2966,23 +3139,47 @@ function launchCBT(ids){
     cbtSubjects: cbtS,
     cbtActiveIdx: 0,
     examType: 'utme',
-    flaggedQuestions: {}
+    flaggedQuestions: {},
+    completedSubjects: [],
+    isCBTComplete: false,
+    selectedSubjectIds: ids
   };
   
   switchCBTSubj(0);
   document.getElementById('exam-mode-tag').textContent = '💻 CBT MODE';
   document.getElementById('exam-subject-name').textContent = '💻 CBT Session';
   document.getElementById('cbt-subjects-bar').style.display = 'flex';
+  document.getElementById('cbt-submit-top').classList.add('visible');
+  document.getElementById('cbt-submit-top').style.display = 'flex';
   renderCBTTabs();
   document.getElementById('exam-session').classList.add('visible');
   renderQ();
   renderQNav();
   updateProgress();
   startTimer();
+  updateCBTSubmitTop();
+}
+
+function updateCBTSubmitTop(){
+  const total = ES.cbtSubjects.length;
+  const completed = ES.cbtSubjects.filter(s => s.completed).length;
+  document.getElementById('cbt-progress-text').textContent = completed + '/' + total + ' subjects completed';
+  document.getElementById('cbt-submit-top-btn').style.display = 'flex';
 }
 
 function switchCBTSubj(idx){
-  if(ES.cbtSubjects[ES.cbtActiveIdx]) ES.cbtSubjects[ES.cbtActiveIdx].answers = {...ES.answers};
+  if(ES.cbtSubjects[ES.cbtActiveIdx]) {
+    ES.cbtSubjects[ES.cbtActiveIdx].answers = {...ES.answers};
+    const total = ES.cbtSubjects[ES.cbtActiveIdx].questions.length;
+    const answered = Object.keys(ES.answers).length;
+    if(answered >= total && total > 0){
+      ES.cbtSubjects[ES.cbtActiveIdx].completed = true;
+      if(!ES.completedSubjects.includes(ES.cbtActiveIdx)){
+        ES.completedSubjects.push(ES.cbtActiveIdx);
+      }
+    }
+  }
+  
   ES.cbtActiveIdx = idx;
   const s = ES.cbtSubjects[idx];
   ES.questions = s.questions;
@@ -2990,56 +3187,31 @@ function switchCBTSubj(idx){
   ES.curIdx = 0;
   ES.subjectId = s.id;
   ES.subjectName = s.name;
+  
+  const allDone = ES.cbtSubjects.every(subj => subj.completed);
+  ES.isCBTComplete = allDone;
+  
   renderCBTTabs();
   renderQ();
   renderQNav();
   updateProgress();
+  updateCBTSubmitTop();
 }
 
 function renderCBTTabs(){
   document.getElementById('cbt-subjects-bar').innerHTML = ES.cbtSubjects.map((s, i) => {
     const ans = Object.keys(s.answers).length;
     const tot = s.questions.length;
-    const done = ans >= tot && tot > 0;
-    return `<div class="cbt-subj-tab ${i === ES.cbtActiveIdx ? 'active' : ''} ${done ? 'done' : ''}" onclick="switchCBTSubj(${i})">${s.icon} ${s.name} <span class="cbt-tab-count">${ans}/${tot}</span></div>`;
+    const done = s.completed || (ans >= tot && tot > 0);
+    const isActive = i === ES.cbtActiveIdx;
+    const isComplete = done;
+    return `<div class="cbt-subj-tab ${isActive ? 'active' : ''} ${isComplete ? 'done' : ''}" onclick="switchCBTSubj(${i})">${s.icon} ${s.name} <span class="cbt-tab-count">${isComplete ? '✓' : ans + '/' + tot}</span></div>`;
   }).join('');
-}
-
-function launchExam(mode, sid, year, examType = 'utme'){
-  document.getElementById('subject-picker').classList.remove('visible');
-  document.getElementById('main-site').style.display='none';
-  document.getElementById('cbt-subjects-bar').style.display='none';
   
-  let subj = SUBJECTS.find(s => s.id === sid);
-  let qs = (questions.exam[sid] || {})[year] || [];
-  const nameStr = (subj ? subj.icon + ' ' : '') + (subj ? subj.name : sid) + (year ? ' · ' + year : '');
-  
-  ES = {
-    mode: 'exam',
-    subjectId: sid,
-    subjectName: nameStr,
-    questions: qs,
-    answers: {},
-    curIdx: 0,
-    isReview: false,
-    timerSeconds: Math.max(qs.length * 90, 1800),
-    timerInterval: null,
-    year,
-    cbtSubjects: [],
-    cbtActiveIdx: 0,
-    examType: 'utme',
-    flaggedQuestions: {}
-  };
-  
-  document.getElementById('exam-subject-name').textContent = nameStr;
-  document.getElementById('exam-mode-tag').textContent = '⏰ EXAM MODE';
-  document.getElementById('exam-session').classList.add('visible');
-  
-  if(!qs.length){ renderEmpty(); return; }
-  renderQ();
-  renderQNav();
-  updateProgress();
-  startTimer();
+  const total = ES.cbtSubjects.length;
+  const completed = ES.cbtSubjects.filter(s => s.completed).length;
+  document.getElementById('exam-progress-text').textContent = completed + ' / ' + total + ' subjects completed';
+  document.getElementById('exam-progress-fill').style.width = (completed / total * 100) + '%';
 }
 
 function renderQ(){
@@ -3095,13 +3267,48 @@ function renderQ(){
     bar.innerHTML = `<button class="exam-prev-btn" onclick="goToPrev()" ${i === 0 ? 'disabled' : ''}>← Prev</button>
       <button class="exam-next-btn" onclick="goToNext()">${isLast ? 'Done ✓' : 'Next →'}</button>`;
   } else {
-    bar.innerHTML = `<button class="exam-prev-btn" onclick="goToPrev()" ${i === 0 ? 'disabled' : ''}>← Prev</button>
-      <button class="${isLast ? 'exam-submit-btn' : 'exam-next-btn'}" onclick="${isLast ? 'submitExam()' : 'goToNext()'}">${isLast ? '✅ Submit' : 'Next →'}</button>`;
+    if(ES.mode === 'cbt'){
+      const isSubjectComplete = isLast && Object.keys(ES.answers).length === ES.questions.length;
+      if(isSubjectComplete){
+        const nextIdx = ES.cbtActiveIdx + 1;
+        if(nextIdx < ES.cbtSubjects.length){
+          bar.innerHTML = `<button class="exam-prev-btn" onclick="goToPrev()" ${i === 0 ? 'disabled' : ''}>← Prev</button>
+            <button class="exam-next-subject-btn" onclick="goToNextSubject()">➡️ Next Subject</button>`;
+        } else {
+          bar.innerHTML = `<button class="exam-prev-btn" onclick="goToPrev()" ${i === 0 ? 'disabled' : ''}>← Prev</button>
+            <button class="exam-submit-btn" onclick="showConfirmModal()">✅ Submit All</button>`;
+        }
+      } else {
+        bar.innerHTML = `<button class="exam-prev-btn" onclick="goToPrev()" ${i === 0 ? 'disabled' : ''}>← Prev</button>
+          <button class="${isLast ? 'exam-next-btn' : 'exam-next-btn'}" onclick="${isLast ? 'completeSubject()' : 'goToNext()'}">${isLast ? 'Complete Subject' : 'Next →'}</button>`;
+      }
+    } else {
+      bar.innerHTML = `<button class="exam-prev-btn" onclick="goToPrev()" ${i === 0 ? 'disabled' : ''}>← Prev</button>
+        <button class="${isLast ? 'exam-submit-btn' : 'exam-next-btn'}" onclick="${isLast ? 'submitExam()' : 'goToNext()'}">${isLast ? '✅ Submit' : 'Next →'}</button>`;
+    }
   }
   
   updateProgress();
   renderQNav();
   document.getElementById('exam-session').scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function completeSubject(){
+  if(ES.cbtSubjects[ES.cbtActiveIdx]){
+    ES.cbtSubjects[ES.cbtActiveIdx].answers = {...ES.answers};
+    ES.cbtSubjects[ES.cbtActiveIdx].completed = true;
+    if(!ES.completedSubjects.includes(ES.cbtActiveIdx)){
+      ES.completedSubjects.push(ES.cbtActiveIdx);
+    }
+  }
+  goToNextSubject();
+}
+
+function goToNextSubject(){
+  const nextIdx = ES.cbtActiveIdx + 1;
+  if(nextIdx < ES.cbtSubjects.length){
+    switchCBTSubj(nextIdx);
+  }
 }
 
 function selectAns(idx, l){
@@ -3155,6 +3362,7 @@ function updateProgress(){
   const pct = tot ? (ans / tot * 100) : 0;
   document.getElementById('exam-progress-fill').style.width = pct + '%';
   document.getElementById('exam-progress-text').textContent = ans + ' / ' + tot + ' answered';
+  updateCBTSubmitTop();
 }
 
 function renderEmpty(){
@@ -3169,6 +3377,7 @@ function renderEmpty(){
   document.getElementById('exam-q-nav').style.display = 'none';
   document.getElementById('exam-timer').style.display = 'none';
   document.getElementById('flag-btn').style.display = 'none';
+  document.getElementById('cbt-submit-top').style.display = 'none';
 }
 
 function startTimer(){
@@ -3202,8 +3411,27 @@ function shuffle(a){
 }
 
 function submitExam(timeUp){
-  clearInterval(ES.timerInterval);
+  // Check if all subjects are completed for CBT mode
+  if(ES.mode === 'cbt'){
+    const allDone = ES.cbtSubjects.every(s => s.completed);
+    // Allow submission even if not all subjects are completed
+    // But show confirmation if questions are unanswered
+  }
   
+  // Check for unanswered questions
+  const totalQs = ES.questions.length;
+  const answered = Object.keys(ES.answers).length;
+  if(answered < totalQs && !pendingSubmit && !timeUp){
+    showConfirmModal();
+    return;
+  }
+  
+  pendingSubmit = false;
+  doSubmitExam(timeUp);
+}
+
+function doSubmitExam(timeUp){
+  // Collect all answers from all subjects for CBT mode
   if(ES.mode === 'cbt'){
     const subjectScores = ES.cbtSubjects.map(s => {
       const qs = s.questions;
@@ -3217,13 +3445,14 @@ function submitExam(timeUp){
     
     let totalCorrect = subjectScores.reduce((sum, s) => sum + s.correct, 0);
     
+    // Save result with subject scores
     saveResult({
       mode: 'utme-cbt',
       subject: 'CBT Session',
       subjects: subjectScores,
       correct: totalCorrect,
-      wrong: ES.questions.length - totalCorrect - Object.keys(ES.answers).filter(k => !ES.answers[k]).length,
-      skipped: Object.keys(ES.answers).filter(k => !ES.answers[k]).length,
+      wrong: ES.questions.length - totalCorrect,
+      skipped: 0,
       total: ES.questions.length,
       score: totalCorrect,
       maxScore: ES.questions.length,
@@ -3231,7 +3460,8 @@ function submitExam(timeUp){
       user_id: currentUser?.id,
       username: currentUser?.user_metadata?.username || currentUser?.email?.split('@')[0] || 'Guest',
       examType: 'utme-cbt',
-      questions: ES.questions.map((q, i) => ({...q, answered: ES.answers[i] || null}))
+      questions: ES.cbtSubjects.flatMap(s => s.questions.map((q, i) => ({...q, answered: s.answers[i] || null}))),
+      subjectIds: ES.selectedSubjectIds || ES.cbtSubjects.map(s => s.id)
     });
     
     displayResults(totalCorrect, ES.questions.length, timeUp, 'CBT Session');
@@ -3324,6 +3554,7 @@ function exitExam(){
   document.getElementById('exam-session').classList.remove('visible');
   document.getElementById('results-overlay').classList.remove('visible');
   document.getElementById('cbt-subjects-bar').style.display = 'none';
+  document.getElementById('cbt-submit-top').style.display = 'none';
   ['exam-action-bar', 'exam-progress-strip', 'exam-q-nav'].forEach(id => {
     const el = document.getElementById(id);
     if(el){ el.style.display = ''; if(id === 'exam-action-bar') el.style.display = 'flex'; }
@@ -3380,8 +3611,21 @@ function renderProfile(){
   const examResults = hist.filter(r => r.mode !== 'cbt' && r.mode !== 'utme-cbt');
   const totalCBT = cbtResults.length;
   const totalExam = examResults.length;
-  let bestCBT = 0;
-  cbtResults.forEach(r => { if((r.score || 0) > bestCBT) bestCBT = r.score || 0; });
+  let bestSubjectScore = 0;
+  let bestCBTTotal = 0;
+  
+  // Find the highest individual subject score
+  cbtResults.forEach(r => {
+    if(r.subjects && Array.isArray(r.subjects)){
+      r.subjects.forEach(subj => {
+        const score = (subj.correct || 0) * 4;
+        if(score > bestSubjectScore) bestSubjectScore = score;
+      });
+    }
+    // Also track total CBT score for display
+    if((r.score || 0) > bestCBTTotal) bestCBTTotal = r.score || 0;
+  });
+  
   let avgPct = 0;
   hist.forEach(r => { avgPct += r.maxScore > 0 ? (r.score / r.maxScore * 100) : 0; });
   avgPct = hist.length ? Math.round(avgPct / hist.length) : 0;
@@ -3434,7 +3678,7 @@ function renderProfile(){
       </div>
       <div class="profile-stats-row">
         <div class="profile-stat"><div class="ps-num">${hist.length}</div><div class="ps-label">Sessions</div></div>
-        <div class="profile-stat"><div class="ps-num">${bestCBT || '—'}</div><div class="ps-label">Best CBT</div></div>
+        <div class="profile-stat"><div class="ps-num">${bestSubjectScore || '—'}</div><div class="ps-label">Best Subject Score</div></div>
         <div class="profile-stat"><div class="ps-num">${avgPct}%</div><div class="ps-label">Avg Score</div></div>
       </div>
     </div>
@@ -3443,7 +3687,7 @@ function renderProfile(){
     <div class="profile-analytics-grid">
       <div class="profile-analytic-card"><span class="pa-icon">💻</span><div class="pa-value">${totalCBT}</div><div class="pa-label">CBT Attempts</div></div>
       <div class="profile-analytic-card"><span class="pa-icon">⏰</span><div class="pa-value">${totalExam}</div><div class="pa-label">Exam Attempts</div></div>
-      <div class="profile-analytic-card"><span class="pa-icon">🏆</span><div class="pa-value">${bestCBT || '—'}</div><div class="pa-label">Highest CBT</div></div>
+      <div class="profile-analytic-card"><span class="pa-icon">🏆</span><div class="pa-value">${bestSubjectScore || '—'}</div><div class="pa-label">Highest Subject Score</div></div>
       <div class="profile-analytic-card"><span class="pa-icon">📈</span><div class="pa-value">${avgPct}%</div><div class="pa-label">Average Score</div></div>
     </div>
     
@@ -3650,6 +3894,7 @@ function launchTopicExam(sid, topicName){
   document.getElementById('main-site').style.display = 'none';
   document.getElementById('cbt-subjects-bar').style.display = 'none';
   document.getElementById('topic-practice-page').style.display = 'none';
+  document.getElementById('cbt-submit-top').style.display = 'none';
   
   const subj = SUBJECTS.find(s => s.id === sid);
   const qs = shuffle([...((topicQs[sid] || {})[topicName] || [])]);
@@ -3673,6 +3918,44 @@ function launchTopicExam(sid, topicName){
   
   document.getElementById('exam-subject-name').textContent = (subj ? subj.icon + ' ' : '') + subj?.name;
   document.getElementById('exam-mode-tag').textContent = '🎯 TOPIC · ' + topicName;
+  document.getElementById('exam-session').classList.add('visible');
+  
+  if(!qs.length){ renderEmpty(); return; }
+  renderQ();
+  renderQNav();
+  updateProgress();
+  startTimer();
+}
+
+function launchExam(mode, sid, year, examType = 'utme'){
+  document.getElementById('subject-picker').classList.remove('visible');
+  document.getElementById('main-site').style.display='none';
+  document.getElementById('cbt-subjects-bar').style.display='none';
+  document.getElementById('cbt-submit-top').style.display='none';
+  
+  let subj = SUBJECTS.find(s => s.id === sid);
+  let qs = (questions.exam[sid] || {})[year] || [];
+  const nameStr = (subj ? subj.icon + ' ' : '') + (subj ? subj.name : sid) + (year ? ' · ' + year : '');
+  
+  ES = {
+    mode: 'exam',
+    subjectId: sid,
+    subjectName: nameStr,
+    questions: qs,
+    answers: {},
+    curIdx: 0,
+    isReview: false,
+    timerSeconds: Math.max(qs.length * 90, 1800),
+    timerInterval: null,
+    year,
+    cbtSubjects: [],
+    cbtActiveIdx: 0,
+    examType: 'utme',
+    flaggedQuestions: {}
+  };
+  
+  document.getElementById('exam-subject-name').textContent = nameStr;
+  document.getElementById('exam-mode-tag').textContent = '⏰ EXAM MODE';
   document.getElementById('exam-session').classList.add('visible');
   
   if(!qs.length){ renderEmpty(); return; }
