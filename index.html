@@ -1267,18 +1267,8 @@ function showPage(id){
 function renderHomeStats(){
   const hist=lsGet('utme_results',[]).filter(r=>!currentUser||r.user_id===currentUser.id);
   document.getElementById('hstat-attempts').textContent=hist.length;
-
-  // Calculate best UTME CBT score (out of 400)
-  let bestCbt=0;
-  hist.forEach(r=>{
-    if(r.mode==='utme-cbt'||r.mode==='cbt'){
-      const score=r.score||0;
-      if(score>bestCbt)bestCbt=score;
-    }
-  });
-
-  document.getElementById('hstat-bestscore').textContent=bestCbt>0?bestCbt+'/400':'—';
-
+  let best=null;hist.forEach(r=>{const v=r.mode==='cbt'?r.score:(r.maxScore>0?Math.round(r.score/r.maxScore*100):0);if(best===null||v>best)best=v;});
+  document.getElementById('hstat-bestscore').textContent=best!==null?(best>100?best+'/400':best+'%'):'—';
   const days=new Set(hist.map(r=>new Date(r.date).toDateString()));let streak=0,d=new Date();while(days.has(d.toDateString())){streak++;d.setDate(d.getDate()-1);}
   document.getElementById('hstat-streak').textContent=streak+'🔥';
 }
@@ -1512,33 +1502,11 @@ function renderLeaderboard(rows,elId,label){
 function renderSubjectAverages(rows,elId){
   const el=document.getElementById(elId);
   if(!rows.length){el.innerHTML='<div class="analytics-empty">No data yet.</div>';return;}
-
-  // Collect per-subject stats: total correct / total possible across all attempts
-  const subjStats={};
-  rows.forEach(r=>{
-    if(r.subjects&&Array.isArray(r.subjects)){
-      r.subjects.forEach(s=>{
-        if(!subjStats[s.subjectId])subjStats[s.subjectId]={name:s.subjectName,icon:s.icon||'📝',totalCorrect:0,totalPossible:0,attempts:0};
-        subjStats[s.subjectId].totalCorrect+=s.correct||0;
-        subjStats[s.subjectId].totalPossible+=s.total||25;
-        subjStats[s.subjectId].attempts++;
-      });
-    }
-  });
-
-  const entries=Object.entries(subjStats);
+  const subjAvg={};
+  rows.forEach(r=>{if(r.subjects)r.subjects.forEach(s=>{if(!subjAvg[s.name])subjAvg[s.name]={total:0,max:0};subjAvg[s.name].total+=s.correct||0;subjAvg[s.name].max+=s.total||0;});});
+  const entries=Object.entries(subjAvg);
   if(!entries.length){el.innerHTML='<div class="analytics-empty">No subject data yet.</div>';return;}
-
-  el.innerHTML=entries.map(([sid,d])=>{
-    const pct=d.totalPossible>0?Math.round(d.totalCorrect/d.totalPossible*100):0;
-    const avgScore=d.attempts>0?Math.round(d.totalCorrect/d.attempts):0;
-    const color=pct>=70?'#00c49a':pct>=50?'#f59e0b':'#e03c3c';
-    return`<div class="analytics-bar-wrap">
-      <span class="analytics-bar-label">${d.icon} ${d.name}</span>
-      <div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-      <span class="analytics-bar-pct">${avgScore}/25</span>
-    </div>`;
-  }).join('');
+  el.innerHTML=entries.map(([name,d])=>{const pct=d.max>0?Math.round(d.total/d.max*100):0;const color=pct>=70?'#00c49a':pct>=50?'#f59e0b':'#e03c3c';return`<div class="analytics-bar-wrap"><span class="analytics-bar-label">${name}</span><div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="analytics-bar-pct">${pct}%</span></div>`;}).join('');
 }
 
 function renderProfile(){
