@@ -729,6 +729,14 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 </style>
 <link rel="manifest" href="https://progressier.app/HuEzcsrNBFarsHTtIeat/progressier.json"/>
 <script defer src="https://progressier.app/HuEzcsrNBFarsHTtIeat/script.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Jamb CBT PRACTICE APP",
+  "url": "https://myutme.name.ng"
+}
+</script>
 </head>
 <body>
 <!-- Splash Screen -->
@@ -1610,6 +1618,7 @@ const SUBJECTS = [
 // ─── DATA STORES ──────────────────────────────────────────────────────────
 let questions = {cbt:{},exam:{}};
 let topicQs = {};
+let topicsBySubject = {};
 let readModeData = {};
 let syllabi = {};
 let announcements = [];
@@ -1635,8 +1644,20 @@ function loadLocal(){
   announcementImages = lsGet('announcement_images',{});
 }
 
+async function loadTopicsTable(){
+  try{
+    const {data, error} = await sb.from('topics').select('*').order('created_at', {ascending: true});
+    if(error || !data) return;
+    topicsBySubject = {};
+    data.forEach(row => {
+      if(!topicsBySubject[row.subject_id]) topicsBySubject[row.subject_id] = [];
+      topicsBySubject[row.subject_id].push(row.name);
+    });
+  } catch(e){}
+}
 async function loadFromDB(){
   loadLocal();
+  await loadTopicsTable();
   try{
     const{data,error}=await sb.from('questions').select('*');
     if(error){
@@ -4291,7 +4312,7 @@ function closeTETopics(){
 }
 
 function renderTETopics(){
-  const tops = Object.keys(topicQs[teSubj] || {});
+  const tops = topicsBySubject[teSubj] || [];
   document.getElementById('te-topics-count').textContent = tops.length;
   document.getElementById('te-topics-list').innerHTML = tops.length ? tops.map(t => {
     const cnt = ((topicQs[teSubj] || {})[t] || []).length;
@@ -4299,10 +4320,36 @@ function renderTETopics(){
   }).join('') : '<div class="empty-state" style="color:rgba(255,255,255,.25)"><div class="empty-state-icon">📭</div><div class="empty-state-text">No topics yet. Add one below.</div></div>';
 }
 
-function teDeletTopic(enc){ const t = decodeURIComponent(enc); if(!confirm('Delete topic "' + t + '" and all questions?')) return; if(topicQs[teSubj]) delete topicQs[teSubj][t]; lsSet('utme_topic_qs', topicQs); renderTETopics(); showToast('Topic deleted'); }
+async function teDeletTopic(enc){
+  const t = decodeURIComponent(enc);
+  if(!confirm('Delete topic "' + t + '" and all questions?')) return;
+  try{
+    await sb.from('topics').delete().match({subject_id: teSubj, name: t});
+  } catch(e){}
+  if(topicsBySubject[teSubj]) topicsBySubject[teSubj] = topicsBySubject[teSubj].filter(x => x !== t);
+  if(topicQs[teSubj]) delete topicQs[teSubj][t];
+  lsSet('utme_topic_qs', topicQs);
+  renderTETopics();
+  showToast('Topic deleted');
+}
 
-function teAddTopic(){ const name = prompt('Enter topic name:'); if(!name?.trim()) return; if(!topicQs[teSubj]) topicQs[teSubj] = {}; if(topicQs[teSubj][name.trim()]){ showToast('Topic exists', true); return; } topicQs[teSubj][name.trim()] = []; lsSet('utme_topic_qs', topicQs); renderTETopics(); showToast('Topic "' + name.trim() + '" added ✓'); }
-
+async function teAddTopic(){
+  const name = prompt('Enter topic name:');
+  if(!name?.trim()) return;
+  const trimmed = name.trim();
+  if((topicsBySubject[teSubj] || []).includes(trimmed)){ showToast('Topic exists', true); return; }
+  try{
+    const {error} = await sb.from('topics').insert({subject_id: teSubj, name: trimmed});
+    if(error){ showToast('Failed to add topic', true); return; }
+  } catch(e){ showToast('Failed to add topic', true); return; }
+  if(!topicsBySubject[teSubj]) topicsBySubject[teSubj] = [];
+  topicsBySubject[teSubj].push(trimmed);
+  if(!topicQs[teSubj]) topicQs[teSubj] = {};
+  topicQs[teSubj][trimmed] = [];
+  lsSet('utme_topic_qs', topicQs);
+  renderTETopics();
+  showToast('Topic "' + trimmed + '" added ✓');
+}
 function openTEQBuilder(enc){ teTopic = decodeURIComponent(enc); teEditIdx = -1; document.getElementById('te-step-topic').style.display = 'none'; document.getElementById('te-step-qbuilder').style.display = 'block'; document.getElementById('te-topic-name-label').textContent = teTopic; renderTEQList(); }
 
 function closeTEQBuilder(){ document.getElementById('te-step-qbuilder').style.display = 'none'; document.getElementById('te-step-topic').style.display = 'block'; renderTETopics(); }
