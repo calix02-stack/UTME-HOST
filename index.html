@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>My UTME · Enzo</title>
+<title>My UTME - Free JAMB/UTME CBT Practice App</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" href="https://rofssssxyxamolmkypqz.supabase.co/storage/v1/object/public/My%20image/icon-192.png">
 <meta name="theme-color" content="#1a4fd6">
+<meta property="og:site_name" content="Jamb CBT PRACTICE APP">
 <style>
 :root{--bg:#f0f4ff;--card:#fff;--text:#0d1b3e;--sub:#6b7a99;--border:#e8edf8;--accent:#1a4fd6;--accent-light:#dde8ff;--accent2:#00c49a;--accent2-light:#d0f5ec;--danger:#e03c3c;--danger-light:#fef2f2;--surface:#f7f9ff;--shadow:rgba(26,79,214,.10);--nav-h:76px;--radius:20px;--radius-sm:14px;--radius-lg:28px;--font-base:16px}
 [data-theme=dark]{--bg:#0a0f1e;--card:#111827;--text:#e8edf8;--sub:#8a9bb8;--border:#1e2a42;--accent:#4f87ff;--accent-light:#1a2744;--accent2:#00d4a7;--accent2-light:#0d2b24;--danger:#f06060;--surface:#0f172a;--shadow:rgba(0,0,0,.35)}
@@ -1256,15 +1258,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
     </div>
   </div>
   
-  <!-- Subject Leaderboard Page -->
-  <div id="subject-lb-page">
-    <div class="subject-lb-header">
-      <div class="slb-back" onclick="closeSubjectLB()">‹ Back to Leaderboard</div>
-      <div class="slb-title" id="slb-title">Subject Leaderboard</div>
-      <div class="slb-sub" id="slb-sub">Rankings for this subject</div>
-    </div>
-    <div class="subject-lb-body" id="slb-body"></div>
-  </div>
+  
   
   <!-- Profile Page -->
   <div id="profile-page" style="display:none">
@@ -1293,6 +1287,17 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
     </div>
   </div>
 </div>
+
+<!-- Subject Leaderboard Page -->
+  <div id="subject-lb-page">
+    <div class="subject-lb-header">
+      <div class="slb-back" onclick="closeSubjectLB()">‹ Back to Leaderboard</div>
+      <div class="slb-title" id="slb-title">Subject Leaderboard</div>
+      <div class="slb-sub" id="slb-sub">Rankings for this subject</div>
+    </div>
+    <div class="subject-lb-body" id="slb-body"></div>
+  </div>
+
 
 <!-- Read Mode -->
 <div id="read-page">
@@ -2962,8 +2967,10 @@ function openSubjectLB(subjectId){
   const subject = SUBJECTS.find(s => s.id === subjectId);
   if(!subject) return;
   
-  document.getElementById('subject-lb-page').classList.add('visible');
-  document.getElementById('main-site').style.display = 'none';
+const page = document.getElementById('subject-lb-page');
+page.classList.add('visible');
+void page.offsetHeight;
+document.getElementById('main-site').style.display = 'none';
   document.getElementById('slb-title').textContent = subject.icon + ' ' + subject.name;
   document.getElementById('slb-sub').textContent = 'Rankings for ' + subject.name;
   
