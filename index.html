@@ -1756,7 +1756,7 @@ let isIOS = false;
 let isStandalone = false;
 
 function checkStandalone(){
-  isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+  isStandalone = window.matchMedia('(display-mode: standalone)').matches
     || window.navigator.standalone === true
     || document.referrer.includes('android-app://');
   return isStandalone;
@@ -2060,6 +2060,7 @@ async function init(){
   document.getElementById('splash').style.display='none';
   if(userData){
     currentUser=userData;
+    subscribeToPush();
     document.getElementById('main-site').style.display='block';
     document.getElementById('login-btn').style.display='none';
     const name=userData.user_metadata?.username||userData.email?.split('@')[0]||'User';
@@ -2075,6 +2076,36 @@ async function init(){
 }
 
 // ─── THEME ────────────────────────────────────────────────────────────────
+const VAPID_PUBLIC_KEY = 'BOvmxdvoeNJmz4YwykODydkCuIMUUQQ-MGePqriwk7PQu3Msxk7hwY8F-qB0I3cGCmK92gm0SBR9A2_p43i3sQs';
+
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function subscribeToPush(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const j = sub.toJSON();
+    await sb.from('push_subscriptions').upsert({
+      user_id: currentUser?.id || null,
+      endpoint: j.endpoint,
+      p256dh: j.keys.p256dh,
+      auth: j.keys.auth
+    }, { onConflict: 'endpoint' });
+  } catch(e){ console.log('Push subscription failed:', e); }
+}
+
 function toggleDark(){
   const on = document.getElementById('dark-toggle').checked;
   document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
@@ -2560,6 +2591,19 @@ async function publishAnnouncement(){
   showToast('✅ Announcement published!');
   
   addNotification('📢 ' + announcement.title, announcement.text, '📢', announcement.image, announcement.id);
+  
+  try{
+    await sb.functions.invoke('send-push', {
+      body: {
+        title: announcement.title,
+        body: content,
+        image: imageUrl || undefined,
+        url: '/'
+      }
+    });
+  } catch(e){
+    console.log('Push send failed:', e);
+  }
   
   try{
     const channel = sb.channel('announcements');
