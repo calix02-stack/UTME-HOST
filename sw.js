@@ -37,3 +37,19 @@ self.addEventListener("fetch", (event) => {
       })
   );
 });
+
+self.addEventListener('push', e => {
+  const data = e.data ? e.data.json() : {};
+  self.registration.showNotification(data.title || 'My UTME', {
+    body: data.body || '',
+    icon: 'https://rofssssxyxamolmkypqz.supabase.co/storage/v1/object/public/My%20image/icon-192.png',
+    badge: 'https://rofssssxyxamolmkypqz.supabase.co/storage/v1/object/public/My%20image/icon-192.png',
+    image: data.image || undefined,
+    data: { url: data.url || '/' }
+  });
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(clients.openWindow(e.notification.data.url || '/'));
+});
