@@ -1646,7 +1646,7 @@ function loadLocal(){
 
 async function loadTopicsTable(){
   try{
-    const {data, error} = await sb.from('topics').select('*').order('created_at', {ascending: true});
+    const {data, error} = await sb.from('topics').select('*').order('order_index', {ascending: true});
     if(error || !data) return;
     topicsBySubject = {};
     data.forEach(row => {
@@ -1657,6 +1657,7 @@ async function loadTopicsTable(){
 }
 async function loadFromDB(){
   loadLocal();
+  topicQs = {};
   await loadTopicsTable();
   try{
     const{data,error}=await sb.from('questions').select('*');
@@ -3274,11 +3275,12 @@ function renderQ(){
   }).join('');
   
   let expBox = '';
-  if(isReview && chosen){
-    const ok = chosen === q.ans;
-    const exp = q.explanation || (ok ? 'Correct!' : 'The correct answer is Option ' + q.ans + '.');
-    expBox = `<div class="explanation-box visible"><div class="explanation-label">${ok ? '✅ Correct!' : '❌ Incorrect'}</div><div class="explanation-text">${exp}</div></div>`;
-  }
+if(isReview){
+  const ok = chosen === q.ans;
+  const label = !chosen ? '⏭️ Skipped' : (ok ? '✅ Correct!' : '❌ Incorrect');
+  const exp = q.explanation || (ok ? 'Correct!' : 'The correct answer is Option ' + q.ans + '.');
+  expBox = `<div class="explanation-box visible"><div class="explanation-label">${label}</div><div class="explanation-text">${exp}</div></div>`;
+}
   
   const reviewBanner = isReview ? `<div class="review-banner">📋 <span>Review Mode — correct answers highlighted</span></div>` : '';
   
