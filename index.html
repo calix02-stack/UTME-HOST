@@ -727,8 +727,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--
 .admin-subjects-grid{grid-template-columns:1fr 1fr}
 .lb-subject-grid{grid-template-columns:1fr 1fr}}
 </style>
-<link rel="manifest" href="https://progressier.app/HuEzcsrNBFarsHTtIeat/progressier.json"/>
-<script defer src="https://progressier.app/HuEzcsrNBFarsHTtIeat/script.js"></script>
+
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -2056,7 +2055,7 @@ async function init(){
   }
 
   let userData=null;
-  try{const{data}=await sb.auth.getUser();if(data?.user)userData=data.user;}catch(e){}
+  try{const{data:{session}}=await sb.auth.getSession();if(session?.user)userData=session.user;}catch(e){}
   document.getElementById('splash').style.display='none';
   if(userData){
     currentUser=userData;
