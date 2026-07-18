@@ -31,10 +31,17 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        return response || fetch(event.request);
-      })
+    caches.match(event.request).then((response) => {
+      if (response) return response;
+      return fetch(event.request).then((res) => {
+        return caches.open(CACHE_NAME).then((cache) => {
+          if (event.request.method === "GET") {
+            cache.put(event.request, res.clone());
+          }
+          return res;
+        });
+      }).catch(() => caches.match("/"));
+    })
   );
 });
 
