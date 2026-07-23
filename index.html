@@ -205,7 +205,7 @@
             font-weight: 600;
         }
 
-        /* ─── NOTIFICATION BELL ──────────────────────────────────────────────── */
+        /* ─── NOTIFICATION BELL (now hamburger icon) ──────────────────────────── */
         .notif-bell {
             position: fixed;
             top: 14px;
@@ -554,6 +554,93 @@
             padding-left: 2px;
         }
 
+        /* ─── BANNED OVERLAY ────────────────────────────────────────────────── */
+        #banned-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: #0f141f;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        #banned-overlay.visible {
+            display: flex;
+        }
+        #banned-overlay .ban-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+        #banned-overlay .ban-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 900;
+            font-size: 1.8rem;
+            color: #f06060;
+            margin-bottom: 8px;
+        }
+        #banned-overlay .ban-text {
+            color: rgba(255,255,255,0.6);
+            font-size: 1rem;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+        #banned-overlay .ban-appeal-btn {
+            margin-top: 20px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        #banned-overlay .ban-appeal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,168,107,0.30);
+        }
+        #banned-overlay .appeal-form {
+            background: #1a2332;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 400px;
+            width: 100%;
+            margin-top: 16px;
+            border: 1px solid rgba(255,255,255,0.06);
+            display: none;
+        }
+        #banned-overlay .appeal-form.visible {
+            display: block;
+        }
+        #banned-overlay .appeal-form input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.04);
+            color: #fff;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        #banned-overlay .appeal-form .appeal-submit-btn {
+            width: 100%;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            cursor: pointer;
+        }
+        #banned-overlay .appeal-form .appeal-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         /* ─── MAIN SITE ────────────────────────────────────────────────────────── */
         #main-site {
             display: none;
@@ -830,6 +917,81 @@
         .tag-purple {
             background: #f3e5f5;
             color: #7b4c8a;
+        }
+
+        /* ─── STUDY MODE FEATURE FLAG HIDDEN ────────────────────────────────── */
+        .study-btn.feature-disabled {
+            display: none !important;
+        }
+
+        /* ─── MOCK EXAMS ON DASHBOARD ────────────────────────────────────────── */
+        .mock-dashboard-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 10px var(--shadow);
+            transition: all var(--transition);
+            cursor: pointer;
+        }
+        .mock-dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px var(--shadow-hover);
+            border-color: var(--accent);
+        }
+        .mock-dashboard-card .mock-d-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+        .mock-dashboard-card .mock-d-meta {
+            font-size: 0.75rem;
+            color: var(--sub);
+            margin-top: 4px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .mock-dashboard-card .mock-d-status {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.6rem;
+            font-weight: 700;
+        }
+        .mock-d-status.upcoming {
+            background: rgba(79,135,255,0.15);
+            color: #4f87ff;
+        }
+        .mock-d-status.live {
+            background: rgba(0,168,107,0.15);
+            color: var(--accent);
+        }
+        .mock-d-status.completed {
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.3);
+        }
+
+        /* ─── COHORT ON DASHBOARD ────────────────────────────────────────────── */
+        .cohort-dashboard-badge {
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .cohort-dashboard-badge .cohort-code {
+            background: var(--accent);
+            color: #fff;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
         }
 
         /* ─── SUBJECT PICKER ──────────────────────────────────────────────────── */
@@ -1236,6 +1398,27 @@
             color: var(--danger);
         }
 
+        /* ─── FLAGGED QUESTION INDICATORS ────────────────────────────────────── */
+        .exam-q-dot.flagged {
+            border-color: var(--danger);
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+        .question-card.flagged-question {
+            border-left: 4px solid var(--danger);
+            border-color: var(--danger);
+        }
+        .question-card .flag-badge {
+            display: inline-block;
+            background: var(--danger-light);
+            color: var(--danger);
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 12px;
+            margin-left: 8px;
+        }
+
         /* CBT SUBMIT TOP */
         .cbt-submit-top {
             position: sticky;
@@ -1413,14 +1596,14 @@
             border-color: var(--accent);
         }
         .exam-q-dot.flagged {
-            border-color: #d48b00;
-            background: #fff8e1;
-            color: #d48b00;
+            border-color: var(--danger);
+            background: var(--danger-light);
+            color: var(--danger);
         }
         [data-theme="dark"] .exam-q-dot.flagged {
-            background: #2b1a00;
-            border-color: #6b3a00;
-            color: #ffd599;
+            background: #2b1418;
+            border-color: var(--danger);
+            color: #f06060;
         }
 
         .exam-body {
@@ -3054,6 +3237,7 @@
             letter-spacing: 0.4px;
         }
 
+        /* ─── ADMIN TABS REORGANIZED ────────────────────────────────────────── */
         .admin-tabs {
             display: flex;
             background: #161e2e;
@@ -3061,6 +3245,7 @@
             overflow-x: auto;
             scrollbar-width: none;
             padding: 0 6px;
+            flex-wrap: nowrap;
         }
         .admin-tabs::-webkit-scrollbar {
             display: none;
@@ -3085,6 +3270,22 @@
             color: var(--accent);
             border-bottom-color: var(--accent);
         }
+        .admin-tab-group-label {
+            padding: 14px 8px 14px 0;
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.15);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            pointer-events: none;
+            border-bottom: 2px solid transparent;
+            flex-shrink: 0;
+        }
+        .admin-tab-group-label:not(:first-child) {
+            padding-left: 16px;
+            border-left: 1px solid rgba(255,255,255,0.04);
+        }
+
         .admin-content {
             padding: 20px 16px 40px;
         }
@@ -3306,6 +3507,51 @@
             margin-top: 4px;
         }
 
+        /* ─── NUMBERED QUESTION GRID (Compact) ───────────────────────────────── */
+        .question-number-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 10px 0 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            margin-bottom: 12px;
+        }
+        .question-number-grid .qn-item {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            border: 2px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
+            color: rgba(255,255,255,0.4);
+            font-size: 0.7rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .question-number-grid .qn-item:hover {
+            border-color: var(--accent);
+            color: #fff;
+            transform: scale(1.05);
+        }
+        .question-number-grid .qn-item.active {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: #fff;
+        }
+        .question-number-grid .qn-item.answered {
+            border-color: var(--accent2);
+            background: rgba(0,196,154,0.15);
+            color: var(--accent2);
+        }
+        .question-number-grid .qn-item.has-duplicate {
+            border-color: #f06060;
+            background: rgba(240,96,96,0.1);
+            color: #f06060;
+        }
+
         .question-item {
             background: #1a2332;
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -3376,6 +3622,17 @@
         }
         .qi-btn-del:hover {
             background: rgba(240, 96, 96, 0.20);
+        }
+        .qi-btn-flag {
+            background: rgba(240, 160, 0, 0.12);
+            color: #d48b00;
+        }
+        .qi-btn-flag:hover {
+            background: rgba(240, 160, 0, 0.20);
+        }
+        .qi-btn-flag.flagged {
+            background: rgba(240, 96, 96, 0.12);
+            color: #f06060;
         }
 
         .question-form {
@@ -3509,6 +3766,58 @@
         }
         .qf-cancel-btn:hover {
             background: rgba(255, 255, 255, 0.10);
+        }
+
+        /* Radio-style correct answer selector for admin */
+        .answer-radio-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .answer-radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all var(--transition);
+        }
+        .answer-radio-group label:hover {
+            background: rgba(255,255,255,0.04);
+        }
+        .answer-radio-group input[type="radio"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            position: relative;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all var(--transition);
+        }
+        .answer-radio-group input[type="radio"]:checked {
+            border-color: var(--accent);
+            background: var(--accent);
+        }
+        .answer-radio-group input[type="radio"]:checked::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #fff;
+        }
+        .answer-radio-group label.selected-radio {
+            color: var(--accent);
+            font-weight: 700;
         }
 
         .add-question-btn {
@@ -4355,9 +4664,23 @@
         <div class="splash-footer"><b>Powered by Enzo</b>Version 3.0 · System Ready</div>
     </div>
 
-    <!-- ─── NOTIFICATION BELL ──────────────────────────────────────────── -->
-    <div class="notif-bell" id="notif-bell" onclick="openNotificationsPage()">
-        🔔
+    <!-- ─── BANNED OVERLAY ─────────────────────────────────────────────────── -->
+    <div id="banned-overlay">
+        <div class="ban-icon">🚫</div>
+        <div class="ban-title">Access Revoked</div>
+        <div class="ban-text">Your account has been banned by admin. Request an appeal.</div>
+        <button class="ban-appeal-btn" id="appeal-btn" onclick="showAppealForm()">📩 Request Appeal</button>
+        <div class="appeal-form" id="appeal-form">
+            <input type="text" id="appeal-username" placeholder="Your username" value="">
+            <input type="tel" id="appeal-phone" placeholder="Phone number">
+            <button class="appeal-submit-btn" id="appeal-submit-btn" onclick="submitAppeal()">Submit Appeal</button>
+            <div style="color:rgba(255,255,255,0.3);font-size:0.8rem;margin-top:8px;text-align:center;" id="appeal-status"></div>
+        </div>
+    </div>
+
+    <!-- ─── NOTIFICATION BELL (Hamburger) ───────────────────────────────── -->
+    <div class="notif-bell" id="notif-bell" onclick="openNotificationsPage()" style="font-size:1.4rem;">
+        ☰
         <span class="badge" id="notif-badge">0</span>
     </div>
 
@@ -4365,7 +4688,7 @@
     <div id="notifications-page">
         <div class="notif-page-header">
             <div class="np-back" onclick="closeNotificationsPage()">‹ Back to Home</div>
-            <div class="np-title">🔔 Notifications</div>
+            <div class="np-title">☰ Notifications</div>
             <div class="np-sub">All your announcements and updates</div>
         </div>
         <div class="notif-page-body" id="notif-page-body"></div>
@@ -4527,6 +4850,10 @@
             <div class="auth-field">
                 <label class="qf-label">Content / Notice</label>
                 <textarea class="qf-textarea" id="ann-content" style="min-height:120px;" placeholder="Enter announcement content..."></textarea>
+            </div>
+            <div class="auth-field">
+                <label class="qf-label">Target User (Optional — leave blank for all users)</label>
+                <input class="qf-input" id="ann-target-user" placeholder="User ID or leave empty for broadcast">
             </div>
             <div class="auth-field">
                 <label class="qf-label">Image (Optional)</label>
@@ -4753,20 +5080,26 @@
                     <span class="cd-icon">⏳</span>
                 </div>
 
+                <!-- Cohort Badge -->
+                <div id="cohort-dashboard-container"></div>
+
                 <div class="home-stats">
                     <div class="hsb-card"><div class="hsb-num" id="hstat-attempts">0</div><div class="hsb-label">Sessions</div></div>
                     <div class="hsb-card"><div class="hsb-num" id="hstat-bestscore">—</div><div class="hsb-label">Best Score</div></div>
                     <div class="hsb-card"><div class="hsb-num" id="hstat-streak">0🔥</div><div class="hsb-label">Day Streak</div></div>
                 </div>
 
+                <!-- Mock Exams on Dashboard -->
+                <div id="mock-dashboard-section" style="margin-bottom:16px;"></div>
+
                 <div class="section-title">📚 Study Modes</div>
-                <div class="study-grid">
-                    <div class="study-btn" onclick="openPicker('cbt')"><span class="big-icon">💻</span>CBT Mode<span class="btn-tag tag-blue">4 Subjects</span></div>
-                    <div class="study-btn" onclick="openPicker('exam')"><span class="big-icon">⏰</span>Exam Mode<span class="btn-tag tag-orange">1 Subject</span></div>
-                    <div class="study-btn" onclick="openSmartRevision()"><span class="big-icon">🧠</span>Smart Revision<span class="btn-tag tag-purple">Weak Spots</span></div>
-                    <div class="study-btn" onclick="openReadMode()"><span class="big-icon">📚</span>Read Mode<span class="btn-tag tag-green">Learn</span></div>
-                    <div class="study-btn" onclick="openSyllabus()"><span class="big-icon">📖</span>Syllabus<span class="btn-tag tag-blue">Guide</span></div>
-                    <div class="study-btn full" onclick="openTopicPractice()">
+                <div class="study-grid" id="study-grid-container">
+                    <div class="study-btn" id="feature-cbt" onclick="openPicker('cbt')"><span class="big-icon">💻</span>CBT Mode<span class="btn-tag tag-blue">4 Subjects</span></div>
+                    <div class="study-btn" id="feature-exam" onclick="openPicker('exam')"><span class="big-icon">⏰</span>Exam Mode<span class="btn-tag tag-orange">1 Subject</span></div>
+                    <div class="study-btn" id="feature-revision" onclick="openSmartRevision()"><span class="big-icon">🧠</span>Smart Revision<span class="btn-tag tag-purple">Weak Spots</span></div>
+                    <div class="study-btn" id="feature-read" onclick="openReadMode()"><span class="big-icon">📚</span>Read Mode<span class="btn-tag tag-green">Learn</span></div>
+                    <div class="study-btn" id="feature-syllabus" onclick="openSyllabus()"><span class="big-icon">📖</span>Syllabus<span class="btn-tag tag-blue">Guide</span></div>
+                    <div class="study-btn full" id="feature-topic" onclick="openTopicPractice()">
                         <span class="big-icon">🎯</span>
                         <div class="btn-detail">Topic-Based Practice<span>Focus on one topic at a time</span></div>
                         <span class="btn-arrow">›</span>
@@ -4965,21 +5298,34 @@
             <div class="admin-topbar-right"><span class="admin-badge" id="admin-role-badge">ADMIN</span><button class="admin-exit-btn" onclick="closeAdmin()">✕ Exit</button></div>
         </div>
 
-        <div class="admin-tabs">
+        <!-- ─── REORGANIZED ADMIN TABS ──────────────────────────────────────── -->
+        <div class="admin-tabs" id="admin-tabs-container">
+            <!-- Content -->
+            <span class="admin-tab-group-label">📝 Content</span>
             <div class="admin-tab active" onclick="switchTab('overview')" id="tab-overview">📊 Overview</div>
-            <div class="admin-tab" onclick="switchTab('users')" id="tab-users">👥 Users</div>
-            <div class="admin-tab" onclick="switchTab('questions')" id="tab-questions">📝 UTME Questions</div>
-            <div class="admin-tab" onclick="switchTab('topic-exam')" id="tab-topic-exam">🎯 Topic Exam Qs</div>
+            <div class="admin-tab" onclick="switchTab('questions')" id="tab-questions">📝 UTME Qs</div>
+            <div class="admin-tab" onclick="switchTab('topic-exam')" id="tab-topic-exam">🎯 Topic Qs</div>
             <div class="admin-tab" onclick="switchTab('read-mode')" id="tab-read-mode">📄 Read Mode</div>
             <div class="admin-tab" onclick="switchTab('syllabus')" id="tab-syllabus">📖 Syllabus</div>
             <div class="admin-tab" onclick="switchTab('announcements')" id="tab-announcements">📢 Announcements</div>
+
+            <!-- Users -->
+            <span class="admin-tab-group-label">👥 Users</span>
+            <div class="admin-tab" onclick="switchTab('users')" id="tab-users">👥 Users</div>
             <div class="admin-tab" onclick="switchTab('reports')" id="tab-reports">🚩 Reports</div>
+            <div class="admin-tab" onclick="switchTab('appeals')" id="tab-appeals">📩 Appeals</div>
+
+            <!-- Engagement -->
+            <span class="admin-tab-group-label">📊 Engagement</span>
             <div class="admin-tab" onclick="switchTab('analytics')" id="tab-analytics">📈 Analytics</div>
-            <!-- NEW TABS -->
             <div class="admin-tab" onclick="switchTab('insights')" id="tab-insights">🎯 Insights</div>
             <div class="admin-tab" onclick="switchTab('mock-exams')" id="tab-mock-exams">🗓️ Mock Exams</div>
             <div class="admin-tab" onclick="switchTab('cohorts')" id="tab-cohorts">🏫 Cohorts</div>
+
+            <!-- System -->
+            <span class="admin-tab-group-label">⚙️ System</span>
             <div class="admin-tab" onclick="switchTab('audit-log')" id="tab-audit-log">📜 Audit Log</div>
+            <div class="admin-tab" onclick="switchTab('feature-control')" id="tab-feature-control">🔧 Feature Control</div>
             <div class="admin-tab" onclick="switchTab('manage-admins')" id="tab-manage-admins" style="display:none;">👑 Manage Admins</div>
         </div>
 
@@ -5035,6 +5381,7 @@
                         <select class="qf-year-select" id="utme-year-sel" onchange="onUTMEYearChange(this.value)"></select>
                     </div>
                     <div class="admin-section-title">Questions <span class="q-count-badge" id="utme-qb-count">0</span></div>
+                    <div id="utme-question-grid" class="question-number-grid"></div>
                     <div class="question-list" id="utme-question-list"></div>
                     <button class="add-question-btn" onclick="utmeAddQ()">＋ Add Question</button>
                     <button class="save-all-btn" onclick="utmeSaveAll()">💾 Save All to Database</button>
@@ -5067,6 +5414,7 @@
                         </div>
                     </div>
                     <div class="admin-section-title">Questions <span class="q-count-badge" id="te-qb-count">0</span></div>
+                    <div id="te-question-grid" class="question-number-grid"></div>
                     <div class="question-list" id="te-question-list"></div>
                     <button class="add-question-btn" onclick="teAddQ()">＋ Add Question</button>
                     <button class="save-all-btn" onclick="teSaveAll()">💾 Save All Questions</button>
@@ -5091,6 +5439,7 @@
                         <div style="color:#fff;font-weight:700" id="rm-topic-name-label">Topic</div>
                     </div>
                     <div class="admin-section-title">Materials <span class="q-count-badge" id="rm-materials-count">0</span></div>
+                    <div id="rm-materials-grid" class="question-number-grid"></div>
                     <div id="rm-materials-list"></div>
                     <button class="add-question-btn" onclick="rmAddMaterial()">＋ Add Material</button>
                     <button class="save-all-btn" onclick="rmSaveAll()">💾 Save All</button>
@@ -5124,6 +5473,12 @@
                 <div id="reports-list"><div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">No reports</div></div></div>
             </div>
 
+            <!-- Appeals Panel -->
+            <div class="admin-panel" id="panel-appeals">
+                <div class="admin-section-title">📩 Ban Appeals</div>
+                <div id="appeals-list"><div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No appeals</div></div></div>
+            </div>
+
             <!-- Analytics Panel -->
             <div class="admin-panel" id="panel-analytics">
                 <div class="admin-section-title">Result Analytics</div>
@@ -5137,27 +5492,27 @@
                 <button class="add-question-btn" onclick="exportResultsCSV()">📤 Export Results CSV</button>
             </div>
 
-            <!-- NEW: Insights Panel -->
+            <!-- Insights Panel -->
             <div class="admin-panel" id="panel-insights">
                 <div class="admin-section-title">🎯 Question Performance Insights</div>
                 <div id="insights-container"><div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Loading insights...</div></div></div>
             </div>
 
-            <!-- NEW: Mock Exams Panel -->
+            <!-- Mock Exams Panel -->
             <div class="admin-panel" id="panel-mock-exams">
                 <div class="admin-section-title">🗓️ Mock Exams</div>
                 <button class="add-question-btn" onclick="showCreateMock()">＋ Create Mock Exam</button>
                 <div id="mock-exams-list"><div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-text">No mock exams yet</div></div></div>
             </div>
 
-            <!-- NEW: Cohorts Panel -->
+            <!-- Cohorts Panel -->
             <div class="admin-panel" id="panel-cohorts">
                 <div class="admin-section-title">🏫 Cohorts</div>
                 <button class="add-question-btn" onclick="createCohort()">＋ Create Cohort</button>
                 <div id="cohorts-list"><div class="empty-state"><div class="empty-state-icon">🏫</div><div class="empty-state-text">No cohorts</div></div></div>
             </div>
 
-            <!-- NEW: Audit Log Panel -->
+            <!-- Audit Log Panel -->
             <div class="admin-panel" id="panel-audit-log">
                 <div class="admin-section-title">📜 Audit Log</div>
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
@@ -5173,12 +5528,21 @@
                         <option value="report_resolved">Report Resolved</option>
                         <option value="cohort_create">Cohort Create</option>
                         <option value="admin_add">Admin Add</option>
+                        <option value="feature_toggle">Feature Toggle</option>
                     </select>
                 </div>
                 <div id="audit-log-list"><div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No audit entries</div></div></div>
             </div>
 
-            <!-- NEW: Manage Admins Panel (Super Admin only) -->
+            <!-- Feature Control Panel -->
+            <div class="admin-panel" id="panel-feature-control">
+                <div class="admin-section-title">🔧 Feature Control</div>
+                <div style="background:#1a2332;border-radius:var(--radius);border:1px solid rgba(255,255,255,0.05);overflow:hidden;" id="feature-control-list">
+                    <div class="empty-state"><div class="empty-state-icon">⚙️</div><div class="empty-state-text">Loading features...</div></div>
+                </div>
+            </div>
+
+            <!-- Manage Admins Panel (Super Admin only) -->
             <div class="admin-panel" id="panel-manage-admins">
                 <div class="admin-section-title">👑 Manage Admins</div>
                 <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
@@ -5299,6 +5663,34 @@
         let bannedUsers = new Set();
         let auditLog = [];
         let mockExams = [];
+        let appeals = [];
+        let featureFlags = {};
+
+        // ─── DEFAULT FEATURE FLAGS ──────────────────────────────────────────────
+        const DEFAULT_FEATURES = {
+            cbt: true,
+            exam: true,
+            revision: true,
+            read: true,
+            syllabus: true,
+            topic: true
+        };
+        const FEATURE_KEY_MAP = {
+            cbt: 'feature-cbt',
+            exam: 'feature-exam',
+            revision: 'feature-revision',
+            read: 'feature-read',
+            syllabus: 'feature-syllabus',
+            topic: 'feature-topic'
+        };
+        const FEATURE_LABELS = {
+            cbt: '💻 CBT Mode',
+            exam: '⏰ Exam Mode',
+            revision: '🧠 Smart Revision',
+            read: '📚 Read Mode',
+            syllabus: '📖 Syllabus',
+            topic: '🎯 Topic-Based Practice'
+        };
 
         function lsGet(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
 
@@ -5316,6 +5708,11 @@
             notifications = lsGet('notifications', []);
             flags = lsGet('flags', {});
             bannedUsers = new Set(lsGet('utme_banned', []));
+            featureFlags = lsGet('feature_flags', { ...DEFAULT_FEATURES });
+            // Ensure all feature flags exist
+            Object.keys(DEFAULT_FEATURES).forEach(key => {
+                if (featureFlags[key] === undefined) featureFlags[key] = true;
+            });
         }
 
         async function loadTopicsTable() {
@@ -5368,6 +5765,36 @@
                 const { data } = await sb.from('mock_exams').select('*').order('start_time', { ascending: false });
                 if (data) mockExams = data;
             } catch (e) {}
+            try {
+                const { data } = await sb.from('banned_users').select('user_id');
+                if (data) {
+                    data.forEach(row => bannedUsers.add(row.user_id));
+                    lsSet('utme_banned', [...bannedUsers]);
+                }
+            } catch (e) {}
+            try {
+                const { data } = await sb.from('appeals').select('*').order('created_at', { ascending: false });
+                if (data) appeals = data;
+            } catch (e) {}
+            try {
+                const { data } = await sb.from('feature_flags').select('*');
+                if (data) {
+                    data.forEach(row => { featureFlags[row.key] = row.value; });
+                    lsSet('feature_flags', featureFlags);
+                }
+            } catch (e) {}
+            // Load cohorts from profiles
+            try {
+                const { data } = await sb.from('profiles').select('cohort_code, school_name');
+                if (data) {
+                    // Store for later use
+                }
+            } catch (e) {}
+            // Load admin roles
+            try {
+                const { data } = await sb.from('admin_roles').select('*');
+                if (data) adminRoles = data;
+            } catch (e) {}
         }
 
         async function dbUpsert(mode, sid, year, data) {
@@ -5393,6 +5820,12 @@
             document.getElementById('splash').style.display = 'none';
             if (userData) {
                 currentUser = userData;
+                // Check if banned
+                const isBanned = bannedUsers.has(userData.id);
+                if (isBanned) {
+                    showBannedScreen();
+                    return;
+                }
                 document.getElementById('main-site').style.display = 'block';
                 document.getElementById('login-btn').style.display = 'none';
                 const name = userData.user_metadata?.username || userData.email?.split('@')[0] || 'User';
@@ -5414,10 +5847,17 @@
                     document.getElementById('admin-btn').style.display = 'block';
                     document.getElementById('tab-manage-admins').style.display = 'none';
                 }
+                // Request notification permission
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
                 renderHomeStats();
                 updateCountdown();
                 renderNotificationsPage();
                 updateNotificationBadge();
+                renderMockDashboard();
+                renderCohortDashboard();
+                applyFeatureFlags();
             } else { showAuthPage(); }
         }
 
@@ -5451,6 +5891,84 @@
             i.type = i.type === 'password' ? 'text' : 'password';
             b.textContent = i.type === 'text' ? '🙈' : '👁️'; }
 
+        // ─── BANNED SCREEN ──────────────────────────────────────────────────────
+        function showBannedScreen() {
+            document.getElementById('main-site').style.display = 'none';
+            document.getElementById('auth-page').style.display = 'none';
+            document.getElementById('banned-overlay').classList.add('visible');
+            const username = currentUser?.user_metadata?.username || currentUser?.email?.split('@')[0] || '';
+            document.getElementById('appeal-username').value = username;
+        }
+
+        function showAppealForm() {
+            const form = document.getElementById('appeal-form');
+            form.classList.toggle('visible');
+            if (form.classList.contains('visible')) {
+                document.getElementById('appeal-status').textContent = '';
+            }
+        }
+
+        async function submitAppeal() {
+            const username = document.getElementById('appeal-username').value.trim();
+            const phone = document.getElementById('appeal-phone').value.trim();
+            const btn = document.getElementById('appeal-submit-btn');
+            const status = document.getElementById('appeal-status');
+            if (!username || !phone) {
+                status.textContent = '⚠️ Please fill in all fields.';
+                status.style.color = '#f06060';
+                return;
+            }
+            btn.disabled = true;
+            btn.textContent = 'Submitting...';
+            status.textContent = '';
+            try {
+                const appeal = {
+                    user_id: currentUser?.id || 'unknown',
+                    username: username,
+                    phone: phone,
+                    status: 'pending',
+                    created_at: new Date().toISOString()
+                };
+                appeals.unshift(appeal);
+                await sb.from('appeals').insert(appeal);
+                status.textContent = '✅ Appeal sent for review, expect a response within 24 hours.';
+                status.style.color = 'var(--accent)';
+                document.getElementById('appeal-phone').value = '';
+                document.getElementById('appeal-username').disabled = true;
+                document.querySelector('.ban-appeal-btn').textContent = '✅ Appeal Submitted';
+                document.querySelector('.ban-appeal-btn').disabled = true;
+            } catch (e) {
+                status.textContent = '❌ Error submitting appeal. Please try again.';
+                status.style.color = '#f06060';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Submit Appeal';
+            }
+        }
+
+        // ─── BAN USER (with Supabase persistence) ──────────────────────────────
+        async function toggleBanUser() {
+            if (!selectedUser) return;
+            const id = selectedUser.id;
+            if (bannedUsers.has(id)) {
+                // Unban
+                bannedUsers.delete(id);
+                try { await sb.from('banned_users').delete().match({ user_id: id }); } catch (e) {}
+                showToast('User unbanned ✓');
+                logAudit('user_unban', 'user', id, {});
+            } else {
+                // Ban
+                bannedUsers.add(id);
+                try { await sb.from('banned_users').insert({ user_id: id }); } catch (e) {}
+                showToast('User banned 🚫');
+                logAudit('user_ban', 'user', id, {});
+            }
+            lsSet('utme_banned', [...bannedUsers]);
+            document.getElementById('user-modal-overlay').classList.remove('visible');
+            renderUsers();
+            renderOverview();
+        }
+
         async function handleAuth() {
             document.getElementById('auth-error').style.display = 'none';
             const pw = document.getElementById('auth-password').value;
@@ -5471,7 +5989,7 @@
                             email = data.email;
                         } catch (e) { showToast('Unable to verify username. Please use your email instead.', true); return; }
                     }
-                    const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+                    const { error, data } = await sb.auth.signInWithPassword({ email, password: pw });
                     if (error) {
                         let msg = 'Login failed. Please check your credentials.';
                         if (error && typeof error === 'object') {
@@ -5480,8 +5998,19 @@
                                 'Invalid login credentials. Please try again.';
                         }
                         showToast(msg, true);
-                    } else { hideAuthPage();
-                        init(); }
+                    } else {
+                        // Check if user is banned
+                        if (data?.user) {
+                            const isBanned = bannedUsers.has(data.user.id);
+                            if (isBanned) {
+                                await sb.auth.signOut();
+                                showToast('Account has been banned.', true);
+                                return;
+                            }
+                        }
+                        hideAuthPage();
+                        init();
+                    }
                 } else {
                     const email = document.getElementById('auth-email').value.trim();
                     const username = document.getElementById('auth-username').value.trim();
@@ -5524,6 +6053,8 @@
                 .replace(/>/g, '&gt;'); }
 
         // ─── ADMIN DATA ──────────────────────────────────────────────────────────
+        let adminRoles = [];
+
         async function loadAdminData() {
             try { const { data } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
                 allUsers = data || []; } catch (e) { allUsers = []; }
@@ -5577,24 +6108,45 @@
             renderSylSubjects();
             renderAnnouncements();
             renderReports();
+            renderAppeals();
             renderInsights();
             renderMockExams();
             renderCohorts();
             renderAuditLog();
             renderAdmins();
-            // Hide tabs based on role
-            if (currentAdminRole !== 'super_admin') {
-                ['tab-users', 'tab-mock-exams', 'tab-cohorts', 'tab-manage-admins'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.style.display = 'none';
-                });
-            } else {
-                ['tab-users', 'tab-mock-exams', 'tab-cohorts', 'tab-manage-admins'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.style.display = 'block';
-                });
-            }
+            renderFeatureControls();
+            // Role-based visibility
+            applyAdminRoleVisibility();
             switchTab('overview');
+        }
+
+        function applyAdminRoleVisibility() {
+            const isSuper = currentAdminRole === 'super_admin';
+            const tabs = {
+                'tab-users': isSuper,
+                'tab-mock-exams': isSuper,
+                'tab-cohorts': isSuper,
+                'tab-manage-admins': isSuper,
+                'tab-audit-log': isSuper,
+                'tab-feature-control': isSuper
+            };
+            Object.keys(tabs).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = tabs[id] ? 'block' : 'none';
+            });
+            // Also hide panels for non-super
+            const panels = {
+                'panel-users': isSuper,
+                'panel-mock-exams': isSuper,
+                'panel-cohorts': isSuper,
+                'panel-manage-admins': isSuper,
+                'panel-audit-log': isSuper,
+                'panel-feature-control': isSuper
+            };
+            Object.keys(panels).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = panels[id] ? 'block' : 'none';
+            });
         }
 
         function closeAdmin() {
@@ -5618,11 +6170,13 @@
             if (tab === 'syllabus') renderSylSubjects();
             if (tab === 'announcements') renderAnnouncements();
             if (tab === 'reports') renderReports();
+            if (tab === 'appeals') renderAppeals();
             if (tab === 'insights') renderInsights();
             if (tab === 'mock-exams') renderMockExams();
             if (tab === 'cohorts') renderCohorts();
             if (tab === 'audit-log') renderAuditLog();
             if (tab === 'manage-admins') renderAdmins();
+            if (tab === 'feature-control') renderFeatureControls();
         }
 
         // ─── OVERVIEW ──────────────────────────────────────────────────────────
@@ -5676,20 +6230,6 @@
         function closeUserModal(e) {
             if (!e || e.target === document.getElementById('user-modal-overlay')) document.getElementById(
                 'user-modal-overlay').classList.remove('visible');
-        }
-
-        function toggleBanUser() {
-            if (!selectedUser) return;
-            const id = selectedUser.id;
-            if (bannedUsers.has(id)) { bannedUsers.delete(id);
-                showToast('User unbanned ✓');
-                logAudit('user_unban', 'user', id, {}); } else { bannedUsers.add(id);
-                showToast('User banned 🚫');
-                logAudit('user_ban', 'user', id, {}); }
-            lsSet('utme_banned', [...bannedUsers]);
-            document.getElementById('user-modal-overlay').classList.remove('visible');
-            renderUsers();
-            renderOverview();
         }
 
         // ─── ANALYTICS ──────────────────────────────────────────────────────────
@@ -5775,30 +6315,49 @@
         function renderUTMEQList() {
             if (utmeQMode === 'exam' && !utmeQYear) { document.getElementById('utme-question-list').innerHTML =
                     '<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-text">Select a year</div></div>';
-                document.getElementById('utme-qb-count').textContent = '—'; return; }
+                document.getElementById('utme-qb-count').textContent = '—';
+                document.getElementById('utme-question-grid').innerHTML = '';
+                return; }
             const qs = getUTMEQs();
             document.getElementById('utme-qb-count').textContent = qs.length;
+            // Numbered grid
+            const grid = document.getElementById('utme-question-grid');
+            if (qs.length) {
+                grid.innerHTML = qs.map((q, i) => {
+                    let cls = 'qn-item';
+                    if (i === utmeEditIdx) cls += ' active';
+                    if (q.ans) cls += ' answered';
+                    return `<div class="${cls}" onclick="utmeEdit(${i})">${i+1}</div>`;
+                }).join('');
+            } else {
+                grid.innerHTML = '';
+            }
             if (!qs.length) { document.getElementById('utme-question-list').innerHTML =
                     '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No questions yet.</div></div>'; return; }
-            document.getElementById('utme-question-list').innerHTML = qs.map((q, i) => `<div class="question-item">
-                <div class="question-item-header" onclick="utmeToggle(${i})">
-                    <div class="qi-num">${i+1}</div>
-                    <div class="qi-preview">${q.topic ? '['+q.topic+'] ' : ''} ${escH((q.q || 'Untitled').slice(0,50))}</div>
-                    <div class="qi-actions"><button class="qi-btn qi-btn-edit" onclick="event.stopPropagation();utmeEdit(${i})">✏️</button><button class="qi-btn qi-btn-del" onclick="event.stopPropagation();utmeDel(${i})">🗑️</button></div>
-                </div>
-                <div class="question-form" id="uqf-${i}" style="display:${utmeEditIdx === i ? 'block' : 'none'}">${qFormHTML('u', q, i)}</div>
-            </div>`).join('');
+            // Only render the expanded question if editIdx is set
+            if (utmeEditIdx >= 0 && utmeEditIdx < qs.length) {
+                const q = qs[utmeEditIdx];
+                document.getElementById('utme-question-list').innerHTML = `
+                    <div class="question-item">
+                        <div class="question-item-header">
+                            <div class="qi-num">${utmeEditIdx+1}</div>
+                            <div class="qi-preview">${q.topic ? '['+q.topic+'] ' : ''} ${escH((q.q || 'Untitled').slice(0,50))}</div>
+                            <div class="qi-actions"><button class="qi-btn qi-btn-del" onclick="utmeDel(${utmeEditIdx})">🗑️</button></div>
+                        </div>
+                        <div class="question-form" style="display:block">${qFormHTML('u', q, utmeEditIdx)}</div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('utme-question-list').innerHTML =
+                    '<div style="color:rgba(255,255,255,0.2);text-align:center;padding:20px;">Click a number to edit</div>';
+            }
         }
 
-        function utmeToggle(i) { const f = document.getElementById('uqf-' + i); if (!f) return; const open = f.style
-                .display !== 'none';
-            document.querySelectorAll('[id^="uqf-"]').forEach(x => x.style.display = 'none');
-            utmeEditIdx = open ? -1 : i; if (!open) f.style.display = 'block'; }
+        function utmeToggle(i) { utmeEditIdx = utmeEditIdx === i ? -1 : i;
+            renderUTMEQList(); }
 
         function utmeEdit(i) { utmeEditIdx = i;
-            renderUTMEQList();
-            setTimeout(() => { const f = document.getElementById('uqf-' + i); if (f) { f.style.display = 'block';
-                    f.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 30); }
+            renderUTMEQList(); }
 
         function utmeDel(i) { if (!confirm('Delete question ' + (i + 1) + '?')) return;
             getUTMEQs().splice(i, 1);
@@ -5818,8 +6377,8 @@
                 showToast('Saved ✓');
                 logAudit('question_save', 'utme', utmeQSubj + ':' + utmeQYear, { index: i }); } }
 
-        function utmeCancelQ(i) { const f = document.getElementById('uqf-' + i); if (f) f.style.display = 'none';
-            utmeEditIdx = -1; }
+        function utmeCancelQ(i) { utmeEditIdx = -1;
+            renderUTMEQList(); }
 
         async function utmeSaveAll() { const qs = getUTMEQs(); if (!qs.length) { showToast('No questions', true); return; }
             lsSet('utme_questions', questions); const ok = await dbUpsert(utmeQMode === 'cbt' ? 'cbt' : 'exam', utmeQSubj,
@@ -5900,27 +6459,42 @@
         function renderTEQList() {
             const qs = getTEQs();
             document.getElementById('te-qb-count').textContent = qs.length;
+            const grid = document.getElementById('te-question-grid');
+            if (qs.length) {
+                grid.innerHTML = qs.map((q, i) => {
+                    let cls = 'qn-item';
+                    if (i === teEditIdx) cls += ' active';
+                    if (q.ans) cls += ' answered';
+                    return `<div class="${cls}" onclick="teEdit(${i})">${i+1}</div>`;
+                }).join('');
+            } else {
+                grid.innerHTML = '';
+            }
             if (!qs.length) { document.getElementById('te-question-list').innerHTML =
                     '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No questions yet.</div></div>'; return; }
-            document.getElementById('te-question-list').innerHTML = qs.map((q, i) => `<div class="question-item">
-                <div class="question-item-header" onclick="teToggle(${i})">
-                    <div class="qi-num">${i+1}</div>
-                    <div class="qi-preview">${escH((q.q || 'Untitled').slice(0,50))}</div>
-                    <div class="qi-actions"><button class="qi-btn qi-btn-edit" onclick="event.stopPropagation();teEdit(${i})">✏️</button><button class="qi-btn qi-btn-del" onclick="event.stopPropagation();teDel(${i})">🗑️</button></div>
-                </div>
-                <div class="question-form" id="teqf-${i}" style="display:${teEditIdx === i ? 'block' : 'none'}">${qFormHTML('te', q, i)}</div>
-            </div>`).join('');
+            if (teEditIdx >= 0 && teEditIdx < qs.length) {
+                const q = qs[teEditIdx];
+                document.getElementById('te-question-list').innerHTML = `
+                    <div class="question-item">
+                        <div class="question-item-header">
+                            <div class="qi-num">${teEditIdx+1}</div>
+                            <div class="qi-preview">${escH((q.q || 'Untitled').slice(0,50))}</div>
+                            <div class="qi-actions"><button class="qi-btn qi-btn-del" onclick="teDel(${teEditIdx})">🗑️</button></div>
+                        </div>
+                        <div class="question-form" style="display:block">${qFormHTML('te', q, teEditIdx)}</div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('te-question-list').innerHTML =
+                    '<div style="color:rgba(255,255,255,0.2);text-align:center;padding:20px;">Click a number to edit</div>';
+            }
         }
 
-        function teToggle(i) { const f = document.getElementById('teqf-' + i); if (!f) return; const open = f.style
-                .display !== 'none';
-            document.querySelectorAll('[id^="teqf-"]').forEach(x => x.style.display = 'none');
-            teEditIdx = open ? -1 : i; if (!open) f.style.display = 'block'; }
+        function teToggle(i) { teEditIdx = teEditIdx === i ? -1 : i;
+            renderTEQList(); }
 
         function teEdit(i) { teEditIdx = i;
-            renderTEQList();
-            setTimeout(() => { const f = document.getElementById('teqf-' + i); if (f) { f.style.display = 'block';
-                    f.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 30); }
+            renderTEQList(); }
 
         function teDel(i) { if (!confirm('Delete question ' + (i + 1) + '?')) return;
             getTEQs().splice(i, 1);
@@ -5941,8 +6515,8 @@
                 showToast('Saved ✓');
                 logAudit('question_save', 'topic', teSubj + ':' + teTopic, { index: i }); } }
 
-        function teCancelQ(i) { const f = document.getElementById('teqf-' + i); if (f) f.style.display = 'none';
-            teEditIdx = -1; }
+        function teCancelQ(i) { teEditIdx = -1;
+            renderTEQList(); }
 
         async function teSaveAll() { const qs = getTEQs(); if (!qs.length) { showToast('No questions', true); return; }
             lsSet('utme_topic_qs', topicQs); const ok = await dbUpsert('topic', teSubj, teTopic, qs);
@@ -5951,6 +6525,15 @@
 
         // ─── SHARED Q FORM ──────────────────────────────────────────────────
         function qFormHTML(pre, q, i) {
+            const letters = ['A', 'B', 'C', 'D'];
+            const options = [q.a, q.b, q.c, q.d];
+            const radios = letters.map(l => {
+                const val = options[letters.indexOf(l)] || '';
+                return `<label class="${q.ans === l ? 'selected-radio' : ''}">
+                    <input type="radio" name="${pre}ans-${i}" value="${l}" ${q.ans === l ? 'checked' : ''} onchange="document.getElementById('${pre}ans-hidden-${i}').value = this.value">
+                    ${l}: ${escH(val)}
+                </label>`;
+            }).join('');
             return `<label class="qf-label">Topic</label><input class="qf-topic-input" id="${pre}topic-${i}" value="${escH(q.topic || '')}">
                 <label class="qf-label">Question</label><textarea class="qf-textarea" id="${pre}q-${i}">${escH(q.q || '')}</textarea>
                 <label class="qf-label">Options</label><div class="options-grid-admin">
@@ -5959,12 +6542,9 @@
                     <div class="option-wrap"><span class="option-label-admin">C</span><input class="qf-input" id="${pre}c-${i}" value="${escH(q.c || '')}"></div>
                     <div class="option-wrap"><span class="option-label-admin">D</span><input class="qf-input" id="${pre}d-${i}" value="${escH(q.d || '')}"></div>
                 </div>
-                <label class="qf-label">Correct Answer</label><select class="answer-select" id="${pre}ans-${i}">
-                    <option value="">—</option><option value="A" ${q.ans === 'A' ? 'selected' : ''}>A</option>
-                    <option value="B" ${q.ans === 'B' ? 'selected' : ''}>B</option>
-                    <option value="C" ${q.ans === 'C' ? 'selected' : ''}>C</option>
-                    <option value="D" ${q.ans === 'D' ? 'selected' : ''}>D</option>
-                </select>
+                <label class="qf-label">Correct Answer</label>
+                <div class="answer-radio-group">${radios}</div>
+                <input type="hidden" id="${pre}ans-hidden-${i}" value="${q.ans || ''}">
                 <label class="qf-label">Explanation</label><textarea class="qf-explanation-area" id="${pre}exp-${i}">${escH(q.explanation || '')}</textarea>
                 <div class="qf-row"><button class="qf-save-btn" onclick="${pre}SaveQ(${i})">✓ Save</button><button class="qf-cancel-btn" onclick="${pre}CancelQ(${i})">Cancel</button></div>`;
         }
@@ -5975,7 +6555,7 @@
             const bv = document.getElementById(pre + 'b-' + i)?.value.trim();
             const cv = document.getElementById(pre + 'c-' + i)?.value.trim();
             const dv = document.getElementById(pre + 'd-' + i)?.value.trim();
-            const ans = document.getElementById(pre + 'ans-' + i)?.value;
+            const ans = document.getElementById(pre + 'ans-hidden-' + i)?.value;
             const topic = document.getElementById(pre + 'topic-' + i)?.value.trim();
             const exp = document.getElementById(pre + 'exp-' + i)?.value.trim();
             if (!qv) { showToast('Enter question', true); return false; }
@@ -6057,20 +6637,42 @@
         function renderRMMaterials() {
             const items = getRMMaterials();
             document.getElementById('rm-materials-count').textContent = items.length;
+            const grid = document.getElementById('rm-materials-grid');
+            if (items.length) {
+                grid.innerHTML = items.map((m, i) => {
+                    let cls = 'qn-item';
+                    if (i === rmEditIdx) cls += ' active';
+                    return `<div class="${cls}" onclick="rmEdit(${i})">${i+1}</div>`;
+                }).join('');
+            } else {
+                grid.innerHTML = '';
+            }
             if (!items.length) { document.getElementById('rm-materials-list').innerHTML =
                     '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No materials</div></div>'; return; }
-            document.getElementById('rm-materials-list').innerHTML = items.map((m, i) => {
-                const isEdit = (rmEditIdx === i);
+            if (rmEditIdx >= 0 && rmEditIdx < items.length) {
+                const m = items[rmEditIdx];
                 const typeLabel = m.type === 'pdf' ? '📄 PDF' : m.type === 'image' ? '🖼️ Image' : '📝 Text';
-                return `<div class="question-item"><div class="question-item-header" onclick="rmToggle(${i})"><div class="qi-num">${i+1}</div><div class="qi-preview">${escH(m.title || 'Untitled')} (${typeLabel})</div><div class="qi-actions"><button class="qi-btn qi-btn-edit" onclick="event.stopPropagation();rmEdit(${i})">✏️</button><button class="qi-btn qi-btn-del" onclick="event.stopPropagation();rmDel(${i})">🗑️</button></div></div>
-                    <div class="question-form" style="display:${isEdit ? 'block' : 'none'}">
-                        <label class="qf-label">Title</label><input class="qf-input" id="rm-title-${i}" value="${escH(m.title || '')}">
-                        <label class="qf-label">Type</label><select class="qf-year-select" id="rm-type-${i}" onchange="rmTypeChange(${i},this.value)"><option value="text" ${m.type !== 'pdf' && m.type !== 'image' ? 'selected' : ''}>📝 Text</option><option value="pdf" ${m.type === 'pdf' ? 'selected' : ''}>📄 PDF</option><option value="image" ${m.type === 'image' ? 'selected' : ''}>🖼️ Image</option></select>
-                        <div id="rm-text-${i}" style="display:${m.type !== 'pdf' && m.type !== 'image' ? 'block' : 'none'}"><label class="qf-label">Content</label><textarea class="qf-explanation-area" style="min-height:80px" id="rm-content-${i}">${escH(m.type !== 'pdf' && m.type !== 'image' ? m.content || '' : '')}</textarea></div>
-                        <div id="rm-file-${i}" style="display:${m.type === 'pdf' || m.type === 'image' ? 'block' : 'none'}"><label class="qf-label">Upload File</label><input type="file" id="rm-fileinput-${i}" accept="${m.type === 'pdf' ? '.pdf' : 'image/*'}" onchange="rmFileChange(${i})"><div style="font-size:.7rem;color:rgba(255,255,255,.3);margin-top:3px">${m.fileUrl ? 'Uploaded: '+m.fileName : 'No file'}</div></div>
-                        <div class="qf-row"><button class="qf-save-btn" onclick="rmSaveItem(${i})">✓ Save</button><button class="qf-cancel-btn" onclick="rmCancelItem(${i})">Cancel</button></div>
-                    </div></div>`;
-            }).join('');
+                const isEdit = true;
+                document.getElementById('rm-materials-list').innerHTML = `
+                    <div class="question-item">
+                        <div class="question-item-header">
+                            <div class="qi-num">${rmEditIdx+1}</div>
+                            <div class="qi-preview">${escH(m.title || 'Untitled')} (${typeLabel})</div>
+                            <div class="qi-actions"><button class="qi-btn qi-btn-del" onclick="rmDel(${rmEditIdx})">🗑️</button></div>
+                        </div>
+                        <div class="question-form" style="display:block">
+                            <label class="qf-label">Title</label><input class="qf-input" id="rm-title-${rmEditIdx}" value="${escH(m.title || '')}">
+                            <label class="qf-label">Type</label><select class="qf-year-select" id="rm-type-${rmEditIdx}" onchange="rmTypeChange(${rmEditIdx},this.value)"><option value="text" ${m.type !== 'pdf' && m.type !== 'image' ? 'selected' : ''}>📝 Text</option><option value="pdf" ${m.type === 'pdf' ? 'selected' : ''}>📄 PDF</option><option value="image" ${m.type === 'image' ? 'selected' : ''}>🖼️ Image</option></select>
+                            <div id="rm-text-${rmEditIdx}" style="display:${m.type !== 'pdf' && m.type !== 'image' ? 'block' : 'none'}"><label class="qf-label">Content</label><textarea class="qf-explanation-area" style="min-height:80px" id="rm-content-${rmEditIdx}">${escH(m.type !== 'pdf' && m.type !== 'image' ? m.content || '' : '')}</textarea></div>
+                            <div id="rm-file-${rmEditIdx}" style="display:${m.type === 'pdf' || m.type === 'image' ? 'block' : 'none'}"><label class="qf-label">Upload File</label><input type="file" id="rm-fileinput-${rmEditIdx}" accept="${m.type === 'pdf' ? '.pdf' : 'image/*'}" onchange="rmFileChange(${rmEditIdx})"><div style="font-size:.7rem;color:rgba(255,255,255,.3);margin-top:3px">${m.fileUrl ? 'Uploaded: '+m.fileName : 'No file'}</div></div>
+                            <div class="qf-row"><button class="qf-save-btn" onclick="rmSaveItem(${rmEditIdx})">✓ Save</button><button class="qf-cancel-btn" onclick="rmCancelItem(${rmEditIdx})">Cancel</button></div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('rm-materials-list').innerHTML =
+                    '<div style="color:rgba(255,255,255,0.2);text-align:center;padding:20px;">Click a number to edit</div>';
+            }
         }
 
         function rmTypeChange(i, type) { document.getElementById('rm-text-' + i).style.display = type === 'text' ?
@@ -6169,6 +6771,7 @@
             document.getElementById('main-site').style.display = 'none';
             document.getElementById('ann-topic').value = '';
             document.getElementById('ann-content').value = '';
+            document.getElementById('ann-target-user').value = '';
             document.getElementById('ann-image-preview').innerHTML = '';
             announcementImageFile = null;
         }
@@ -6193,6 +6796,7 @@
         async function publishAnnouncement() {
             const topic = document.getElementById('ann-topic').value.trim();
             const content = document.getElementById('ann-content').value.trim();
+            const targetUserId = document.getElementById('ann-target-user').value.trim() || null;
             if (!content) { showToast('Please enter announcement content', true); return; }
             let imageUrl = null;
             if (announcementImageFile) {
@@ -6208,20 +6812,38 @@
                 } catch (e) { console.error('Upload error:', e); }
             }
             const announcement = { id: Date.now(), title: topic || 'Announcement', text: content, image: imageUrl,
-                created_at: new Date().toISOString(), views: 0 };
+                created_at: new Date().toISOString(), views: 0, target_user_id: targetUserId };
             announcements.unshift(announcement);
             lsSet('announcements', announcements);
             try { await sb.from('announcements').insert(announcement); } catch (e) {}
             renderAnnouncements();
             closeAnnouncementEditor();
             showToast('✅ Announcement published!');
-            addNotification('📢 ' + announcement.title, announcement.text, '📢', announcement.image, announcement.id);
-            logAudit('announcement_publish', 'announcement', announcement.id, { title: announcement.title });
-            try {
-                await sb.functions.invoke('send-push', {
-                    body: { title: announcement.title, body: content, image: imageUrl || undefined, url: '/' }
-                });
-            } catch (e) { console.log('Push send failed:', e); }
+            // Only add notification if no target or if target matches current user
+            if (!targetUserId || targetUserId === currentUser?.id) {
+                addNotification('📢 ' + announcement.title, announcement.text, '📢', announcement.image, announcement.id);
+            }
+            logAudit('announcement_publish', 'announcement', announcement.id, { title: announcement.title,
+                target_user: targetUserId || 'all' });
+            // Send push notification using Notification API directly
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    // Try edge function first, fallback to direct notification
+                    await sb.functions.invoke('send-push', {
+                        body: { title: announcement.title, body: content, image: imageUrl || undefined,
+                            targetUserId: targetUserId }
+                    });
+                } catch (e) {
+                    console.log('Push send failed, using direct notification:', e);
+                    // Direct notification for all users (limited to current device)
+                    new Notification('📢 ' + announcement.title, {
+                        body: content,
+                        icon: '🎓'
+                    });
+                }
+            } else if ('Notification' in window) {
+                Notification.requestPermission();
+            }
         }
 
         function renderAnnouncements() {
@@ -6229,7 +6851,7 @@
             if (!announcements.length) { list.innerHTML =
                     '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No announcements yet</div></div>'; return; }
             list.innerHTML = announcements.map((a, i) =>
-                `<div class="admin-result-row" style="flex-direction:column;align-items:stretch;"><div style="display:flex;justify-content:space-between;"><div><strong style="color:#fff">${a.title}</strong></div><div><button class="qi-btn qi-btn-del" onclick="deleteAnnouncement(${i})">🗑️</button></div></div><div style="color:rgba(255,255,255,.6);margin-top:4px;">${a.text}</div>${a.image ? `<img src="${a.image}" style="max-width:100%;max-height:150px;border-radius:8px;margin-top:6px;">` : ''}<div style="color:rgba(255,255,255,.3);font-size:.7rem;margin-top:4px;">${new Date(a.created_at).toLocaleString()}</div></div>`
+                `<div class="admin-result-row" style="flex-direction:column;align-items:stretch;"><div style="display:flex;justify-content:space-between;"><div><strong style="color:#fff">${a.title}</strong> ${a.target_user_id ? '🎯' : '📢'}</div><div><button class="qi-btn qi-btn-del" onclick="deleteAnnouncement(${i})">🗑️</button></div></div><div style="color:rgba(255,255,255,.6);margin-top:4px;">${a.text}</div>${a.image ? `<img src="${a.image}" style="max-width:100%;max-height:150px;border-radius:8px;margin-top:6px;">` : ''}<div style="color:rgba(255,255,255,.3);font-size:.7rem;margin-top:4px;">${new Date(a.created_at).toLocaleString()}${a.target_user_id ? ' · Targeted' : ' · Broadcast'}</div></div>`
                 ).join('');
         }
 
@@ -6246,9 +6868,11 @@
             const list = document.getElementById('reports-list');
             if (!reports.length) { list.innerHTML =
                     '<div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">No reports</div></div>'; return; }
-            list.innerHTML = reports.map((r, i) =>
-                `<div class="admin-result-row" style="flex-direction:column;align-items:stretch;"><div style="display:flex;justify-content:space-between;"><div><strong style="color:#ffc107">Q${r.questionNumber || '?'} - ${r.reason}</strong> - ${r.subjectName}</div><div><button class="qi-btn qi-btn-edit" onclick="resolveReport(${i})">✅ Resolve</button><button class="qi-btn qi-btn-del" onclick="deleteReport(${i})">🗑️</button></div></div><div style="color:rgba(255,255,255,.6);font-size:.85rem;margin-top:4px;">${r.question?.q || 'Question not available'}</div>${r.details ? `<div style="color:rgba(255,255,255,.4);font-size:.8rem;">📝 ${r.details}</div>` : ''}<div style="color:rgba(255,255,255,.3);font-size:.7rem;">${new Date(r.reportedAt).toLocaleString()}</div></div>`
-                ).join('');
+            list.innerHTML = reports.map((r, i) => {
+                const user = allUsers.find(u => u.id === r.reportedBy);
+                const username = user?.username || r.reportedBy?.slice(0,8) || 'Anonymous';
+                return `<div class="admin-result-row" style="flex-direction:column;align-items:stretch;"><div style="display:flex;justify-content:space-between;"><div><strong style="color:#ffc107">Q${r.questionNumber || '?'} - ${r.reason}</strong> - ${r.subjectName || r.subject}</div><div><span style="color:rgba(255,255,255,.4);font-size:.7rem;">👤 ${username}</span><button class="qi-btn qi-btn-edit" onclick="resolveReport(${i})">✅ Resolve</button><button class="qi-btn qi-btn-del" onclick="deleteReport(${i})">🗑️</button></div></div><div style="color:rgba(255,255,255,.6);font-size:.85rem;margin-top:4px;">${r.question?.q || 'Question not available'}</div>${r.details ? `<div style="color:rgba(255,255,255,.4);font-size:.8rem;">📝 ${r.details}</div>` : ''}<div style="color:rgba(255,255,255,.3);font-size:.7rem;">${new Date(r.reportedAt).toLocaleString()}</div></div>`;
+            }).join('');
         }
 
         function resolveReport(index) { reports.splice(index, 1);
@@ -6262,6 +6886,41 @@
             lsSet('reports', reports);
             renderReports();
             showToast('🗑️ Report deleted'); }
+
+        // ─── APPEALS ────────────────────────────────────────────────────────
+        function renderAppeals() {
+            const list = document.getElementById('appeals-list');
+            if (!appeals.length) { list.innerHTML =
+                    '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No appeals</div></div>'; return; }
+            list.innerHTML = appeals.map((a, i) =>
+                `<div class="admin-result-row" style="flex-direction:column;align-items:stretch;"><div style="display:flex;justify-content:space-between;"><div><strong style="color:#fff">${a.username}</strong> <span style="color:rgba(255,255,255,.4);font-size:.8rem;">📱 ${a.phone}</span></div><div><span style="background:${a.status === 'pending' ? 'rgba(240,160,0,0.15)' : a.status === 'approved' ? 'rgba(0,168,107,0.15)' : 'rgba(240,96,96,0.15)'};color:${a.status === 'pending' ? '#d48b00' : a.status === 'approved' ? 'var(--accent)' : '#f06060'};padding:2px 12px;border-radius:20px;font-size:.7rem;font-weight:700;">${a.status}</span></div></div><div style="color:rgba(255,255,255,.3);font-size:.7rem;">${new Date(a.created_at).toLocaleString()}</div>${a.status === 'pending' ? `<div style="display:flex;gap:8px;margin-top:8px;"><button class="qi-btn qi-btn-edit" onclick="approveAppeal(${i})">✅ Approve</button><button class="qi-btn qi-btn-del" onclick="rejectAppeal(${i})">❌ Reject</button></div>` : ''}</div>`
+                ).join('');
+        }
+
+        async function approveAppeal(index) {
+            const a = appeals[index];
+            if (!a) return;
+            a.status = 'approved';
+            // Unban the user
+            if (a.user_id && a.user_id !== 'unknown') {
+                bannedUsers.delete(a.user_id);
+                lsSet('utme_banned', [...bannedUsers]);
+                try { await sb.from('banned_users').delete().match({ user_id: a.user_id }); } catch (e) {}
+                try { await sb.from('appeals').update({ status: 'approved' }).match({ id: a.id }); } catch (e) {}
+                showToast('✅ User unbanned and appeal approved');
+                logAudit('user_unban', 'appeal', a.id, { username: a.username });
+            }
+            renderAppeals();
+        }
+
+        async function rejectAppeal(index) {
+            const a = appeals[index];
+            if (!a) return;
+            a.status = 'rejected';
+            try { await sb.from('appeals').update({ status: 'rejected' }).match({ id: a.id }); } catch (e) {}
+            showToast('❌ Appeal rejected');
+            renderAppeals();
+        }
 
         // ─── BULK IMPORT ───────────────────────────────────────────────────
         let bulkData = [];
@@ -6519,6 +7178,23 @@
             }).join('');
         }
 
+        function renderMockDashboard() {
+            const container = document.getElementById('mock-dashboard-section');
+            const upcoming = mockExams.filter(m => new Date(m.start_time) > new Date()).slice(0, 5);
+            if (!upcoming.length) { container.innerHTML = ''; return; }
+            container.innerHTML = `
+                <div class="section-title">🗓️ Upcoming Mock Exams</div>
+                ${upcoming.map(m => `<div class="mock-dashboard-card" onclick="alert('Mock: ${m.title}\nStarts: ${new Date(m.start_time).toLocaleString()}\nDuration: ${m.duration_minutes} min\nSubjects: ${m.subjects?.join(', ') || ''}')">
+                    <div class="mock-d-title">${m.title}</div>
+                    <div class="mock-d-meta">
+                        <span>📅 ${new Date(m.start_time).toLocaleString()}</span>
+                        <span>⏱️ ${m.duration_minutes} min</span>
+                        <span class="mock-d-status upcoming">Upcoming</span>
+                    </div>
+                </div>`).join('')}
+            `;
+        }
+
         function showCreateMock() {
             document.getElementById('modal-overlay').classList.add('visible');
             document.getElementById('modal-body').innerHTML = `
@@ -6528,6 +7204,7 @@
                 <label class="qf-label">Start Time</label><input class="qf-input" id="mock-start" type="datetime-local">
                 <label class="qf-label">Duration (minutes)</label><input class="qf-input" id="mock-duration" type="number" value="60">
                 <label class="qf-label">Subjects (comma-separated IDs: english,maths,physics,chemistry)</label><input class="qf-input" id="mock-subjects" placeholder="english,maths,physics,chemistry">
+                <label class="qf-label">Topic (optional)</label><input class="qf-input" id="mock-topic" placeholder="e.g. Algebra">
                 <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Cancel</button><button class="btn-primary" onclick="createMockExam()">Create</button></div>
             `;
         }
@@ -6538,12 +7215,14 @@
             const start = document.getElementById('mock-start').value;
             const duration = parseInt(document.getElementById('mock-duration').value);
             const subjects = document.getElementById('mock-subjects').value.split(',').map(s => s.trim()).filter(Boolean);
+            const topic = document.getElementById('mock-topic').value.trim() || null;
             if (!title || !start || !duration || !subjects.length) { showToast('Fill all fields', true); return; }
             const mock = { id: Date.now(), title, description: desc, start_time: start, duration_minutes: duration,
-                subjects, created_by: currentUser?.id, created_at: new Date().toISOString(), status: 'upcoming' };
+                subjects, topic, created_by: currentUser?.id, created_at: new Date().toISOString(), status: 'upcoming' };
             mockExams.unshift(mock);
             try { await sb.from('mock_exams').insert(mock); } catch (e) {}
             renderMockExams();
+            renderMockDashboard();
             closeModal();
             showToast('✅ Mock exam created');
             logAudit('mock_create', 'mock_exam', mock.id, { title });
@@ -6564,16 +7243,89 @@
             if (!entries.length) { list.innerHTML =
                     '<div class="empty-state"><div class="empty-state-icon">🏫</div><div class="empty-state-text">No cohorts. Add a school name or cohort code to users.</div></div>'; return; }
             list.innerHTML = entries.map(c =>
-                `<div class="cohort-card"><div><div class="cohort-name">🏫 ${c.school} (${c.code})</div><div class="cohort-stats">${c.members.length} members</div></div><div><button class="qi-btn qi-btn-edit" onclick="alert('Cohort ${c.code} details')">👁️</button></div></div>`
+                `<div class="cohort-card"><div><div class="cohort-name">🏫 ${c.school} (${c.code})</div><div class="cohort-stats">${c.members.length} members</div></div><div><button class="qi-btn qi-btn-edit" onclick="viewCohort('${c.code}')">👁️</button></div></div>`
                 ).join('');
+        }
+
+        function viewCohort(code) {
+            const members = allUsers.filter(u => u.cohort_code === code);
+            alert('Cohort: ' + code + '\nMembers: ' + members.map(u => u.username || u.email).join(', '));
+        }
+
+        function renderCohortDashboard() {
+            const container = document.getElementById('cohort-dashboard-container');
+            if (!currentUser) { container.innerHTML = ''; return; }
+            const user = allUsers.find(u => u.id === currentUser.id);
+            if (!user || !user.cohort_code) { container.innerHTML = ''; return; }
+            container.innerHTML = `
+                <div class="cohort-dashboard-badge">
+                    🏫 You're part of <strong>${user.school_name || 'Your Cohort'}</strong>
+                    <span class="cohort-code">${user.cohort_code}</span>
+                </div>
+            `;
         }
 
         function createCohort() {
             const code = Math.random().toString(36).substring(2, 8).toUpperCase();
             const name = prompt('Enter cohort/school name:');
             if (!name?.trim()) return;
+            // Actually persist to Supabase
+            const cohortData = { code, name: name.trim(), created_at: new Date().toISOString(),
+            created_by: currentUser?.id };
+            // Store in local for now, then sync
+            const cohorts = lsGet('cohorts_data', []);
+            cohorts.push(cohortData);
+            lsSet('cohorts_data', cohorts);
+            try { sb.from('cohorts').insert(cohortData); } catch (e) {}
             showToast('✅ Cohort "' + name.trim() + '" created with code: ' + code);
             logAudit('cohort_create', 'cohort', code, { name: name.trim() });
+            renderCohorts();
+        }
+
+        // ─── FEATURE CONTROL ──────────────────────────────────────────────────
+        function renderFeatureControls() {
+            const container = document.getElementById('feature-control-list');
+            const features = [
+                { key: 'cbt', label: '💻 CBT Mode', desc: '4-subject full exam simulation' },
+                { key: 'exam', label: '⏰ Exam Mode', desc: 'Single subject timed exam' },
+                { key: 'revision', label: '🧠 Smart Revision', desc: 'Focus on weak spots' },
+                { key: 'read', label: '📚 Read Mode', desc: 'Study materials and topics' },
+                { key: 'syllabus', label: '📖 Syllabus', desc: 'Official syllabi' },
+                { key: 'topic', label: '🎯 Topic-Based Practice', desc: 'Practice by topic' }
+            ];
+            container.innerHTML = features.map(f => {
+                const isEnabled = featureFlags[f.key] !== false;
+                return `<div class="toggle-row">
+                    <div class="tr-left">
+                        <div class="tr-icon">${f.label.split(' ')[0]}</div>
+                        <div><div class="tr-label">${f.label}</div><div class="tr-sub">${f.desc}</div></div>
+                    </div>
+                    <label class="ios-toggle"><input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="toggleFeature('${f.key}', this.checked)"><span class="ios-slider"></span></label>
+                </div>`;
+            }).join('');
+        }
+
+        async function toggleFeature(key, enabled) {
+            featureFlags[key] = enabled;
+            lsSet('feature_flags', featureFlags);
+            try {
+                await sb.from('feature_flags').upsert({ key, value: enabled, updated_at: new Date().toISOString() }, {
+                    onConflict: 'key'
+                });
+            } catch (e) {}
+            logAudit('feature_toggle', 'feature', key, { enabled });
+            applyFeatureFlags();
+            showToast('✅ Feature ' + (enabled ? 'enabled' : 'disabled'));
+        }
+
+        function applyFeatureFlags() {
+            Object.keys(DEFAULT_FEATURES).forEach(key => {
+                const el = document.getElementById(FEATURE_KEY_MAP[key]);
+                if (el) {
+                    const isEnabled = featureFlags[key] !== false;
+                    el.classList.toggle('feature-disabled', !isEnabled);
+                }
+            });
         }
 
         // ─── AUDIT LOG ────────────────────────────────────────────────────
@@ -6582,7 +7334,9 @@
                     ?.username || 'system', action, target_type: targetType, target_id: String(targetId), details: details ||
                     {}, created_at: new Date().toISOString() };
             auditLog.unshift(entry);
-            try { await sb.from('audit_log').insert(entry); } catch (e) {}
+            try { await sb.from('audit_log').insert(entry); } catch (e) {
+                // Silently fail - we don't want to break the app
+            }
             if (document.getElementById('panel-audit-log').classList.contains('active')) renderAuditLog();
         }
 
@@ -6607,9 +7361,11 @@
                 const { data } = await sb.from('admin_roles').select('*, profiles!inner(username, email)');
                 if (!data || !data.length) { list.innerHTML =
                         '<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-text">No admins</div></div>'; return; }
-                list.innerHTML = data.map(a =>
-                    `<div class="admin-result-row"><div><div class="arr-name">${a.profiles?.username || 'Unknown'} (${a.profiles?.email || ''})</div><div class="arr-detail">Role: ${a.role}</div></div><div><select class="qf-year-select" style="width:auto;padding:4px 8px;background:#1a2332;color:#fff;border:1px solid rgba(255,255,255,0.06);border-radius:6px;" onchange="updateAdminRole('${a.user_id}', this.value)"><option value="content_editor" ${a.role === 'content_editor' ? 'selected' : ''}>Content Editor</option><option value="super_admin" ${a.role === 'super_admin' ? 'selected' : ''}>Super Admin</option></select></div></div>`
-                    ).join('');
+                list.innerHTML = data.map(a => {
+                    const isSuper = currentAdminRole === 'super_admin';
+                    const isSelf = a.user_id === currentUser?.id;
+                    return `<div class="admin-result-row"><div><div class="arr-name">${a.profiles?.username || 'Unknown'} (${a.profiles?.email || ''})</div><div class="arr-detail">Role: ${a.role}</div></div><div style="display:flex;gap:6px;align-items:center;">${isSuper && !isSelf ? `<button class="qi-btn qi-btn-del" onclick="removeAdmin('${a.user_id}')">🗑️ Remove</button>` : ''}<select class="qf-year-select" style="width:auto;padding:4px 8px;background:#1a2332;color:#fff;border:1px solid rgba(255,255,255,0.06);border-radius:6px;" onchange="updateAdminRole('${a.user_id}', this.value)" ${!isSuper || isSelf ? 'disabled' : ''}><option value="content_editor" ${a.role === 'content_editor' ? 'selected' : ''}>Content Editor</option><option value="super_admin" ${a.role === 'super_admin' ? 'selected' : ''}>Super Admin</option></select></div></div>`;
+                }).join('');
             } catch (e) { list.innerHTML =
                     '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Error loading admins</div></div>'; }
         }
@@ -6626,6 +7382,14 @@
                 renderAdmins();
                 logAudit('admin_add', 'admin_roles', user.id, { role });
             } catch (e) { showToast('Failed to add admin', true); }
+        }
+
+        async function removeAdmin(userId) {
+            if (!confirm('Remove this admin?')) return;
+            try { await sb.from('admin_roles').delete().match({ user_id: userId });
+                showToast('✅ Admin removed');
+                renderAdmins();
+                logAudit('admin_remove', 'admin_roles', userId, {}); } catch (e) { showToast('Failed to remove admin', true); }
         }
 
         async function updateAdminRole(userId, role) {
@@ -6670,7 +7434,7 @@
             const body = document.getElementById('notif-page-body');
             if (!notifications.length) {
                 body.innerHTML =
-                    `<div class="notif-empty-page"><span class="nep-icon">🔔</span><div>No notifications yet</div><div style="font-size:.8rem;margin-top:8px;">Announcements will appear here</div></div>`;
+                    `<div class="notif-empty-page"><span class="nep-icon">☰</span><div>No notifications yet</div><div style="font-size:.8rem;margin-top:8px;">Announcements will appear here</div></div>`;
                 return;
             }
             body.innerHTML = notifications.map(n => `
@@ -7126,6 +7890,10 @@
             const vals = [q.a, q.b, q.c, q.d];
             const topicBadge = q.topic ? `<div class="question-topic-badge">${q.topic}</div>` : '';
 
+            // Check if this question is flagged
+            const qId = ES.subjectId + '-' + i + '-' + (ES.year || 'cbt');
+            const isFlagged = flags[qId] || false;
+
             const opts = letters.map((l, idx) => {
                 if (!vals[idx]) return '';
                 let cls = 'option-btn';
@@ -7155,8 +7923,11 @@
             const reviewBanner = isReview ?
                 `<div class="review-banner">📋 <span>Review Mode — correct answers highlighted</span></div>` : '';
 
-            document.getElementById('exam-body').innerHTML = `${reviewBanner}<div class="question-card">
-                <div class="question-card-header">${topicBadge}<div style="display:flex;align-items:flex-start;gap:12px"><div class="question-num-badge">Q${i+1}</div><div class="question-text">${q.q}</div></div></div>
+            const flagBadge = isFlagged ?
+                `<span class="flag-badge">🚩 Flagged</span>` : '';
+
+            document.getElementById('exam-body').innerHTML = `${reviewBanner}<div class="question-card ${isFlagged ? 'flagged-question' : ''}">
+                <div class="question-card-header">${topicBadge}<div style="display:flex;align-items:flex-start;gap:12px"><div class="question-num-badge">Q${i+1}${flagBadge}</div><div class="question-text">${q.q}</div></div></div>
                 <div class="options-list">${opts}</div>
             </div>${expBox}`;
 
@@ -7205,6 +7976,8 @@
                 let c = 'exam-q-dot';
                 if (ES.answers[i] !== undefined) c += ' answered';
                 if (i === ES.curIdx) c += ' current';
+                const qId = ES.subjectId + '-' + i + '-' + (ES.year || 'cbt');
+                if (flags[qId]) c += ' flagged';
                 return `<div class="${c}" onclick="jumpQ(${i})">${i+1}</div>`;
             }).join('');
             const a = nav.children[ES.curIdx];
@@ -7549,6 +8322,9 @@
                 delete flags[qId];
                 btn.classList.remove('flagged');
                 btn.textContent = '🚩 Report';
+                lsSet('flags', flags);
+                renderQ();
+                renderQNav();
             } else {
                 flagQuestionIndex = ES.curIdx;
                 document.getElementById('flag-modal').classList.add('visible');
@@ -7566,6 +8342,7 @@
             const details = document.getElementById('flag-details').value.trim();
             if (!reason) { showToast('Please select a reason', true); return; }
             const q = ES.questions[flagQuestionIndex];
+            const qId = ES.subjectId + '-' + flagQuestionIndex + '-' + (ES.year || 'cbt');
             const report = {
                 id: Date.now(),
                 question: q,
@@ -7582,7 +8359,6 @@
             };
             reports.push(report);
             lsSet('reports', reports);
-            const qId = ES.subjectId + '-' + flagQuestionIndex + '-' + (ES.year || 'cbt');
             flags[qId] = true;
             lsSet('flags', flags);
             document.getElementById('flag-btn').classList.add('flagged');
@@ -7590,6 +8366,8 @@
             closeFlagModal();
             showToast('✅ Report submitted. Admin will review it.');
             addNotification('Report Submitted', 'Your question report has been sent to the admin.', '🚩');
+            renderQ();
+            renderQNav();
         }
 
         // ─── SMART REVISION ────────────────────────────────────────────────────
@@ -8421,7 +9199,9 @@
             if (map[id]) { const e = document.getElementById(map[id]); if (e) e.classList.add('active'); }
             if (id === 'leaderboard-page') { setTimeout(() => renderLeaderboard(), 100); }
             if (id === 'profile-page') renderProfile();
-            if (id === 'home-page') renderHomeStats();
+            if (id === 'home-page') { renderHomeStats();
+                renderMockDashboard();
+                renderCohortDashboard(); }
         }
 
         // ─── INIT ────────────────────────────────────────────────────────────────
@@ -8443,6 +9223,7 @@
         window.renderAuditLog = renderAuditLog;
         window.renderAdmins = renderAdmins;
         window.addAdmin = addAdmin;
+        window.removeAdmin = removeAdmin;
         window.updateAdminRole = updateAdminRole;
         window.closeModal = closeModal;
         window.showCreateMock = showCreateMock;
@@ -8503,6 +9284,9 @@
         window.deleteAnnouncement = deleteAnnouncement;
         window.renderAnnouncements = renderAnnouncements;
         window.renderReports = renderReports;
+        window.renderAppeals = renderAppeals;
+        window.approveAppeal = approveAppeal;
+        window.rejectAppeal = rejectAppeal;
         window.resolveReport = resolveReport;
         window.deleteReport = deleteReport;
         window.switchTab = switchTab;
@@ -8551,6 +9335,8 @@
         window.bannedUsers = bannedUsers;
         window.auditLog = auditLog;
         window.mockExams = mockExams;
+        window.appeals = appeals;
+        window.featureFlags = featureFlags;
         window.currentUser = currentUser;
         window.currentAdminRole = currentAdminRole;
         window.selectedUser = selectedUser;
@@ -8598,10 +9384,18 @@
         window.toggleSyl = toggleSyl;
         window.openTopicSubj = openTopicSubj;
         window.launchTopicExam = launchTopicExam;
-        window.toggleDark = toggleDark;
+        window.toggleFeature = toggleFeature;
+        window.applyFeatureFlags = applyFeatureFlags;
+        window.renderFeatureControls = renderFeatureControls;
         window.updateCountdown = updateCountdown;
         window.renderHomeStats = renderHomeStats;
         window.showPage = showPage;
+        window.viewCohort = viewCohort;
+        window.renderCohortDashboard = renderCohortDashboard;
+        window.renderMockDashboard = renderMockDashboard;
+        window.showAppealForm = showAppealForm;
+        window.submitAppeal = submitAppeal;
+        window.showBannedScreen = showBannedScreen;
     </script>
 </body>
 </html>
