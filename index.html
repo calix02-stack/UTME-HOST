@@ -10,10 +10,10 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" type="image/png" href="https://rofssssxyxamolmkypqz.supabase.co/storage/v1/object/public/My%20image/icon-192.png" />
     <meta name="theme-color" content="#00a86b" />
-<meta property="og:site_name" content="Jamb CBT PRACTICE APP" />
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2517695856110581" crossorigin="anonymous"></script>
-<style> 
-           /* ─── ROOT ─────────────────────────────────────────────────────────────── */
+    <meta property="og:site_name" content="Jamb CBT PRACTICE APP" />
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2517695856110581" crossorigin="anonymous"></script>
+
+    <style>
         :root {
             --bg: #f5f7fa;
             --card: #ffffff;
@@ -88,7 +88,6 @@
             line-height: 1.6;
         }
 
-        /* ─── SPLASH ──────────────────────────────────────────────────────────── */
         #splash {
             background: #ffffff;
             display: flex;
@@ -205,7 +204,94 @@
             font-weight: 600;
         }
 
-        /* ─── NOTIFICATION BELL (now hamburger icon) ──────────────────────────── */
+        /* ─── BANNED OVERLAY ────────────────────────────────────────────────── */
+        #banned-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: #0f141f;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        #banned-overlay.visible {
+            display: flex;
+        }
+        #banned-overlay .ban-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+        #banned-overlay .ban-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 900;
+            font-size: 1.8rem;
+            color: #f06060;
+            margin-bottom: 8px;
+        }
+        #banned-overlay .ban-text {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1rem;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+        #banned-overlay .ban-appeal-btn {
+            margin-top: 20px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        #banned-overlay .ban-appeal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 168, 107, 0.30);
+        }
+        #banned-overlay .appeal-form {
+            background: #1a2332;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 400px;
+            width: 100%;
+            margin-top: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            display: none;
+        }
+        #banned-overlay .appeal-form.visible {
+            display: block;
+        }
+        #banned-overlay .appeal-form input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        #banned-overlay .appeal-form .appeal-submit-btn {
+            width: 100%;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            cursor: pointer;
+        }
+        #banned-overlay .appeal-form .appeal-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ─── NOTIFICATION BELL (Hamburger) ───────────────────────────────── */
         .notif-bell {
             position: fixed;
             top: 14px;
@@ -221,7 +307,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             cursor: pointer;
             transition: all var(--transition);
             color: var(--text);
@@ -554,93 +640,6 @@
             padding-left: 2px;
         }
 
-        /* ─── BANNED OVERLAY ────────────────────────────────────────────────── */
-        #banned-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 9999;
-            background: #0f141f;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 32px 24px;
-            text-align: center;
-        }
-        #banned-overlay.visible {
-            display: flex;
-        }
-        #banned-overlay .ban-icon {
-            font-size: 4rem;
-            margin-bottom: 16px;
-        }
-        #banned-overlay .ban-title {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-weight: 900;
-            font-size: 1.8rem;
-            color: #f06060;
-            margin-bottom: 8px;
-        }
-        #banned-overlay .ban-text {
-            color: rgba(255,255,255,0.6);
-            font-size: 1rem;
-            max-width: 400px;
-            line-height: 1.6;
-        }
-        #banned-overlay .ban-appeal-btn {
-            margin-top: 20px;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 14px 32px;
-            border-radius: var(--radius);
-            font-weight: 700;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all var(--transition);
-        }
-        #banned-overlay .ban-appeal-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0,168,107,0.30);
-        }
-        #banned-overlay .appeal-form {
-            background: #1a2332;
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            max-width: 400px;
-            width: 100%;
-            margin-top: 16px;
-            border: 1px solid rgba(255,255,255,0.06);
-            display: none;
-        }
-        #banned-overlay .appeal-form.visible {
-            display: block;
-        }
-        #banned-overlay .appeal-form input {
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: var(--radius-sm);
-            border: 1px solid rgba(255,255,255,0.06);
-            background: rgba(255,255,255,0.04);
-            color: #fff;
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-        }
-        #banned-overlay .appeal-form .appeal-submit-btn {
-            width: 100%;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 12px;
-            border-radius: var(--radius-sm);
-            font-weight: 700;
-            cursor: pointer;
-        }
-        #banned-overlay .appeal-form .appeal-submit-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
         /* ─── MAIN SITE ────────────────────────────────────────────────────────── */
         #main-site {
             display: none;
@@ -961,16 +960,16 @@
             font-weight: 700;
         }
         .mock-d-status.upcoming {
-            background: rgba(79,135,255,0.15);
+            background: rgba(79, 135, 255, 0.15);
             color: #4f87ff;
         }
         .mock-d-status.live {
-            background: rgba(0,168,107,0.15);
+            background: rgba(0, 168, 107, 0.15);
             color: var(--accent);
         }
         .mock-d-status.completed {
-            background: rgba(255,255,255,0.06);
-            color: rgba(255,255,255,0.3);
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.3);
         }
 
         /* ─── COHORT ON DASHBOARD ────────────────────────────────────────────── */
@@ -1599,11 +1598,6 @@
             border-color: var(--danger);
             background: var(--danger-light);
             color: var(--danger);
-        }
-        [data-theme="dark"] .exam-q-dot.flagged {
-            background: #2b1418;
-            border-color: var(--danger);
-            color: #f06060;
         }
 
         .exam-body {
@@ -3237,7 +3231,7 @@
             letter-spacing: 0.4px;
         }
 
-        /* ─── ADMIN TABS REORGANIZED ────────────────────────────────────────── */
+        /* ─── ADMIN TABS ────────────────────────────────────────────────────────── */
         .admin-tabs {
             display: flex;
             background: #161e2e;
@@ -3269,21 +3263,6 @@
         .admin-tab.active {
             color: var(--accent);
             border-bottom-color: var(--accent);
-        }
-        .admin-tab-group-label {
-            padding: 14px 8px 14px 0;
-            font-size: 0.6rem;
-            font-weight: 700;
-            color: rgba(255,255,255,0.15);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            pointer-events: none;
-            border-bottom: 2px solid transparent;
-            flex-shrink: 0;
-        }
-        .admin-tab-group-label:not(:first-child) {
-            padding-left: 16px;
-            border-left: 1px solid rgba(255,255,255,0.04);
         }
 
         .admin-content {
@@ -3507,22 +3486,22 @@
             margin-top: 4px;
         }
 
-        /* ─── NUMBERED QUESTION GRID (Compact) ───────────────────────────────── */
+        /* ─── NUMBERED QUESTION GRID ──────────────────────────────────────────── */
         .question-number-grid {
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
             padding: 10px 0 14px;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
             margin-bottom: 12px;
         }
         .question-number-grid .qn-item {
             width: 34px;
             height: 34px;
             border-radius: var(--radius-sm);
-            border: 2px solid rgba(255,255,255,0.08);
-            background: rgba(255,255,255,0.03);
-            color: rgba(255,255,255,0.4);
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.4);
             font-size: 0.7rem;
             font-weight: 700;
             display: flex;
@@ -3543,13 +3522,8 @@
         }
         .question-number-grid .qn-item.answered {
             border-color: var(--accent2);
-            background: rgba(0,196,154,0.15);
+            background: rgba(0, 196, 154, 0.15);
             color: var(--accent2);
-        }
-        .question-number-grid .qn-item.has-duplicate {
-            border-color: #f06060;
-            background: rgba(240,96,96,0.1);
-            color: #f06060;
         }
 
         .question-item {
@@ -3622,17 +3596,6 @@
         }
         .qi-btn-del:hover {
             background: rgba(240, 96, 96, 0.20);
-        }
-        .qi-btn-flag {
-            background: rgba(240, 160, 0, 0.12);
-            color: #d48b00;
-        }
-        .qi-btn-flag:hover {
-            background: rgba(240, 160, 0, 0.20);
-        }
-        .qi-btn-flag.flagged {
-            background: rgba(240, 96, 96, 0.12);
-            color: #f06060;
         }
 
         .question-form {
@@ -3779,7 +3742,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            color: rgba(255,255,255,0.6);
+            color: rgba(255, 255, 255, 0.6);
             font-size: 0.85rem;
             cursor: pointer;
             padding: 4px 8px;
@@ -3787,13 +3750,13 @@
             transition: all var(--transition);
         }
         .answer-radio-group label:hover {
-            background: rgba(255,255,255,0.04);
+            background: rgba(255, 255, 255, 0.04);
         }
         .answer-radio-group input[type="radio"] {
             appearance: none;
             width: 16px;
             height: 16px;
-            border: 2px solid rgba(255,255,255,0.2);
+            border: 2px solid rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             position: relative;
             cursor: pointer;
@@ -4559,13 +4522,15 @@
             position: fixed;
             inset: 0;
             z-index: 950;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.6);
             align-items: center;
             justify-content: center;
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
         }
-        .modal-overlay.visible { display: flex; }
+        .modal-overlay.visible {
+            display: flex;
+        }
         .modal-card {
             background: #1a2332;
             border-radius: var(--radius-lg);
@@ -4574,67 +4539,269 @@
             width: 95%;
             max-height: 90vh;
             overflow-y: auto;
-            border: 1px solid rgba(255,255,255,0.06);
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
-        .modal-card h2 { color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.1rem; margin-bottom: 12px; }
-        .modal-card .close-btn { float: right; background: none; border: none; color: rgba(255,255,255,0.3); font-size: 1.4rem; cursor: pointer; }
-        .modal-card .close-btn:hover { color: #fff; }
-        .modal-card .file-upload-area { background: rgba(255,255,255,0.04); border: 1.5px dashed rgba(255,255,255,0.15); border-radius: var(--radius-sm); padding: 20px; text-align: center; margin: 12px 0; cursor: pointer; transition: all var(--transition); }
-        .modal-card .file-upload-area:hover { border-color: var(--accent); background: rgba(0,168,107,0.04); }
-        .modal-card .file-upload-area input { display: none; }
-        .modal-card .preview-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.8rem; color: rgba(255,255,255,0.7); }
-        .modal-card .preview-table th { background: rgba(255,255,255,0.04); padding: 8px 10px; text-align: left; font-weight: 600; color: rgba(255,255,255,0.5); border-bottom: 1px solid rgba(255,255,255,0.06); }
-        .modal-card .preview-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); }
-        .modal-card .validation-error { color: var(--danger); font-size: 0.8rem; margin: 6px 0; }
-        .modal-card .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
-        .modal-card .modal-actions .btn-primary { flex: 1; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 12px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all var(--transition); }
-        .modal-card .modal-actions .btn-primary:hover { background: var(--accent-dark); transform: translateY(-2px); }
-        .modal-card .modal-actions .btn-secondary { background: rgba(255,255,255,0.06); border: none; color: rgba(255,255,255,0.4); border-radius: var(--radius-sm); padding: 12px 18px; font-size: 0.85rem; cursor: pointer; transition: background var(--transition); }
-        .modal-card .modal-actions .btn-secondary:hover { background: rgba(255,255,255,0.10); }
+        .modal-card h2 {
+            color: #fff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+        }
+        .modal-card .close-btn {
+            float: right;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+        .modal-card .close-btn:hover {
+            color: #fff;
+        }
+        .modal-card .file-upload-area {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1.5px dashed rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            text-align: center;
+            margin: 12px 0;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .modal-card .file-upload-area:hover {
+            border-color: var(--accent);
+            background: rgba(0, 168, 107, 0.04);
+        }
+        .modal-card .file-upload-area input {
+            display: none;
+        }
+        .modal-card .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .modal-card .preview-table th {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .modal-card .preview-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .modal-card .validation-error {
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin: 6px 0;
+        }
+        .modal-card .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .modal-card .modal-actions .btn-primary {
+            flex: 1;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .modal-card .modal-actions .btn-primary:hover {
+            background: var(--accent-dark);
+            transform: translateY(-2px);
+        }
+        .modal-card .modal-actions .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            border-radius: var(--radius-sm);
+            padding: 12px 18px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .modal-card .modal-actions .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.10);
+        }
 
-        .duplicate-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px; }
-        .duplicate-item .dup-text { font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
-        .duplicate-item .dup-actions { display: flex; gap: 8px; margin-top: 6px; }
-        .duplicate-item .dup-actions button { background: rgba(240,96,96,0.12); color: #f06060; border: none; padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; cursor: pointer; transition: all var(--transition); }
-        .duplicate-item .dup-actions button:hover { background: rgba(240,96,96,0.20); }
+        .duplicate-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .duplicate-item .dup-text {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 4px;
+        }
+        .duplicate-item .dup-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .duplicate-item .dup-actions button {
+            background: rgba(240, 96, 96, 0.12);
+            color: #f06060;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .duplicate-item .dup-actions button:hover {
+            background: rgba(240, 96, 96, 0.20);
+        }
 
-        .mock-card { background: #1a2332; border: 1px solid rgba(255,255,255,0.05); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
-        .mock-card .mock-title { color: #fff; font-weight: 700; font-size: 1rem; }
-        .mock-card .mock-meta { color: rgba(255,255,255,0.4); font-size: 0.8rem; margin-top: 4px; display: flex; gap: 16px; flex-wrap: wrap; }
-        .mock-card .mock-status { display: inline-block; padding: 2px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
-        .mock-status.upcoming { background: rgba(79,135,255,0.15); color: #4f87ff; }
-        .mock-status.live { background: rgba(0,168,107,0.15); color: var(--accent); }
-        .mock-status.completed { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.3); }
+        .mock-card {
+            background: #1a2332;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .mock-card .mock-title {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .mock-card .mock-meta {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.8rem;
+            margin-top: 4px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .mock-card .mock-status {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .mock-status.upcoming {
+            background: rgba(79, 135, 255, 0.15);
+            color: #4f87ff;
+        }
+        .mock-status.live {
+            background: rgba(0, 168, 107, 0.15);
+            color: var(--accent);
+        }
+        .mock-status.completed {
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.3);
+        }
 
-        .cohort-card { background: #1a2332; border: 1px solid rgba(255,255,255,0.05); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .cohort-card .cohort-name { color: #fff; font-weight: 700; }
-        .cohort-card .cohort-stats { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
+        .cohort-card {
+            background: #1a2332;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cohort-card .cohort-name {
+            color: #fff;
+            font-weight: 700;
+        }
+        .cohort-card .cohort-stats {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.8rem;
+        }
 
-        .audit-row { background: #1a2332; border: 1px solid rgba(255,255,255,0.04); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: rgba(255,255,255,0.6); }
-        .audit-row .audit-time { color: rgba(255,255,255,0.3); font-size: 0.7rem; }
-        .audit-row .audit-details { cursor: pointer; color: var(--accent); font-size: 0.7rem; }
-        .audit-row .audit-details:hover { text-decoration: underline; }
+        .audit-row {
+            background: #1a2332;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .audit-row .audit-time {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.7rem;
+        }
+        .audit-row .audit-details {
+            cursor: pointer;
+            color: var(--accent);
+            font-size: 0.7rem;
+        }
+        .audit-row .audit-details:hover {
+            text-decoration: underline;
+        }
 
         /* ─── RESPONSIVE ───────────────────────────────────────────────────────── */
         @media (max-width: 400px) {
-            .study-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-            .study-btn { padding: 16px 10px; font-size: 0.8rem; }
-            .subjects-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-            .subj-card { padding: 12px 8px 10px; }
-            .admin-subjects-grid { grid-template-columns: repeat(2, 1fr); }
-            .options-grid-admin { grid-template-columns: 1fr 1fr; }
-            .profile-analytics-grid { grid-template-columns: 1fr 1fr; }
-            .profile-achievements { grid-template-columns: repeat(2, 1fr); }
-            .lb-subject-grid { grid-template-columns: 1fr 1fr; }
+            .study-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            .study-btn {
+                padding: 16px 10px;
+                font-size: 0.8rem;
+            }
+            .subjects-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            .subj-card {
+                padding: 12px 8px 10px;
+            }
+            .admin-subjects-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .options-grid-admin {
+                grid-template-columns: 1fr 1fr;
+            }
+            .profile-analytics-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .profile-achievements {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .lb-subject-grid {
+                grid-template-columns: 1fr 1fr;
+            }
         }
         @media (max-width: 350px) {
-            .study-grid { grid-template-columns: 1fr 1fr; }
-            .subjects-grid { grid-template-columns: 1fr 1fr; }
-            .admin-subjects-grid { grid-template-columns: 1fr 1fr; }
-            .lb-subject-grid { grid-template-columns: 1fr 1fr; }
+            .study-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .subjects-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .admin-subjects-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .lb-subject-grid {
+                grid-template-columns: 1fr 1fr;
+            }
         }
         @media all and (display-mode: standalone) {
-            .install-btn { display: none !important; }
+            .install-btn {
+                display: none !important;
+            }
         }
     </style>
 
@@ -5298,33 +5465,21 @@
             <div class="admin-topbar-right"><span class="admin-badge" id="admin-role-badge">ADMIN</span><button class="admin-exit-btn" onclick="closeAdmin()">✕ Exit</button></div>
         </div>
 
-        <!-- ─── REORGANIZED ADMIN TABS ──────────────────────────────────────── -->
-        <div class="admin-tabs" id="admin-tabs-container">
-            <!-- Content -->
-            <span class="admin-tab-group-label">📝 Content</span>
+        <div class="admin-tabs">
             <div class="admin-tab active" onclick="switchTab('overview')" id="tab-overview">📊 Overview</div>
-            <div class="admin-tab" onclick="switchTab('questions')" id="tab-questions">📝 UTME Qs</div>
-            <div class="admin-tab" onclick="switchTab('topic-exam')" id="tab-topic-exam">🎯 Topic Qs</div>
+            <div class="admin-tab" onclick="switchTab('users')" id="tab-users">👥 Users</div>
+            <div class="admin-tab" onclick="switchTab('questions')" id="tab-questions">📝 UTME Questions</div>
+            <div class="admin-tab" onclick="switchTab('topic-exam')" id="tab-topic-exam">🎯 Topic Exam Qs</div>
             <div class="admin-tab" onclick="switchTab('read-mode')" id="tab-read-mode">📄 Read Mode</div>
             <div class="admin-tab" onclick="switchTab('syllabus')" id="tab-syllabus">📖 Syllabus</div>
             <div class="admin-tab" onclick="switchTab('announcements')" id="tab-announcements">📢 Announcements</div>
-
-            <!-- Users -->
-            <span class="admin-tab-group-label">👥 Users</span>
-            <div class="admin-tab" onclick="switchTab('users')" id="tab-users">👥 Users</div>
             <div class="admin-tab" onclick="switchTab('reports')" id="tab-reports">🚩 Reports</div>
-            <div class="admin-tab" onclick="switchTab('appeals')" id="tab-appeals">📩 Appeals</div>
-
-            <!-- Engagement -->
-            <span class="admin-tab-group-label">📊 Engagement</span>
             <div class="admin-tab" onclick="switchTab('analytics')" id="tab-analytics">📈 Analytics</div>
             <div class="admin-tab" onclick="switchTab('insights')" id="tab-insights">🎯 Insights</div>
             <div class="admin-tab" onclick="switchTab('mock-exams')" id="tab-mock-exams">🗓️ Mock Exams</div>
             <div class="admin-tab" onclick="switchTab('cohorts')" id="tab-cohorts">🏫 Cohorts</div>
-
-            <!-- System -->
-            <span class="admin-tab-group-label">⚙️ System</span>
             <div class="admin-tab" onclick="switchTab('audit-log')" id="tab-audit-log">📜 Audit Log</div>
+            <div class="admin-tab" onclick="switchTab('appeals')" id="tab-appeals">📩 Appeals</div>
             <div class="admin-tab" onclick="switchTab('feature-control')" id="tab-feature-control">🔧 Feature Control</div>
             <div class="admin-tab" onclick="switchTab('manage-admins')" id="tab-manage-admins" style="display:none;">👑 Manage Admins</div>
         </div>
@@ -5542,7 +5697,7 @@
                 </div>
             </div>
 
-            <!-- Manage Admins Panel (Super Admin only) -->
+            <!-- Manage Admins Panel -->
             <div class="admin-panel" id="panel-manage-admins">
                 <div class="admin-section-title">👑 Manage Admins</div>
                 <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
@@ -5683,14 +5838,6 @@
             syllabus: 'feature-syllabus',
             topic: 'feature-topic'
         };
-        const FEATURE_LABELS = {
-            cbt: '💻 CBT Mode',
-            exam: '⏰ Exam Mode',
-            revision: '🧠 Smart Revision',
-            read: '📚 Read Mode',
-            syllabus: '📖 Syllabus',
-            topic: '🎯 Topic-Based Practice'
-        };
 
         function lsGet(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
 
@@ -5709,7 +5856,6 @@
             flags = lsGet('flags', {});
             bannedUsers = new Set(lsGet('utme_banned', []));
             featureFlags = lsGet('feature_flags', { ...DEFAULT_FEATURES });
-            // Ensure all feature flags exist
             Object.keys(DEFAULT_FEATURES).forEach(key => {
                 if (featureFlags[key] === undefined) featureFlags[key] = true;
             });
@@ -5782,18 +5928,6 @@
                     data.forEach(row => { featureFlags[row.key] = row.value; });
                     lsSet('feature_flags', featureFlags);
                 }
-            } catch (e) {}
-            // Load cohorts from profiles
-            try {
-                const { data } = await sb.from('profiles').select('cohort_code, school_name');
-                if (data) {
-                    // Store for later use
-                }
-            } catch (e) {}
-            // Load admin roles
-            try {
-                const { data } = await sb.from('admin_roles').select('*');
-                if (data) adminRoles = data;
             } catch (e) {}
         }
 
@@ -5946,18 +6080,16 @@
             }
         }
 
-        // ─── BAN USER (with Supabase persistence) ──────────────────────────────
+        // ─── BAN USER ──────────────────────────────────────────────────────────
         async function toggleBanUser() {
             if (!selectedUser) return;
             const id = selectedUser.id;
             if (bannedUsers.has(id)) {
-                // Unban
                 bannedUsers.delete(id);
                 try { await sb.from('banned_users').delete().match({ user_id: id }); } catch (e) {}
                 showToast('User unbanned ✓');
                 logAudit('user_unban', 'user', id, {});
             } else {
-                // Ban
                 bannedUsers.add(id);
                 try { await sb.from('banned_users').insert({ user_id: id }); } catch (e) {}
                 showToast('User banned 🚫');
@@ -5999,7 +6131,6 @@
                         }
                         showToast(msg, true);
                     } else {
-                        // Check if user is banned
                         if (data?.user) {
                             const isBanned = bannedUsers.has(data.user.id);
                             if (isBanned) {
@@ -6134,7 +6265,6 @@
                 const el = document.getElementById(id);
                 if (el) el.style.display = tabs[id] ? 'block' : 'none';
             });
-            // Also hide panels for non-super
             const panels = {
                 'panel-users': isSuper,
                 'panel-mock-exams': isSuper,
@@ -6320,7 +6450,6 @@
                 return; }
             const qs = getUTMEQs();
             document.getElementById('utme-qb-count').textContent = qs.length;
-            // Numbered grid
             const grid = document.getElementById('utme-question-grid');
             if (qs.length) {
                 grid.innerHTML = qs.map((q, i) => {
@@ -6334,7 +6463,6 @@
             }
             if (!qs.length) { document.getElementById('utme-question-list').innerHTML =
                     '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No questions yet.</div></div>'; return; }
-            // Only render the expanded question if editIdx is set
             if (utmeEditIdx >= 0 && utmeEditIdx < qs.length) {
                 const q = qs[utmeEditIdx];
                 document.getElementById('utme-question-list').innerHTML = `
@@ -6529,8 +6657,9 @@
             const options = [q.a, q.b, q.c, q.d];
             const radios = letters.map(l => {
                 const val = options[letters.indexOf(l)] || '';
+                const checked = (q.ans === l) ? 'checked' : '';
                 return `<label class="${q.ans === l ? 'selected-radio' : ''}">
-                    <input type="radio" name="${pre}ans-${i}" value="${l}" ${q.ans === l ? 'checked' : ''} onchange="document.getElementById('${pre}ans-hidden-${i}').value = this.value">
+                    <input type="radio" name="${pre}ans-${i}" value="${l}" ${checked} onchange="document.getElementById('${pre}ans-hidden-${i}').value = this.value">
                     ${l}: ${escH(val)}
                 </label>`;
             }).join('');
@@ -6652,7 +6781,6 @@
             if (rmEditIdx >= 0 && rmEditIdx < items.length) {
                 const m = items[rmEditIdx];
                 const typeLabel = m.type === 'pdf' ? '📄 PDF' : m.type === 'image' ? '🖼️ Image' : '📝 Text';
-                const isEdit = true;
                 document.getElementById('rm-materials-list').innerHTML = `
                     <div class="question-item">
                         <div class="question-item-header">
@@ -6819,23 +6947,19 @@
             renderAnnouncements();
             closeAnnouncementEditor();
             showToast('✅ Announcement published!');
-            // Only add notification if no target or if target matches current user
             if (!targetUserId || targetUserId === currentUser?.id) {
                 addNotification('📢 ' + announcement.title, announcement.text, '📢', announcement.image, announcement.id);
             }
             logAudit('announcement_publish', 'announcement', announcement.id, { title: announcement.title,
                 target_user: targetUserId || 'all' });
-            // Send push notification using Notification API directly
             if ('Notification' in window && Notification.permission === 'granted') {
                 try {
-                    // Try edge function first, fallback to direct notification
                     await sb.functions.invoke('send-push', {
                         body: { title: announcement.title, body: content, image: imageUrl || undefined,
                             targetUserId: targetUserId }
                     });
                 } catch (e) {
-                    console.log('Push send failed, using direct notification:', e);
-                    // Direct notification for all users (limited to current device)
+                    console.log('Push send failed:', e);
                     new Notification('📢 ' + announcement.title, {
                         body: content,
                         icon: '🎓'
@@ -6870,7 +6994,7 @@
                     '<div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">No reports</div></div>'; return; }
             list.innerHTML = reports.map((r, i) => {
                 const user = allUsers.find(u => u.id === r.reportedBy);
-                const username = user?.username || r.reportedBy?.slice(0,8) || 'Anonymous';
+                const username = user?.username || r.reportedBy?.slice(0, 8) || 'Anonymous';
                 return `<div class="admin-result-row" style="flex-direction:column;align-items:stretch;"><div style="display:flex;justify-content:space-between;"><div><strong style="color:#ffc107">Q${r.questionNumber || '?'} - ${r.reason}</strong> - ${r.subjectName || r.subject}</div><div><span style="color:rgba(255,255,255,.4);font-size:.7rem;">👤 ${username}</span><button class="qi-btn qi-btn-edit" onclick="resolveReport(${i})">✅ Resolve</button><button class="qi-btn qi-btn-del" onclick="deleteReport(${i})">🗑️</button></div></div><div style="color:rgba(255,255,255,.6);font-size:.85rem;margin-top:4px;">${r.question?.q || 'Question not available'}</div>${r.details ? `<div style="color:rgba(255,255,255,.4);font-size:.8rem;">📝 ${r.details}</div>` : ''}<div style="color:rgba(255,255,255,.3);font-size:.7rem;">${new Date(r.reportedAt).toLocaleString()}</div></div>`;
             }).join('');
         }
@@ -6901,7 +7025,6 @@
             const a = appeals[index];
             if (!a) return;
             a.status = 'approved';
-            // Unban the user
             if (a.user_id && a.user_id !== 'unknown') {
                 bannedUsers.delete(a.user_id);
                 lsSet('utme_banned', [...bannedUsers]);
@@ -7269,10 +7392,8 @@
             const code = Math.random().toString(36).substring(2, 8).toUpperCase();
             const name = prompt('Enter cohort/school name:');
             if (!name?.trim()) return;
-            // Actually persist to Supabase
             const cohortData = { code, name: name.trim(), created_at: new Date().toISOString(),
             created_by: currentUser?.id };
-            // Store in local for now, then sync
             const cohorts = lsGet('cohorts_data', []);
             cohorts.push(cohortData);
             lsSet('cohorts_data', cohorts);
@@ -7334,9 +7455,7 @@
                     ?.username || 'system', action, target_type: targetType, target_id: String(targetId), details: details ||
                     {}, created_at: new Date().toISOString() };
             auditLog.unshift(entry);
-            try { await sb.from('audit_log').insert(entry); } catch (e) {
-                // Silently fail - we don't want to break the app
-            }
+            try { await sb.from('audit_log').insert(entry); } catch (e) {}
             if (document.getElementById('panel-audit-log').classList.contains('active')) renderAuditLog();
         }
 
@@ -7501,7 +7620,6 @@
             lsSet('theme', on ? 'dark' : 'light');
         }
 
-        // Default to dark mode
         if (lsGet('theme', 'dark') === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
             document.getElementById('dark-toggle').checked = true;
@@ -7661,7 +7779,6 @@
         }
 
         // ─── EXAM SESSION FUNCTIONS ────────────────────────────────────────────
-        // These are the core exam functions that were missing from the previous version
         let ES = {
             mode: '',
             subjectId: '',
@@ -7890,7 +8007,6 @@
             const vals = [q.a, q.b, q.c, q.d];
             const topicBadge = q.topic ? `<div class="question-topic-badge">${q.topic}</div>` : '';
 
-            // Check if this question is flagged
             const qId = ES.subjectId + '-' + i + '-' + (ES.year || 'cbt');
             const isFlagged = flags[qId] || false;
 
@@ -9400,3 +9516,4 @@
 </body>
 </html>
 ```
+
