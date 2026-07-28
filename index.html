@@ -1513,14 +1513,8 @@
         drawerOpen: false,
         view: "home",
         darkMode: false,
-        notifs: [
-            { id: 1, title: "Mock exam unlocked", body: "Mathematics mock is now available.", time: "2h ago",
-                unread: true },
-            { id: 2, title: "Streak reminder", body: "Answer 10 questions today to keep your 4-day streak.",
-                time: "6h ago", unread: true },
-            { id: 3, title: "Leaderboard update", body: "You moved up 3 places this week.", time: "1d ago",
-                unread: false },
-        ],
+        notifs: [],
+        readNotifs: [],
         formName: "",
         formEmail: "",
         activateCode: "",
@@ -1620,13 +1614,24 @@
         adminLoading: false,
         questionCounts: {},
 
-        // Fixed: Loaded flags for documents, syllabus, topics
+        // Loaded flags for documents, syllabus, topics
         docsLoaded: false,
         docsList: [],
         syllabusLoaded: false,
         syllabusData: null,
         topicsLoaded: false,
         topicsList: [],
+        topicsSubjectId: null,
+
+        // Admin Questions loaded flag (Bug 1 fix)
+        adminQuestionsLoaded: false,
+        adminQuestionsList: [],
+        adminQuestionsKey: null,
+
+        // Notifications
+        notifsLoaded: false,
+        notifsList: [],
+        notifsUnreadCount: 0,
     };
 
     // ============================================================
@@ -1657,6 +1662,11 @@
                 state.formName = state.profile.name;
                 state.formEmail = state.profile.email;
                 storage.set("profile", JSON.stringify(state.profile));
+            }
+            // Load read notifications from localStorage
+            const readNotifs = storage.get("readNotifications");
+            if (readNotifs) {
+                try { state.readNotifs = JSON.parse(readNotifs) || []; } catch (e) { state.readNotifs = []; }
             }
         } catch (e) {
             console.warn("Auth session check:", e);
@@ -1799,6 +1809,79 @@
 
     function isAdmin() {
         return state.profile.email && state.profile.email.toLowerCase() === ADMIN_EMAIL;
+    }
+
+    // ============================================================
+    //  NOTIFICATION FUNCTIONS (Feature 5)
+    // ============================================================
+    async function loadNotifications() {
+        try {
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            state.notifsList = data || [];
+            state.notifsLoaded = true;
+
+            // Count unread
+            state.notifsUnreadCount = state.notifsList.filter(function(n) {
+                return state.readNotifs.indexOf(n.id) === -1;
+            }).length;
+
+            // Update state.notifs for display
+            state.notifs = state.notifsList.map(function(n) {
+                return {
+                    id: n.id,
+                    title: n.title,
+                    body: n.body,
+                    time: formatTimeAgo(n.created_at),
+                    unread: state.readNotifs.indexOf(n.id) === -1,
+                };
+            });
+
+            render();
+        } catch (e) {
+            console.warn("Load notifications error:", e);
+            state.notifsLoaded = true;
+        }
+    }
+
+    function formatTimeAgo(dateStr) {
+        if (!dateStr) return "Just now";
+        try {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+            if (diff < 60) return diff + "s ago";
+            if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+            if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+            return Math.floor(diff / 86400) + "d ago";
+        } catch (e) { return "Just now"; }
+    }
+
+    function markNotificationRead(notifId) {
+        if (state.readNotifs.indexOf(notifId) === -1) {
+            state.readNotifs.push(notifId);
+            storage.set("readNotifications", JSON.stringify(state.readNotifs));
+            // Update unread count
+            state.notifsUnreadCount = state.notifsList.filter(function(n) {
+                return state.readNotifs.indexOf(n.id) === -1;
+            }).length;
+            render();
+        }
+    }
+
+    function markAllNotificationsRead() {
+        state.notifsList.forEach(function(n) {
+            if (state.readNotifs.indexOf(n.id) === -1) {
+                state.readNotifs.push(n.id);
+            }
+        });
+        storage.set("readNotifications", JSON.stringify(state.readNotifs));
+        state.notifsUnreadCount = 0;
+        render();
     }
 
     // ============================================================
@@ -1965,6 +2048,22 @@
         }
     }
 
+    async function loadTopicQuestions(topicId) {
+        try {
+            const { data, error } = await supabase
+                .from('topic_questions')
+                .select('*')
+                .eq('topic_id', topicId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (e) {
+            console.warn("Load topic questions error:", e);
+            return [];
+        }
+    }
+
     async function loadSettings() {
         try {
             const { data, error } = await supabase
@@ -2001,14 +2100,15 @@
     }
 
     // ============================================================
-    //  FIXED: DB LOAD FUNCTIONS WITH LOADED FLAGS
+    //  DB LOAD FUNCTIONS WITH LOADED FLAGS
     // ============================================================
     function loadDocuments(filterSubject) {
         if (state.docsLoaded) {
-            // Already loaded, just use cached data
             return;
         }
-        // Don't set loading state - we show spinner based on !docsLoaded
+        state.docsLoaded = false;
+        state.docsList = [];
+
         loadDocumentsFromDB(filterSubject).then(function(docs) {
             state.docsList = docs || [];
             state.docsLoaded = true;
@@ -2024,10 +2124,8 @@
         if (state.syllabusLoaded && state.syllabusData && state.syllabusData.subject_id === subjectId) {
             return;
         }
-        // Reset and load
         state.syllabusLoaded = false;
         state.syllabusData = null;
-        render();
 
         loadSyllabusFromDB(subjectId).then(function(data) {
             state.syllabusData = data || null;
@@ -2041,18 +2139,12 @@
     }
 
     function loadTopics(subjectId) {
-        if (state.topicsLoaded && state.topicsList.length > 0) {
-            // Check if cached data is for this subject by checking if any topic has this subject_id
-            // We store the subject_id in state to compare
-            if (state.topicsSubjectId === subjectId) {
-                return;
-            }
+        if (state.topicsLoaded && state.topicsSubjectId === subjectId) {
+            return;
         }
-        // Reset and load
         state.topicsLoaded = false;
         state.topicsList = [];
         state.topicsSubjectId = subjectId;
-        render();
 
         loadTopicsFromDB(subjectId).then(function(topics) {
             state.topicsList = topics || [];
@@ -2063,6 +2155,50 @@
             state.topicsList = [];
             state.topicsSubjectId = subjectId;
             state.topicsLoaded = true;
+            render();
+        });
+    }
+
+    function loadAdminQuestions(type, subjectId, year) {
+        const key = type + ':' + subjectId + ':' + (year || '');
+        if (state.adminQuestionsLoaded && state.adminQuestionsKey === key) {
+            return;
+        }
+        state.adminQuestionsLoaded = false;
+        state.adminQuestionsList = [];
+        state.adminQuestionsKey = key;
+
+        getQuestionsForAdmin(type, subjectId, year).then(function(questions) {
+            state.adminQuestionsList = questions || [];
+            state.adminQuestionsKey = key;
+            state.adminQuestionsLoaded = true;
+            render();
+        }).catch(function() {
+            state.adminQuestionsList = [];
+            state.adminQuestionsKey = key;
+            state.adminQuestionsLoaded = true;
+            render();
+        });
+    }
+
+    function loadTopicQuestionsForAdmin(topicId) {
+        const key = 'topic:' + topicId;
+        if (state.adminQuestionsLoaded && state.adminQuestionsKey === key) {
+            return;
+        }
+        state.adminQuestionsLoaded = false;
+        state.adminQuestionsList = [];
+        state.adminQuestionsKey = key;
+
+        loadTopicQuestions(topicId).then(function(questions) {
+            state.adminQuestionsList = questions || [];
+            state.adminQuestionsKey = key;
+            state.adminQuestionsLoaded = true;
+            render();
+        }).catch(function() {
+            state.adminQuestionsList = [];
+            state.adminQuestionsKey = key;
+            state.adminQuestionsLoaded = true;
             render();
         });
     }
@@ -2153,7 +2289,7 @@
     })();
 
     function unreadCount() {
-        return state.notifs.filter(function(n) { return n.unread; }).length;
+        return state.notifsUnreadCount || 0;
     }
 
     function subjectBadge(s) {
@@ -2161,7 +2297,7 @@
     }
 
     // ============================================================
-    //  RENDER
+    //  RENDER - FIXED: Preserve scroll positions (Bug 3)
     // ============================================================
     const root = document.getElementById("root");
 
@@ -2170,7 +2306,23 @@
             root.innerHTML = renderSplash();
             return;
         }
+
+        // Preserve horizontal scroll position of scrollable rows
+        const scrollableSelectors = ['.admin-tabs', '.admin-sub-tabs', '.leaderboard-tabs', '.subject-grid'];
+        const scrollPositions = {};
+        scrollableSelectors.forEach(function(sel) {
+            const el = root.querySelector(sel);
+            if (el) scrollPositions[sel] = el.scrollLeft;
+        });
+
         root.innerHTML = renderApp();
+
+        // Restore scroll positions
+        scrollableSelectors.forEach(function(sel) {
+            const el = root.querySelector(sel);
+            if (el && scrollPositions[sel] !== undefined) el.scrollLeft = scrollPositions[sel];
+        });
+
         if (state.showLogin) {
             const overlay = document.createElement('div');
             overlay.innerHTML = renderLoginModal();
@@ -2247,7 +2399,7 @@
     }
 
     // ============================================================
-    //  VIEWS (only admin-related changes shown, rest same as before)
+    //  VIEWS
     // ============================================================
     function renderView() {
         const v = state.view;
@@ -2311,7 +2463,7 @@
     }
 
     // ============================================================
-    //  LITERATURE (unchanged)
+    //  LITERATURE
     // ============================================================
     function renderLiteratureHome() {
         return (
@@ -2376,7 +2528,7 @@
     }
 
     // ============================================================
-    //  CBT MODE (unchanged)
+    //  CBT MODE
     // ============================================================
     function renderCbtMode() {
         const others = SUBJECTS.filter(function(s) { return !s.compulsory; });
@@ -2449,7 +2601,7 @@
     }
 
     // ============================================================
-    //  CBT EXAM (unchanged)
+    //  CBT EXAM
     // ============================================================
     function renderCbtExam() {
         if (!state.cbtQuestions || state.cbtQuestions.length === 0) {
@@ -2600,7 +2752,7 @@
     }
 
     // ============================================================
-    //  EXAM MODE (unchanged)
+    //  EXAM MODE
     // ============================================================
     function renderExamMode() {
         let chips = "";
@@ -2642,7 +2794,7 @@
     }
 
     // ============================================================
-    //  EXAM EXAM (unchanged)
+    //  EXAM EXAM
     // ============================================================
     function renderExamExam() {
         if (!state.examQuestions || state.examQuestions.length === 0) {
@@ -2788,7 +2940,7 @@
     }
 
     // ============================================================
-    //  MOCK EXAM (no year) - unchanged
+    //  MOCK EXAM (no year)
     // ============================================================
     function renderMockExamPicker() {
         let chips = "";
@@ -2821,7 +2973,7 @@
     }
 
     // ============================================================
-    //  TOPICS PICKER (user-facing) - FIXED
+    //  TOPICS PICKER (user-facing)
     // ============================================================
     function renderTopicsPicker() {
         let subjChips = "";
@@ -2838,15 +2990,12 @@
 
         let topicsHtml = "";
         if (state.topicSubject) {
-            // Check if loaded for this subject
             if (!state.topicsLoaded || state.topicsSubjectId !== state.topicSubject) {
                 topicsHtml = '<div class="loading-spinner"><div class="spinner"></div><p>Loading topics...</p></div>';
-                // Load if not loaded
                 if (!state.topicsLoaded || state.topicsSubjectId !== state.topicSubject) {
                     loadTopics(state.topicSubject);
                 }
             } else {
-                // Loaded - show topics or empty message
                 if (state.topicsList.length === 0) {
                     topicsHtml = '<p style="font-size:12px;color:var(--faint);margin-top:8px">No topics have been added for this subject yet.</p>';
                 } else {
@@ -2884,7 +3033,7 @@
     }
 
     // ============================================================
-    //  SYLLABUS (user-facing) - FIXED
+    //  SYLLABUS (user-facing) - FIXED: image preview (Bug 4)
     // ============================================================
     function renderSyllabusUser() {
         let chips = "";
@@ -2913,8 +3062,16 @@
                 if (state.syllabusData.content) content +=
                     '<p style="font-size:13px;white-space:pre-wrap;margin:0 0 12px;line-height:1.5">' + esc(state
                         .syllabusData.content) + '</p>';
-                if (state.syllabusData.file_url) content += '<a class="btn btn-outline" href="' + state.syllabusData
-                    .file_url + '" target="_blank">Download Syllabus</a>';
+                if (state.syllabusData.file_url) {
+                    const fname = (state.syllabusData.file_name || '').toLowerCase();
+                    const isImage = /\.(png|jpe?g|gif|webp)$/.test(fname);
+                    if (isImage) {
+                        content += '<img src="' + state.syllabusData.file_url +
+                            '" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" alt="Syllabus image" />';
+                    }
+                    content += '<a class="btn btn-outline" href="' + state.syllabusData.file_url +
+                        '" target="_blank">' + (isImage ? 'Open full image' : 'Download Syllabus') + '</a>';
+                }
                 content += '</div>';
             }
         }
@@ -2931,7 +3088,7 @@
     }
 
     // ============================================================
-    //  DOCUMENTS (user-facing) - FIXED
+    //  DOCUMENTS (user-facing)
     // ============================================================
     function renderDocumentsUser() {
         let chips = (
@@ -2989,7 +3146,7 @@
     }
 
     // ============================================================
-    //  LEADERBOARD (unchanged)
+    //  LEADERBOARD
     // ============================================================
     function renderLeaderboard() {
         const tabs = [
@@ -3045,29 +3202,51 @@
     }
 
     // ============================================================
-    //  NOTIFICATIONS, PROFILE, ACTIVATE (unchanged)
+    //  NOTIFICATIONS - FIXED: load from Supabase (Feature 5)
     // ============================================================
     function renderNotifications() {
-        let items = "";
-        state.notifs.forEach(function(n) {
-            items += (
-                '<div class="notif-item' + (n.unread ? ' unread' : '') + '">' +
-                '<div class="row"><p class="t">' + esc(n.title) + '</p>' + (n.unread ? '<span class="ball"></span>' :
-                    '') + '</div>' +
-                '<p class="b">' + esc(n.body) + '</p>' +
-                '<p class="time">' + esc(n.time) + '</p>' +
-                '</div>'
+        if (!state.notifsLoaded) {
+            loadNotifications();
+            return (
+                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">' +
+                '<h2 class="title" style="margin:0">Notifications</h2>' +
+                '</div>' +
+                '<div class="loading-spinner"><div class="spinner"></div><p>Loading notifications...</p></div>'
             );
-        });
+        }
+
+        let items = "";
+        if (state.notifs.length === 0) {
+            items = '<p style="text-align:center;color:var(--faint);padding:32px 0">No notifications yet.</p>';
+        } else {
+            state.notifs.forEach(function(n) {
+                items += (
+                    '<div class="notif-item' + (n.unread ? ' unread' : '') + '" data-action="mark-notif-read" data-id="' +
+                    n.id + '">' +
+                    '<div class="row"><p class="t">' + esc(n.title) + '</p>' + (n.unread ?
+                        '<span class="ball"></span>' : '') + '</div>' +
+                    '<p class="b">' + esc(n.body) + '</p>' +
+                    '<p class="time">' + esc(n.time) + '</p>' +
+                    '</div>'
+                );
+            });
+        }
+
+        const hasUnread = state.notifs.some(function(n) { return n.unread; });
+
         return (
             '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">' +
             '<h2 class="title" style="margin:0">Notifications</h2>' +
-            '<button data-action="mark-all-read" style="font-size:12px;color:var(--muted);text-decoration:underline">Mark all read</button>' +
+            (hasUnread ? '<button data-action="mark-all-notifs-read" style="font-size:12px;color:var(--muted);text-decoration:underline">Mark all read</button>' :
+                '') +
             '</div>' +
             items
         );
     }
 
+    // ============================================================
+    //  PROFILE
+    // ============================================================
     function renderProfile() {
         const isLoggedIn = !!state.authUser;
         return (
@@ -3098,6 +3277,9 @@
         );
     }
 
+    // ============================================================
+    //  ACTIVATE
+    // ============================================================
     function renderActivate() {
         let statusMsg = "";
         if (state.activateStatus === "pending") {
@@ -3120,7 +3302,7 @@
     }
 
     // ============================================================
-    //  QUIZ (unchanged)
+    //  QUIZ
     // ============================================================
     function renderQuiz() {
         const q = state.quiz;
@@ -3243,7 +3425,7 @@
     }
 
     // ============================================================
-    //  ADMIN PANEL - FIXED LOADING FOR DOCUMENTS, SYLLABUS, TOPICS
+    //  ADMIN PANEL - FIXED: Removed standalone Topics tab (Bug 2)
     // ============================================================
     const ADMIN_TABS = [
         { key: "overview", label: "📊 Overview" },
@@ -3251,8 +3433,8 @@
         { key: "settings", label: "⚙️ Settings" },
         { key: "documents", label: "📄 Documents" },
         { key: "syllabus", label: "📚 Syllabus" },
-        { key: "topics", label: "📋 Topics" },
         { key: "users", label: "👥 Users" },
+        { key: "notifications", label: "🔔 Notify" },
     ];
 
     const ADMIN_QUESTION_TABS = [
@@ -3286,8 +3468,8 @@
         else if (state.adminTab === "settings") body = renderAdminSettings();
         else if (state.adminTab === "documents") body = renderAdminDocuments();
         else if (state.adminTab === "syllabus") body = renderAdminSyllabus();
-        else if (state.adminTab === "topics") body = renderAdminTopics();
         else if (state.adminTab === "users") body = renderAdminUsers();
+        else if (state.adminTab === "notifications") body = renderAdminNotifications();
         else body = renderAdminOverview();
 
         return (
@@ -3355,6 +3537,9 @@
         );
     }
 
+    // ============================================================
+    //  ADMIN QUESTIONS - FIXED: loaded flag and Topic Practice (Bug 1 & 2)
+    // ============================================================
     function renderAdminQuestions() {
         let subTabs = "";
         ADMIN_QUESTION_TABS.forEach(function(t) {
@@ -3362,6 +3547,126 @@
                 '" data-action="admin-sub-tab" data-tab="' + t.key + '">' + t.label + '</button>';
         });
 
+        // For topic sub-tab, show subject and topic selection
+        let topicSelectionHtml = "";
+        if (state.adminSubTab === "topic") {
+            let subjOptions = '<option value="">Select subject</option>';
+            SUBJECTS.forEach(function(s) {
+                subjOptions += '<option value="' + s.id + '"' + (state.admin.topicSubject === s.id ?
+                    ' selected' : '') + '>' + esc(s.name) + '</option>';
+            });
+
+            let topicOptions = '<option value="">Select or create a topic</option>';
+            if (state.topicsLoaded && state.topicsSubjectId === state.admin.topicSubject) {
+                state.topicsList.forEach(function(t) {
+                    topicOptions += '<option value="' + t.id + '"' + (state.admin.topicId === t.id ?
+                        ' selected' : '') + '>' + esc(t.name) + '</option>';
+                });
+            }
+
+            topicSelectionHtml = (
+                '<div style="margin-bottom:12px">' +
+                '<label class="field-label">Subject</label>' +
+                '<select class="field" id="admin-topic-subject">' + subjOptions + '</select>' +
+                '</div>' +
+                '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+                '<div style="flex:1">' +
+                '<label class="field-label">Topic</label>' +
+                '<select class="field" id="admin-topic-select">' + topicOptions + '</select>' +
+                '</div>' +
+                '<div style="flex:0 0 auto;display:flex;align-items:flex-end">' +
+                '<input id="admin-new-topic-input" class="field" style="width:120px;margin-bottom:4px" placeholder="New topic name" value="' +
+                esc(state.admin.newTopicName) + '" />' +
+                '<button class="mini-btn primary" style="padding:0 12px;height:36px;margin-left:4px" data-action="admin-add-topic-inline">Add</button>' +
+                '</div>' +
+                '</div>'
+            );
+
+            // Show question form only if a topic is selected
+            if (state.admin.topicId) {
+                // Load topic questions with flag
+                let topicQuestionListHtml = "";
+                if (!state.adminQuestionsLoaded || state.adminQuestionsKey !== 'topic:' + state.admin.topicId) {
+                    topicQuestionListHtml =
+                    '<div class="loading-spinner"><div class="spinner"></div><p>Loading questions...</p></div>';
+                    loadTopicQuestionsForAdmin(state.admin.topicId);
+                } else {
+                    const qs = state.adminQuestionsList;
+                    if (qs.length === 0) {
+                        topicQuestionListHtml =
+                            '<p style="font-size:12px;color:var(--faint);margin-top:12px">No questions saved yet for this topic.</p>';
+                    } else {
+                        topicQuestionListHtml = '<p class="section-label" style="margin-top:16px">Saved Questions (' +
+                            qs.length + ')</p>';
+                        qs.forEach(function(q) {
+                            let optsList = '<ul class="admin-list">';
+                            q.options.forEach(function(o, oi) {
+                                optsList += '<li' + (oi === q.correct_answer ? ' style="color:' +
+                                    GREEN + ';font-weight:600"' : '') + '>' + esc(o) + (oi === q
+                                    .correct_answer ? ' ✓' : '') + '</li>';
+                            });
+                            optsList += '</ul>';
+                            topicQuestionListHtml += (
+                                '<div class="card" style="margin-bottom:8px">' +
+                                '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">' +
+                                '<p style="font-size:13px;font-weight:600;margin:0">' + esc(q.text) +
+                                '</p>' +
+                                '<div style="display:flex;gap:4px;flex-shrink:0">' +
+                                '<button class="mini-btn danger" data-action="admin-delete-topic-question" data-qid="' +
+                                q.id + '">×</button>' +
+                                '</div>' +
+                                '</div>' +
+                                optsList +
+                                (q.explanation ?
+                                    '<div class="explanation-box" style="margin-top:8px"><span class="label">💡 Explanation</span><p>' +
+                                    esc(q.explanation) + '</p></div>' : '') +
+                                '</div>'
+                            );
+                        });
+                    }
+                }
+
+                // Question form
+                let optsHtml = "";
+                for (let i = 0; i < 4; i++) {
+                    optsHtml += (
+                        '<div class="opt-row">' +
+                        '<input type="radio" name="qform-correct" value="' + i + '"' + (state.admin.qCorrect ===
+                            i ? ' checked' : '') + ' data-action="qform-correct" />' +
+                        '<input class="field" data-action="qform-opt" data-idx="' + i +
+                        '" placeholder="Option ' + (i + 1) + '" value="' + esc(state.admin.qOpts[i]) +
+                        '" />' +
+                        '</div>'
+                    );
+                }
+
+                return (
+                    '<div class="admin-sub-tabs">' + subTabs + '</div>' +
+                    topicSelectionHtml +
+                    '<div class="card">' +
+                    '<p style="font-size:14px;font-weight:600;margin:0 0 12px">➕ Add Topic Question</p>' +
+                    '<label class="field-label">Question text</label>' +
+                    '<textarea class="field" rows="3" data-action="qform-text" style="margin-bottom:10px" placeholder="Enter question...">' +
+                    esc(state.admin.qText) + '</textarea>' +
+                    '<label class="field-label">Options (tick the correct one)</label>' +
+                    optsHtml +
+                    '<label class="field-label">Explanation (shown after answering)</label>' +
+                    '<textarea class="field" rows="2" data-action="qform-explanation" style="margin-bottom:10px" placeholder="Explain why this answer is correct...">' +
+                    esc(state.admin.qExplanation) + '</textarea>' +
+                    '<button class="btn btn-green" data-action="qform-add-topic" style="margin-top:4px">Save Question</button>' +
+                    '</div>' +
+                    topicQuestionListHtml
+                );
+            }
+
+            return (
+                '<div class="admin-sub-tabs">' + subTabs + '</div>' +
+                topicSelectionHtml +
+                '<div class="card"><p style="text-align:center;color:var(--muted);padding:20px 0">Select or create a topic to start adding questions.</p></div>'
+            );
+        }
+
+        // For non-topic sub-tabs (cbt/exam/mock/literature)
         let subjOptions = '<option value="">Select subject</option>';
         let filteredSubjects = SUBJECTS;
         if (state.adminSubTab === "literature") {
@@ -3398,11 +3703,17 @@
                 state.adminSubTab === "mock" ? "mock" :
                 state.adminSubTab === "literature" ? "cbt" : "subject";
             const year = (state.adminSubTab === "exam" || state.adminSubTab === "mock") ? state.admin.examYear : null;
+            const key = type + ':' + state.admin.qSubject + ':' + (year || '');
 
-            questionListHtml = '<div class="loading-spinner"><div class="spinner"></div><p>Loading questions...</p></div>';
-            getQuestionsForAdmin(type, state.admin.qSubject, year).then(function(questions) {
+            if (!state.adminQuestionsLoaded || state.adminQuestionsKey !== key) {
+                questionListHtml =
+                    '<div class="loading-spinner"><div class="spinner"></div><p>Loading questions...</p></div>';
+                loadAdminQuestions(type, state.admin.qSubject, year);
+            } else {
+                const questions = state.adminQuestionsList;
                 if (questions.length === 0) {
-                    questionListHtml = '<p style="font-size:12px;color:var(--faint);margin-top:12px">No questions saved yet for this subject.</p>';
+                    questionListHtml =
+                        '<p style="font-size:12px;color:var(--faint);margin-top:12px">No questions saved yet for this subject.</p>';
                 } else {
                     questionListHtml = '<p class="section-label" style="margin-top:16px">Saved Questions (' +
                         questions.length + ')</p>';
@@ -3469,8 +3780,7 @@
                         }
                     });
                 }
-                render();
-            });
+            }
         }
 
         return (
@@ -3502,6 +3812,9 @@
         );
     }
 
+    // ============================================================
+    //  ADMIN SETTINGS
+    // ============================================================
     function renderAdminSettings() {
         return (
             '<div class="card">' +
@@ -3524,7 +3837,7 @@
     }
 
     // ============================================================
-    //  ADMIN DOCUMENTS - FIXED LOADING
+    //  ADMIN DOCUMENTS
     // ============================================================
     function renderAdminDocuments() {
         let subjOptions = '<option value="">— General (no subject) —</option>';
@@ -3574,7 +3887,7 @@
     }
 
     // ============================================================
-    //  ADMIN SYLLABUS - FIXED LOADING
+    //  ADMIN SYLLABUS - FIXED: image preview (Bug 4)
     // ============================================================
     function renderAdminSyllabus() {
         let chips = "";
@@ -3588,11 +3901,36 @@
         let body = '<p class="section-label">Select a subject</p><div class="subject-grid">' + chips + '</div>';
 
         if (state.admin.syllabusSubject) {
-            // Check if we need to load
             if (!state.syllabusLoaded || (state.syllabusData && state.syllabusData.subject_id !== state.admin
                     .syllabusSubject)) {
                 state.admin.syllabusText = "";
                 loadSyllabus(state.admin.syllabusSubject);
+            }
+
+            // Show current file preview if exists
+            let filePreview = "";
+            if (state.syllabusData && state.syllabusData.file_url) {
+                const fname = (state.syllabusData.file_name || '').toLowerCase();
+                const isImage = /\.(png|jpe?g|gif|webp)$/.test(fname);
+                if (isImage) {
+                    filePreview = '<img src="' + state.syllabusData.file_url +
+                        '" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" alt="Current syllabus image" />';
+                }
+                filePreview += '<a class="btn btn-outline" href="' + state.syllabusData.file_url +
+                    '" target="_blank" style="margin-bottom:12px">' + (isImage ? 'Open full image' :
+                        'Download current file') + '</a>';
+            }
+
+            // Show newly selected file preview
+            let newFilePreview = "";
+            if (state.admin.syllabusFile) {
+                const isImage = state.admin.syllabusFile.type && state.admin.syllabusFile.type.startsWith('image/');
+                if (isImage) {
+                    newFilePreview = '<img src="' + state.admin.syllabusFile.dataUrl +
+                        '" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" alt="New syllabus image" />';
+                }
+                newFilePreview += '<p style="font-size:11px;color:var(--muted);margin-bottom:12px">New file: ' +
+                    esc(state.admin.syllabusFile.name) + '</p>';
             }
 
             body += (
@@ -3600,10 +3938,10 @@
                 '<label class="field-label">Syllabus content (text)</label>' +
                 '<textarea id="syllabus-text-area" class="field" rows="6" style="margin-bottom:12px" placeholder="Paste or type the syllabus outline...">' +
                 esc(state.admin.syllabusText) + '</textarea>' +
-                '<label class="field-label">Or upload a file (PDF/Word)</label>' +
-                '<input id="syllabus-file-input" class="file-input" type="file" accept=".pdf,.doc,.docx" style="margin-bottom:8px" />' +
-                '<p style="font-size:11px;color:var(--faint);margin:0 0 12px">' + (state.admin.syllabusFile ? esc(state
-                    .admin.syllabusFile.name) : "No file uploaded") + '</p>' +
+                '<label class="field-label">Upload file (PDF, Word, or Image)</label>' +
+                '<input id="syllabus-file-input" class="file-input" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp" style="margin-bottom:8px" />' +
+                filePreview +
+                newFilePreview +
                 '<button class="btn btn-green" data-action="admin-save-syllabus">Save syllabus</button>' +
                 '</div>'
             );
@@ -3612,61 +3950,8 @@
     }
 
     // ============================================================
-    //  ADMIN TOPICS - FIXED LOADING
+    //  ADMIN USERS
     // ============================================================
-    function renderAdminTopics() {
-        let chips = "";
-        SUBJECTS.forEach(function(s) {
-            const sel = state.admin.topicSubject === s.id;
-            chips += '<button class="subject-chip' + (sel ? ' selected' : '') +
-                '" data-action="admin-select-topic-subject" data-subject="' + s.id + '">' + subjectBadge(s) +
-                '<span class="sname">' + esc(s.name) + '</span></button>';
-        });
-
-        let body = '<p class="section-label">Select a subject</p><div class="subject-grid">' + chips + '</div>';
-
-        if (state.admin.topicSubject) {
-            // Check if we need to load
-            if (!state.topicsLoaded || state.topicsSubjectId !== state.admin.topicSubject) {
-                loadTopics(state.admin.topicSubject);
-            }
-
-            let topicsHtml = "";
-            if (!state.topicsLoaded || state.topicsSubjectId !== state.admin.topicSubject) {
-                topicsHtml = '<div class="loading-spinner"><div class="spinner"></div><p>Loading topics...</p></div>';
-            } else if (state.topicsList.length === 0) {
-                topicsHtml = '<p style="font-size:12px;color:var(--faint)">No topics yet for this subject.</p>';
-            } else {
-                topicsHtml = '<p class="section-label">Topics</p>';
-                state.topicsList.forEach(function(t) {
-                    topicsHtml += (
-                        '<div class="lb-row">' +
-                        '<button style="flex:1;text-align:left" data-action="admin-select-topic" data-topic="' +
-                        t.id + '">' +
-                        '<span class="left">' + esc(t.name) + '</span>' +
-                        '</button>' +
-                        '<button class="mini-btn danger" data-action="admin-delete-topic" data-subject="' +
-                        state.admin.topicSubject + '" data-topic="' + t.id + '">Delete</button>' +
-                        '</div>'
-                    );
-                });
-            }
-
-            body += (
-                '<div class="card" style="margin-bottom:12px">' +
-                '<label class="field-label">New topic name</label>' +
-                '<div style="display:flex;gap:8px">' +
-                '<input id="new-topic-input" class="field" placeholder="e.g. Algebra" value="' + esc(state.admin
-                    .newTopicName) + '" />' +
-                '<button class="mini-btn primary" style="padding:0 16px" data-action="admin-add-topic">Add</button>' +
-                '</div>' +
-                '</div>' +
-                topicsHtml
-            );
-        }
-        return body;
-    }
-
     function renderAdminUsers() {
         const users = state.allUsers || [];
 
@@ -3696,7 +3981,51 @@
     }
 
     // ============================================================
-    //  DRAWER (unchanged)
+    //  ADMIN NOTIFICATIONS (Feature 5)
+    // ============================================================
+    function renderAdminNotifications() {
+        let notifList = "";
+        if (!state.notifsLoaded) {
+            notifList = '<div class="loading-spinner"><div class="spinner"></div><p>Loading notifications...</p></div>';
+            loadNotifications();
+        } else if (state.notifsList.length === 0) {
+            notifList = '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:12px">No notifications sent yet.</p>';
+        } else {
+            state.notifsList.forEach(function(n) {
+                notifList += (
+                    '<div class="lb-row">' +
+                    '<div class="left">' +
+                    '<span style="font-weight:600;font-size:13px">' + esc(n.title) + '</span>' +
+                    '<span style="font-size:11px;color:var(--muted)">' + esc(n.body.length > 60 ? n.body
+                        .slice(0, 60) + '...' : n.body) + '</span>' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;gap:8px">' +
+                    '<span style="font-size:10px;color:var(--faint)">' + formatTimeAgo(n.created_at) +
+                    '</span>' +
+                    '<button class="mini-btn danger" data-action="admin-delete-notification" data-id="' +
+                    n.id + '">×</button>' +
+                    '</div>' +
+                    '</div>'
+                );
+            });
+        }
+
+        return (
+            '<div class="card" style="margin-bottom:16px">' +
+            '<p style="font-size:14px;font-weight:600;margin:0 0 12px">🔔 Send Notification</p>' +
+            '<label class="field-label">Title</label>' +
+            '<input class="field" id="admin-notif-title" placeholder="Notification title" style="margin-bottom:12px" />' +
+            '<label class="field-label">Body</label>' +
+            '<textarea class="field" id="admin-notif-body" rows="3" placeholder="Notification message..." style="margin-bottom:12px"></textarea>' +
+            '<button class="btn btn-green" data-action="admin-send-notification">Send Notification</button>' +
+            '</div>' +
+            '<p class="section-label">Sent Notifications</p>' +
+            notifList
+        );
+    }
+
+    // ============================================================
+    //  DRAWER
     // ============================================================
     function renderDrawer(unread, isLoggedIn) {
         let navItems = (
@@ -3780,7 +4109,7 @@
     }
 
     // ============================================================
-    //  AUTH MODALS (unchanged)
+    //  AUTH MODALS
     // ============================================================
     function renderLoginModal() {
         return (
@@ -3876,18 +4205,28 @@
         if (v === "admin") {
             loadAllUsers();
             loadAllQuestionsCount();
-            // Preload documents for admin
             if (!state.docsLoaded) {
                 loadDocuments();
             }
+            if (!state.notifsLoaded) {
+                loadNotifications();
+            }
+        }
+        if (v === "notifications") {
+            loadNotifications();
         }
         render();
     }
 
     // ============================================================
-    //  EVENT HANDLING (unchanged except for admin topic selection clear)
+    //  EVENT HANDLING - FIXED: blur active element before DOM swap (Bug 3)
     // ============================================================
     root.addEventListener("click", function(e) {
+        // Blur any focused element to prevent auto-scroll after DOM swap
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
+
         const el = e.target.closest("[data-action]");
         if (!el) return;
         const action = el.getAttribute("data-action");
@@ -3967,6 +4306,17 @@
             render(); }
         if (action === "set-view") { setView(el.getAttribute("data-view")); }
 
+        // ---- Notifications ----
+        if (action === "mark-notif-read") {
+            const id = el.getAttribute("data-id");
+            if (id) markNotificationRead(id);
+            return;
+        }
+        if (action === "mark-all-notifs-read") {
+            markAllNotificationsRead();
+            return;
+        }
+
         // ---- Leaderboard ----
         if (action === "lb-tab") { state.leaderboardTab = el.getAttribute("data-tab");
             loadLeaderboard(state.leaderboardTab);
@@ -3987,8 +4337,11 @@
             render();
             return;
         }
-        if (action === "mark-all-read") { state.notifs.forEach(function(n) { n.unread = false; });
-            render(); return; }
+        if (action === "mark-all-read") {
+            // Legacy - now handled by mark-all-notifs-read
+            markAllNotificationsRead();
+            return;
+        }
         if (action === "activate-submit") { state.activateStatus = (state.activateCode || "").trim() ? "pending" :
             "empty";
             render(); return; }
@@ -4078,7 +4431,6 @@
             const id = el.getAttribute("data-subject");
             state.topicSubject = (state.topicSubject === id) ? null : id;
             state.topicId = null;
-            // Reset topic loading state when subject changes
             state.topicsLoaded = false;
             state.topicsList = [];
             state.topicsSubjectId = null;
@@ -4101,7 +4453,6 @@
 
         // ---- Documents ----
         if (action === "select-doc-filter") { state.docFilterSubject = el.getAttribute("data-subject") || null;
-            // Reset docs loaded so it reloads with filter
             state.docsLoaded = false;
             render();
             return; }
@@ -4129,38 +4480,71 @@
 
         // ---- Admin ----
         if (action === "admin-tab") { state.adminTab = el.getAttribute("data-tab");
-            // Reset loading states when switching tabs
+            state.adminQuestionsLoaded = false;
+            state.adminQuestionsList = [];
+            state.adminQuestionsKey = null;
             if (state.adminTab === "documents") {
                 state.docsLoaded = false;
             } else if (state.adminTab === "syllabus") {
                 state.syllabusLoaded = false;
                 state.syllabusData = null;
-            } else if (state.adminTab === "topics") {
-                state.topicsLoaded = false;
-                state.topicsList = [];
-                state.topicsSubjectId = null;
+            } else if (state.adminTab === "notifications") {
+                state.notifsLoaded = false;
             }
             render(); return; }
-        if (action === "admin-sub-tab") { state.adminSubTab = el.getAttribute("data-tab");
+        if (action === "admin-sub-tab") {
+            state.adminSubTab = el.getAttribute("data-tab");
             state.admin.qSubject = "";
             state.admin.qText = "";
             state.admin.qOpts = ["", "", "", ""];
             state.admin.qCorrect = 0;
             state.admin.qExplanation = "";
             state.admin.editingQuestionId = null;
-            render(); return; }
-        if (action === "admin-add-topic") {
-            const subj = state.admin.topicSubject;
+            state.adminQuestionsLoaded = false;
+            state.adminQuestionsList = [];
+            state.adminQuestionsKey = null;
+            // Reset topic-specific state when switching to topic tab
+            if (state.adminSubTab === "topic") {
+                state.admin.topicSubject = "";
+                state.admin.topicId = "";
+                state.admin.newTopicName = "";
+                state.topicsLoaded = false;
+                state.topicsList = [];
+                state.topicsSubjectId = null;
+            }
+            render();
+            return;
+        }
+        // ---- Admin: Add topic inline (Bug 2) ----
+        if (action === "admin-add-topic-inline") {
+            const subjSelect = document.getElementById("admin-topic-subject");
+            const subj = subjSelect ? subjSelect.value : "";
+            const nameInput = document.getElementById("admin-new-topic-input");
+            const name = nameInput ? nameInput.value.trim() : "";
             if (!subj) { showToast("Select a subject first.", "error"); return; }
-            const name = (state.admin.newTopicName || "").trim();
             if (!name) { showToast("Enter a topic name.", "error"); return; }
             supabase.from('topics').insert([{ subject_id: subj, name: name, question_count: 0 }]).then(function() {
                 showToast("Topic added!", "success");
                 state.admin.newTopicName = "";
-                // Reset and reload topics
                 state.topicsLoaded = false;
                 state.topicsList = [];
                 state.topicsSubjectId = null;
+                // Reload topics for this subject
+                loadTopics(subj);
+                // Select the new topic
+                setTimeout(function() {
+                    // Find the newly created topic
+                    loadTopicsFromDB(subj).then(function(topics) {
+                        const newTopic = topics.find(function(t) { return t.name === name; });
+                        if (newTopic) {
+                            state.admin.topicId = newTopic.id;
+                            state.adminQuestionsLoaded = false;
+                            state.adminQuestionsList = [];
+                            state.adminQuestionsKey = null;
+                            render();
+                        }
+                    });
+                }, 500);
                 render();
             }).catch(function() { showToast("Error adding topic.", "error"); });
             return;
@@ -4174,6 +4558,12 @@
                 state.topicsLoaded = false;
                 state.topicsList = [];
                 state.topicsSubjectId = null;
+                if (state.admin.topicId === topicId) {
+                    state.admin.topicId = "";
+                    state.adminQuestionsLoaded = false;
+                    state.adminQuestionsList = [];
+                    state.adminQuestionsKey = null;
+                }
                 render();
             }).catch(function() { showToast("Error deleting topic.", "error"); });
             return;
@@ -4283,6 +4673,7 @@
             }).catch(function() { showToast("Error saving settings.", "error"); });
             return;
         }
+        // ---- Admin: qform-add-admin (non-topic) ----
         if (action === "qform-add-admin") {
             const subject = document.getElementById("admin-qsubject")?.value || "";
             const year = parseInt(document.getElementById("admin-qyear")?.value || 2026);
@@ -4314,9 +4705,73 @@
                 state.admin.qOpts = ["", "", "", ""];
                 state.admin.qCorrect = 0;
                 state.admin.qExplanation = "";
+                state.adminQuestionsLoaded = false;
+                state.adminQuestionsList = [];
+                state.adminQuestionsKey = null;
                 loadAllQuestionsCount();
                 render();
             }).catch(function() { showToast("Error saving question.", "error"); });
+            return;
+        }
+        // ---- Admin: qform-add-topic (topic questions) ----
+        if (action === "qform-add-topic") {
+            const topicId = state.admin.topicId;
+            const text = (state.admin.qText || "").trim();
+            const opts = state.admin.qOpts.map(function(o) { return (o || "").trim(); });
+            const explanation = (state.admin.qExplanation || "").trim();
+            if (!topicId) { showToast("Select a topic first.", "error"); return; }
+            if (!text || opts.some(function(o) { return !o; })) {
+                showToast("Fill in question text and all 4 options.", "error");
+                return;
+            }
+
+            supabase.from('topic_questions').insert([{
+                topic_id: topicId,
+                text: text,
+                options: opts,
+                correct_answer: state.admin.qCorrect,
+                explanation: explanation,
+            }]).then(function() {
+                showToast("Question saved!", "success");
+                state.admin.qText = "";
+                state.admin.qOpts = ["", "", "", ""];
+                state.admin.qCorrect = 0;
+                state.admin.qExplanation = "";
+                state.adminQuestionsLoaded = false;
+                state.adminQuestionsList = [];
+                state.adminQuestionsKey = null;
+                // Update question count for topic
+                loadTopicsFromDB(state.admin.topicSubject).then(function(topics) {
+                    const topic = topics.find(function(t) { return t.id === topicId; });
+                    if (topic) {
+                        supabase.from('topics').update({ question_count: (topic.question_count || 0) +
+                            1 }).eq('id', topicId).then(function() {});
+                    }
+                });
+                render();
+            }).catch(function() { showToast("Error saving question.", "error"); });
+            return;
+        }
+        // ---- Admin: delete topic question ----
+        if (action === "admin-delete-topic-question") {
+            const qid = el.getAttribute("data-qid");
+            if (!confirm("Delete this question?")) return;
+            supabase.from('topic_questions').delete().eq('id', qid).then(function() {
+                showToast("Question deleted.", "success");
+                state.adminQuestionsLoaded = false;
+                state.adminQuestionsList = [];
+                state.adminQuestionsKey = null;
+                // Update question count for topic
+                loadTopicsFromDB(state.admin.topicSubject).then(function(topics) {
+                    const topic = topics.find(function(t) { return t.id === state.admin.topicId; });
+                    if (topic) {
+                        supabase.from('topics').update({ question_count: Math.max(0, (topic
+                                .question_count || 0) - 1) }).eq('id', state.admin.topicId)
+                            .then(function() {});
+                    }
+                });
+                render();
+            }).catch(function() { showToast("Error deleting question.", "error"); });
             return;
         }
 
@@ -4357,6 +4812,9 @@
             }).eq('id', qid).then(function() {
                 showToast("Question updated!", "success");
                 state.admin.editingQuestionId = null;
+                state.adminQuestionsLoaded = false;
+                state.adminQuestionsList = [];
+                state.adminQuestionsKey = null;
                 loadAllQuestionsCount();
                 render();
             }).catch(function() { showToast("Error updating question.", "error"); });
@@ -4367,21 +4825,52 @@
             if (!confirm("Delete this question?")) return;
             supabase.from('questions').delete().eq('id', qid).then(function() {
                 showToast("Question deleted.", "success");
+                state.adminQuestionsLoaded = false;
+                state.adminQuestionsList = [];
+                state.adminQuestionsKey = null;
                 loadAllQuestionsCount();
                 render();
             }).catch(function() { showToast("Error deleting question.", "error"); });
             return;
         }
+
+        // ---- Admin Notifications (Feature 5) ----
+        if (action === "admin-send-notification") {
+            const title = document.getElementById("admin-notif-title")?.value?.trim() || "";
+            const body = document.getElementById("admin-notif-body")?.value?.trim() || "";
+            if (!title || !body) { showToast("Fill in both title and body.", "error"); return; }
+            supabase.from('notifications').insert([{ title: title, body: body }]).then(function() {
+                showToast("Notification sent!", "success");
+                document.getElementById("admin-notif-title").value = "";
+                document.getElementById("admin-notif-body").value = "";
+                state.notifsLoaded = false;
+                loadNotifications();
+            }).catch(function() { showToast("Error sending notification.", "error"); });
+            return;
+        }
+        if (action === "admin-delete-notification") {
+            const id = el.getAttribute("data-id");
+            if (!confirm("Delete this notification?")) return;
+            supabase.from('notifications').delete().eq('id', id).then(function() {
+                showToast("Notification deleted.", "success");
+                state.notifsLoaded = false;
+                loadNotifications();
+            }).catch(function() { showToast("Error deleting notification.", "error"); });
+            return;
+        }
     });
 
     // ============================================================
-    //  INPUT HANDLING (unchanged)
+    //  INPUT HANDLING
     // ============================================================
     root.addEventListener("change", function(e) {
         const id = e.target.id;
-        if (id === "exam-year-select") { state.examYear = parseInt(e.target.value, 10); }
-        if (id === "doc-subject-select") { state.admin.docSubject = e.target.value || ""; }
-        if (id === "doc-file-input") {
+
+        if (id === "exam-year-select") {
+            state.examYear = parseInt(e.target.value, 10);
+        } else if (id === "doc-subject-select") {
+            state.admin.docSubject = e.target.value || "";
+        } else if (id === "doc-file-input") {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -4391,19 +4880,51 @@
                 render();
             };
             reader.readAsDataURL(file);
-        }
-        if (id === "syllabus-file-input") {
+        } else if (id === "syllabus-file-input") {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(ev) {
                 state.admin.syllabusFile = { name: file.name, type: file.type, size: file.size, dataUrl: ev.target
                         .result };
+                // Show preview in render
                 render();
             };
             reader.readAsDataURL(file);
-        }
-        if (e.target.getAttribute && e.target.getAttribute("data-action") === "qform-correct") {
+        } else if (id === "admin-qsubject") {
+            state.admin.qSubject = e.target.value || "";
+            state.adminQuestionsLoaded = false;
+            state.adminQuestionsList = [];
+            state.adminQuestionsKey = null;
+            render();
+        } else if (id === "admin-qyear") {
+            state.admin.examYear = parseInt(e.target.value, 10) || 2026;
+            state.adminQuestionsLoaded = false;
+            state.adminQuestionsList = [];
+            state.adminQuestionsKey = null;
+            render();
+        } else if (id === "admin-topic-subject") {
+            const subj = e.target.value || "";
+            state.admin.topicSubject = subj;
+            state.admin.topicId = "";
+            state.topicsLoaded = false;
+            state.topicsList = [];
+            state.topicsSubjectId = null;
+            state.adminQuestionsLoaded = false;
+            state.adminQuestionsList = [];
+            state.adminQuestionsKey = null;
+            if (subj) {
+                loadTopics(subj);
+            }
+            render();
+        } else if (id === "admin-topic-select") {
+            const topicId = e.target.value || "";
+            state.admin.topicId = topicId;
+            state.adminQuestionsLoaded = false;
+            state.adminQuestionsList = [];
+            state.adminQuestionsKey = null;
+            render();
+        } else if (e.target.getAttribute && e.target.getAttribute("data-action") === "qform-correct") {
             state.admin.qCorrect = parseInt(e.target.value, 10);
         }
     });
@@ -4417,6 +4938,9 @@
         else if (id === "doc-name-input") state.admin.docName = e.target.value;
         else if (id === "syllabus-text-area") state.admin.syllabusText = e.target.value;
         else if (id === "new-topic-input") state.admin.newTopicName = e.target.value;
+        else if (id === "admin-new-topic-input") state.admin.newTopicName = e.target.value;
+        else if (id === "admin-notif-title") { /* handled on send */ }
+        else if (id === "admin-notif-body") { /* handled on send */ }
         else if (id === "login-email") state.loginEmail = e.target.value;
         else if (id === "login-password") state.loginPassword = e.target.value;
         else if (id === "signup-username") state.signupUsername = e.target.value;
@@ -4432,7 +4956,7 @@
     });
 
     // ============================================================
-    //  CBT FUNCTIONS (unchanged)
+    //  CBT FUNCTIONS
     // ============================================================
     async function startCbt() {
         const isFull = state.cbtMode === "full";
@@ -4687,6 +5211,7 @@
         await loadAllUsers();
         await loadAllQuestionsCount();
         await loadLeaderboard('cbt');
+        await loadNotifications();
 
         render();
 
