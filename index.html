@@ -516,6 +516,7 @@
         width: 100%;
         font-size: 12px;
         color: var(--muted);
+        padding: 4px 0;
     }
     .btn {
         display: block;
@@ -928,6 +929,10 @@
     .mini-btn.primary {
         background: var(--green);
         color: #fff;
+    }
+    .mini-btn.edit {
+        background: var(--gold);
+        color: var(--ink);
     }
 
     .qa-option {
@@ -1352,6 +1357,26 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+
+    .question-count-badge {
+        display: inline-block;
+        background: var(--green);
+        color: #fff;
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        margin-left: 6px;
+    }
+
+    .edit-form {
+        background: var(--card-bg);
+        border: 1px solid var(--gold);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    .edit-form .field { margin-bottom: 8px; }
+    .edit-form .btn { margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -1371,7 +1396,7 @@
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ============================================================
-    //  STORAGE HELPERS (only for theme and profile)
+    //  STORAGE HELPERS
     // ============================================================
     const storage = {
         get(key) { try { const v = localStorage.getItem(key); return v !== null ? v : null; } catch (e) { return null; } },
@@ -1590,8 +1615,18 @@
             cbtTimeLimit: 100,
             subjectTimeLimit: 25,
             mockTimeLimit: 100,
+            editingQuestionId: null,
         },
         adminLoading: false,
+        questionCounts: {},
+
+        // Fixed: Loaded flags for documents, syllabus, topics
+        docsLoaded: false,
+        docsList: [],
+        syllabusLoaded: false,
+        syllabusData: null,
+        topicsLoaded: false,
+        topicsList: [],
     };
 
     // ============================================================
@@ -1887,6 +1922,49 @@
         }
     }
 
+    async function loadAllQuestionsCount() {
+        try {
+            const { data, error } = await supabase
+                .from('questions')
+                .select('type, subject_id');
+
+            if (error) throw error;
+
+            const counts = {};
+            (data || []).forEach(function(q) {
+                const key = q.type + ':' + q.subject_id;
+                counts[key] = (counts[key] || 0) + 1;
+            });
+            state.questionCounts = counts;
+            return counts;
+        } catch (e) {
+            console.warn("Load question counts error:", e);
+            return {};
+        }
+    }
+
+    async function getQuestionsForAdmin(type, subjectId, year) {
+        try {
+            let query = supabase
+                .from('questions')
+                .select('*')
+                .eq('subject_id', subjectId)
+                .eq('type', type);
+
+            if (year) {
+                query = query.eq('year', year);
+            }
+
+            const { data, error } = await query.order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (e) {
+            console.warn("Load admin questions error:", e);
+            return [];
+        }
+    }
+
     async function loadSettings() {
         try {
             const { data, error } = await supabase
@@ -1919,6 +1997,118 @@
                 mockTimeLimit: 100,
                 mockSubjects: 4,
             };
+        }
+    }
+
+    // ============================================================
+    //  FIXED: DB LOAD FUNCTIONS WITH LOADED FLAGS
+    // ============================================================
+    function loadDocuments(filterSubject) {
+        if (state.docsLoaded) {
+            // Already loaded, just use cached data
+            return;
+        }
+        // Don't set loading state - we show spinner based on !docsLoaded
+        loadDocumentsFromDB(filterSubject).then(function(docs) {
+            state.docsList = docs || [];
+            state.docsLoaded = true;
+            render();
+        }).catch(function() {
+            state.docsList = [];
+            state.docsLoaded = true;
+            render();
+        });
+    }
+
+    function loadSyllabus(subjectId) {
+        if (state.syllabusLoaded && state.syllabusData && state.syllabusData.subject_id === subjectId) {
+            return;
+        }
+        // Reset and load
+        state.syllabusLoaded = false;
+        state.syllabusData = null;
+        render();
+
+        loadSyllabusFromDB(subjectId).then(function(data) {
+            state.syllabusData = data || null;
+            state.syllabusLoaded = true;
+            render();
+        }).catch(function() {
+            state.syllabusData = null;
+            state.syllabusLoaded = true;
+            render();
+        });
+    }
+
+    function loadTopics(subjectId) {
+        if (state.topicsLoaded && state.topicsList.length > 0) {
+            // Check if cached data is for this subject by checking if any topic has this subject_id
+            // We store the subject_id in state to compare
+            if (state.topicsSubjectId === subjectId) {
+                return;
+            }
+        }
+        // Reset and load
+        state.topicsLoaded = false;
+        state.topicsList = [];
+        state.topicsSubjectId = subjectId;
+        render();
+
+        loadTopicsFromDB(subjectId).then(function(topics) {
+            state.topicsList = topics || [];
+            state.topicsSubjectId = subjectId;
+            state.topicsLoaded = true;
+            render();
+        }).catch(function() {
+            state.topicsList = [];
+            state.topicsSubjectId = subjectId;
+            state.topicsLoaded = true;
+            render();
+        });
+    }
+
+    async function loadDocumentsFromDB(filterSubject) {
+        try {
+            let query = supabase.from('materials').select('*');
+            if (filterSubject) {
+                query = query.eq('subject_id', filterSubject);
+            }
+            const { data, error } = await query.order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        } catch (e) {
+            console.warn("Load documents error:", e);
+            return [];
+        }
+    }
+
+    async function loadSyllabusFromDB(subjectId) {
+        try {
+            const { data, error } = await supabase
+                .from('syllabus')
+                .select('*')
+                .eq('subject_id', subjectId)
+                .maybeSingle();
+            if (error) throw error;
+            return data;
+        } catch (e) {
+            console.warn("Load syllabus error:", e);
+            return null;
+        }
+    }
+
+    async function loadTopicsFromDB(subjectId) {
+        try {
+            const { data, error } = await supabase
+                .from('topics')
+                .select('*')
+                .eq('subject_id', subjectId)
+                .order('name');
+            if (error) throw error;
+            return data || [];
+        } catch (e) {
+            console.warn("Load topics error:", e);
+            return [];
         }
     }
 
@@ -2057,7 +2247,7 @@
     }
 
     // ============================================================
-    //  VIEWS
+    //  VIEWS (only admin-related changes shown, rest same as before)
     // ============================================================
     function renderView() {
         const v = state.view;
@@ -2121,7 +2311,7 @@
     }
 
     // ============================================================
-    //  LITERATURE
+    //  LITERATURE (unchanged)
     // ============================================================
     function renderLiteratureHome() {
         return (
@@ -2175,7 +2365,6 @@
     }
 
     function renderLiteratureMaterials() {
-        // Will use materials table
         return (
             '<button class="back-link" data-action="set-view" data-view="literature">' + svg("chevleft", 16) +
             ' Literature</button>' +
@@ -2187,7 +2376,7 @@
     }
 
     // ============================================================
-    //  CBT MODE
+    //  CBT MODE (unchanged)
     // ============================================================
     function renderCbtMode() {
         const others = SUBJECTS.filter(function(s) { return !s.compulsory; });
@@ -2260,7 +2449,7 @@
     }
 
     // ============================================================
-    //  CBT EXAM
+    //  CBT EXAM (unchanged)
     // ============================================================
     function renderCbtExam() {
         if (!state.cbtQuestions || state.cbtQuestions.length === 0) {
@@ -2411,7 +2600,7 @@
     }
 
     // ============================================================
-    //  EXAM MODE
+    //  EXAM MODE (unchanged)
     // ============================================================
     function renderExamMode() {
         let chips = "";
@@ -2453,7 +2642,7 @@
     }
 
     // ============================================================
-    //  EXAM EXAM
+    //  EXAM EXAM (unchanged)
     // ============================================================
     function renderExamExam() {
         if (!state.examQuestions || state.examQuestions.length === 0) {
@@ -2599,7 +2788,7 @@
     }
 
     // ============================================================
-    //  MOCK EXAM (no year)
+    //  MOCK EXAM (no year) - unchanged
     // ============================================================
     function renderMockExamPicker() {
         let chips = "";
@@ -2632,7 +2821,7 @@
     }
 
     // ============================================================
-    //  TOPICS
+    //  TOPICS PICKER (user-facing) - FIXED
     // ============================================================
     function renderTopicsPicker() {
         let subjChips = "";
@@ -2649,14 +2838,20 @@
 
         let topicsHtml = "";
         if (state.topicSubject) {
-            // Load topics from Supabase
-            topicsHtml = '<div class="loading-spinner"><div class="spinner"></div><p>Loading topics...</p></div>';
-            loadTopicsFromDB(state.topicSubject).then(function(topics) {
-                if (topics.length === 0) {
+            // Check if loaded for this subject
+            if (!state.topicsLoaded || state.topicsSubjectId !== state.topicSubject) {
+                topicsHtml = '<div class="loading-spinner"><div class="spinner"></div><p>Loading topics...</p></div>';
+                // Load if not loaded
+                if (!state.topicsLoaded || state.topicsSubjectId !== state.topicSubject) {
+                    loadTopics(state.topicSubject);
+                }
+            } else {
+                // Loaded - show topics or empty message
+                if (state.topicsList.length === 0) {
                     topicsHtml = '<p style="font-size:12px;color:var(--faint);margin-top:8px">No topics have been added for this subject yet.</p>';
                 } else {
                     topicsHtml = '<p class="section-label" style="margin-top:16px">Choose a topic</p>';
-                    topics.forEach(function(t) {
+                    state.topicsList.forEach(function(t) {
                         const sel = state.topicId === t.id;
                         topicsHtml += (
                             '<button class="lb-row" style="width:100%;text-align:left' + (sel ?
@@ -2669,9 +2864,7 @@
                         );
                     });
                 }
-                // Re-render to show topics
-                render();
-            });
+            }
         }
 
         const ready = !!(state.topicSubject && state.topicId);
@@ -2691,7 +2884,7 @@
     }
 
     // ============================================================
-    //  SYLLABUS
+    //  SYLLABUS (user-facing) - FIXED
     // ============================================================
     function renderSyllabusUser() {
         let chips = "";
@@ -2708,22 +2901,22 @@
 
         let content = "";
         if (state.syllabusViewSubject) {
-            content = '<div class="loading-spinner"><div class="spinner"></div><p>Loading syllabus...</p></div>';
-            loadSyllabusFromDB(state.syllabusViewSubject).then(function(data) {
-                if (!data || (!data.content && !data.file_url)) {
-                    content =
-                        '<div class="card"><p style="font-size:13px;color:var(--muted);margin:0">No syllabus has been uploaded for this subject yet.</p></div>';
-                } else {
-                    content = '<div class="card">';
-                    if (data.content) content +=
-                        '<p style="font-size:13px;white-space:pre-wrap;margin:0 0 12px;line-height:1.5">' + esc(data
-                            .content) + '</p>';
-                    if (data.file_url) content += '<a class="btn btn-outline" href="' + data.file_url +
-                        '" target="_blank">Download Syllabus</a>';
-                    content += '</div>';
-                }
-                render();
-            });
+            if (!state.syllabusLoaded || (state.syllabusData && state.syllabusData.subject_id !== state
+                    .syllabusViewSubject)) {
+                content = '<div class="loading-spinner"><div class="spinner"></div><p>Loading syllabus...</p></div>';
+                loadSyllabus(state.syllabusViewSubject);
+            } else if (!state.syllabusData || (!state.syllabusData.content && !state.syllabusData.file_url)) {
+                content =
+                    '<div class="card"><p style="font-size:13px;color:var(--muted);margin:0">No syllabus has been uploaded for this subject yet.</p></div>';
+            } else {
+                content = '<div class="card">';
+                if (state.syllabusData.content) content +=
+                    '<p style="font-size:13px;white-space:pre-wrap;margin:0 0 12px;line-height:1.5">' + esc(state
+                        .syllabusData.content) + '</p>';
+                if (state.syllabusData.file_url) content += '<a class="btn btn-outline" href="' + state.syllabusData
+                    .file_url + '" target="_blank">Download Syllabus</a>';
+                content += '</div>';
+            }
         }
 
         return (
@@ -2738,7 +2931,7 @@
     }
 
     // ============================================================
-    //  DOCUMENTS
+    //  DOCUMENTS (user-facing) - FIXED
     // ============================================================
     function renderDocumentsUser() {
         let chips = (
@@ -2758,8 +2951,15 @@
             );
         });
 
-        let rows = '<div class="loading-spinner"><div class="spinner"></div><p>Loading documents...</p></div>';
-        loadDocumentsFromDB(state.docFilterSubject).then(function(docs) {
+        let rows = "";
+        if (!state.docsLoaded) {
+            rows = '<div class="loading-spinner"><div class="spinner"></div><p>Loading documents...</p></div>';
+            loadDocuments(state.docFilterSubject);
+        } else {
+            let docs = state.docsList;
+            if (state.docFilterSubject) {
+                docs = docs.filter(function(d) { return d.subject_id === state.docFilterSubject; });
+            }
             if (docs.length === 0) {
                 rows = '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:16px">No documents available yet.</p>';
             } else {
@@ -2776,8 +2976,7 @@
                     );
                 });
             }
-            render();
-        });
+        }
 
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
@@ -2790,7 +2989,7 @@
     }
 
     // ============================================================
-    //  LEADERBOARD
+    //  LEADERBOARD (unchanged)
     // ============================================================
     function renderLeaderboard() {
         const tabs = [
@@ -2846,7 +3045,7 @@
     }
 
     // ============================================================
-    //  NOTIFICATIONS, PROFILE, ACTIVATE
+    //  NOTIFICATIONS, PROFILE, ACTIVATE (unchanged)
     // ============================================================
     function renderNotifications() {
         let items = "";
@@ -2921,7 +3120,7 @@
     }
 
     // ============================================================
-    //  QUIZ (topic practice)
+    //  QUIZ (unchanged)
     // ============================================================
     function renderQuiz() {
         const q = state.quiz;
@@ -3044,7 +3243,7 @@
     }
 
     // ============================================================
-    //  ADMIN PANEL
+    //  ADMIN PANEL - FIXED LOADING FOR DOCUMENTS, SYLLABUS, TOPICS
     // ============================================================
     const ADMIN_TABS = [
         { key: "overview", label: "📊 Overview" },
@@ -3103,22 +3302,50 @@
 
     function renderAdminOverview() {
         const userCount = state.allUsers.length || 0;
+
+        let cbtCount = 0,
+            examCount = 0,
+            mockCount = 0,
+            topicCount = 0,
+            literatureCount = 0;
+
+        Object.keys(state.questionCounts).forEach(function(key) {
+            const parts = key.split(':');
+            const type = parts[0];
+            const subject = parts[1];
+            const count = state.questionCounts[key];
+            if (type === 'cbt') {
+                if (subject === 'lit') literatureCount += count;
+                else cbtCount += count;
+            } else if (type === 'exam') examCount += count;
+            else if (type === 'mock') mockCount += count;
+            else if (type === 'subject') topicCount += count;
+        });
+
         return (
             '<div class="admin-stat-grid">' +
             '<div class="admin-stat"><p class="n">' + SUBJECTS.length + '</p><p class="l">Subjects</p></div>' +
             '<div class="admin-stat"><p class="n">' + userCount + '</p><p class="l">Registered Users</p></div>' +
             '</div>' +
             '<div class="admin-stat-grid" style="margin-top:8px">' +
+            '<div class="admin-stat"><p class="n">' + cbtCount + '</p><p class="l">CBT Questions</p></div>' +
+            '<div class="admin-stat"><p class="n">' + examCount + '</p><p class="l">Exam Questions</p></div>' +
+            '</div>' +
+            '<div class="admin-stat-grid" style="margin-top:8px">' +
+            '<div class="admin-stat"><p class="n">' + mockCount + '</p><p class="l">Mock Questions</p></div>' +
+            '<div class="admin-stat"><p class="n">' + topicCount + '</p><p class="l">Topic Questions</p></div>' +
+            '</div>' +
+            '<div class="admin-stat-grid" style="margin-top:8px">' +
+            '<div class="admin-stat"><p class="n">' + literatureCount + '</p><p class="l">Literature Questions</p></div>' +
             '<div class="admin-stat"><p class="n">' + (state.admin.questionsPerSubject || 25) +
             '</p><p class="l">Qs per Subject</p></div>' +
-            '<div class="admin-stat"><p class="n">' + (state.admin.cbtTimeLimit || 100) +
-            '</p><p class="l">CBT Time (min)</p></div>' +
             '</div>' +
             '<div class="card" style="margin-top:12px">' +
             '<p style="font-size:14px;font-weight:600;margin:0 0 8px">📊 Quick Stats</p>' +
             '<ul class="admin-list">' +
             '<li>Total Users: ' + userCount + '</li>' +
             '<li>Subjects Available: ' + SUBJECTS.length + '</li>' +
+            '<li>Total Questions: ' + (cbtCount + examCount + mockCount + topicCount + literatureCount) + '</li>' +
             '<li>Questions per subject: ' + (state.admin.questionsPerSubject || 25) + '</li>' +
             '<li>CBT time limit: ' + (state.admin.cbtTimeLimit || 100) + ' minutes</li>' +
             '<li>Subject time limit: ' + (state.admin.subjectTimeLimit || 25) + ' minutes</li>' +
@@ -3164,6 +3391,88 @@
             );
         }
 
+        let questionListHtml = '';
+        if (state.admin.qSubject) {
+            const type = state.adminSubTab === "cbt" ? "cbt" :
+                state.adminSubTab === "exam" ? "exam" :
+                state.adminSubTab === "mock" ? "mock" :
+                state.adminSubTab === "literature" ? "cbt" : "subject";
+            const year = (state.adminSubTab === "exam" || state.adminSubTab === "mock") ? state.admin.examYear : null;
+
+            questionListHtml = '<div class="loading-spinner"><div class="spinner"></div><p>Loading questions...</p></div>';
+            getQuestionsForAdmin(type, state.admin.qSubject, year).then(function(questions) {
+                if (questions.length === 0) {
+                    questionListHtml = '<p style="font-size:12px;color:var(--faint);margin-top:12px">No questions saved yet for this subject.</p>';
+                } else {
+                    questionListHtml = '<p class="section-label" style="margin-top:16px">Saved Questions (' +
+                        questions.length + ')</p>';
+                    questions.forEach(function(q) {
+                        const isEditing = state.admin.editingQuestionId === q.id;
+                        if (isEditing) {
+                            let editOptsHtml = "";
+                            for (let i = 0; i < 4; i++) {
+                                editOptsHtml += (
+                                    '<div class="opt-row">' +
+                                    '<input type="radio" name="edit-correct" value="' + i + '"' + (q
+                                        .correct_answer === i ? ' checked' : '') +
+                                    ' data-action="edit-correct" />' +
+                                    '<input class="field" data-action="edit-opt" data-idx="' + i +
+                                    '" placeholder="Option ' + (i + 1) + '" value="' + esc(q.options[
+                                        i] || '') + '" />' +
+                                    '</div>'
+                                );
+                            }
+                            questionListHtml += (
+                                '<div class="edit-form">' +
+                                '<p style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px">✏️ Editing Question</p>' +
+                                '<label class="field-label">Question text</label>' +
+                                '<textarea class="field" id="edit-text" rows="2" style="margin-bottom:8px">' +
+                                esc(q.text) + '</textarea>' +
+                                '<label class="field-label">Options</label>' +
+                                editOptsHtml +
+                                '<label class="field-label">Explanation</label>' +
+                                '<textarea class="field" id="edit-explanation" rows="2" style="margin-bottom:8px">' +
+                                esc(q.explanation || '') + '</textarea>' +
+                                '<div style="display:flex;gap:8px">' +
+                                '<button class="btn btn-green" style="flex:1" data-action="save-edit" data-qid="' +
+                                q.id + '">Save Changes</button>' +
+                                '<button class="btn btn-outline" style="flex:0.5" data-action="cancel-edit">Cancel</button>' +
+                                '</div>' +
+                                '</div>'
+                            );
+                        } else {
+                            let optsList = '<ul class="admin-list">';
+                            q.options.forEach(function(o, oi) {
+                                optsList += '<li' + (oi === q.correct_answer ? ' style="color:' +
+                                    GREEN + ';font-weight:600"' : '') + '>' + esc(o) + (oi === q
+                                    .correct_answer ? ' ✓' : '') + '</li>';
+                            });
+                            optsList += '</ul>';
+                            questionListHtml += (
+                                '<div class="card" style="margin-bottom:8px">' +
+                                '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">' +
+                                '<p style="font-size:13px;font-weight:600;margin:0">' + esc(q.text) +
+                                '</p>' +
+                                '<div style="display:flex;gap:4px;flex-shrink:0">' +
+                                '<button class="mini-btn edit" data-action="edit-question" data-qid="' +
+                                q.id + '">✏️ Edit</button>' +
+                                '<button class="mini-btn danger" data-action="delete-question" data-qid="' +
+                                q.id + '">×</button>' +
+                                '</div>' +
+                                '</div>' +
+                                optsList +
+                                (q.explanation ?
+                                    '<div class="explanation-box" style="margin-top:8px"><span class="label">💡 Explanation</span><p>' +
+                                    esc(q.explanation) + '</p></div>' : '') +
+                                '</div>'
+                            );
+                        }
+                    });
+                }
+                render();
+            });
+        }
+
         return (
             '<div class="admin-sub-tabs">' + subTabs + '</div>' +
             '<div class="card">' +
@@ -3188,7 +3497,8 @@
             '<textarea class="field" rows="2" data-action="qform-explanation" style="margin-bottom:10px" placeholder="Explain why this answer is correct...">' +
             esc(state.admin.qExplanation) + '</textarea>' +
             '<button class="btn btn-green" data-action="qform-add-admin" style="margin-top:4px">Save Question</button>' +
-            '</div>'
+            '</div>' +
+            questionListHtml
         );
     }
 
@@ -3213,6 +3523,9 @@
         );
     }
 
+    // ============================================================
+    //  ADMIN DOCUMENTS - FIXED LOADING
+    // ============================================================
     function renderAdminDocuments() {
         let subjOptions = '<option value="">— General (no subject) —</option>';
         SUBJECTS.forEach(function(s) {
@@ -3220,28 +3533,26 @@
                 '>' + esc(s.name) + '</option>';
         });
 
-        // Load documents from DB
-        let docList = '<div class="loading-spinner"><div class="spinner"></div><p>Loading documents...</p></div>';
-        loadDocumentsFromDB().then(function(docs) {
-            if (docs.length === 0) {
-                docList = '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:12px">No documents uploaded yet.</p>';
-            } else {
-                docList = "";
-                docs.forEach(function(d) {
-                    const subj = SUBJECTS.find(function(s) { return s.id === d.subject_id; });
-                    docList += (
-                        '<div class="card" style="margin-bottom:8px">' +
-                        '<p style="font-size:13px;font-weight:600;margin:0">' + esc(d.name) + '</p>' +
-                        '<p style="font-size:11px;color:var(--muted);margin:2px 0 8px">' + esc(subj ? subj
-                            .name : "General") + ' · ' + esc(d.file_name || '') + '</p>' +
-                        '<button class="mini-btn danger" data-action="admin-delete-doc" data-docid="' + d.id +
-                        '">Delete</button>' +
-                        '</div>'
-                    );
-                });
-            }
-            render();
-        });
+        let docList = "";
+        if (!state.docsLoaded) {
+            docList = '<div class="loading-spinner"><div class="spinner"></div><p>Loading documents...</p></div>';
+            loadDocuments();
+        } else if (state.docsList.length === 0) {
+            docList = '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:12px">No documents uploaded yet.</p>';
+        } else {
+            state.docsList.forEach(function(d) {
+                const subj = SUBJECTS.find(function(s) { return s.id === d.subject_id; });
+                docList += (
+                    '<div class="card" style="margin-bottom:8px">' +
+                    '<p style="font-size:13px;font-weight:600;margin:0">' + esc(d.name) + '</p>' +
+                    '<p style="font-size:11px;color:var(--muted);margin:2px 0 8px">' + esc(subj ? subj.name :
+                        "General") + ' · ' + esc(d.file_name || '') + '</p>' +
+                    '<button class="mini-btn danger" data-action="admin-delete-doc" data-docid="' + d.id +
+                    '">Delete</button>' +
+                    '</div>'
+                );
+            });
+        }
 
         return (
             '<div class="card" style="margin-bottom:16px">' +
@@ -3262,6 +3573,9 @@
         );
     }
 
+    // ============================================================
+    //  ADMIN SYLLABUS - FIXED LOADING
+    // ============================================================
     function renderAdminSyllabus() {
         let chips = "";
         SUBJECTS.forEach(function(s) {
@@ -3272,12 +3586,15 @@
         });
 
         let body = '<p class="section-label">Select a subject</p><div class="subject-grid">' + chips + '</div>';
+
         if (state.admin.syllabusSubject) {
-            // Load existing syllabus
-            loadSyllabusFromDB(state.admin.syllabusSubject).then(function(existing) {
-                state.admin.syllabusText = existing?.content || "";
-                render();
-            });
+            // Check if we need to load
+            if (!state.syllabusLoaded || (state.syllabusData && state.syllabusData.subject_id !== state.admin
+                    .syllabusSubject)) {
+                state.admin.syllabusText = "";
+                loadSyllabus(state.admin.syllabusSubject);
+            }
+
             body += (
                 '<div class="card">' +
                 '<label class="field-label">Syllabus content (text)</label>' +
@@ -3294,6 +3611,9 @@
         return body;
     }
 
+    // ============================================================
+    //  ADMIN TOPICS - FIXED LOADING
+    // ============================================================
     function renderAdminTopics() {
         let chips = "";
         SUBJECTS.forEach(function(s) {
@@ -3304,28 +3624,33 @@
         });
 
         let body = '<p class="section-label">Select a subject</p><div class="subject-grid">' + chips + '</div>';
+
         if (state.admin.topicSubject) {
-            let topicsHtml = '<div class="loading-spinner"><div class="spinner"></div><p>Loading topics...</p></div>';
-            loadTopicsFromDB(state.admin.topicSubject).then(function(topics) {
-                if (topics.length === 0) {
-                    topicsHtml = '<p style="font-size:12px;color:var(--faint)">No topics yet for this subject.</p>';
-                } else {
-                    topicsHtml = '<p class="section-label">Topics</p>';
-                    topics.forEach(function(t) {
-                        topicsHtml += (
-                            '<div class="lb-row">' +
-                            '<button style="flex:1;text-align:left" data-action="admin-select-topic" data-topic="' +
-                            t.id + '">' +
-                            '<span class="left">' + esc(t.name) + '</span>' +
-                            '</button>' +
-                            '<button class="mini-btn danger" data-action="admin-delete-topic" data-subject="' +
-                            state.admin.topicSubject + '" data-topic="' + t.id + '">Delete</button>' +
-                            '</div>'
-                        );
-                    });
-                }
-                render();
-            });
+            // Check if we need to load
+            if (!state.topicsLoaded || state.topicsSubjectId !== state.admin.topicSubject) {
+                loadTopics(state.admin.topicSubject);
+            }
+
+            let topicsHtml = "";
+            if (!state.topicsLoaded || state.topicsSubjectId !== state.admin.topicSubject) {
+                topicsHtml = '<div class="loading-spinner"><div class="spinner"></div><p>Loading topics...</p></div>';
+            } else if (state.topicsList.length === 0) {
+                topicsHtml = '<p style="font-size:12px;color:var(--faint)">No topics yet for this subject.</p>';
+            } else {
+                topicsHtml = '<p class="section-label">Topics</p>';
+                state.topicsList.forEach(function(t) {
+                    topicsHtml += (
+                        '<div class="lb-row">' +
+                        '<button style="flex:1;text-align:left" data-action="admin-select-topic" data-topic="' +
+                        t.id + '">' +
+                        '<span class="left">' + esc(t.name) + '</span>' +
+                        '</button>' +
+                        '<button class="mini-btn danger" data-action="admin-delete-topic" data-subject="' +
+                        state.admin.topicSubject + '" data-topic="' + t.id + '">Delete</button>' +
+                        '</div>'
+                    );
+                });
+            }
 
             body += (
                 '<div class="card" style="margin-bottom:12px">' +
@@ -3371,7 +3696,7 @@
     }
 
     // ============================================================
-    //  DRAWER
+    //  DRAWER (unchanged)
     // ============================================================
     function renderDrawer(unread, isLoggedIn) {
         let navItems = (
@@ -3455,7 +3780,7 @@
     }
 
     // ============================================================
-    //  AUTH MODALS
+    //  AUTH MODALS (unchanged)
     // ============================================================
     function renderLoginModal() {
         return (
@@ -3525,54 +3850,6 @@
     }
 
     // ============================================================
-    //  DB HELPER FUNCTIONS (for documents, syllabus, topics)
-    // ============================================================
-    async function loadDocumentsFromDB(filterSubject) {
-        try {
-            let query = supabase.from('materials').select('*');
-            if (filterSubject) {
-                query = query.eq('subject_id', filterSubject);
-            }
-            const { data, error } = await query.order('created_at', { ascending: false });
-            if (error) throw error;
-            return data || [];
-        } catch (e) {
-            console.warn("Load documents error:", e);
-            return [];
-        }
-    }
-
-    async function loadSyllabusFromDB(subjectId) {
-        try {
-            const { data, error } = await supabase
-                .from('syllabus')
-                .select('*')
-                .eq('subject_id', subjectId)
-                .maybeSingle();
-            if (error) throw error;
-            return data;
-        } catch (e) {
-            console.warn("Load syllabus error:", e);
-            return null;
-        }
-    }
-
-    async function loadTopicsFromDB(subjectId) {
-        try {
-            const { data, error } = await supabase
-                .from('topics')
-                .select('*')
-                .eq('subject_id', subjectId)
-                .order('name');
-            if (error) throw error;
-            return data || [];
-        } catch (e) {
-            console.warn("Load topics error:", e);
-            return [];
-        }
-    }
-
-    // ============================================================
     //  UTILITY FUNCTIONS
     // ============================================================
     function formatTime(seconds) {
@@ -3598,12 +3875,17 @@
         }
         if (v === "admin") {
             loadAllUsers();
+            loadAllQuestionsCount();
+            // Preload documents for admin
+            if (!state.docsLoaded) {
+                loadDocuments();
+            }
         }
         render();
     }
 
     // ============================================================
-    //  EVENT HANDLING
+    //  EVENT HANDLING (unchanged except for admin topic selection clear)
     // ============================================================
     root.addEventListener("click", function(e) {
         const el = e.target.closest("[data-action]");
@@ -3611,54 +3893,36 @@
         const action = el.getAttribute("data-action");
 
         // ---- Auth ----
-        if (action === "show-login") {
-            state.showLogin = true;
+        if (action === "show-login") { state.showLogin = true;
             state.showSignup = false;
             state.authError = null;
             state.drawerOpen = false;
-            render();
-            return;
-        }
-        if (action === "show-signup") {
-            state.showSignup = true;
+            render(); return; }
+        if (action === "show-signup") { state.showSignup = true;
             state.showLogin = false;
             state.authError = null;
             state.drawerOpen = false;
-            render();
-            return;
-        }
-        if (action === "close-auth") {
-            state.showLogin = false;
+            render(); return; }
+        if (action === "close-auth") { state.showLogin = false;
             state.showSignup = false;
             state.authError = null;
-            render();
-            return;
-        }
+            render(); return; }
         if (action === "prevent-close") return;
-        if (action === "switch-to-login") {
-            state.showLogin = true;
+        if (action === "switch-to-login") { state.showLogin = true;
             state.showSignup = false;
             state.authError = null;
-            render();
-            return;
-        }
-        if (action === "switch-to-signup") {
-            state.showSignup = true;
+            render(); return; }
+        if (action === "switch-to-signup") { state.showSignup = true;
             state.showLogin = false;
             state.authError = null;
-            render();
-            return;
-        }
+            render(); return; }
         if (action === "do-login") {
             const email = document.getElementById("login-email")?.value || "";
             const password = document.getElementById("login-password")?.value || "";
             state.loginEmail = email;
             state.loginPassword = password;
-            if (!email || !password) {
-                state.authError = "Please enter both email and password.";
-                render();
-                return;
-            }
+            if (!email || !password) { state.authError = "Please enter both email and password.";
+                render(); return; }
             signIn(email, password);
             return;
         }
@@ -3671,7 +3935,6 @@
             state.signupEmail = email;
             state.signupPassword = password;
             state.signupConfirm = confirm;
-
             if (!username) { state.authError = "Please choose a username.";
                 render(); return; }
             if (!email) { state.authError = "Please enter your email address.";
@@ -3683,20 +3946,14 @@
             signUp(username, email, password);
             return;
         }
-        if (action === "sign-out") {
-            signOut();
-            return;
-        }
+        if (action === "sign-out") { signOut(); return; }
 
         // ---- Dark mode ----
         if (action === "toggle-dark-mode") {
             state.darkMode = !state.darkMode;
             storage.set("darkMode", state.darkMode ? "true" : "false");
-            if (state.darkMode) {
-                document.documentElement.setAttribute("data-theme", "dark");
-            } else {
-                document.documentElement.removeAttribute("data-theme");
-            }
+            if (state.darkMode) document.documentElement.setAttribute("data-theme", "dark");
+            else document.documentElement.removeAttribute("data-theme");
             render();
             return;
         }
@@ -3711,17 +3968,11 @@
         if (action === "set-view") { setView(el.getAttribute("data-view")); }
 
         // ---- Leaderboard ----
-        if (action === "lb-tab") {
-            state.leaderboardTab = el.getAttribute("data-tab");
+        if (action === "lb-tab") { state.leaderboardTab = el.getAttribute("data-tab");
             loadLeaderboard(state.leaderboardTab);
-            render();
-            return;
-        }
-        if (action === "refresh-leaderboard") {
-            loadLeaderboard(state.leaderboardTab);
-            showToast("Refreshing leaderboard...", "");
-            return;
-        }
+            render(); return; }
+        if (action === "refresh-leaderboard") { loadLeaderboard(state.leaderboardTab);
+            showToast("Refreshing leaderboard...", ""); return; }
 
         // ---- Profile ----
         if (action === "save-profile") {
@@ -3729,308 +3980,189 @@
             state.profile.email = (state.formEmail || "").trim().toLowerCase();
             storage.set("profile", JSON.stringify(state.profile));
             if (state.authUser) {
-                supabase.from('profiles').update({
-                    username: state.profile.name,
-                    email: state.profile.email
-                }).eq('id', state.authUser.id).then(function() {});
+                supabase.from('profiles').update({ username: state.profile.name, email: state.profile.email }).eq('id',
+                    state.authUser.id).then(function() {});
             }
             showToast("Profile saved!", "success");
             render();
             return;
         }
-
-        // ---- Notifications ----
-        if (action === "mark-all-read") {
-            state.notifs.forEach(function(n) { n.unread = false; });
-            render();
-            return;
-        }
-
-        // ---- Activate ----
-        if (action === "activate-submit") {
-            state.activateStatus = (state.activateCode || "").trim() ? "pending" : "empty";
-            render();
-            return;
-        }
+        if (action === "mark-all-read") { state.notifs.forEach(function(n) { n.unread = false; });
+            render(); return; }
+        if (action === "activate-submit") { state.activateStatus = (state.activateCode || "").trim() ? "pending" :
+            "empty";
+            render(); return; }
 
         // ---- CBT Mode ----
-        if (action === "cbt-mode") {
-            state.cbtMode = el.getAttribute("data-mode");
+        if (action === "cbt-mode") { state.cbtMode = el.getAttribute("data-mode");
             state.cbtSelected = [];
-            render();
-            return;
-        }
-
+            render(); return; }
         if (action === "toggle-cbt-subject") {
             const id = el.getAttribute("data-subject");
             const i = state.cbtSelected.indexOf(id);
             const isFull = state.cbtMode === "full";
             const max = isFull ? 3 : 1;
-            if (i !== -1) {
-                state.cbtSelected.splice(i, 1);
-            } else if (state.cbtSelected.length < max) {
-                state.cbtSelected.push(id);
-            }
+            if (i !== -1) state.cbtSelected.splice(i, 1);
+            else if (state.cbtSelected.length < max) state.cbtSelected.push(id);
             render();
             return;
         }
-
-        if (action === "start-cbt") {
-            startCbt();
-            return;
-        }
+        if (action === "start-cbt") { startCbt(); return; }
 
         // ---- CBT Exam ----
-        if (action === "cbt-answer") {
-            const idx = parseInt(el.getAttribute("data-idx"), 10);
-            if (state.cbtAnswers && state.cbtIndex !== undefined) {
-                state.cbtAnswers[state.cbtIndex] = idx;
-                render();
-            }
-            return;
-        }
+        if (action === "cbt-answer") { const idx = parseInt(el.getAttribute("data-idx"), 10); if (state.cbtAnswers &&
+                state.cbtIndex !== undefined) { state.cbtAnswers[state.cbtIndex] = idx;
+                render(); } return; }
         if (action === "cbt-next") {
-            if (state.cbtIndex < state.cbtQuestions.length - 1) {
-                state.cbtIndex++;
-                render();
-            } else {
-                state.cbtFinished = true;
-                if (state.cbtTimer) {
-                    clearInterval(state.cbtTimer);
-                    state.cbtTimer = null;
-                }
-                render();
-            }
+            if (state.cbtIndex < state.cbtQuestions.length - 1) { state.cbtIndex++;
+                render(); } else { state.cbtFinished = true; if (state.cbtTimer) { clearInterval(state.cbtTimer);
+                    state.cbtTimer = null; }
+                render(); }
             return;
         }
-        if (action === "cbt-prev") {
-            if (state.cbtIndex > 0) {
-                state.cbtIndex--;
-                render();
-            }
-            return;
-        }
-        if (action === "cbt-exit") {
-            if (state.cbtTimer) {
-                clearInterval(state.cbtTimer);
-                state.cbtTimer = null;
-            }
+        if (action === "cbt-prev") { if (state.cbtIndex > 0) { state.cbtIndex--;
+                render(); } return; }
+        if (action === "cbt-exit") { if (state.cbtTimer) { clearInterval(state.cbtTimer);
+                state.cbtTimer = null; }
             state.cbtQuestions = [];
             state.cbtIndex = 0;
             state.cbtAnswers = [];
             state.cbtFinished = false;
             state.cbtSelected = [];
             state.view = "home";
-            render();
-            return;
-        }
-        if (action === "cbt-toggle-explanation") {
-            state.cbtShowExplanation = !state.cbtShowExplanation;
-            render();
-            return;
-        }
-        if (action === "cbt-toggle-review") {
-            state.cbtReviewMode = !state.cbtReviewMode;
-            render();
-            return;
-        }
-
-        // ---- Literature CBT ----
-        if (action === "start-literature-cbt") {
-            startLiteratureCbt();
-            return;
-        }
+            render(); return; }
+        if (action === "cbt-toggle-explanation") { state.cbtShowExplanation = !state.cbtShowExplanation;
+            render(); return; }
+        if (action === "cbt-toggle-review") { state.cbtReviewMode = !state.cbtReviewMode;
+            render(); return; }
+        if (action === "start-literature-cbt") { startLiteratureCbt(); return; }
 
         // ---- Exam ----
-        if (action === "select-exam-subject") {
-            const id = el.getAttribute("data-subject");
+        if (action === "select-exam-subject") { const id = el.getAttribute("data-subject");
             state.examSubject = (state.examSubject === id) ? null : id;
-            render();
-            return;
-        }
-        if (action === "start-exam") {
-            startExam();
-            return;
-        }
-
-        // ---- Exam Exam ----
-        if (action === "exam-answer") {
-            const idx = parseInt(el.getAttribute("data-idx"), 10);
-            if (state.examAnswers && state.examIndex !== undefined) {
-                state.examAnswers[state.examIndex] = idx;
-                render();
-            }
-            return;
-        }
+            render(); return; }
+        if (action === "start-exam") { startExam(); return; }
+        if (action === "exam-answer") { const idx = parseInt(el.getAttribute("data-idx"), 10); if (state.examAnswers &&
+                state.examIndex !== undefined) { state.examAnswers[state.examIndex] = idx;
+                render(); } return; }
         if (action === "exam-next") {
-            if (state.examIndex < state.examQuestions.length - 1) {
-                state.examIndex++;
-                render();
-            } else {
-                state.examFinished = true;
-                if (state.examTimer) {
-                    clearInterval(state.examTimer);
-                    state.examTimer = null;
-                }
-                render();
-            }
+            if (state.examIndex < state.examQuestions.length - 1) { state.examIndex++;
+                render(); } else { state.examFinished = true; if (state.examTimer) { clearInterval(state.examTimer);
+                    state.examTimer = null; }
+                render(); }
             return;
         }
-        if (action === "exam-prev") {
-            if (state.examIndex > 0) {
-                state.examIndex--;
-                render();
-            }
-            return;
-        }
-        if (action === "exam-exit") {
-            if (state.examTimer) {
-                clearInterval(state.examTimer);
-                state.examTimer = null;
-            }
+        if (action === "exam-prev") { if (state.examIndex > 0) { state.examIndex--;
+                render(); } return; }
+        if (action === "exam-exit") { if (state.examTimer) { clearInterval(state.examTimer);
+                state.examTimer = null; }
             state.examQuestions = [];
             state.examIndex = 0;
             state.examAnswers = [];
             state.examFinished = false;
             state.view = "home";
-            render();
-            return;
-        }
-        if (action === "exam-toggle-explanation") {
-            state.examShowExplanation = !state.examShowExplanation;
-            render();
-            return;
-        }
-        if (action === "exam-toggle-review") {
-            state.examReviewMode = !state.examReviewMode;
-            render();
-            return;
-        }
+            render(); return; }
+        if (action === "exam-toggle-explanation") { state.examShowExplanation = !state.examShowExplanation;
+            render(); return; }
+        if (action === "exam-toggle-review") { state.examReviewMode = !state.examReviewMode;
+            render(); return; }
 
-        // ---- Mock (no year) ----
-        if (action === "select-mock-subject") {
-            const id = el.getAttribute("data-subject");
+        // ---- Mock ----
+        if (action === "select-mock-subject") { const id = el.getAttribute("data-subject");
             state.mockSubject = (state.mockSubject === id) ? null : id;
-            render();
-            return;
-        }
-        if (action === "start-mock-exam") {
-            startMockExam();
-            return;
-        }
+            render(); return; }
+        if (action === "start-mock-exam") { startMockExam(); return; }
 
         // ---- Topics ----
         if (action === "select-topic-subject") {
             const id = el.getAttribute("data-subject");
             state.topicSubject = (state.topicSubject === id) ? null : id;
             state.topicId = null;
+            // Reset topic loading state when subject changes
+            state.topicsLoaded = false;
+            state.topicsList = [];
+            state.topicsSubjectId = null;
             render();
             return;
         }
-        if (action === "select-topic") {
-            state.topicId = el.getAttribute("data-topic");
-            render();
-            return;
-        }
-        if (action === "start-topic-practice") {
-            startTopicPractice();
-            return;
-        }
+        if (action === "select-topic") { state.topicId = el.getAttribute("data-topic");
+            render(); return; }
+        if (action === "start-topic-practice") { startTopicPractice(); return; }
 
         // ---- Syllabus ----
         if (action === "select-syllabus-subject") {
             const id = el.getAttribute("data-subject");
             state.syllabusViewSubject = (state.syllabusViewSubject === id) ? null : id;
+            state.syllabusLoaded = false;
+            state.syllabusData = null;
             render();
             return;
         }
 
         // ---- Documents ----
-        if (action === "select-doc-filter") {
-            state.docFilterSubject = el.getAttribute("data-subject") || null;
+        if (action === "select-doc-filter") { state.docFilterSubject = el.getAttribute("data-subject") || null;
+            // Reset docs loaded so it reloads with filter
+            state.docsLoaded = false;
             render();
-            return;
-        }
+            return; }
 
         // ---- Quiz ----
-        if (action === "quiz-answer") {
-            const idx = parseInt(el.getAttribute("data-idx"), 10);
-            if (state.quiz && state.quiz.index !== undefined) {
-                state.quiz.answers[state.quiz.index] = idx;
-                render();
-            }
-            return;
-        }
+        if (action === "quiz-answer") { const idx = parseInt(el.getAttribute("data-idx"), 10); if (state.quiz && state
+                .quiz.index !== undefined) { state.quiz.answers[state.quiz.index] = idx;
+                render(); } return; }
         if (action === "quiz-next") {
-            if (state.quiz && state.quiz.index < state.quiz.questions.length - 1) {
-                state.quiz.index++;
-                render();
-            } else if (state.quiz) {
-                state.quiz.finished = true;
-                render();
-            }
+            if (state.quiz && state.quiz.index < state.quiz.questions.length - 1) { state.quiz.index++;
+                render(); } else if (state.quiz) { state.quiz.finished = true;
+                render(); }
             return;
         }
-        if (action === "quiz-prev") {
-            if (state.quiz && state.quiz.index > 0) {
-                state.quiz.index--;
-                render();
-            }
-            return;
-        }
-        if (action === "quiz-exit") {
-            state.quiz = null;
+        if (action === "quiz-prev") { if (state.quiz && state.quiz.index > 0) { state.quiz.index--;
+                render(); } return; }
+        if (action === "quiz-exit") { state.quiz = null;
             state.view = "home";
-            render();
-            return;
-        }
-        if (action === "quiz-toggle-explanation") {
-            if (state.quiz) {
-                state.quiz.showExplanation = !state.quiz.showExplanation;
-                render();
-            }
-            return;
-        }
-        if (action === "quiz-toggle-review") {
-            if (state.quiz) {
-                state.quiz.reviewMode = !state.quiz.reviewMode;
-                render();
-            }
-            return;
-        }
+            render(); return; }
+        if (action === "quiz-toggle-explanation") { if (state.quiz) { state.quiz.showExplanation = !state.quiz
+                    .showExplanation;
+                render(); } return; }
+        if (action === "quiz-toggle-review") { if (state.quiz) { state.quiz.reviewMode = !state.quiz.reviewMode;
+                render(); } return; }
 
         // ---- Admin ----
-        if (action === "admin-tab") {
-            state.adminTab = el.getAttribute("data-tab");
-            render();
-            return;
-        }
-        if (action === "admin-sub-tab") {
-            state.adminSubTab = el.getAttribute("data-tab");
+        if (action === "admin-tab") { state.adminTab = el.getAttribute("data-tab");
+            // Reset loading states when switching tabs
+            if (state.adminTab === "documents") {
+                state.docsLoaded = false;
+            } else if (state.adminTab === "syllabus") {
+                state.syllabusLoaded = false;
+                state.syllabusData = null;
+            } else if (state.adminTab === "topics") {
+                state.topicsLoaded = false;
+                state.topicsList = [];
+                state.topicsSubjectId = null;
+            }
+            render(); return; }
+        if (action === "admin-sub-tab") { state.adminSubTab = el.getAttribute("data-tab");
             state.admin.qSubject = "";
             state.admin.qText = "";
             state.admin.qOpts = ["", "", "", ""];
             state.admin.qCorrect = 0;
             state.admin.qExplanation = "";
-            render();
-            return;
-        }
+            state.admin.editingQuestionId = null;
+            render(); return; }
         if (action === "admin-add-topic") {
             const subj = state.admin.topicSubject;
             if (!subj) { showToast("Select a subject first.", "error"); return; }
             const name = (state.admin.newTopicName || "").trim();
             if (!name) { showToast("Enter a topic name.", "error"); return; }
-            supabase.from('topics').insert([{
-                subject_id: subj,
-                name: name,
-                question_count: 0,
-            }]).then(function() {
+            supabase.from('topics').insert([{ subject_id: subj, name: name, question_count: 0 }]).then(function() {
                 showToast("Topic added!", "success");
                 state.admin.newTopicName = "";
+                // Reset and reload topics
+                state.topicsLoaded = false;
+                state.topicsList = [];
+                state.topicsSubjectId = null;
                 render();
-            }).catch(function(e) {
-                showToast("Error adding topic.", "error");
-            });
+            }).catch(function() { showToast("Error adding topic.", "error"); });
             return;
         }
         if (action === "admin-delete-topic") {
@@ -4039,14 +4171,18 @@
             if (!confirm("Delete this topic?")) return;
             supabase.from('topics').delete().eq('id', topicId).then(function() {
                 showToast("Topic deleted.", "success");
+                state.topicsLoaded = false;
+                state.topicsList = [];
+                state.topicsSubjectId = null;
                 render();
-            }).catch(function(e) {
-                showToast("Error deleting topic.", "error");
-            });
+            }).catch(function() { showToast("Error deleting topic.", "error"); });
             return;
         }
         if (action === "admin-select-topic-subject") {
             state.admin.topicSubject = el.getAttribute("data-subject");
+            state.topicsLoaded = false;
+            state.topicsList = [];
+            state.topicsSubjectId = null;
             render();
             return;
         }
@@ -4054,18 +4190,16 @@
             const id = el.getAttribute("data-subject");
             state.admin.syllabusSubject = (state.admin.syllabusSubject === id) ? null : id;
             state.admin.syllabusFile = null;
-            loadSyllabusFromDB(id).then(function(existing) {
-                state.admin.syllabusText = existing?.content || "";
-                render();
-            });
+            state.syllabusLoaded = false;
+            state.syllabusData = null;
+            state.admin.syllabusText = "";
+            render();
             return;
         }
         if (action === "admin-save-syllabus") {
             const subj = state.admin.syllabusSubject;
             if (!subj) { showToast("Select a subject first.", "error"); return; }
             const text = (state.admin.syllabusText || "").trim();
-
-            // Check if syllabus exists
             loadSyllabusFromDB(subj).then(function(existing) {
                 const data = {
                     subject_id: subj,
@@ -4075,23 +4209,22 @@
                     file_name: state.admin.syllabusFile ? state.admin.syllabusFile.name : (existing?.file_name ||
                         null),
                 };
-
                 if (existing) {
                     supabase.from('syllabus').update(data).eq('id', existing.id).then(function() {
                         showToast("Syllabus updated!", "success");
                         state.admin.syllabusFile = null;
+                        state.syllabusLoaded = false;
+                        state.syllabusData = null;
                         render();
-                    }).catch(function(e) {
-                        showToast("Error saving syllabus.", "error");
-                    });
+                    }).catch(function() { showToast("Error saving syllabus.", "error"); });
                 } else {
                     supabase.from('syllabus').insert([data]).then(function() {
                         showToast("Syllabus saved!", "success");
                         state.admin.syllabusFile = null;
+                        state.syllabusLoaded = false;
+                        state.syllabusData = null;
                         render();
-                    }).catch(function(e) {
-                        showToast("Error saving syllabus.", "error");
-                    });
+                    }).catch(function() { showToast("Error saving syllabus.", "error"); });
                 }
             });
             return;
@@ -4100,7 +4233,6 @@
             if (!state.admin.docFile) { showToast("Choose a file first.", "error"); return; }
             const name = (state.admin.docName || "").trim() || state.admin.docFile.name;
             const subj = state.admin.docSubject || "general";
-
             supabase.from('materials').insert([{
                 subject_id: subj,
                 subject_name: SUBJECTS.find(function(s) { return s.id === subj; })?.name || "General",
@@ -4112,10 +4244,9 @@
                 showToast("Document uploaded!", "success");
                 state.admin.docFile = null;
                 state.admin.docName = "";
+                state.docsLoaded = false;
                 render();
-            }).catch(function(e) {
-                showToast("Error uploading document.", "error");
-            });
+            }).catch(function() { showToast("Error uploading document.", "error"); });
             return;
         }
         if (action === "admin-delete-doc") {
@@ -4123,10 +4254,9 @@
             if (!confirm("Delete this document?")) return;
             supabase.from('materials').delete().eq('id', docId).then(function() {
                 showToast("Document deleted.", "success");
+                state.docsLoaded = false;
                 render();
-            }).catch(function(e) {
-                showToast("Error deleting document.", "error");
-            });
+            }).catch(function() { showToast("Error deleting document.", "error"); });
             return;
         }
         if (action === "admin-save-settings") {
@@ -4138,8 +4268,6 @@
             state.admin.cbtTimeLimit = ct;
             state.admin.subjectTimeLimit = st;
             state.admin.mockTimeLimit = mt;
-
-            // Save to Supabase
             const updates = [
                 { setting_key: 'cbt_settings', setting_value: { questions_per_subject: qs, time_limit_minutes: ct } },
                 { setting_key: 'subject_settings', setting_value: { questions_per_subject: qs,
@@ -4147,15 +4275,12 @@
                 { setting_key: 'mock_settings', setting_value: { questions_per_subject: qs,
                         time_limit_minutes: mt, subjects: 4 } },
             ];
-
             Promise.all(updates.map(function(u) {
                 return supabase.from('admin_settings').upsert(u, { onConflict: 'setting_key' });
             })).then(function() {
                 showToast("Settings saved!", "success");
                 render();
-            }).catch(function(e) {
-                showToast("Error saving settings.", "error");
-            });
+            }).catch(function() { showToast("Error saving settings.", "error"); });
             return;
         }
         if (action === "qform-add-admin") {
@@ -4189,16 +4314,68 @@
                 state.admin.qOpts = ["", "", "", ""];
                 state.admin.qCorrect = 0;
                 state.admin.qExplanation = "";
+                loadAllQuestionsCount();
                 render();
-            }).catch(function(e) {
-                showToast("Error saving question.", "error");
-            });
+            }).catch(function() { showToast("Error saving question.", "error"); });
+            return;
+        }
+
+        // ---- Edit/Delete Questions ----
+        if (action === "edit-question") {
+            const qid = el.getAttribute("data-qid");
+            state.admin.editingQuestionId = qid;
+            render();
+            return;
+        }
+        if (action === "cancel-edit") {
+            state.admin.editingQuestionId = null;
+            render();
+            return;
+        }
+        if (action === "save-edit") {
+            const qid = el.getAttribute("data-qid");
+            const text = document.getElementById("edit-text")?.value?.trim() || "";
+            const explanation = document.getElementById("edit-explanation")?.value?.trim() || "";
+            const options = [];
+            for (let i = 0; i < 4; i++) {
+                const opt = document.querySelector(`[data-action="edit-opt"][data-idx="${i}"]`)?.value?.trim() || "";
+                options.push(opt);
+            }
+            const correctRadio = document.querySelector('[data-action="edit-correct"]:checked');
+            const correct = correctRadio ? parseInt(correctRadio.value) : 0;
+
+            if (!text || options.some(function(o) { return !o; })) {
+                showToast("Fill in all fields.", "error");
+                return;
+            }
+
+            supabase.from('questions').update({
+                text: text,
+                options: options,
+                correct_answer: correct,
+                explanation: explanation,
+            }).eq('id', qid).then(function() {
+                showToast("Question updated!", "success");
+                state.admin.editingQuestionId = null;
+                loadAllQuestionsCount();
+                render();
+            }).catch(function() { showToast("Error updating question.", "error"); });
+            return;
+        }
+        if (action === "delete-question") {
+            const qid = el.getAttribute("data-qid");
+            if (!confirm("Delete this question?")) return;
+            supabase.from('questions').delete().eq('id', qid).then(function() {
+                showToast("Question deleted.", "success");
+                loadAllQuestionsCount();
+                render();
+            }).catch(function() { showToast("Error deleting question.", "error"); });
             return;
         }
     });
 
     // ============================================================
-    //  INPUT HANDLING
+    //  INPUT HANDLING (unchanged)
     // ============================================================
     root.addEventListener("change", function(e) {
         const id = e.target.id;
@@ -4255,7 +4432,7 @@
     });
 
     // ============================================================
-    //  CBT FUNCTIONS
+    //  CBT FUNCTIONS (unchanged)
     // ============================================================
     async function startCbt() {
         const isFull = state.cbtMode === "full";
@@ -4405,7 +4582,6 @@
 
     async function startMockExam() {
         if (!state.mockSubject) return;
-        // Mock uses 4 subjects - English + 3 random others
         const allSubjs = SUBJECTS.filter(function(sub) { return !sub.compulsory; });
         const shuffled = shuffleArray(allSubjs);
         const selected = shuffled.slice(0, 3);
@@ -4467,7 +4643,6 @@
 
     async function startTopicPractice() {
         if (!state.topicSubject || !state.topicId) return;
-        // Load questions for this topic from Supabase
         const { data, error } = await supabase
             .from('topic_questions')
             .select('*')
@@ -4507,11 +4682,10 @@
             document.documentElement.setAttribute("data-theme", "dark");
         }
 
-        // Load settings from Supabase
         await loadSettings();
-
         await checkAuthSession();
         await loadAllUsers();
+        await loadAllQuestionsCount();
         await loadLeaderboard('cbt');
 
         render();
