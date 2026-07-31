@@ -4359,7 +4359,7 @@ async function startExam() {
     const qs = questions.map(function(q) {
         return Object.assign({}, q, { subject_name: s.name });
     });
-    state.examQuestions = shuffleArray(qs);
+    state.examQuestions = qs;
     state.examIndex = 0;
     state.examAnswers = new Array(state.examQuestions.length).fill(null);
     state.examFinished = false;
@@ -5313,7 +5313,7 @@ function renderExamMode() {
     });
 
     let yearOptions = "";
-    for (let y = 2026; y >= 2010; y--) {
+    for (let y = 2026; y >= 2021; y--) {
         yearOptions += '<option value="' + y + '"' + (state.examYear === y ? ' selected' : '') + '>' + y + '</option>';
     }
 
