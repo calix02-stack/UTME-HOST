@@ -34,6 +34,7 @@
         --current-q: #E4A93A;
         --danger: #e2543a;
         --calculator-bg: #1a1a2e;
+        --flag-color: #E4A93A;
     }
 
     [data-theme="dark"] {
@@ -55,6 +56,7 @@
         --unanswered: #c0392b;
         --current-q: #f1c40f;
         --calculator-bg: #0f0f1f;
+        --flag-color: #f1c40f;
     }
 
     /* Anti-screenshot */
@@ -451,6 +453,11 @@
         background: var(--gold);
         color: var(--ink);
     }
+    .mini-btn.flag {
+        background: var(--flag-color);
+        color: var(--ink);
+    }
+    .mini-btn.flag:hover { opacity: 0.8; }
 
     .section-label {
         font-family: var(--font-mono);
@@ -682,9 +689,8 @@
     .cbt-mode-btn .desc { font-size: 10px; color: var(--muted); }
 
     .lit-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
+        display: flex;
+        justify-content: center;
         margin-top: 12px;
     }
     .lit-tile {
@@ -695,6 +701,8 @@
         text-align: center;
         transition: transform 0.15s, border-color 0.15s, background 0.3s;
         cursor: pointer;
+        width: 100%;
+        max-width: 200px;
     }
     .lit-tile:hover {
         transform: translateY(-4px);
@@ -1075,6 +1083,9 @@
         color: var(--danger);
         font-weight: 600;
     }
+    .review-item .flag-btn {
+        margin-top: 8px;
+    }
 
     .result-card {
         background: var(--card-bg);
@@ -1099,6 +1110,120 @@
         font-size: 14px;
     }
     .result-card .subj-score:last-child { border-bottom: none; }
+
+    /* History Card Styles */
+    .history-card {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: background 0.3s, border-color 0.3s;
+    }
+    .history-card .h-title {
+        font-weight: 700;
+        font-size: 16px;
+        margin: 0 0 4px;
+        color: var(--ink);
+    }
+    .history-card .h-date {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 0 0 8px;
+    }
+    .history-card .h-score {
+        font-family: var(--font-mono);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--green);
+        margin: 0 0 8px;
+    }
+    .history-card .h-subjects {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 0 0 8px;
+    }
+    .history-card .h-subject-scores {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 8px 0;
+    }
+    .history-card .h-subject-scores span {
+        background: var(--bg);
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        color: var(--ink);
+    }
+    .history-card .h-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+    .history-card .h-actions .btn { flex: 1; min-width: 80px; }
+
+    .weak-question-item {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+        transition: background 0.3s, border-color 0.3s;
+    }
+    .weak-question-item .q-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+    }
+    .weak-question-item .q-text {
+        font-weight: 600;
+        font-size: 13px;
+        margin: 0;
+        color: var(--ink);
+        flex: 1;
+    }
+    .weak-question-item .q-meta {
+        font-size: 10px;
+        color: var(--faint);
+        margin-top: 4px;
+    }
+    .weak-question-item .q-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+    }
+    .weak-question-item .q-options {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 4px 0;
+        padding-left: 8px;
+    }
+    .weak-question-item .q-options .correct {
+        color: var(--green);
+        font-weight: 600;
+    }
+    .weak-question-item .q-explanation {
+        font-size: 12px;
+        color: var(--muted);
+        background: var(--explanation-bg);
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin-top: 6px;
+    }
+    .weak-question-item .reattempt-area {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+    }
+    .weak-question-item .reattempt-area .qa-option {
+        margin-bottom: 6px;
+    }
 
     .drawer-wrap {
         position: absolute;
@@ -1606,6 +1731,14 @@
         color: #fff;
         border-color: var(--green);
     }
+    .admin-tab .flag-badge {
+        background: var(--danger);
+        color: #fff;
+        border-radius: 999px;
+        padding: 0 6px;
+        font-size: 10px;
+        margin-left: 4px;
+    }
 
     .admin-sub-tabs {
         display: flex;
@@ -1738,6 +1871,7 @@
         transition: background 0.3s, border-color 0.3s;
         flex-wrap: wrap;
         gap: 8px;
+        cursor: pointer;
     }
     .admin-user-row .user-info { display: flex; flex-direction: column; }
     .admin-user-row .user-name { font-weight: 600; font-size: 14px; }
@@ -2005,6 +2139,58 @@
         margin-top: 8px;
     }
 
+    .flag-modal {
+        background: var(--modal-bg);
+        border-radius: 20px;
+        padding: 20px;
+        max-width: 320px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        transition: background 0.3s;
+        position: relative;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .flag-modal h3 {
+        font-family: var(--font-serif);
+        font-size: 18px;
+        margin: 0 0 4px;
+        color: var(--ink);
+    }
+    .flag-modal .sub {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 0 0 12px;
+    }
+    .flag-modal textarea {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        padding: 8px 12px;
+        font-size: 13px;
+        background: var(--card-bg);
+        color: var(--ink);
+        outline: none;
+        margin-bottom: 12px;
+        resize: vertical;
+    }
+    .flag-modal .btn-group {
+        display: flex;
+        gap: 8px;
+    }
+    .flag-modal .btn-group .btn { flex: 1; }
+
+    .flag-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 20px;
+    }
+
     @media (max-width: 400px) {
         .subject-grid { grid-template-columns: repeat(3, 1fr); }
         .home-grid { grid-template-columns: 1fr 1fr; }
@@ -2022,6 +2208,8 @@
 <div id="root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js">
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
 </script>
 
 <script>
@@ -2091,10 +2279,8 @@ const HOME_TILES = [
         colorDark: "#5E2D8C" },
     { key: "topics", label: "Topic Practice", blurb: "Drill one topic at a time", icon: "list", color: "#7C5CFC",
         colorDark: "#5A3ADB" },
-    { key: "literature", label: "Literature", blurb: "Set texts & comprehension", icon: "book", color: "#0E9488",
+    { key: "literature", label: "Novel (CBT)", blurb: "Set texts & comprehension", icon: "book", color: "#0E9488",
         colorDark: "#0B6E64" },
-    { key: "syllabus", label: "Syllabus", blurb: "Full JAMB syllabus", icon: "scroll", color: "#E4A93A",
-        colorDark: "#C98A1B" },
     { key: "documents", label: "Document File", blurb: "Past questions & study files", icon: "folder",
         color: "#4C5FD5", colorDark: "#2F3FAE" },
     { key: "revise", label: "Revise Weak Qs", blurb: "Retry questions you've missed", icon: "rotate",
@@ -2125,6 +2311,9 @@ const ICONS = {
     calculator: '<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="2" x2="16" y2="2"/><line x1="8" y1="22" x2="16" y2="22"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/>',
     eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
     eyeoff: '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/><line x1="3" y1="3" x2="21" y2="21"/>',
+    share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>',
+    print: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/><line x1="18" y1="14" x2="18" y2="14.01"/><line x1="10" y1="18" x2="14" y2="18"/>',
 };
 
 function svg(name, size) {
@@ -2177,6 +2366,13 @@ function formatTimeAgo(dateStr) {
         if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
         return Math.floor(diff / 86400) + "d ago";
     } catch (e) { return "Just now"; }
+}
+
+function formatDate(dateStr) {
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleString();
+    } catch (e) { return dateStr || ''; }
 }
 
 function isAdmin() {
@@ -2306,6 +2502,8 @@ let state = {
     topicSubmitted: false,
     topicShowExplanation: false,
     topicReviewMode: false,
+    topicTimer: null,
+    topicTimeLeft: 0,
 
     litQuestions: [],
     litIndex: 0,
@@ -2322,6 +2520,15 @@ let state = {
 
     weakQuestions: [],
     weakQuestionsLoaded: false,
+    weakModeTimer: null,
+    weakModeTimeLeft: 0,
+    weakModeQuestions: [],
+    weakModeIndex: 0,
+    weakModeAnswers: [],
+    weakModeFinished: false,
+    weakModeSubmitted: false,
+    weakModeReviewMode: false,
+    weakQuestionStates: {}, // track expanded/reattempt state per question
 
     leaderboardTab: "cbt",
     leaderboardData: [],
@@ -2366,6 +2573,19 @@ let state = {
         submitModalData: null,
         calculatorEnabled: true,
         editingQuestionData: null,
+        // New settings
+        examTimeLimit: 100,
+        novelTimeLimit: 100,
+        topicTimeLimit: 60,
+        reviseTimeLimit: 60,
+        cbtSubjectCount: 3,
+        mockSubjectCount: 4,
+        viewingMockAttempts: null,
+        flaggedFilter: "unresolved",
+        notifyUserId: null,
+        notifyModalOpen: false,
+        notifyTitle: "",
+        notifyBody: "",
     },
     adminLoading: false,
     questionCounts: {},
@@ -2401,6 +2621,12 @@ let state = {
         mockQuestionsPerSubject: 25,
         mockTimeLimit: 100,
         calculatorEnabled: true,
+        examTimeLimit: 100,
+        novelTimeLimit: 100,
+        topicTimeLimit: 60,
+        reviseTimeLimit: 60,
+        cbtSubjectCount: 3,
+        mockSubjectCount: 4,
     },
 
     showSubmitModal: false,
@@ -2413,6 +2639,21 @@ let state = {
     calcJustEvaluated: false,
     // Password visibility tracking
     showPassword: {},
+    
+    // Flag modal
+    showFlagModal: false,
+    flagModalData: null,
+    
+    // History
+    historyLoaded: false,
+    historyEntries: [],
+    
+    // Admin notify modal
+    showNotifyModal: false,
+    notifyModalData: null,
+    
+    // Flagged questions count
+    flaggedCount: 0,
 };
 
 // ============================================================
@@ -2438,6 +2679,23 @@ async function loadAllUsers() {
     }
 }
 
+async function loadFlaggedCount() {
+    try {
+        const { count, error } = await supabase
+            .from('flagged_questions')
+            .select('*', { count: 'exact', head: true })
+            .eq('resolved', false);
+        if (error) {
+            state.flaggedCount = 0;
+            return;
+        }
+        state.flaggedCount = count || 0;
+        render();
+    } catch (e) {
+        state.flaggedCount = 0;
+    }
+}
+
 async function loadLeaderboard(type) {
     state.loadingLeaderboard = true;
     render();
@@ -2460,6 +2718,7 @@ async function loadLeaderboard(type) {
 
         if (error) {
             console.warn("Load leaderboard error:", error);
+            showToast("Error loading leaderboard: " + error.message, "error");
             state.leaderboardData = [];
             state.loadingLeaderboard = false;
             render();
@@ -2467,6 +2726,7 @@ async function loadLeaderboard(type) {
         }
 
         const scores = data || [];
+        // Deduplicate by user_id, keeping highest score
         const scoreMap = {};
         scores.forEach(function(s) {
             if (!scoreMap[s.user_id] || s.score > scoreMap[s.user_id].score) {
@@ -2489,6 +2749,7 @@ async function loadLeaderboard(type) {
         state.leaderboardData = leaderboard;
     } catch (e) {
         console.warn("Load leaderboard exception:", e);
+        showToast("Error loading leaderboard: " + (e.message || "unknown"), "error");
         state.leaderboardData = [];
     }
 
@@ -2511,11 +2772,13 @@ async function loadSubjectLeaderboard(subjectId) {
 
         if (error) {
             console.warn("Load subject leaderboard error:", error);
+            showToast("Error loading subject leaderboard: " + error.message, "error");
             state.subjectLeaderboardData = [];
             return;
         }
 
         const scores = data || [];
+        // Deduplicate by user_id, keeping highest score
         const scoreMap = {};
         scores.forEach(function(s) {
             if (!scoreMap[s.user_id] || s.score > scoreMap[s.user_id].score) {
@@ -2537,6 +2800,7 @@ async function loadSubjectLeaderboard(subjectId) {
         state.subjectLeaderboardData = leaderboard;
     } catch (e) {
         console.warn("Load subject leaderboard exception:", e);
+        showToast("Error loading subject leaderboard: " + (e.message || "unknown"), "error");
         state.subjectLeaderboardData = [];
     }
 }
@@ -2559,7 +2823,11 @@ async function saveScore(type, data) {
                     updated_at: new Date().toISOString(),
                 };
                 if (data.subject_scores) updateData.subject_scores = data.subject_scores;
-                await supabase.from(table).update(updateData).eq('id', existing.id);
+                const { error: updateError } = await supabase.from(table).update(updateData).eq('id', existing.id);
+                if (updateError) {
+                    console.warn("Update score error:", updateError);
+                    showToast("Error updating score: " + updateError.message, "error");
+                }
             }
         } else {
             const insertData = {
@@ -2573,13 +2841,17 @@ async function saveScore(type, data) {
             if (data.subject_name) insertData.subject_name = data.subject_name;
             if (data.subject_scores) insertData.subject_scores = data.subject_scores;
             if (data.year) insertData.year = data.year;
-            await supabase.from(table).insert([insertData]);
+            const { error: insertError } = await supabase.from(table).insert([insertData]);
+            if (insertError) {
+                console.warn("Insert score error:", insertError);
+                showToast("Error saving score: " + insertError.message, "error");
+            }
         }
 
         await loadLeaderboard(state.leaderboardTab);
     } catch (e) {
         console.warn("Save score error:", e);
-        showToast("Error saving score.", "error");
+        showToast("Error saving score: " + (e.message || "unknown"), "error");
     }
 }
 
@@ -2694,6 +2966,12 @@ async function loadSettings() {
             mockQuestionsPerSubject: settings.mock_settings?.questions_per_subject || 25,
             mockTimeLimit: settings.mock_settings?.time_limit_minutes || 100,
             calculatorEnabled: settings.calculator_enabled !== false,
+            examTimeLimit: settings.exam_settings?.time_limit_minutes || 100,
+            novelTimeLimit: settings.novel_settings?.time_limit_minutes || 100,
+            topicTimeLimit: settings.topic_settings?.time_limit_minutes || 60,
+            reviseTimeLimit: settings.revise_settings?.time_limit_minutes || 60,
+            cbtSubjectCount: settings.cbt_settings?.subject_count || 3,
+            mockSubjectCount: settings.mock_settings?.subject_count || 4,
         };
         state.settingsCache = result;
         return result;
@@ -2706,7 +2984,6 @@ async function loadSettings() {
 async function loadDocuments(filterSubject) {
     try {
         let query = supabase.from('materials').select('*');
-        if (filterSubject) query = query.eq('subject_id', filterSubject);
         const { data, error } = await query.order('created_at', { ascending: false });
         if (error) {
             console.warn("Load documents error:", error);
@@ -2722,31 +2999,6 @@ async function loadDocuments(filterSubject) {
         console.warn("Load documents exception:", e);
         state.docsLoaded = true;
         state.docsList = [];
-        render();
-    }
-}
-
-async function loadSyllabus(subjectId) {
-    try {
-        const { data, error } = await supabase
-            .from('syllabus')
-            .select('*')
-            .eq('subject_id', subjectId)
-            .maybeSingle();
-        if (error) {
-            console.warn("Load syllabus error:", error);
-            state.syllabusData = null;
-            state.syllabusLoaded = true;
-            render();
-            return;
-        }
-        state.syllabusData = data || null;
-        state.syllabusLoaded = true;
-        render();
-    } catch (e) {
-        console.warn("Load syllabus exception:", e);
-        state.syllabusLoaded = true;
-        state.syllabusData = null;
         render();
     }
 }
@@ -2818,15 +3070,202 @@ async function loadAdminQuestions(type, subjectId, year) {
 }
 
 // ============================================================
+//  HISTORY FUNCTIONS
+// ============================================================
+async function loadHistory() {
+    if (!state.authUser) {
+        state.historyLoaded = true;
+        state.historyEntries = [];
+        render();
+        return;
+    }
+    
+    try {
+        const { data, error } = await supabase
+            .from('exam_history')
+            .select('*')
+            .eq('user_id', state.authUser.id)
+            .order('submitted_at', { ascending: false });
+            
+        if (error) {
+            console.warn("Load history error:", error);
+            state.historyEntries = [];
+            state.historyLoaded = true;
+            render();
+            return;
+        }
+        state.historyEntries = data || [];
+        state.historyLoaded = true;
+        render();
+    } catch (e) {
+        console.warn("Load history exception:", e);
+        state.historyEntries = [];
+        state.historyLoaded = true;
+        render();
+    }
+}
+
+async function saveHistoryEntry(entry) {
+    if (!state.authUser) return;
+    
+    try {
+        await supabase
+            .from('exam_history')
+            .insert([{
+                user_id: state.authUser.id,
+                mode: entry.mode,
+                subjects: entry.subjects || [],
+                subject_scores: entry.subject_scores || {},
+                total_score: entry.total_score || 0,
+                max_score: entry.max_score || 0,
+                total_questions: entry.total_questions || 0,
+                answered_count: entry.answered_count || 0,
+                submitted_at: entry.submitted_at || new Date().toISOString(),
+                exam_title: entry.exam_title || entry.mode,
+            }]);
+    } catch (e) {
+        console.warn("Save history error:", e);
+    }
+}
+
+// ============================================================
+//  WEAK QUESTIONS FUNCTIONS
+// ============================================================
+async function saveWeakQuestion(userId, questionId, subjectId, mode) {
+    if (!userId || !questionId) return;
+    
+    try {
+        // Check if already exists
+        const { data: existing, error: checkError } = await supabase
+            .from('weak_questions')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('question_id', questionId)
+            .maybeSingle();
+            
+        if (checkError) {
+            console.warn("Check weak question error:", checkError);
+            return;
+        }
+        
+        if (existing) {
+            // Update timestamp
+            await supabase
+                .from('weak_questions')
+                .update({ created_at: new Date().toISOString() })
+                .eq('id', existing.id);
+        } else {
+            // Insert new
+            await supabase
+                .from('weak_questions')
+                .insert([{
+                    user_id: userId,
+                    question_id: questionId,
+                    subject_id: subjectId || '',
+                    mode: mode || 'unknown',
+                    created_at: new Date().toISOString(),
+                }]);
+        }
+    } catch (e) {
+        console.warn("Save weak question error:", e);
+    }
+}
+
+async function removeWeakQuestion(userId, questionId) {
+    if (!userId || !questionId) return;
+    
+    try {
+        await supabase
+            .from('weak_questions')
+            .delete()
+            .eq('user_id', userId)
+            .eq('question_id', questionId);
+    } catch (e) {
+        console.warn("Remove weak question error:", e);
+    }
+}
+
+// ============================================================
+//  FLAGGED QUESTIONS FUNCTIONS
+// ============================================================
+async function saveFlaggedQuestion(userId, username, questionId, subjectId, mode, reason) {
+    if (!userId || !questionId) return;
+    
+    try {
+        await supabase
+            .from('flagged_questions')
+            .insert([{
+                user_id: userId,
+                username: username || 'Unknown',
+                question_id: questionId,
+                subject_id: subjectId || '',
+                mode: mode || 'unknown',
+                reason: reason || '',
+                created_at: new Date().toISOString(),
+                resolved: false,
+            }]);
+            
+        // Also save to weak questions
+        await saveWeakQuestion(userId, questionId, subjectId, mode);
+    } catch (e) {
+        console.warn("Save flagged question error:", e);
+    }
+}
+
+async function loadFlaggedQuestions(filter) {
+    try {
+        let query = supabase
+            .from('flagged_questions')
+            .select('*, questions(*)')
+            .order('created_at', { ascending: false });
+            
+        if (filter === 'unresolved') {
+            query = query.eq('resolved', false);
+        } else if (filter === 'resolved') {
+            query = query.eq('resolved', true);
+        }
+        // 'all' shows everything
+        
+        const { data, error } = await query;
+        if (error) {
+            console.warn("Load flagged questions error:", error);
+            return [];
+        }
+        return data || [];
+    } catch (e) {
+        console.warn("Load flagged questions exception:", e);
+        return [];
+    }
+}
+
+async function resolveFlaggedQuestions(questionId) {
+    try {
+        await supabase
+            .from('flagged_questions')
+            .update({ resolved: true })
+            .eq('question_id', questionId);
+    } catch (e) {
+        console.warn("Resolve flagged questions error:", e);
+    }
+}
+
+// ============================================================
 //  NOTIFICATIONS
 // ============================================================
 async function loadNotifications() {
     try {
-        const { data, error } = await supabase
+        let query = supabase
             .from('notifications')
             .select('*')
             .order('created_at', { ascending: false });
-
+            
+        // If user is logged in, only show broadcast or their own targeted notifications
+        if (state.authUser) {
+            // We'll filter client-side since we need to support both null and specific user_id
+            // The query returns all, then we filter in JS
+        }
+        
+        const { data, error } = await query;
         if (error) {
             console.warn("Load notifications error:", error);
             state.notifsList = [];
@@ -2835,7 +3274,12 @@ async function loadNotifications() {
             return;
         }
 
-        state.notifsList = data || [];
+        // Filter: show if target_user_id is null (broadcast) OR matches the user's id
+        const userId = state.authUser?.id;
+        state.notifsList = (data || []).filter(function(n) {
+            return !n.target_user_id || n.target_user_id === userId;
+        });
+        
         state.notifsLoaded = true;
 
         state.notifsUnreadCount = state.notifsList.filter(function(n) {
@@ -3195,7 +3639,14 @@ async function loadMockAttempts(mockExamId) {
 
 async function registerForMock(mockExamId, subjects) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
-    if (subjects.length !== 4) { showToast('Please select exactly 4 subjects.', 'error'); return; }
+    
+    const settings = await loadSettings();
+    const requiredSubjects = settings.mockSubjectCount || 4;
+    
+    if (subjects.length !== requiredSubjects) { 
+        showToast('Please select exactly ' + requiredSubjects + ' subjects.', 'error'); 
+        return; 
+    }
 
     try {
         await supabase
@@ -3218,6 +3669,12 @@ async function registerForMock(mockExamId, subjects) {
 
 async function startMockExam(mockExamId) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
+    if (!isUserActive()) {
+        showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
+        state.view = 'activate';
+        render();
+        return;
+    }
     
     state.isLoading = true;
     render();
@@ -3265,7 +3722,9 @@ async function startMockExam(mockExamId) {
                         return answersObj[q.id] !== undefined ? answersObj[q.id] : null;
                     });
                     
-                    state.mockTimeLeft = Math.max(0, 6000 - (existing.time_taken || 0));
+                    const settings = await loadSettings();
+                    const timeLimit = settings.mockTimeLimit || 100;
+                    state.mockTimeLeft = Math.max(0, (timeLimit * 60) - (existing.time_taken || 0));
                     state.mockQuestions = allQuestions;
                     state.mockIndex = 0;
                     state.mockExamId = mockExamId;
@@ -3294,6 +3753,9 @@ async function startMockExam(mockExamId) {
             }
         }
 
+        const settings = await loadSettings();
+        const perSubject = settings.mockQuestionsPerSubject || 25;
+        
         for (const subjectId of subjects) {
             const { data: usedQuestions, error: usedError } = await supabase
                 .from('mock_user_question_tracking')
@@ -3312,11 +3774,11 @@ async function startMockExam(mockExamId) {
 
             if (usedIds.length > 0) query = query.not('id', 'in', '(' + usedIds.join(',') + ')');
 
-            const { data: availableQuestions, error: qError } = await query.limit(50);
+            const { data: availableQuestions, error: qError } = await query.limit(perSubject * 2);
             if (qError) throw qError;
 
             let selectedQuestions;
-            if (availableQuestions.length < 25) {
+            if (availableQuestions.length < perSubject) {
                 await supabase
                     .from('mock_user_question_tracking')
                     .delete()
@@ -3328,14 +3790,14 @@ async function startMockExam(mockExamId) {
                     .select('*')
                     .eq('subject_id', subjectId)
                     .eq('type', 'mock')
-                    .limit(50);
+                    .limit(perSubject * 2);
 
                 if (resetError) throw resetError;
                 const shuffled = shuffleArray(resetQuestions || []);
-                selectedQuestions = shuffled.slice(0, 25);
+                selectedQuestions = shuffled.slice(0, perSubject);
             } else {
                 const shuffled = shuffleArray(availableQuestions);
-                selectedQuestions = shuffled.slice(0, 25);
+                selectedQuestions = shuffled.slice(0, perSubject);
             }
 
             for (const q of selectedQuestions) {
@@ -3377,7 +3839,8 @@ async function startMockExam(mockExamId) {
         state.mockIndex = 0;
         state.mockFinished = false;
         state.mockSubmitted = false;
-        state.mockTimeLeft = 6000;
+        const timeLimit = settings.mockTimeLimit || 100;
+        state.mockTimeLeft = timeLimit * 60;
         state.mockExamId = mockExamId;
         state.isLoading = false;
         
@@ -3486,12 +3949,16 @@ function doSubmitMock(autoSubmit) {
 
     let totalScore = 0;
     const subjectScores = {};
+    const weakQuestionsToSave = [];
     state.mockQuestions.forEach(function(q, i) {
         const isCorrect = state.mockAnswers[i] === q.correct_answer;
         if (isCorrect) {
             totalScore += 4;
             if (!subjectScores[q.subject_id]) subjectScores[q.subject_id] = 0;
             subjectScores[q.subject_id] += 4;
+        } else {
+            // Wrong answer - save to weak questions
+            weakQuestionsToSave.push({ questionId: q.id, subjectId: q.subject_id });
         }
     });
 
@@ -3505,6 +3972,32 @@ function doSubmitMock(autoSubmit) {
         answersObj[q.id] = state.mockAnswers[i];
     });
 
+    // Save weak questions
+    if (state.authUser) {
+        weakQuestionsToSave.forEach(function(wq) {
+            saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'mock');
+        });
+        
+        // Save history
+        const subjects = Object.keys(subjectScores);
+        const subjectNames = subjects.map(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            return subj ? subj.name : sid;
+        });
+        const exam = state.mockExams.find(function(e) { return e.id === state.mockExamId; });
+        saveHistoryEntry({
+            mode: 'mock',
+            subjects: subjectNames,
+            subject_scores: subjectScores,
+            total_score: totalScore,
+            max_score: state.mockTotal,
+            total_questions: state.mockQuestions.length,
+            answered_count: state.mockAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
+            submitted_at: state.mockSubmittedAt,
+            exam_title: exam ? exam.title : 'Mock Exam',
+        });
+    }
+
     supabase
         .from('mock_attempts')
         .update({
@@ -3512,7 +4005,7 @@ function doSubmitMock(autoSubmit) {
             score: totalScore,
             is_submitted: true,
             submitted_at: state.mockSubmittedAt,
-            time_taken: 6000 - state.mockTimeLeft,
+            time_taken: state.settingsCache.mockTimeLimit * 60 - state.mockTimeLeft,
             subject_scores: subjectScores,
         })
         .eq('id', state.currentMockAttempt.id)
@@ -3523,7 +4016,7 @@ function doSubmitMock(autoSubmit) {
                     username: state.profile.name,
                     score: totalScore,
                     total_questions: state.mockQuestions.length,
-                    subject_count: 4,
+                    subject_count: state.settingsCache.mockSubjectCount || 4,
                     subject_scores: subjectScores,
                 });
             }
@@ -3658,10 +4151,21 @@ async function adminDeactivateUser(userId) {
 //  CBT FUNCTIONS
 // ============================================================
 async function startCbt() {
+    if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+    if (!isUserActive()) {
+        showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
+        state.view = 'activate';
+        render();
+        return;
+    }
+    
     const isFull = state.cbtMode === 'full';
     const selected = state.cbtSelected;
-    if (isFull && selected.length !== 3) {
-        showToast("Please select 3 subjects.", "error");
+    const settings = await loadSettings();
+    const requiredSubjects = isFull ? (settings.cbtSubjectCount || 3) : 1;
+    
+    if (isFull && selected.length !== requiredSubjects) {
+        showToast("Please select " + requiredSubjects + " subjects.", "error");
         return;
     }
     if (!isFull && selected.length !== 1) {
@@ -3696,7 +4200,6 @@ async function startCbt() {
         return;
     }
 
-    const settings = await loadSettings();
     const perSubject = settings.cbtQuestionsPerSubject || 25;
     const grouped = {};
     allQuestions.forEach(function(q) {
@@ -3717,7 +4220,8 @@ async function startCbt() {
     state.cbtSubmitted = false;
     state.cbtShowExplanation = false;
     state.cbtReviewMode = false;
-    state.cbtTimeLeft = (isFull ? settings.cbtTimeLimit : settings.subjectTimeLimit) * 60 || (isFull ? 6000 : 1500);
+    const timeLimit = isFull ? settings.cbtTimeLimit : settings.subjectTimeLimit;
+    state.cbtTimeLeft = timeLimit * 60 || (isFull ? 6000 : 1500);
     
     // Build subject groups
     buildCbtSubjectGroups(state.cbtQuestions);
@@ -3752,6 +4256,14 @@ async function startCbt() {
 }
 
 async function startLiteratureCbt() {
+    if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+    if (!isUserActive()) {
+        showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
+        state.view = 'activate';
+        render();
+        return;
+    }
+    
     state.isLoading = true;
     render();
     
@@ -3762,7 +4274,7 @@ async function startLiteratureCbt() {
     state.isLoading = false;
     
     if (questions.length === 0) {
-        showToast('No Literature questions available.', 'error');
+        showToast('No Novel questions available.', 'error');
         return;
     }
     const qs = questions.map(function(q) {
@@ -3775,7 +4287,9 @@ async function startLiteratureCbt() {
     state.litSubmitted = false;
     state.litShowExplanation = false;
     state.litReviewMode = false;
-    state.litTimeLeft = 6000;
+    const settings = await loadSettings();
+    const timeLimit = settings.novelTimeLimit || 100;
+    state.litTimeLeft = timeLimit * 60;
 
     state.view = 'lit-exam';
     render();
@@ -3806,6 +4320,14 @@ async function startLiteratureCbt() {
 }
 
 async function startExam() {
+    if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+    if (!isUserActive()) {
+        showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
+        state.view = 'activate';
+        render();
+        return;
+    }
+    
     if (!state.examSubject) {
         showToast("Please select a subject.", "error");
         return;
@@ -3838,6 +4360,14 @@ async function startExam() {
 }
 
 async function startTopicPractice() {
+    if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+    if (!isUserActive()) {
+        showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
+        state.view = 'activate';
+        render();
+        return;
+    }
+    
     if (!state.topicSubject || !state.topicId) {
         showToast("Please select a subject and topic.", "error");
         return;
@@ -3866,9 +4396,37 @@ async function startTopicPractice() {
     state.topicSubmitted = false;
     state.topicShowExplanation = false;
     state.topicReviewMode = false;
+    
+    const settings = await loadSettings();
+    const timeLimit = settings.topicTimeLimit || 60;
+    state.topicTimeLeft = timeLimit * 60;
 
     state.view = 'topic-exam';
     render();
+    
+    if (state.topicTimer) clearInterval(state.topicTimer);
+    state.topicTimer = setInterval(function() {
+        state.topicTimeLeft--;
+        if (state.topicTimeLeft <= 0) {
+            clearInterval(state.topicTimer);
+            state.topicTimer = null;
+            if (!state.topicSubmitted) {
+                const hasAnswers = state.topicAnswers.some(function(a) { return a !== null && a !== undefined; });
+                if (hasAnswers) {
+                    state.topicSubmitted = true;
+                    state.topicFinished = true;
+                    showToast('⏰ Time\'s up! Your answers have been submitted.', '');
+                } else {
+                    state.topicSubmitted = false;
+                    state.topicFinished = true;
+                    showToast('⏰ Time\'s up! No answers recorded.', '');
+                }
+            }
+            render();
+        } else {
+            render();
+        }
+    }, 1000);
 }
 
 // ============================================================
@@ -4041,6 +4599,47 @@ function renderPasswordResetForm() {
     );
 }
 
+function renderFlagModal() {
+    if (!state.showFlagModal || !state.flagModalData) return '';
+    
+    const data = state.flagModalData;
+    return (
+        '<div class="flag-overlay" data-action="flag-close">' +
+        '<div class="flag-modal" data-action="prevent-close">' +
+        '<h3>⚠️ Flag Question</h3>' +
+        '<p class="sub">Let us know what\'s wrong with this question so we can fix it.</p>' +
+        '<textarea id="flag-reason-input" rows="3" placeholder="What\'s wrong? (optional)"></textarea>' +
+        '<div class="btn-group">' +
+        '<button class="btn btn-gold" data-action="flag-submit">Submit Flag</button>' +
+        '<button class="btn btn-outline" data-action="flag-close">Cancel</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
+function renderNotifyModal() {
+    if (!state.showNotifyModal || !state.notifyModalData) return '';
+    
+    const data = state.notifyModalData;
+    return (
+        '<div class="flag-overlay" data-action="notify-close">' +
+        '<div class="flag-modal" data-action="prevent-close">' +
+        '<h3>🔔 Send Notification to ' + esc(data.username) + '</h3>' +
+        '<p class="sub">This notification will only be seen by this user.</p>' +
+        '<label class="field-label">Title</label>' +
+        '<input id="notify-title-input" class="field" placeholder="Notification title" style="margin-bottom:8px" />' +
+        '<label class="field-label">Body</label>' +
+        '<textarea id="notify-body-input" class="field" rows="3" placeholder="Notification message..." style="margin-bottom:12px"></textarea>' +
+        '<div class="btn-group">' +
+        '<button class="btn btn-green" data-action="notify-send">Send</button>' +
+        '<button class="btn btn-outline" data-action="notify-close">Cancel</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
 function setView(v) {
     state.view = v;
     state.drawerOpen = false;
@@ -4059,6 +4658,7 @@ function setView(v) {
         if (!state.notifsLoaded) loadNotifications();
         if (!state.mockLoaded) loadMockExams();
         if (!state.activationPlansLoaded) loadActivationPlans();
+        loadFlaggedCount();
     }
     if (v === "notifications") loadNotifications();
     if (v === "mockexam") {
@@ -4067,6 +4667,13 @@ function setView(v) {
             loadMockRegistrations();
             loadMockAttempts();
         }
+    }
+    if (v === "syllabus" && !state.syllabusLoaded) loadSyllabus();
+    if (v === "documents" && !state.docsLoaded) loadDocuments();
+    if (v === "history") loadHistory();
+    if (v === "revise") {
+        state.weakQuestionsLoaded = false;
+        loadWeakQuestions();
     }
     render();
 }
@@ -4095,6 +4702,12 @@ function render() {
     }
     if (state.showReset) {
         html += renderResetModal();
+    }
+    if (state.showFlagModal) {
+        html += renderFlagModal();
+    }
+    if (state.showNotifyModal) {
+        html += renderNotifyModal();
     }
     
     // Check for password reset redirect
@@ -4212,8 +4825,8 @@ function renderView() {
     if (v === "documents") return renderDocumentsUser();
     if (v === "literature") return renderLiteratureHome();
     if (v === "literature-cbt") return renderLiteratureCbt();
-    if (v === "literature-materials") return renderLiteratureMaterials();
     if (v === "revise") return renderReviseWeak();
+    if (v === "history") return renderHistory();
 
     const tile = HOME_TILES.find(function(t) { return t.key === v; });
     if (tile) return renderFeature(tile);
@@ -4263,18 +4876,13 @@ function renderLiteratureHome() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
         '<div class="feature-icon" style="background:#0E9488">' + svg("book", 34) + '</div>' +
-        '<h2 class="title">Literature</h2>' +
+        '<h2 class="title">Novel (CBT)</h2>' +
         '<p class="sub">Set texts, comprehension, and study materials</p>' +
         '<div class="lit-grid">' +
         '<button class="lit-tile" data-action="set-view" data-view="literature-cbt">' +
         '<span class="big-icon">📝</span>' +
         '<p class="label">CBT</p>' +
         '<p class="sub">Practice Literature questions</p>' +
-        '</button>' +
-        '<button class="lit-tile" data-action="set-view" data-view="literature-materials">' +
-        '<span class="big-icon">📚</span>' +
-        '<p class="label">Materials</p>' +
-        '<p class="sub">View/download PDF &amp; Word</p>' +
         '</button>' +
         '</div>'
     );
@@ -4297,50 +4905,17 @@ function renderLiteratureCbt() {
     const ready = state.cbtSelected.indexOf("LHM") !== -1;
     return (
         '<button class="back-link" data-action="set-view" data-view="literature">' + svg("chevleft", 16) +
-        ' Literature</button>' +
+        ' Novel (CBT)</button>' +
         '<div class="feature-icon" style="background:#0E9488">' + svg("book", 34) + '</div>' +
-        '<h2 class="title">Literature CBT</h2>' +
-        '<p class="sub">Practice Literature-in-English questions</p>' +
-        '<div class="mode-note">Select <b>Literature</b> to practice questions from the set texts and comprehension passages.</div>' +
+        '<h2 class="title">Novel (CBT)</h2>' +
+        '<p class="sub">Practice Novel questions</p>' +
+        '<div class="mode-note">Select <b>Novel (CBT)</b> to practice questions from the set texts and comprehension passages.</div>' +
         '<p class="section-label">Select Literature</p>' +
         '<div class="subject-grid">' + chips + '</div>' +
         '<div class="picker-footer">' +
         '<button class="btn ' + (ready ? "btn-green" : "btn-outline") + '" data-action="start-literature-cbt"' + (ready ?
-            '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Start Literature CBT</button>' +
+            '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Start Novel (CBT)</button>' +
         '</div>'
-    );
-}
-
-function renderLiteratureMaterials() {
-    let rows = "";
-    if (!state.docsLoaded) {
-        loadDocuments('lit');
-        rows = '<div class="loading-spinner"><div class="spinner"></div><p>Loading materials...</p></div>';
-    } else {
-        const litDocs = state.docsList.filter(function(d) { return d.subject_id === 'lit'; });
-        if (litDocs.length === 0) {
-            rows = '<p style="text-align:center;color:var(--faint);padding:20px 0">No literature materials uploaded yet.</p>';
-        } else {
-            litDocs.forEach(function(d) {
-                rows += (
-                    '<div class="card" style="margin-bottom:8px">' +
-                    '<p style="font-size:13px;font-weight:600;margin:0">' + esc(d.name) + '</p>' +
-                    '<p style="font-size:11px;color:var(--muted);margin:2px 0 10px">' + esc(d.file_name || '') +
-                    '</p>' +
-                    '<a class="btn btn-green" href="' + d.file_url + '" target="_blank">Download</a>' +
-                    '</div>'
-                );
-            });
-        }
-    }
-
-    return (
-        '<button class="back-link" data-action="set-view" data-view="literature">' + svg("chevleft", 16) +
-        ' Literature</button>' +
-        '<div class="feature-icon" style="background:#0E9488">' + svg("folder", 34) + '</div>' +
-        '<h2 class="title">Literature Materials</h2>' +
-        '<p class="sub">PDF and Word study materials</p>' +
-        rows
     );
 }
 
@@ -4349,7 +4924,7 @@ function renderLiteratureMaterials() {
 // ============================================================
 function renderCbtMode() {
     const others = SUBJECTS.filter(function(s) { return !s.compulsory && s.id !== 'LHM'; });
-    const eng = SUBJECTS.find(function(s) { return s.compulsory; });  // ← THIS WAS MISSING!
+    const eng = SUBJECTS.find(function(s) { return s.compulsory; });
 
     let chips = "";
     others.forEach(function(s) {
@@ -4366,13 +4941,15 @@ function renderCbtMode() {
     const count = state.cbtSelected.length;
     const isFull = state.cbtMode === "full";
     const isSingle = state.cbtMode === "single";
+    const settings = state.settingsCache;
+    const requiredSubjects = isFull ? (settings.cbtSubjectCount || 3) : 1;
 
     let modeHtml = (
         '<div class="cbt-mode-select">' +
         '<button class="cbt-mode-btn' + (isFull ? ' active' : '') + '" data-action="cbt-mode" data-mode="full">' +
         '<span class="icon">📚</span>' +
         '<span class="label">Full CBT</span>' +
-        '<span class="desc">4 subjects (English + 3)</span>' +
+        '<span class="desc">' + (requiredSubjects + 1) + ' subjects (English + ' + requiredSubjects + ')</span>' +
         '</button>' +
         '<button class="cbt-mode-btn' + (isSingle ? ' active' : '') + '" data-action="cbt-mode" data-mode="single">' +
         '<span class="icon">📝</span>' +
@@ -4383,10 +4960,10 @@ function renderCbtMode() {
     );
 
     let ready = false;
-    if (isFull) ready = count === 3;
+    if (isFull) ready = count === requiredSubjects;
     else ready = count === 1;
 
-    let label = isFull ? 'Start CBT Practice (4 subjects)' : 'Start Subject Practice (1 subject)';
+    let label = isFull ? 'Start CBT Practice (' + (requiredSubjects + 1) + ' subjects)' : 'Start Subject Practice (1 subject)';
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
@@ -4395,18 +4972,18 @@ function renderCbtMode() {
         '<p class="sub">Real JAMB-style practice screen</p>' +
         modeHtml +
         '<div class="mode-note">' + (isFull ?
-            'JAMB CBT covers <b>4 subjects</b>: English is compulsory, plus <b>3</b> more of your choice. <br><br>⏱️ <b>' + state.settingsCache.cbtTimeLimit + ' minutes</b> · <b>' + state.settingsCache.cbtQuestionsPerSubject + ' questions</b> per subject' :
-            'Choose <b>1 subject</b> to practice. <br><br>⏱️ <b>' + state.settingsCache.subjectTimeLimit + ' minutes</b> · <b>' + state.settingsCache.subjectQuestionsPerSubject + ' questions</b>') +
+            'JAMB CBT covers <b>' + (requiredSubjects + 1) + ' subjects</b>: English is compulsory, plus <b>' + requiredSubjects + '</b> more of your choice. <br><br>⏱️ <b>' + settings.cbtTimeLimit + ' minutes</b> · <b>' + settings.cbtQuestionsPerSubject + ' questions</b> per subject' :
+            'Choose <b>1 subject</b> to practice. <br><br>⏱️ <b>' + settings.subjectTimeLimit + ' minutes</b> · <b>' + settings.subjectQuestionsPerSubject + ' questions</b>') +
         '</div>' +
         '<p class="section-label">' + (isFull ? 'Compulsory' : 'Select a subject') + '</p>' +
         (isFull ?
             '<div class="compulsory-row">' + subjectBadge(eng) + '<span style="font-size:13px;font-weight:600">' +
             esc(eng.name) + '</span><span class="tag">Compulsory</span></div>' :
             '') +
-        '<p class="section-label">' + (isFull ? 'Choose 3 more subjects' : 'Choose 1 subject') + '</p>' +
+        '<p class="section-label">' + (isFull ? 'Choose ' + requiredSubjects + ' more subjects' : 'Choose 1 subject') + '</p>' +
         '<div class="subject-grid">' + chips + '</div>' +
         '<div class="picker-footer">' +
-        '<p class="picker-count">' + count + (isFull ? ' of 3 selected' : ' of 1 selected') + '</p>' +
+        '<p class="picker-count">' + count + (isFull ? ' of ' + requiredSubjects + ' selected' : ' of 1 selected') + '</p>' +
         '<button class="btn ' + (ready ? "btn-green" : "btn-outline") + '" data-action="start-cbt"' + (ready ? '' :
             ' disabled style="opacity:0.5;pointer-events:none"') + '>' + label + '</button>' +
         '</div>'
@@ -4421,12 +4998,16 @@ function renderCbtExam() {
     if (state.cbtFinished || state.cbtSubmitted) {
         let score = 0;
         const subjectScores = {};
+        const weakQuestionsToSave = [];
         state.cbtQuestions.forEach(function(item, i) {
             const isCorrect = state.cbtAnswers[i] === item.correct_answer;
             if (isCorrect) {
                 score++;
                 if (!subjectScores[item.subject_id]) subjectScores[item.subject_id] = 0;
                 subjectScores[item.subject_id]++;
+            } else {
+                // Wrong answer - save to weak questions
+                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id });
             }
         });
 
@@ -4437,12 +5018,36 @@ function renderCbtExam() {
         if (state.authUser && state.cbtSubmitted) {
             const subjectId = isFullCbt ? null : state.cbtQuestions[0]?.subject_id;
             const subjectName = isFullCbt ? null : state.cbtQuestions[0]?.subject_name;
+            
+            // Save weak questions
+            weakQuestionsToSave.forEach(function(wq) {
+                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'cbt');
+            });
+            
+            // Save history
+            const subjects = Object.keys(subjectScores);
+            const subjectNames = subjects.map(function(sid) {
+                const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+                return subj ? subj.name : sid;
+            });
+            saveHistoryEntry({
+                mode: isFullCbt ? 'cbt-full' : 'cbt-single',
+                subjects: subjectNames,
+                subject_scores: subjectScores,
+                total_score: totalScore,
+                max_score: maxScore,
+                total_questions: state.cbtQuestions.length,
+                answered_count: state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
+                submitted_at: new Date().toISOString(),
+                exam_title: isFullCbt ? 'Full CBT Practice' : (subjectName || 'Subject Practice'),
+            });
+            
             saveScore(isFullCbt ? 'cbt' : 'subject', {
                 user_id: state.authUser.id,
                 username: state.profile.name,
                 score: totalScore,
                 total_questions: state.cbtQuestions.length,
-                subject_count: isFullCbt ? 4 : 1,
+                subject_count: isFullCbt ? (state.settingsCache.cbtSubjectCount || 3) + 1 : 1,
                 subject_id: subjectId,
                 subject_name: subjectName,
                 subject_scores: subjectScores,
@@ -4468,6 +5073,7 @@ function renderCbtExam() {
                 (item.explanation ?
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
+                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="cbt">⚠️ Flag Question</button></div>' +
                 '</div>'
             );
         });
@@ -4635,13 +5241,15 @@ function renderExamMode() {
 
     const ready = !!state.examSubject;
     const selectedSubject = SUBJECTS.find(function(s) { return s.id === state.examSubject; });
+    const settings = state.settingsCache;
+    const timeLimit = settings.examTimeLimit || 100;
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
         '<div class="feature-icon" style="background:#E2543A">' + svg("clipboard", 34) + '</div>' +
         '<h2 class="title">Exam Mode</h2>' +
         '<p class="sub">Timed, no pausing — one subject at a time</p>' +
-        '<div class="mode-note">Pick <b>one subject</b> and a <b>past year</b> (2010–2026) to sit a timed exam. <br><br>⏱️ <b>1 hour 40 minutes</b></div>' +
+        '<div class="mode-note">Pick <b>one subject</b> and a <b>past year</b> (2010–2026) to sit a timed exam. <br><br>⏱️ <b>' + timeLimit + ' minutes</b></div>' +
         '<div class="year-select-wrap">' +
         '<label class="field-label">Exam year</label>' +
         '<select id="exam-year-select" class="field">' + yearOptions + '</select>' +
@@ -4665,9 +5273,44 @@ function renderExamExam() {
 
     if (state.examFinished || state.examSubmitted) {
         let score = 0;
+        const subjectScores = {};
+        const weakQuestionsToSave = [];
         state.examQuestions.forEach(function(item, i) {
-            if (state.examAnswers[i] === item.correct_answer) score++;
+            const isCorrect = state.examAnswers[i] === item.correct_answer;
+            if (isCorrect) {
+                score++;
+                if (!subjectScores[item.subject_id]) subjectScores[item.subject_id] = 0;
+                subjectScores[item.subject_id]++;
+            } else {
+                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id });
+            }
         });
+
+        if (state.authUser && state.examSubmitted) {
+            // Save weak questions
+            weakQuestionsToSave.forEach(function(wq) {
+                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'exam');
+            });
+            
+            // Save history
+            const subjects = Object.keys(subjectScores);
+            const subjectNames = subjects.map(function(sid) {
+                const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+                return subj ? subj.name : sid;
+            });
+            const subjName = state.examQuestions[0]?.subject_name || 'Unknown Subject';
+            saveHistoryEntry({
+                mode: 'exam',
+                subjects: subjectNames,
+                subject_scores: subjectScores,
+                total_score: score,
+                max_score: state.examQuestions.length,
+                total_questions: state.examQuestions.length,
+                answered_count: state.examAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
+                submitted_at: new Date().toISOString(),
+                exam_title: subjName + ' Exam ' + state.examYear,
+            });
+        }
 
         let reviewItems = "";
         state.examQuestions.forEach(function(item, i) {
@@ -4675,6 +5318,7 @@ function renderExamExam() {
             const isCorrect = userAns === item.correct_answer;
             const userLetter = userAns !== null && userAns !== undefined ? String.fromCharCode(65 + userAns) : '—';
             const correctLetter = String.fromCharCode(65 + item.correct_answer);
+            const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
             reviewItems += (
                 '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
                 '<div class="q-text">Q' + (i + 1) + '. ' + esc(item.text) + '</div>' +
@@ -4686,6 +5330,7 @@ function renderExamExam() {
                 (item.explanation ?
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
+                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="exam">⚠️ Flag Question</button></div>' +
                 '</div>'
             );
         });
@@ -4806,11 +5451,15 @@ function renderTopicsPicker() {
     }
 
     const ready = !!(state.topicSubject && state.topicId);
+    const settings = state.settingsCache;
+    const timeLimit = settings.topicTimeLimit || 60;
+    
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
         '<div class="feature-icon" style="background:#7C5CFC">' + svg("list", 34) + '</div>' +
         '<h2 class="title">Topic Practice</h2>' +
         '<p class="sub">Drill one topic at a time</p>' +
+        '<div class="mode-note">⏱️ <b>' + timeLimit + ' minutes</b> · <b>' + (state.settingsCache.subjectQuestionsPerSubject || 25) + ' questions</b></div>' +
         '<p class="section-label">Select a subject</p>' +
         '<div class="subject-grid">' + subjChips + '</div>' +
         topicsHtml +
@@ -4829,9 +5478,44 @@ function renderTopicExam() {
 
     if (state.topicFinished || state.topicSubmitted) {
         let score = 0;
+        const subjectScores = {};
+        const weakQuestionsToSave = [];
         state.topicQuestions.forEach(function(item, i) {
-            if (state.topicAnswers[i] === item.correct_answer) score++;
+            const isCorrect = state.topicAnswers[i] === item.correct_answer;
+            if (isCorrect) {
+                score++;
+                if (!subjectScores[item.subject_id]) subjectScores[item.subject_id] = 0;
+                subjectScores[item.subject_id]++;
+            } else {
+                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id });
+            }
         });
+
+        if (state.authUser && state.topicSubmitted) {
+            // Save weak questions
+            weakQuestionsToSave.forEach(function(wq) {
+                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'topic');
+            });
+            
+            // Save history
+            const subjects = Object.keys(subjectScores);
+            const subjectNames = subjects.map(function(sid) {
+                const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+                return subj ? subj.name : sid;
+            });
+            const topicName = state.topicsList.find(function(t) { return t.id === state.topicId; })?.name || 'Topic Practice';
+            saveHistoryEntry({
+                mode: 'topic',
+                subjects: subjectNames,
+                subject_scores: subjectScores,
+                total_score: score,
+                max_score: state.topicQuestions.length,
+                total_questions: state.topicQuestions.length,
+                answered_count: state.topicAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
+                submitted_at: new Date().toISOString(),
+                exam_title: topicName,
+            });
+        }
 
         let reviewItems = "";
         state.topicQuestions.forEach(function(item, i) {
@@ -4839,6 +5523,7 @@ function renderTopicExam() {
             const isCorrect = userAns === item.correct_answer;
             const userLetter = userAns !== null && userAns !== undefined ? String.fromCharCode(65 + userAns) : '—';
             const correctLetter = String.fromCharCode(65 + item.correct_answer);
+            const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
             reviewItems += (
                 '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
                 '<div class="q-text">Q' + (i + 1) + '. ' + esc(item.text) + '</div>' +
@@ -4850,6 +5535,7 @@ function renderTopicExam() {
                 (item.explanation ?
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
+                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="topic">⚠️ Flag Question</button></div>' +
                 '</div>'
             );
         });
@@ -4909,6 +5595,12 @@ function renderTopicExam() {
         '<button class="submit-btn" data-action="topic-submit">Submit</button>' +
         '</div>' +
         '</div>' +
+        '<div class="timer-bar">' +
+        '<span class="label">⏱️ Time left</span>' +
+        '<span class="time' + (state.topicTimeLeft < 300 ? ' warning' : '') + '">' +
+        formatTime(state.topicTimeLeft) +
+        '</span>' +
+        '</div>' +
         '<div class="exam-nav">' +
         '<span class="q-counter">Question ' + (state.topicIndex + 1) + ' of ' + totalQ + '</span>' +
         '</div>' +
@@ -4932,9 +5624,43 @@ function renderLitExam() {
 
     if (state.litFinished || state.litSubmitted) {
         let score = 0;
+        const subjectScores = {};
+        const weakQuestionsToSave = [];
         state.litQuestions.forEach(function(item, i) {
-            if (state.litAnswers[i] === item.correct_answer) score++;
+            const isCorrect = state.litAnswers[i] === item.correct_answer;
+            if (isCorrect) {
+                score++;
+                if (!subjectScores[item.subject_id]) subjectScores[item.subject_id] = 0;
+                subjectScores[item.subject_id]++;
+            } else {
+                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id });
+            }
         });
+
+        if (state.authUser && state.litSubmitted) {
+            // Save weak questions
+            weakQuestionsToSave.forEach(function(wq) {
+                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'novel');
+            });
+            
+            // Save history
+            const subjects = Object.keys(subjectScores);
+            const subjectNames = subjects.map(function(sid) {
+                const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+                return subj ? subj.name : sid;
+            });
+            saveHistoryEntry({
+                mode: 'novel',
+                subjects: subjectNames,
+                subject_scores: subjectScores,
+                total_score: score,
+                max_score: state.litQuestions.length,
+                total_questions: state.litQuestions.length,
+                answered_count: state.litAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
+                submitted_at: new Date().toISOString(),
+                exam_title: 'Novel (CBT) Practice',
+            });
+        }
 
         let reviewItems = "";
         state.litQuestions.forEach(function(item, i) {
@@ -4942,6 +5668,7 @@ function renderLitExam() {
             const isCorrect = userAns === item.correct_answer;
             const userLetter = userAns !== null && userAns !== undefined ? String.fromCharCode(65 + userAns) : '—';
             const correctLetter = String.fromCharCode(65 + item.correct_answer);
+            const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
             reviewItems += (
                 '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
                 '<div class="q-text">Q' + (i + 1) + '. ' + esc(item.text) + '</div>' +
@@ -4953,12 +5680,13 @@ function renderLitExam() {
                 (item.explanation ?
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
+                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="novel">⚠️ Flag Question</button></div>' +
                 '</div>'
             );
         });
 
         return (
-            '<h2 class="title">Literature CBT — Result</h2>' +
+            '<h2 class="title">Novel (CBT) — Result</h2>' +
             '<div class="card" style="text-align:center;padding:24px;margin-bottom:16px">' +
             '<p style="font-family:var(--font-mono);font-size:48px;margin:0;color:' + GREEN + '">' + score +
             ' / ' + state.litQuestions.length + '</p>' +
@@ -5032,104 +5760,27 @@ function renderLitExam() {
 }
 
 // ============================================================
-//  SYLLABUS
-// ============================================================
-function renderSyllabusUser() {
-    let chips = "";
-    SUBJECTS.forEach(function(s) {
-        const sel = state.syllabusViewSubject === s.id;
-        chips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-syllabus-subject" data-subject="' +
-            s.id + '">' +
-            subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + '</span>' +
-            '</button>'
-        );
-    });
-
-    let content = "";
-    if (state.syllabusViewSubject) {
-        if (!state.syllabusLoaded || (state.syllabusData && state.syllabusData.subject_id !== state
-                .syllabusViewSubject)) {
-            content = '<div class="loading-spinner"><div class="spinner"></div><p>Loading syllabus...</p></div>';
-            loadSyllabus(state.syllabusViewSubject);
-        } else if (!state.syllabusData || (!state.syllabusData.content && !state.syllabusData.file_url)) {
-            content =
-                '<div class="card"><p style="font-size:13px;color:var(--muted);margin:0">No syllabus has been uploaded for this subject yet.</p></div>';
-        } else {
-            content = '<div class="card">';
-            if (state.syllabusData.content) content +=
-                '<p style="font-size:13px;white-space:pre-wrap;margin:0 0 12px;line-height:1.5">' + esc(state
-                    .syllabusData.content) + '</p>';
-            if (state.syllabusData.file_url) {
-                const fname = (state.syllabusData.file_name || '').toLowerCase();
-                const isImage = /\.(png|jpe?g|gif|webp)$/.test(fname);
-                if (isImage) {
-                    content += '<img src="' + state.syllabusData.file_url +
-                        '" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" alt="Syllabus image" />';
-                }
-                content += '<a class="btn btn-outline" href="' + state.syllabusData.file_url +
-                    '" target="_blank">' + (isImage ? 'Open full image' : 'Download Syllabus') + '</a>';
-            }
-            content += '</div>';
-        }
-    }
-
-    return (
-        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
-        '<div class="feature-icon" style="background:#E4A93A">' + svg("scroll", 34) + '</div>' +
-        '<h2 class="title">Syllabus</h2>' +
-        '<p class="sub">Full JAMB syllabus</p>' +
-        '<p class="section-label">Select a subject</p>' +
-        '<div class="subject-grid">' + chips + '</div>' +
-        content
-    );
-}
-
-// ============================================================
+ 
 //  DOCUMENTS
 // ============================================================
 function renderDocumentsUser() {
-    let chips = (
-        '<button class="subject-chip' + (!state.docFilterSubject ? ' selected' : '') +
-        '" data-action="select-doc-filter" data-subject="">' +
-        '<div class="subject-badge" style="background:' + GREEN + '">ALL</div><span class="sname">All</span>' +
-        '</button>'
-    );
-    SUBJECTS.forEach(function(s) {
-        const sel = state.docFilterSubject === s.id;
-        chips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-doc-filter" data-subject="' +
-            s.id + '">' +
-            subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + '</span>' +
-            '</button>'
-        );
-    });
-
     let rows = "";
     if (!state.docsLoaded) {
         rows = '<div class="loading-spinner"><div class="spinner"></div><p>Loading documents...</p></div>';
-        loadDocuments(state.docFilterSubject);
+        loadDocuments();
     } else {
         let docs = state.docsList;
-        if (state.docFilterSubject) {
-            docs = docs.filter(function(d) { return d.subject_id === state.docFilterSubject; });
-        }
         if (docs.length === 0) {
             rows =
                 '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:16px">No documents available yet.</p>';
         } else {
             rows = "";
             docs.forEach(function(d) {
-                const subj = SUBJECTS.find(function(s) { return s.id === d.subject_id; });
                 rows += (
                     '<div class="card" style="margin-bottom:8px">' +
                     '<p style="font-size:13px;font-weight:600;margin:0">' + esc(d.name) + '</p>' +
-                    '<p style="font-size:11px;color:var(--muted);margin:2px 0 10px">' + esc(subj ? subj
-                        .name : "General") + ' · ' + esc(d.file_name || '') + '</p>' +
-                    '<a class="btn btn-green" href="' + d.file_url + '" target="_blank">Download</a>' +
-                    '</div>'
+                    '<p style="font-size:11px;color:var(--muted);margin:2px 0 10px">' + esc(d.file_name || '') + '</p>' +
+                    renderFileActions(d.file_url, d.file_name, d.file_type)
                 );
             });
         }
@@ -5140,31 +5791,94 @@ function renderDocumentsUser() {
         '<div class="feature-icon" style="background:#4C5FD5">' + svg("folder", 34) + '</div>' +
         '<h2 class="title">Document File</h2>' +
         '<p class="sub">Past questions & study files</p>' +
-        '<div class="subject-grid">' + chips + '</div>' +
         rows
     );
 }
 
+// Helper: render file view/download buttons
+function renderFileActions(fileUrl, fileName, fileType) {
+    if (!fileUrl) return '';
+    const isImage = fileType && fileType.startsWith('image/');
+    let html = '';
+    if (isImage) {
+        html += '<img src="' + fileUrl + '" style="width:100%;border-radius:8px;margin-bottom:8px" alt="' + esc(fileName || 'Image') + '" />';
+    }
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    if (isImage) {
+        html += '<a class="btn btn-outline" href="' + fileUrl + '" target="_blank" style="flex:1">View Image</a>';
+        html += '<a class="btn btn-green" href="' + fileUrl + '" download="' + esc(fileName || 'image') + '" style="flex:1">Download</a>';
+    } else {
+        html += '<a class="btn btn-outline" href="' + fileUrl + '" target="_blank" style="flex:1">View</a>';
+        html += '<a class="btn btn-green" href="' + fileUrl + '" download="' + esc(fileName || 'document') + '" style="flex:1">Download</a>';
+    }
+    html += '</div>';
+    return html;
+}
+
 // ============================================================
-//  REVISE WEAK QUESTIONS
+//  REVISE WEAK QUESTIONS - LOAD
+// ============================================================
+async function loadWeakQuestions() {
+    if (!state.authUser) {
+        state.weakQuestionsLoaded = true;
+        state.weakQuestions = [];
+        render();
+        return;
+    }
+    
+    try {
+        // Get weak questions with question data joined
+        const { data, error } = await supabase
+            .from('weak_questions')
+            .select('*, questions(*)')
+            .eq('user_id', state.authUser.id)
+            .order('created_at', { ascending: false });
+            
+        if (error) {
+            console.warn("Load weak questions error:", error);
+            state.weakQuestions = [];
+            state.weakQuestionsLoaded = true;
+            render();
+            return;
+        }
+        
+        state.weakQuestions = data || [];
+        state.weakQuestionsLoaded = true;
+        render();
+    } catch (e) {
+        console.warn("Load weak questions exception:", e);
+        state.weakQuestions = [];
+        state.weakQuestionsLoaded = true;
+        render();
+    }
+}
+
+// ============================================================
+//  REVISE WEAK QUESTIONS - RENDER
 // ============================================================
 function renderReviseWeak() {
+    if (!state.authUser) { 
+        return (
+            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
+            '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 34) + '</div>' +
+            '<h2 class="title">Revise Weak Questions</h2>' +
+            '<p class="sub">Retry questions you\'ve missed</p>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:20px 0">Please log in to access your weak questions.</p></div>'
+        );
+    }
+    
+    if (!isUserActive()) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
+            '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 34) + '</div>' +
+            '<h2 class="title">Revise Weak Questions</h2>' +
+            '<p class="sub">Retry questions you\'ve missed</p>' +
+            '<div class="card"><p style="text-align:center;color:var(--unanswered);padding:20px 0">Your account needs to be activated to access weak question revision. Contact admin or visit the Activate page.</p></div>'
+        );
+    }
+
     if (!state.weakQuestionsLoaded) {
-        if (state.authUser) {
-            supabase.from('weak_questions')
-                .select('*')
-                .eq('user_id', state.authUser.id)
-                .order('created_at', { ascending: false })
-                .then(function({ data, error }) {
-                    if (!error) {
-                        state.weakQuestions = data || [];
-                    }
-                    state.weakQuestionsLoaded = true;
-                    render();
-                });
-        } else {
-            state.weakQuestionsLoaded = true;
-        }
+        loadWeakQuestions();
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading weak questions...</p></div>';
     }
 
@@ -5179,32 +5893,160 @@ function renderReviseWeak() {
         );
     }
 
+    // Group by subject
     const grouped = {};
     state.weakQuestions.forEach(function(wq) {
         if (!grouped[wq.subject_id]) grouped[wq.subject_id] = [];
         grouped[wq.subject_id].push(wq);
     });
 
-    let subjectList = "";
-    Object.keys(grouped).forEach(function(sid) {
-        const subj = SUBJECTS.find(function(s) { return s.id === sid; });
-        const count = grouped[sid].length;
-        subjectList += (
-            '<button class="lb-row" data-action="start-weak-review" data-subject="' + sid + '">' +
-            '<div class="left"><span>' + (subj ? subj.name : sid) + '</span></div>' +
-            '<span style="font-size:12px;color:var(--muted)">' + count + ' questions</span>' +
-            '</button>'
-        );
-    });
-
-    return (
+    let html = (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
         '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 34) + '</div>' +
         '<h2 class="title">Revise Weak Questions</h2>' +
         '<p class="sub">Retry questions you\'ve missed</p>' +
-        '<p style="font-size:13px;color:var(--muted);margin-bottom:12px">Select a subject to review:</p>' +
-        subjectList
+        '<p style="font-size:13px;color:var(--muted);margin-bottom:12px">Total: ' + state.weakQuestions.length + ' weak question(s)</p>'
     );
+
+    Object.keys(grouped).forEach(function(sid) {
+        const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+        const subjName = subj ? subj.name : sid;
+        html += '<div class="card" style="margin-bottom:12px"><p style="font-weight:700;font-size:14px;margin:0 0 8px">' + esc(subjName) + ' (' + grouped[sid].length + ')</p>';
+        
+        // Sort by most recent first
+        grouped[sid].sort(function(a, b) {
+            return new Date(b.created_at) - new Date(a.created_at);
+        });
+        
+        grouped[sid].forEach(function(wq) {
+            const q = wq.questions;
+            if (!q) return;
+            
+            const isExpanded = state.weakQuestionStates['view_' + wq.id] || false;
+            const isReattempting = state.weakQuestionStates['reattempt_' + wq.id] || false;
+            const modeLabels = {
+                'cbt': 'CBT',
+                'exam': 'Exam',
+                'topic': 'Topic',
+                'novel': 'Novel',
+                'mock': 'Mock',
+                'unknown': 'Unknown'
+            };
+            const modeLabel = modeLabels[wq.mode] || wq.mode || 'Unknown';
+            
+            html += '<div class="weak-question-item" style="margin-bottom:8px">';
+            html += '<div class="q-header">';
+            html += '<p class="q-text">' + esc(q.text) + '</p>';
+            html += '<div class="q-actions">';
+            html += '<button class="mini-btn" data-action="weak-toggle-view" data-wid="' + wq.id + '">' + (isExpanded ? 'Hide Answer' : 'View Answer') + '</button>';
+            html += '<button class="mini-btn primary" data-action="weak-toggle-reattempt" data-wid="' + wq.id + '">' + (isReattempting ? 'Cancel' : 'Reattempt') + '</button>';
+            html += '<button class="mini-btn flag" data-action="flag-weak-question" data-qid="' + wq.question_id + '" data-subject="' + sid + '" data-mode="' + wq.mode + '">⚠️</button>';
+            html += '</div>';
+            html += '</div>';
+            html += '<div class="q-meta">From: ' + modeLabel + ' · ' + formatTimeAgo(wq.created_at) + '</div>';
+            
+            // View Answer
+            if (isExpanded) {
+                let optsList = '<ul class="admin-list">';
+                q.options.forEach(function(o, oi) {
+                    optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') + '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
+                });
+                optsList += '</ul>';
+                html += '<div class="q-options">' + optsList + '</div>';
+                if (q.explanation) {
+                    html += '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + esc(q.explanation) + '</div>';
+                }
+            }
+            
+            // Reattempt
+            if (isReattempting) {
+                // Show options for reattempt
+                const userAnswer = state.weakQuestionStates['answer_' + wq.id];
+                html += '<div class="reattempt-area">';
+                if (q.options) {
+                    q.options.forEach(function(o, oi) {
+                        const chosen = userAnswer === oi;
+                        html += (
+                            '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="weak-reattempt-answer" data-wid="' + wq.id + '" data-idx="' + oi + '">' +
+                            '<span class="qa-letter">' + String.fromCharCode(65 + oi) + '</span><span>' + esc(o) + '</span>' +
+                            '</button>'
+                        );
+                    });
+                }
+                html += '<button class="btn btn-green" style="margin-top:8px" data-action="weak-submit-reattempt" data-wid="' + wq.id + '">Submit Reattempt</button>';
+                html += '</div>';
+            }
+            
+            html += '</div>';
+        });
+        
+        html += '</div>';
+    });
+
+    return html;
+}
+
+// ============================================================
+//  HISTORY
+// ============================================================
+function renderHistory() {
+    if (!state.authUser) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
+            '<h2 class="title">📋 History</h2>' +
+            '<p class="sub">View your past exam attempts</p>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:20px 0">Please log in to view your history.</p></div>'
+        );
+    }
+
+    if (!state.historyLoaded) {
+        loadHistory();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading history...</p></div>';
+    }
+
+    if (state.historyEntries.length === 0) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
+            '<h2 class="title">📋 History</h2>' +
+            '<p class="sub">View your past exam attempts</p>' +
+            '<div class="card"><p style="text-align:center;color:var(--faint);padding:20px 0">No history yet. Complete an exam to see it here.</p></div>'
+        );
+    }
+
+    let html = (
+        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
+        '<h2 class="title">📋 History</h2>' +
+        '<p class="sub">View your past exam attempts</p>'
+    );
+
+    state.historyEntries.forEach(function(entry) {
+        const subjectScores = entry.subject_scores || {};
+        let subjectScoreHtml = '';
+        Object.keys(subjectScores).forEach(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            const name = subj ? subj.name : sid;
+            subjectScoreHtml += '<span>' + esc(name) + ': ' + subjectScores[sid] + '</span>';
+        });
+
+        // Build card ID for printing
+        const cardId = 'history-card-' + entry.id;
+        
+        html += (
+            '<div class="history-card" id="' + cardId + '">' +
+            '<p class="h-title">' + esc(entry.exam_title || entry.mode) + '</p>' +
+            '<p class="h-date">📅 ' + formatDate(entry.submitted_at) + '</p>' +
+            '<p class="h-score">' + entry.total_score + ' / ' + entry.max_score + '</p>' +
+            '<p style="font-size:12px;color:var(--muted);margin:0 0 4px">' + entry.answered_count + ' of ' + entry.total_questions + ' answered</p>' +
+            '<div class="h-subject-scores">' + subjectScoreHtml + '</div>' +
+            '<div class="h-actions">' +
+            '<button class="btn btn-outline btn-sm" data-action="history-print" data-id="' + entry.id + '" style="flex:1">' + svg("print", 14) + ' Print</button>' +
+            '<button class="btn btn-outline btn-sm" data-action="history-share" data-id="' + entry.id + '" style="flex:1">' + svg("share", 14) + ' Share</button>' +
+            '</div>' +
+            '</div>'
+        );
+    });
+
+    return html;
 }
 
 // ============================================================
@@ -5222,6 +6064,11 @@ function renderMockExamPicker() {
         '<h2 class="title">Mock Exam</h2>' +
         '<p class="sub">Full JAMB-style mock test</p>'
     );
+
+    // If viewing mock attempts for admin
+    if (state.admin.viewingMockAttempts) {
+        return renderMockAttemptsView();
+    }
 
     const now = new Date();
     const activeExams = state.mockExams.filter(function(exam) {
@@ -5386,6 +6233,8 @@ function renderMockExamPicker() {
 function renderMockRegistrationForm(exam) {
     const selected = state.mockSelectedSubjects || [];
     const subjects = SUBJECTS.filter(function(s) { return !s.compulsory; });
+    const settings = state.settingsCache;
+    const requiredSubjects = settings.mockSubjectCount || 4;
 
     let chips = "";
     subjects.forEach(function(s) {
@@ -5399,7 +6248,7 @@ function renderMockRegistrationForm(exam) {
         );
     });
 
-    const ready = selected.length === 4;
+    const ready = selected.length === requiredSubjects;
 
     return (
         '<div class="mock-card active">' +
@@ -5408,10 +6257,10 @@ function renderMockRegistrationForm(exam) {
         '<p class="mock-date">⏰ Register by: ' + (exam.registration_deadline ? new Date(exam.registration_deadline)
             .toLocaleString() : '1 hour before') + '</p>' +
         '<span class="mock-status upcoming">📝 Register</span>' +
-        '<p style="font-size:13px;color:var(--muted);margin-top:8px">Select 4 subjects to register:</p>' +
+        '<p style="font-size:13px;color:var(--muted);margin-top:8px">Select ' + requiredSubjects + ' subjects to register:</p>' +
         '<div class="subject-grid" style="margin-top:8px">' + chips + '</div>' +
         '<div class="picker-footer">' +
-        '<p class="picker-count">' + selected.length + ' of 4 selected</p>' +
+        '<p class="picker-count">' + selected.length + ' of ' + requiredSubjects + ' selected</p>' +
         '<button class="btn ' + (ready ? "btn-green" : "btn-outline") + '" data-action="register-mock" data-examid="' +
         exam.id + '"' + (ready ? '' :
             ' disabled style="opacity:0.5;pointer-events:none"') + '>Register for Mock</button>' +
@@ -5454,6 +6303,59 @@ function renderMockResultForUser(exam, attempt) {
         '</div>' +
         '<button class="btn btn-green" style="margin-top:12px" data-action="mock-exit">Back to Home</button>' +
         '</div>'
+    );
+}
+
+// ============================================================
+//  MOCK ATTEMPTS VIEW (ADMIN)
+// ============================================================
+function renderMockAttemptsView() {
+    const examId = state.admin.viewingMockAttempts;
+    const exam = state.mockExams.find(function(e) { return e.id === examId; });
+    
+    if (!exam) {
+        state.admin.viewingMockAttempts = null;
+        render();
+        return '';
+    }
+
+    let rows = '';
+    const attempts = state.mockAttempts.filter(function(a) { return a.mock_exam_id === examId && a.is_submitted; });
+    
+    if (attempts.length === 0) {
+        rows = '<p style="text-align:center;color:var(--faint);padding:20px 0">No submitted attempts for this mock yet.</p>';
+    } else {
+        attempts.forEach(function(attempt) {
+            const user = state.allUsers.find(function(u) { return u.id === attempt.user_id; });
+            const username = user ? user.username : 'Unknown User';
+            const score = attempt.score || 0;
+            const maxScore = attempt.total_questions ? attempt.total_questions * 4 : 400;
+            const subjectScores = attempt.subject_scores || {};
+            let subjectStr = Object.keys(subjectScores).map(function(sid) {
+                const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+                return (subj ? subj.code : sid) + ': ' + subjectScores[sid];
+            }).join(' · ');
+            
+            rows += (
+                '<div class="admin-user-row">' +
+                '<div class="user-info">' +
+                '<span class="user-name">' + esc(username) + '</span>' +
+                '<span class="user-email">' + subjectStr + '</span>' +
+                '</div>' +
+                '<span style="font-weight:700;color:var(--green)">' + score + '/' + maxScore + '</span>' +
+                '<span style="font-size:10px;color:var(--faint)">' + formatDate(attempt.submitted_at) + '</span>' +
+                '</div>'
+            );
+        });
+    }
+
+    return (
+        '<div class="admin-view-mode-header">' +
+        '<span class="mode-title">📋 ' + esc(exam.title) + ' - Attempts</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-mock-attempts-back">← Back</button>' +
+        '</div>' +
+        '<p style="font-size:12px;color:var(--muted);margin-bottom:12px">' + attempts.length + ' submitted attempts</p>' +
+        rows
     );
 }
 
@@ -5628,6 +6530,7 @@ function renderMockResult() {
                 (item.explanation ?
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
+                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="mock">⚠️ Flag Question</button></div>' +
                 '</div>'
             );
         });
@@ -5751,13 +6654,17 @@ function renderNotifications() {
         items = '<p style="text-align:center;color:var(--faint);padding:32px 0">No notifications yet.</p>';
     } else {
         state.notifs.forEach(function(n) {
+            let fileHtml = '';
+            if (n.image_url) {
+                fileHtml = renderFileActions(n.image_url, 'notification-image', 'image/');
+            }
             items += (
                 '<div class="notif-item' + (n.unread ? ' unread' : '') + '" data-action="mark-notif-read" data-id="' +
                 n.id + '">' +
                 '<div class="row"><p class="t">' + esc(n.title) + '</p>' + (n.unread ?
                     '<span class="ball"></span>' : '') + '</div>' +
                 '<p class="b">' + esc(n.body) + '</p>' +
-                (n.image_url ? '<img src="' + n.image_url + '" alt="Notification image" />' : '') +
+                (fileHtml ? '<div style="margin-top:8px">' + fileHtml + '</div>' : '') +
                 '<p class="time">' + esc(n.time) + '</p>' +
                 '</div>'
             );
@@ -5851,12 +6758,12 @@ const ADMIN_TABS = [
     { key: "overview", label: "📊 Overview" },
     { key: "questions", label: "📝 Questions" },
     { key: "settings", label: "⚙️ Settings" },
-    { key: "documents", label: "📄 Documents" },
-    { key: "syllabus", label: "📚 Syllabus" },
+    { key: "documents", label: "📄 Documents" },                
     { key: "users", label: "👥 Users" },
     { key: "notifications", label: "🔔 Notify" },
     { key: "mock", label: "🎯 Mock" },
     { key: "activation", label: "🔑 Activation" },
+    { key: "flagged", label: "🚩 Flagged" },
 ];
 
 const ADMIN_QUESTION_TABS = [
@@ -5864,7 +6771,7 @@ const ADMIN_QUESTION_TABS = [
     { key: "exam", label: "Exam Mode" },
     { key: "mock", label: "Mock Exam" },
     { key: "topic", label: "Topic Practice" },
-    { key: "literature", label: "Literature" },
+    { key: "literature", label: "Novel (CBT)" },
 ];
 
 function renderAdmin() {
@@ -5880,8 +6787,10 @@ function renderAdmin() {
 
     let tabBar = "";
     ADMIN_TABS.forEach(function(t) {
+        const isFlagged = t.key === "flagged";
+        const badge = isFlagged && state.flaggedCount > 0 ? ' <span class="flag-badge">' + state.flaggedCount + '</span>' : '';
         tabBar += '<button class="admin-tab' + (state.adminTab === t.key ? ' active' : '') +
-            '" data-action="admin-tab" data-tab="' + t.key + '">' + t.label + '</button>';
+            '" data-action="admin-tab" data-tab="' + t.key + '">' + t.label + badge + '</button>';
     });
 
     let body = "";
@@ -5894,6 +6803,7 @@ function renderAdmin() {
     else if (state.adminTab === "notifications") body = renderAdminNotifications();
     else if (state.adminTab === "mock") body = renderAdminMock();
     else if (state.adminTab === "activation") body = renderAdminActivation();
+    else if (state.adminTab === "flagged") body = renderAdminFlagged();
     else body = renderAdminOverview();
 
     return (
@@ -5986,7 +6896,7 @@ function renderAdminOverview() {
         '</div>' +
         '<div class="admin-mode-card" data-action="admin-view-questions" data-type="literature">' +
         '<div class="mode-info">' +
-        '<span class="mode-name">📖 Literature</span>' +
+        '<span class="mode-name">📖 Novel (CBT)</span>' +
         '<span class="mode-count">' + modeCounts.literature + ' questions</span>' +
         '</div>' +
         '<div class="mode-actions">' +
@@ -6000,6 +6910,7 @@ function renderAdminOverview() {
         '<li>Total Users: ' + userCount + '</li>' +
         '<li>Subjects Available: ' + SUBJECTS.length + '</li>' +
         '<li>Total Questions: ' + (modeCounts.cbt + modeCounts.exam + modeCounts.mock + modeCounts.topic + modeCounts.literature) + '</li>' +
+        '<li>🔴 Unresolved Flags: ' + state.flaggedCount + '</li>' +
         '</ul>' +
         '</div>'
     );
@@ -6046,7 +6957,7 @@ function renderAdminQuestions() {
         { key: 'exam', label: '📝 Exam Mode', count: modeCounts.exam },
         { key: 'mock', label: '🎯 Mock Exam', count: modeCounts.mock },
         { key: 'topic', label: '📋 Topic Practice', count: modeCounts.topic },
-        { key: 'literature', label: '📖 Literature', count: modeCounts.literature },
+        { key: 'literature', label: '📖 Novel (CBT)', count: modeCounts.literature },
     ];
 
     let cards = '';
@@ -6085,7 +6996,7 @@ function renderAdminViewModeQuestions() {
     else if (type === 'exam') title = 'Exam Mode Questions';
     else if (type === 'mock') title = 'Mock Exam Questions';
     else if (type === 'topic') title = 'Topic Practice Questions';
-    else if (type === 'literature') title = 'Literature Questions';
+    else if (type === 'literature') title = 'Novel (CBT) Questions';
 
     let filtered = state.allQuestions || [];
     if (type === 'literature') {
@@ -6254,24 +7165,72 @@ function renderAdminViewModeQuestions() {
 //  ADMIN SETTINGS
 // ============================================================
 function renderAdminSettings() {
+    const s = state.settingsCache;
     return (
         '<div class="card">' +
         '<p style="font-size:14px;font-weight:600;margin:0 0 12px">⚙️ Settings</p>' +
-        '<label class="field-label">Questions per subject (CBT)</label>' +
-        '<input class="field" id="admin-cbt-questions" type="number" value="' + (state.admin.questionsPerSubject ||
-            25) + '" style="margin-bottom:12px" />' +
-        '<label class="field-label">CBT time limit (minutes)</label>' +
-        '<input class="field" id="admin-cbt-time" type="number" value="' + (state.admin.cbtTimeLimit || 100) +
-        '" style="margin-bottom:12px" />' +
-        '<label class="field-label">Subject time limit (minutes)</label>' +
-        '<input class="field" id="admin-subject-time" type="number" value="' + (state.admin.subjectTimeLimit || 25) +
-        '" style="margin-bottom:12px" />' +
-        '<label class="field-label">Mock time limit (minutes)</label>' +
-        '<input class="field" id="admin-mock-time" type="number" value="' + (state.admin.mockTimeLimit || 100) +
-        '" style="margin-bottom:12px" />' +
-        '<label class="field-label">Questions per subject (Mock)</label>' +
-        '<input class="field" id="admin-mock-questions" type="number" value="' + (state.admin.mockQuestionsPerSubject ||
-            25) + '" style="margin-bottom:12px" />' +
+        
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">' +
+        '<p style="font-weight:600;font-size:13px;margin:0 0 8px">📚 CBT Mode</p>' +
+        '<label class="field-label">Subjects (excluding English)</label>' +
+        '<input class="field" id="admin-cbt-subject-count" type="number" value="' + (s.cbtSubjectCount || 3) + '" style="margin-bottom:8px" />' +
+        '<label class="field-label">Questions per subject</label>' +
+        '<input class="field" id="admin-cbt-questions" type="number" value="' + (s.cbtQuestionsPerSubject || 25) + '" style="margin-bottom:8px" />' +
+        '<label class="field-label">Time limit (hours)</label>' +
+        '<input class="field" id="admin-cbt-time" type="number" step="0.5" value="' + ((s.cbtTimeLimit || 100) / 60).toFixed(1) + '" style="margin-bottom:4px" />' +
+        '<p style="font-size:10px;color:var(--faint);margin:0 0 8px">' + (s.cbtTimeLimit || 100) + ' minutes</p>' +
+        '</div>' +
+        
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">' +
+        '<p style="font-weight:600;font-size:13px;margin:0 0 8px">📝 Single Subject (CBT)</p>' +
+        '<label class="field-label">Questions per subject</label>' +
+        '<input class="field" id="admin-subject-questions" type="number" value="' + (s.subjectQuestionsPerSubject || 25) + '" style="margin-bottom:8px" />' +
+        '<label class="field-label">Time limit (hours)</label>' +
+        '<input class="field" id="admin-subject-time" type="number" step="0.5" value="' + ((s.subjectTimeLimit || 25) / 60).toFixed(1) + '" style="margin-bottom:4px" />' +
+        '<p style="font-size:10px;color:var(--faint);margin:0 0 8px">' + (s.subjectTimeLimit || 25) + ' minutes</p>' +
+        '</div>' +
+        
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">' +
+        '<p style="font-weight:600;font-size:13px;margin:0 0 8px">📋 Exam Mode</p>' +
+        '<label class="field-label">Time limit (hours)</label>' +
+        '<input class="field" id="admin-exam-time" type="number" step="0.5" value="' + ((s.examTimeLimit || 100) / 60).toFixed(1) + '" style="margin-bottom:4px" />' +
+        '<p style="font-size:10px;color:var(--faint);margin:0 0 8px">' + (s.examTimeLimit || 100) + ' minutes</p>' +
+        '</div>' +
+        
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">' +
+        '<p style="font-weight:600;font-size:13px;margin:0 0 8px">📖 Novel (CBT)</p>' +
+        '<label class="field-label">Time limit (hours)</label>' +
+        '<input class="field" id="admin-novel-time" type="number" step="0.5" value="' + ((s.novelTimeLimit || 100) / 60).toFixed(1) + '" style="margin-bottom:4px" />' +
+        '<p style="font-size:10px;color:var(--faint);margin:0 0 8px">' + (s.novelTimeLimit || 100) + ' minutes</p>' +
+        '</div>' +
+        
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">' +
+        '<p style="font-weight:600;font-size:13px;margin:0 0 8px">📋 Topic Practice</p>' +
+        '<label class="field-label">Questions per topic</label>' +
+        '<input class="field" id="admin-topic-questions" type="number" value="' + (s.subjectQuestionsPerSubject || 25) + '" style="margin-bottom:8px" />' +
+        '<label class="field-label">Time limit (hours)</label>' +
+        '<input class="field" id="admin-topic-time" type="number" step="0.5" value="' + ((s.topicTimeLimit || 60) / 60).toFixed(1) + '" style="margin-bottom:4px" />' +
+        '<p style="font-size:10px;color:var(--faint);margin:0 0 8px">' + (s.topicTimeLimit || 60) + ' minutes</p>' +
+        '</div>' +
+        
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">' +
+        '<p style="font-weight:600;font-size:13px;margin:0 0 8px">🔄 Revise Weak Questions</p>' +
+        '<label class="field-label">Time limit (hours)</label>' +
+        '<input class="field" id="admin-revise-time" type="number" step="0.5" value="' + ((s.reviseTimeLimit || 60) / 60).toFixed(1) + '" style="margin-bottom:4px" />' +
+        '<p style="font-size:10px;color:var(--faint);margin:0 0 8px">' + (s.reviseTimeLimit || 60) + ' minutes</p>' +
+        '</div>' +
+        
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">' +
+        '<p style="font-weight:600;font-size:13px;margin:0 0 8px">🎯 Mock Exam</p>' +
+        '<label class="field-label">Number of subjects</label>' +
+        '<input class="field" id="admin-mock-subject-count" type="number" value="' + (s.mockSubjectCount || 4) + '" style="margin-bottom:8px" />' +
+        '<label class="field-label">Questions per subject</label>' +
+        '<input class="field" id="admin-mock-questions" type="number" value="' + (s.mockQuestionsPerSubject || 25) + '" style="margin-bottom:8px" />' +
+        '<label class="field-label">Time limit (hours)</label>' +
+        '<input class="field" id="admin-mock-time" type="number" step="0.5" value="' + ((s.mockTimeLimit || 100) / 60).toFixed(1) + '" style="margin-bottom:4px" />' +
+        '<p style="font-size:10px;color:var(--faint);margin:0 0 8px">' + (s.mockTimeLimit || 100) + ' minutes</p>' +
+        '</div>' +
+        
         '<label class="field-label" style="margin-top:8px">Enable Calculator</label>' +
         '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">' +
         '<label style="font-size:14px;color:var(--ink)">' +
@@ -6287,11 +7246,6 @@ function renderAdminSettings() {
 //  ADMIN DOCUMENTS
 // ============================================================
 function renderAdminDocuments() { 
-    let subjOpts = '<option value="">All subjects</option>';
-    SUBJECTS.forEach(function(s) {
-        subjOpts += '<option value="' + s.id + '"' + (state.admin.viewModeSubject === s.id ? ' selected' : '') +
-            '>' + esc(s.name) + '</option>';
-    });
     let docList = "";
     if (!state.docsLoaded) {
         docList = '<div class="loading-spinner"><div class="spinner"></div><p>Loading documents...</p></div>';
@@ -6301,13 +7255,12 @@ function renderAdminDocuments() {
             '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:12px">No documents uploaded yet.</p>';
     } else {
         state.docsList.forEach(function(d) {
-            const subj = SUBJECTS.find(function(s) { return s.id === d.subject_id; });
             docList += (
                 '<div class="card" style="margin-bottom:8px">' +
                 '<p style="font-size:13px;font-weight:600;margin:0">' + esc(d.name) + '</p>' +
-                '<p style="font-size:11px;color:var(--muted);margin:2px 0 8px">' + esc(subj ? subj.name :
-                    "General") + ' · ' + esc(d.file_name || '') + '</p>' +
-                '<button class="mini-btn danger" data-action="admin-delete-doc" data-docid="' + d.id +
+                '<p style="font-size:11px;color:var(--muted);margin:2px 0 8px">' + esc(d.file_name || '') + '</p>' +
+                renderFileActions(d.file_url, d.file_name, d.file_type) +
+                '<button class="mini-btn danger" style="margin-top:8px" data-action="admin-delete-doc" data-docid="' + d.id +
                 '">Delete</button>' +
                 '</div>'
             );
@@ -6317,13 +7270,11 @@ function renderAdminDocuments() {
     return (
         '<div class="card" style="margin-bottom:16px">' +
         '<p style="font-size:14px;font-weight:600;margin:0 0 12px">📄 Upload Document</p>' +
-        '<label class="field-label">Subject</label>' +
-        '<select id="doc-subject-select" class="field" style="margin-bottom:12px">' + subjOpts + '</select>' +
         '<label class="field-label">Display name</label>' +
         '<input id="doc-name-input" class="field" placeholder="e.g. 2024 Physics Past Questions" value="' + esc(
             state.admin.docName) + '" style="margin-bottom:12px" />' +
-        '<label class="field-label">File (PDF or Word doc)</label>' +
-        '<input id="doc-file-input" class="file-input" type="file" accept=".pdf,.doc,.docx" style="margin-bottom:8px" />' +
+        '<label class="field-label">File (PDF, Word, or Image)</label>' +
+        '<input id="doc-file-input" class="file-input" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp" style="margin-bottom:8px" />' +
         '<p style="font-size:11px;color:var(--faint);margin:0 0 12px">' + (state.admin.docFile ? esc(state.admin
             .docFile.name) : "No file chosen") + '</p>' +
         '<button class="btn btn-green" data-action="admin-upload-doc">Upload Document</button>' +
@@ -6334,67 +7285,8 @@ function renderAdminDocuments() {
 }
 
 // ============================================================
-//  ADMIN SYLLABUS
-// ============================================================
-function renderAdminSyllabus() {
-    let chips = "";
-    SUBJECTS.forEach(function(s) {
-        const sel = state.admin.syllabusSubject === s.id;
-        chips += '<button class="subject-chip' + (sel ? ' selected' : '') +
-            '" data-action="admin-select-syllabus-subject" data-subject="' + s.id + '">' + subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + '</span></button>';
-    });
-
-    let body = '<p class="section-label">Select a subject</p><div class="subject-grid">' + chips + '</div>';
-
-    if (state.admin.syllabusSubject) {
-        if (!state.syllabusLoaded || (state.syllabusData && state.syllabusData.subject_id !== state.admin
-                .syllabusSubject)) {
-            state.admin.syllabusText = "";
-            loadSyllabus(state.admin.syllabusSubject);
-        }
-
-        let filePreview = "";
-        if (state.syllabusData && state.syllabusData.file_url) {
-            const fname = (state.syllabusData.file_name || '').toLowerCase();
-            const isImage = /\.(png|jpe?g|gif|webp)$/.test(fname);
-            if (isImage) {
-                filePreview = '<img src="' + state.syllabusData.file_url +
-                    '" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" alt="Current syllabus image" />';
-            }
-            filePreview += '<a class="btn btn-outline" href="' + state.syllabusData.file_url +
-                '" target="_blank" style="margin-bottom:12px">' + (isImage ? 'Open full image' :
-                    'Download current file') + '</a>';
-        }
-
-        let newFilePreview = "";
-        if (state.admin.syllabusFile) {
-            const isImage = state.admin.syllabusFile.type && state.admin.syllabusFile.type.startsWith('image/');
-            if (isImage) {
-                newFilePreview = '<img src="' + state.admin.syllabusFile.dataUrl +
-                    '" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" alt="New syllabus image" />';
-            }
-            newFilePreview += '<p style="font-size:11px;color:var(--muted);margin-bottom:12px">New file: ' +
-                esc(state.admin.syllabusFile.name) + '</p>';
-        }
-
-        body += (
-            '<div class="card">' +
-            '<label class="field-label">Syllabus content (text)</label>' +
-            '<textarea id="syllabus-text-area" class="field" rows="6" style="margin-bottom:12px" placeholder="Paste or type the syllabus outline...">' +
-            esc(state.admin.syllabusText) + '</textarea>' +
-            '<label class="field-label">Upload file (PDF, Word, or Image)</label>' +
-            '<input id="syllabus-file-input" class="file-input" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp" style="margin-bottom:8px" />' +
-            filePreview +
-            newFilePreview +
-            '<button class="btn btn-green" data-action="admin-save-syllabus">Save syllabus</button>' +
-            '</div>'
-        );
-    }
-    return body;
-}
-
-// ============================================================
+//============================================================
+             
 //  ADMIN USERS
 // ============================================================
 function renderAdminUsers() {
@@ -6408,7 +7300,7 @@ function renderAdminUsers() {
     users.forEach(function(user) {
         const isActive = user.is_active !== false;
         rows += (
-            '<div class="admin-user-row">' +
+            '<div class="admin-user-row" data-action="admin-notify-user" data-userid="' + user.id + '">' +
             '<div class="user-info">' +
             '<span class="user-name">' + esc(user.username) + '</span>' +
             '<span class="user-email">' + esc(user.email || '') + '</span>' +
@@ -6417,6 +7309,7 @@ function renderAdminUsers() {
             (isActive ? '✅ Active' : '⛔ Inactive') +
             '</span>' +
             '<div class="user-actions">' +
+            '<button class="mini-btn" data-action="admin-notify-user-btn" data-userid="' + user.id + '" data-username="' + esc(user.username) + '">🔔</button>' +
             (isActive ?
                 '<button class="mini-btn danger" data-action="admin-deactivate-user" data-userid="' + user
                 .id + '">Deactivate</button>' :
@@ -6429,9 +7322,7 @@ function renderAdminUsers() {
     });
 
     return (
-        '<div class="card" style="margin-bottom:12px">' +
-        '<p style="font-size:12px;color:var(--muted);margin:0">Total registered users: ' + users.length + '</p>' +
-        '</div>' +
+        '<div style="font-weight:700;font-size:16px;margin-bottom:12px;color:var(--ink)">👥 Total registered users: ' + users.length + '</div>' +
         rows
     );
 }
@@ -6449,6 +7340,10 @@ function renderAdminNotifications() {
             '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:12px">No notifications sent yet.</p>';
     } else {
         state.notifsList.forEach(function(n) {
+            let fileHtml = '';
+            if (n.image_url) {
+                fileHtml = renderFileActions(n.image_url, 'notification-image', 'image/');
+            }
             notifList += (
                 '<div class="lb-row">' +
                 '<div class="left">' +
@@ -6456,6 +7351,7 @@ function renderAdminNotifications() {
                 '<span style="font-size:11px;color:var(--muted)">' + esc(n.body.length > 60 ? n.body
                     .slice(0, 60) + '...' : n.body) + '</span>' +
                 (n.image_url ? '<span style="font-size:10px;color:var(--faint)">📷 Image</span>' : '') +
+                (n.target_user_id ? '<span style="font-size:10px;color:var(--gold)">🔒 Targeted</span>' : '') +
                 '</div>' +
                 '<div style="display:flex;align-items:center;gap:8px">' +
                 '<span style="font-size:10px;color:var(--faint)">' + formatTimeAgo(n.created_at) +
@@ -6476,7 +7372,8 @@ function renderAdminNotifications() {
 
     return (
         '<div class="card" style="margin-bottom:16px">' +
-        '<p style="font-size:14px;font-weight:600;margin:0 0 12px">🔔 Send Notification</p>' +
+        '<p style="font-size:14px;font-weight:600;margin:0 0 12px">🔔 Send Broadcast Notification</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:-4px 0 12px">This goes to all users.</p>' +
         '<label class="field-label">Title</label>' +
         '<input class="field" id="admin-notif-title" placeholder="Notification title" style="margin-bottom:12px" />' +
         '<label class="field-label">Body</label>' +
@@ -6504,6 +7401,11 @@ function renderAdminMock() {
     if (!state.mockLoaded) {
         loadMockExams();
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading mock data...</p></div>';
+    }
+
+    // If viewing mock attempts
+    if (state.admin.viewingMockAttempts) {
+        return renderMockAttemptsView();
     }
 
     let html = (
@@ -6553,12 +7455,117 @@ function renderAdminMock() {
                 '<button class="mini-btn danger" data-action="admin-delete-mock" data-examid="' + exam.id +
                 '">Delete</button>' +
                 '<button class="mini-btn" data-action="admin-view-mock-attempts" data-examid="' + exam.id +
-                '">View Attempts</button>' +
+                '">View Attempts (' + submittedCount + ')</button>' +
                 '</div>' +
                 '</div>'
             );
         });
     }
+
+    return html;
+}
+
+// ============================================================
+//  ADMIN FLAGGED
+// ============================================================
+function renderAdminFlagged() {
+    if (state.adminLoading) {
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading flagged questions...</p></div>';
+    }
+
+    // We'll fetch flagged questions on demand
+    if (!state.admin.viewModeQuestions) {
+        state.adminLoading = true;
+        render();
+        
+        loadFlaggedQuestions(state.admin.flaggedFilter || 'unresolved').then(function(data) {
+            state.admin.flaggedData = data || [];
+            state.adminLoading = false;
+            render();
+        });
+        
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading flagged questions...</p></div>';
+    }
+
+    const data = state.admin.flaggedData || [];
+    const filter = state.admin.flaggedFilter || 'unresolved';
+    
+    // Group by question_id
+    const grouped = {};
+    data.forEach(function(f) {
+        if (!grouped[f.question_id]) grouped[f.question_id] = [];
+        grouped[f.question_id].push(f);
+    });
+
+    let html = (
+        '<div class="admin-view-mode-header">' +
+        '<span class="mode-title">🚩 Flagged Questions</span>' +
+        '<div style="display:flex;gap:6px">' +
+        '<button class="btn btn-sm ' + (filter === 'unresolved' ? 'btn-green' : 'btn-outline') + '" data-action="admin-flagged-filter" data-filter="unresolved">Unresolved</button>' +
+        '<button class="btn btn-sm ' + (filter === 'resolved' ? 'btn-green' : 'btn-outline') + '" data-action="admin-flagged-filter" data-filter="resolved">Resolved</button>' +
+        '<button class="btn btn-sm ' + (filter === 'all' ? 'btn-green' : 'btn-outline') + '" data-action="admin-flagged-filter" data-filter="all">All</button>' +
+        '</div>' +
+        '</div>'
+    );
+
+    if (Object.keys(grouped).length === 0) {
+        html += '<div class="card"><p style="text-align:center;color:var(--faint);padding:20px 0">' + 
+            (filter === 'unresolved' ? 'No unresolved flagged questions.' : 'No flagged questions in this filter.') + 
+            '</p></div>';
+        return html;
+    }
+
+    Object.keys(grouped).forEach(function(qid) {
+        const flags = grouped[qid];
+        const q = flags[0].questions;
+        const subj = SUBJECTS.find(function(s) { return s.id === q?.subject_id; });
+        const isEditing = state.admin.editingQuestionId === qid;
+        
+        html += '<div class="saved-question-item">';
+        html += '<div class="q-header">';
+        html += '<p class="q-text">' + esc(q?.text || 'Question not found') + '</p>';
+        html += '<div class="q-actions">';
+        if (isEditing) {
+            html += '<button class="mini-btn" data-action="cancel-edit">Cancel</button>';
+        } else {
+            html += '<button class="mini-btn edit" data-action="admin-flagged-edit" data-qid="' + qid + '">✏️ Edit</button>';
+            if (filter !== 'resolved') {
+                html += '<button class="mini-btn primary" data-action="admin-flagged-resolve" data-qid="' + qid + '">✅ Resolve</button>';
+            }
+        }
+        html += '</div>';
+        html += '</div>';
+        
+        // Show flag details
+        html += '<div style="font-size:11px;color:var(--muted);margin:4px 0">';
+        html += 'Flagged ' + flags.length + ' time' + (flags.length > 1 ? 's' : '') + ' · ';
+        flags.slice(0, 3).forEach(function(f, i) {
+            if (i > 0) html += ', ';
+            html += esc(f.username || 'Unknown') + (f.reason ? ' ("' + esc(f.reason) + '")' : '');
+        });
+        if (flags.length > 3) html += ' and ' + (flags.length - 3) + ' more';
+        html += '</div>';
+        
+        if (isEditing) {
+            // Edit form
+            html += '<div class="edit-form" style="margin-top:8px">';
+            html += '<label class="field-label">Question text</label>';
+            html += '<textarea class="field" id="edit-text" rows="2" style="margin-bottom:8px">' + esc(q?.text || '') + '</textarea>';
+            html += '<label class="field-label">Options</label>';
+            for (let i = 0; i < 4; i++) {
+                html += '<div class="opt-row">';
+                html += '<input type="radio" name="edit-correct" value="' + i + '"' + (q?.correct_answer === i ? ' checked' : '') + ' data-action="edit-correct" />';
+                html += '<input class="field" data-action="edit-opt" data-idx="' + i + '" placeholder="Option ' + (i + 1) + '" value="' + esc(q?.options?.[i] || '') + '" />';
+                html += '</div>';
+            }
+            html += '<label class="field-label">Explanation</label>';
+            html += '<textarea class="field" id="edit-explanation" rows="2" style="margin-bottom:8px">' + esc(q?.explanation || '') + '</textarea>';
+            html += '<button class="btn btn-green" data-action="save-edit-flagged" data-qid="' + qid + '">Save & Resolve</button>';
+            html += '</div>';
+        }
+        
+        html += '</div>';
+    });
 
     return html;
 }
@@ -6659,6 +7666,7 @@ function renderDrawer(unread, isLoggedIn) {
         { key: "notifications", label: "Notifications", icon: "bell" },
         { key: "profile", label: "Profile", icon: "user" },
         { key: "leaderboard", label: "Leaderboard", icon: "trophy" },
+        { key: "history", label: "History", icon: "clock" },
         { key: "activate", label: "Activate", icon: "zap" },
     ];
 
@@ -6677,6 +7685,7 @@ function renderDrawer(unread, isLoggedIn) {
             '<button class="drawer-item admin' + (state.view === "admin" ? ' active' : '') +
             '" data-action="set-view" data-view="admin">' +
             '<span class="left">' + svg("shield", 16) + ' Admin panel</span>' +
+            (state.flaggedCount > 0 ? '<span class="badge" style="background:var(--danger);color:#fff">' + state.flaggedCount + '</span>' : '') +
             '</button>'
         );
     }
@@ -7224,7 +8233,7 @@ document.addEventListener('click', function(e) {
         const id = el.getAttribute('data-subject');
         const i = state.cbtSelected.indexOf(id);
         const isFull = state.cbtMode === 'full';
-        const max = isFull ? 3 : 1;
+        const max = isFull ? (state.settingsCache.cbtSubjectCount || 3) : 1;
         if (i !== -1) state.cbtSelected.splice(i, 1);
         else if (state.cbtSelected.length < max) state.cbtSelected.push(id);
         render();
@@ -7520,6 +8529,8 @@ document.addEventListener('click', function(e) {
                 state.submitModalData = null;
                 state.topicSubmitted = true;
                 state.topicFinished = true;
+                if (state.topicTimer) { clearInterval(state.topicTimer);
+                    state.topicTimer = null; }
                 render();
             },
             onCancel: function() {
@@ -7533,6 +8544,8 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'topic-exit') {
+        if (state.topicTimer) { clearInterval(state.topicTimer);
+            state.topicTimer = null; }
         state.topicQuestions = [];
         state.topicIndex = 0;
         state.topicAnswers = [];
@@ -7641,19 +8654,13 @@ document.addEventListener('click', function(e) {
 
     // SYLLABUS
     if (action === 'select-syllabus-subject') {
-        const id = el.getAttribute('data-subject');
-        state.syllabusViewSubject = state.syllabusViewSubject === id ? null : id;
-        state.syllabusLoaded = false;
-        state.syllabusData = null;
-        render();
+        // No-op: subject selection removed
         return;
     }
 
     // DOCUMENTS
     if (action === 'select-doc-filter') {
-        state.docFilterSubject = el.getAttribute('data-subject') || null;
-        state.docsLoaded = false;
-        render();
+        // No-op: subject filtering removed
         return;
     }
 
@@ -7688,7 +8695,7 @@ document.addEventListener('click', function(e) {
         const id = el.getAttribute('data-subject');
         const i = state.mockSelectedSubjects.indexOf(id);
         if (i !== -1) state.mockSelectedSubjects.splice(i, 1);
-        else if (state.mockSelectedSubjects.length < 4) state.mockSelectedSubjects.push(id);
+        else if (state.mockSelectedSubjects.length < (state.settingsCache.mockSubjectCount || 4)) state.mockSelectedSubjects.push(id);
         render();
         return;
     }
@@ -7787,16 +8794,16 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // ADMIN - Only include essential admin actions
+    // ADMIN - Admin actions
     if (action === 'admin-tab') {
         state.adminTab = el.getAttribute('data-tab');
         state.adminQuestionsLoaded = false;
         state.adminQuestionsList = [];
         state.adminQuestionsKey = null;
         state.admin.viewModeQuestions = false;
+        state.admin.viewingMockAttempts = null;
         if (state.adminTab === 'documents') state.docsLoaded = false;
-        else if (state.adminTab === 'syllabus') { state.syllabusLoaded = false;
-            state.syllabusData = null; }
+        else if (state.adminTab === 'syllabus') { state.syllabusLoaded = false; loadSyllabus(); }
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
         else if (state.adminTab === 'mock') { state.mockLoaded = false;
             loadMockExams(); if (state.authUser) { loadMockRegistrations();
@@ -7809,10 +8816,112 @@ document.addEventListener('click', function(e) {
                 state.admin.mockTimeLimit = s.mockTimeLimit;
                 state.admin.mockQuestionsPerSubject = s.mockQuestionsPerSubject;
                 state.admin.calculatorEnabled = s.calculatorEnabled;
+                state.admin.cbtSubjectCount = s.cbtSubjectCount || 3;
+                state.admin.mockSubjectCount = s.mockSubjectCount || 4;
+                state.admin.examTimeLimit = s.examTimeLimit || 100;
+                state.admin.novelTimeLimit = s.novelTimeLimit || 100;
+                state.admin.topicTimeLimit = s.topicTimeLimit || 60;
+                state.admin.reviseTimeLimit = s.reviseTimeLimit || 60;
+                render();
+            });
+        } else if (state.adminTab === 'flagged') {
+            state.admin.viewModeQuestions = false;
+            state.admin.flaggedData = null;
+            state.adminLoading = false;
+            loadFlaggedCount();
+            loadFlaggedQuestions(state.admin.flaggedFilter || 'unresolved').then(function(data) {
+                state.admin.flaggedData = data || [];
                 render();
             });
         }
         render();
+        return;
+    }
+
+    if (action === 'admin-flagged-filter') {
+        const filter = el.getAttribute('data-filter');
+        state.admin.flaggedFilter = filter;
+        state.adminLoading = true;
+        render();
+        loadFlaggedQuestions(filter).then(function(data) {
+            state.admin.flaggedData = data || [];
+            state.adminLoading = false;
+            render();
+        });
+        return;
+    }
+
+    if (action === 'admin-flagged-edit') {
+        const qid = el.getAttribute('data-qid');
+        state.admin.editingQuestionId = qid;
+        render();
+        return;
+    }
+
+    if (action === 'admin-flagged-resolve') {
+        const qid = el.getAttribute('data-qid');
+        if (!confirm('Mark this flagged question as resolved?')) return;
+        resolveFlaggedQuestions(qid).then(function() {
+            showToast('Flag resolved!', 'success');
+            loadFlaggedCount();
+            loadFlaggedQuestions(state.admin.flaggedFilter || 'unresolved').then(function(data) {
+                state.admin.flaggedData = data || [];
+                state.admin.editingQuestionId = null;
+                render();
+            });
+        }).catch(function(err) {
+            console.warn('Resolve flag error:', err);
+            showToast('Error resolving flag.', 'error');
+        });
+        return;
+    }
+
+    if (action === 'save-edit-flagged') {
+        const qid = el.getAttribute('data-qid');
+        const text = document.getElementById('edit-text')?.value?.trim() || '';
+        const explanation = document.getElementById('edit-explanation')?.value?.trim() || '';
+        const options = [];
+        for (let i = 0; i < 4; i++) {
+            const opt = document.querySelector('[data-action="edit-opt"][data-idx="' + i + '"]')?.value?.trim() || '';
+            options.push(opt);
+        }
+        const correctRadio = document.querySelector('[data-action="edit-correct"]:checked');
+        const correct = correctRadio ? parseInt(correctRadio.value) : 0;
+
+        if (!text || options.some(function(o) { return !o; })) {
+            showToast('Fill in all fields.', 'error');
+            return;
+        }
+
+        const currentQ = state.allQuestions.find(function(q) { return q.id === qid; });
+        if (!currentQ) {
+            showToast('Question not found.', 'error');
+            return;
+        }
+
+        supabase.from('questions').update({
+            text: text,
+            options: options,
+            correct_answer: correct,
+            explanation: explanation,
+            subject_id: currentQ.subject_id,
+            type: currentQ.type,
+            year: currentQ.year || null,
+        }).eq('id', qid).then(function() {
+            showToast('Question updated!', 'success');
+            // Also resolve the flag
+            return resolveFlaggedQuestions(qid);
+        }).then(function() {
+            loadFlaggedCount();
+            loadFlaggedQuestions(state.admin.flaggedFilter || 'unresolved').then(function(data) {
+                state.admin.flaggedData = data || [];
+                state.admin.editingQuestionId = null;
+                render();
+            });
+        }).catch(function(err) { 
+            console.error('Save edit error:', err);
+            showToast('Error updating question: ' + (err.message || 'unknown'), 'error'); 
+        });
         return;
     }
 
@@ -7869,7 +8978,6 @@ document.addEventListener('click', function(e) {
     if (action === 'edit-question') {
         const qid = el.getAttribute('data-qid');
         state.admin.editingQuestionId = qid;
-        // Find and store the question data for editing
         const q = state.allQuestions.find(function(q) { return q.id === qid; });
         if (q) {
             state.admin.editingQuestionData = q;
@@ -7919,7 +9027,6 @@ document.addEventListener('click', function(e) {
             return;
         }
 
-        // Get the current question data to preserve type and subject
         const currentQ = state.allQuestions.find(function(q) { return q.id === qid; });
         if (!currentQ) {
             showToast('Question not found.', 'error');
@@ -8001,25 +9108,42 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'admin-save-settings') {
-        const qs = parseInt(document.getElementById('admin-cbt-questions')?.value || 25);
-        const ct = parseInt(document.getElementById('admin-cbt-time')?.value || 100);
-        const st = parseInt(document.getElementById('admin-subject-time')?.value || 25);
-        const mt = parseInt(document.getElementById('admin-mock-time')?.value || 100);
-        const mq = parseInt(document.getElementById('admin-mock-questions')?.value || 25);
+        const cbtQs = parseInt(document.getElementById('admin-cbt-questions')?.value || 25);
+        const cbtTime = parseFloat(document.getElementById('admin-cbt-time')?.value || 1.67) * 60;
+        const subjQs = parseInt(document.getElementById('admin-subject-questions')?.value || 25);
+        const subjTime = parseFloat(document.getElementById('admin-subject-time')?.value || 0.42) * 60;
+        const examTime = parseFloat(document.getElementById('admin-exam-time')?.value || 1.67) * 60;
+        const novelTime = parseFloat(document.getElementById('admin-novel-time')?.value || 1.67) * 60;
+        const topicQs = parseInt(document.getElementById('admin-topic-questions')?.value || 25);
+        const topicTime = parseFloat(document.getElementById('admin-topic-time')?.value || 1) * 60;
+        const reviseTime = parseFloat(document.getElementById('admin-revise-time')?.value || 1) * 60;
+        const mockQs = parseInt(document.getElementById('admin-mock-questions')?.value || 25);
+        const mockTime = parseFloat(document.getElementById('admin-mock-time')?.value || 1.67) * 60;
+        const cbtSubjectCount = parseInt(document.getElementById('admin-cbt-subject-count')?.value || 3);
+        const mockSubjectCount = parseInt(document.getElementById('admin-mock-subject-count')?.value || 4);
         const calcEnabled = document.getElementById('admin-calc-enabled')?.checked !== false;
         
-        state.admin.questionsPerSubject = qs;
-        state.admin.cbtTimeLimit = ct;
-        state.admin.subjectTimeLimit = st;
-        state.admin.mockTimeLimit = mt;
-        state.admin.mockQuestionsPerSubject = mq;
+        state.admin.questionsPerSubject = cbtQs;
+        state.admin.cbtTimeLimit = Math.round(cbtTime);
+        state.admin.subjectTimeLimit = Math.round(subjTime);
+        state.admin.mockTimeLimit = Math.round(mockTime);
+        state.admin.mockQuestionsPerSubject = mockQs;
         state.admin.calculatorEnabled = calcEnabled;
+        state.admin.cbtSubjectCount = cbtSubjectCount;
+        state.admin.mockSubjectCount = mockSubjectCount;
+        state.admin.examTimeLimit = Math.round(examTime);
+        state.admin.novelTimeLimit = Math.round(novelTime);
+        state.admin.topicTimeLimit = Math.round(topicTime);
+        state.admin.reviseTimeLimit = Math.round(reviseTime);
 
         const updates = [
-            { setting_key: 'cbt_settings', setting_value: { questions_per_subject: qs, time_limit_minutes: ct } },
-            { setting_key: 'subject_settings', setting_value: { questions_per_subject: qs, time_limit_minutes: st } },
-            { setting_key: 'mock_settings', setting_value: { questions_per_subject: mq, time_limit_minutes: mt,
-                    subjects: 4 } },
+            { setting_key: 'cbt_settings', setting_value: { questions_per_subject: cbtQs, time_limit_minutes: Math.round(cbtTime), subject_count: cbtSubjectCount } },
+            { setting_key: 'subject_settings', setting_value: { questions_per_subject: subjQs, time_limit_minutes: Math.round(subjTime) } },
+            { setting_key: 'exam_settings', setting_value: { time_limit_minutes: Math.round(examTime) } },
+            { setting_key: 'novel_settings', setting_value: { time_limit_minutes: Math.round(novelTime) } },
+            { setting_key: 'topic_settings', setting_value: { questions_per_subject: topicQs, time_limit_minutes: Math.round(topicTime) } },
+            { setting_key: 'revise_settings', setting_value: { time_limit_minutes: Math.round(reviseTime) } },
+            { setting_key: 'mock_settings', setting_value: { questions_per_subject: mockQs, time_limit_minutes: Math.round(mockTime), subject_count: mockSubjectCount } },
             { setting_key: 'calculator_enabled', setting_value: calcEnabled },
         ];
 
@@ -8027,13 +9151,19 @@ document.addEventListener('click', function(e) {
             return supabase.from('admin_settings').upsert(u, { onConflict: 'setting_key' });
         })).then(function() {
             state.settingsCache = {
-                cbtQuestionsPerSubject: qs,
-                cbtTimeLimit: ct,
-                subjectQuestionsPerSubject: qs,
-                subjectTimeLimit: st,
-                mockQuestionsPerSubject: mq,
-                mockTimeLimit: mt,
+                cbtQuestionsPerSubject: cbtQs,
+                cbtTimeLimit: Math.round(cbtTime),
+                subjectQuestionsPerSubject: subjQs,
+                subjectTimeLimit: Math.round(subjTime),
+                mockQuestionsPerSubject: mockQs,
+                mockTimeLimit: Math.round(mockTime),
                 calculatorEnabled: calcEnabled,
+                examTimeLimit: Math.round(examTime),
+                novelTimeLimit: Math.round(novelTime),
+                topicTimeLimit: Math.round(topicTime),
+                reviseTimeLimit: Math.round(reviseTime),
+                cbtSubjectCount: cbtSubjectCount,
+                mockSubjectCount: mockSubjectCount,
             };
             showToast('Settings saved!', 'success');
             render();
@@ -8045,95 +9175,81 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'admin-upload-doc') {
-        if (!state.admin.docFile) { showToast('Choose a file first.', 'error'); return; }
-        const name = state.admin.docName.trim() || state.admin.docFile.name;
-        const subj = state.admin.docSubject || 'general';
-        supabase.from('materials').insert([{
-            subject_id: subj,
-            subject_name: SUBJECTS.find(function(s) { return s.id === subj; })?.name || 'General',
-            name: name,
-            file_name: state.admin.docFile.name,
-            file_url: state.admin.docFile.dataUrl,
-            file_type: state.admin.docFile.type,
-        }]).then(function() {
-            showToast('Document uploaded!', 'success');
-            state.admin.docFile = null;
-            state.admin.docName = '';
-            state.docsLoaded = false;
-            render();
+    if (!state.admin.docFile) { showToast('Choose a file first.', 'error'); return; }
+    const name = state.admin.docName.trim() || state.admin.docFile.name;
+    supabase.from('materials').insert([{
+        subject_id: 'general',
+        subject_name: 'General',
+        name: name,
+        file_name: state.admin.docFile.name,
+        file_url: state.admin.docFile.dataUrl,
+        file_type: state.admin.docFile.type,
+    }]).then(function() {
+        showToast('Document uploaded!', 'success');
+        state.admin.docFile = null;
+        state.admin.docName = '';
+        state.docsLoaded = false;
+        loadDocuments().then(function() { render(); });
+    }).catch(function(err) { 
+        console.error('Upload doc error:', err);
+        showToast('Error uploading document: ' + (err.message || JSON.stringify(err)), 'error'); 
+    });
+    return;
+}
+    if (action === 'admin-delete-syllabus') {
+        const id = el.getAttribute('data-id');
+        if (!confirm('Delete this syllabus entry?')) return;
+        supabase.from('syllabus').delete().eq('id', id).then(function() {
+            showToast('Syllabus entry deleted.', 'success');
+            state.syllabusLoaded = false;
+            loadSyllabus();
         }).catch(function(err) { 
-            console.error('Upload doc error:', err);
-            showToast('Error uploading document: ' + (err.message || 'unknown'), 'error'); 
-        });
+            console.error('Delete syllabus error:', err);
+            showToast('Error deleting syllabus entry.', 'error'); 
+        });            
         return;
     }
-
-    if (action === 'admin-delete-doc') {
-        const docId = el.getAttribute('data-docid');
-        if (!confirm('Delete this document?')) return;
-        supabase.from('materials').delete().eq('id', docId).then(function() {
-            showToast('Document deleted.', 'success');
-            state.docsLoaded = false;
-            render();
-        }).catch(function(err) { 
-            console.error('Delete doc error:', err);
-            showToast('Error deleting document.', 'error'); 
-        });
-        return;
-    }
-
-    if (action === 'admin-select-syllabus-subject') {
-        const id = el.getAttribute('data-subject');
-        state.admin.syllabusSubject = state.admin.syllabusSubject === id ? null : id;
-        state.admin.syllabusFile = null;
-        state.syllabusLoaded = false;
-        state.syllabusData = null;
-        state.admin.syllabusText = '';
-        render();
-        return;
-    }
-
+        
     if (action === 'admin-save-syllabus') {
-        const subj = state.admin.syllabusSubject;
-        if (!subj) { showToast('Select a subject first.', 'error'); return; }
-        const text = state.admin.syllabusText || '';
-        loadSyllabus(subj).then(function() {
-            const existing = state.syllabusData;
-            const data = {
-                subject_id: subj,
-                content: text,
-                file_url: state.admin.syllabusFile ? state.admin.syllabusFile.dataUrl : (existing?.file_url ||
-                    null),
-                file_name: state.admin.syllabusFile ? state.admin.syllabusFile.name : (existing?.file_name ||
-                    null),
-            };
-            if (existing) {
-                supabase.from('syllabus').update(data).eq('id', existing.id).then(function() {
-                    showToast('Syllabus updated!', 'success');
-                    state.admin.syllabusFile = null;
-                    state.syllabusLoaded = false;
-                    state.syllabusData = null;
-                    render();
-                }).catch(function(err) { 
-                    console.error('Update syllabus error:', err);
-                    showToast('Error saving syllabus.', 'error'); 
-                });
-            } else {
-                supabase.from('syllabus').insert([data]).then(function() {
-                    showToast('Syllabus saved!', 'success');
-                    state.admin.syllabusFile = null;
-                    state.syllabusLoaded = false;
-                    state.syllabusData = null;
-                    render();
-                }).catch(function(err) { 
-                    console.error('Save syllabus error:', err);
-                    showToast('Error saving syllabus.', 'error'); 
-                });
-            }
-        });
+    const name = document.getElementById('syllabus-name-input')?.value?.trim() || '';
+    const text = state.admin.syllabusText || '';
+    const fileData = state.admin.syllabusFile;
+
+    if (!name && !text && !fileData) {
+        showToast('Please provide at least a name, text, or file.', 'error');
         return;
     }
 
+    const insertData = {
+        subject_id: 'general',
+        name: name || 'Untitled Syllabus',
+        content: text,
+        file_url: fileData ? fileData.dataUrl : null,
+        file_name: fileData ? fileData.name : null,
+        file_type: fileData ? fileData.type : null,
+    };
+
+    supabase.from('syllabus').insert([insertData])
+        .then(function() {
+            showToast('Syllabus saved!', 'success');
+            state.admin.syllabusFile = null;
+            state.admin.syllabusText = '';
+            const nameInput = document.getElementById('syllabus-name-input');
+            if (nameInput) nameInput.value = '';
+            const textArea = document.getElementById('syllabus-text-area');
+            if (textArea) textArea.value = '';
+            const fileInput = document.getElementById('syllabus-file-input');
+            if (fileInput) fileInput.value = '';
+            state.syllabusLoaded = false;
+            state.syllabusData = [];
+            loadSyllabus().then(function() { render(); });
+        })
+        .catch(function(err) { 
+            console.error('Save syllabus error:', err);
+            showToast('Error saving syllabus: ' + (err.message || JSON.stringify(err)), 'error');
+        });
+    return;
+}
     if (action === 'admin-schedule-mock') {
         const title = document.getElementById('admin-mock-title')?.value?.trim() || '';
         const scheduled = document.getElementById('admin-mock-scheduled')?.value || '';
@@ -8213,6 +9329,19 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'admin-view-mock-attempts') {
+        const examId = el.getAttribute('data-examid');
+        state.admin.viewingMockAttempts = examId;
+        render();
+        return;
+    }
+
+    if (action === 'admin-mock-attempts-back') {
+        state.admin.viewingMockAttempts = null;
+        render();
+        return;
+    }
+
     if (action === 'admin-send-notification') {
         const title = document.getElementById('admin-notif-title')?.value?.trim() || '';
         const body = document.getElementById('admin-notif-body')?.value?.trim() || '';
@@ -8220,11 +9349,11 @@ document.addEventListener('click', function(e) {
 
         if (!title || !body) { showToast('Fill in both title and body.', 'error'); return; }
 
-        const insertData = { title: title, body: body };
+        const insertData = { title: title, body: body, target_user_id: null };
         if (imageData) insertData.image_url = imageData;
 
         supabase.from('notifications').insert([insertData]).then(function() {
-            showToast('Notification sent!', 'success');
+            showToast('Broadcast notification sent!', 'success');
             document.getElementById('admin-notif-title').value = '';
             document.getElementById('admin-notif-body').value = '';
             state.admin.notifImage = null;
@@ -8233,6 +9362,47 @@ document.addEventListener('click', function(e) {
             loadNotifications();
         }).catch(function(err) { 
             console.error('Send notification error:', err);
+            showToast('Error sending notification.', 'error'); 
+        });
+        return;
+    }
+
+    if (action === 'admin-notify-user' || action === 'admin-notify-user-btn') {
+        const userId = el.getAttribute('data-userid');
+        const username = el.getAttribute('data-username') || 'User';
+        state.showNotifyModal = true;
+        state.notifyModalData = { userId: userId, username: username };
+        render();
+        return;
+    }
+
+    if (action === 'notify-close') {
+        state.showNotifyModal = false;
+        state.notifyModalData = null;
+        render();
+        return;
+    }
+
+    if (action === 'notify-send') {
+        const title = document.getElementById('notify-title-input')?.value?.trim() || '';
+        const body = document.getElementById('notify-body-input')?.value?.trim() || '';
+        const userId = state.notifyModalData?.userId;
+
+        if (!title || !body) { showToast('Fill in both title and body.', 'error'); return; }
+        if (!userId) { showToast('No user selected.', 'error'); return; }
+
+        supabase.from('notifications').insert([{
+            title: title,
+            body: body,
+            target_user_id: userId,
+        }]).then(function() {
+            showToast('Notification sent to user!', 'success');
+            state.showNotifyModal = false;
+            state.notifyModalData = null;
+            state.notifsLoaded = false;
+            loadNotifications();
+        }).catch(function(err) { 
+            console.error('Send user notification error:', err);
             showToast('Error sending notification.', 'error'); 
         });
         return;
@@ -8304,6 +9474,205 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
+
+    // HISTORY
+    if (action === 'history-print') {
+        const id = el.getAttribute('data-id');
+        const card = document.getElementById('history-card-' + id);
+        if (!card) return;
+        
+        const win = window.open('', '_blank');
+        if (!win) { showToast('Please allow popups to print.', 'error'); return; }
+        
+        win.document.write('<html><head><title>Exam Result</title>');
+        win.document.write('<style>body{font-family:Georgia,serif;padding:20px;max-width:400px;margin:0 auto;color:#13291D;}');
+        win.document.write('.result-card{border:2px solid #0F6B3F;border-radius:16px;padding:20px;text-align:center;}');
+        win.document.write('.score-big{font-family:monospace;font-size:48px;font-weight:700;color:#0F6B3F;margin:8px 0;}');
+        win.document.write('.subj-score{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E1EBE3;}');
+        win.document.write('.subj-score:last-child{border-bottom:none;}');
+        win.document.write('.h-title{font-weight:700;font-size:16px;margin:0;}');
+        win.document.write('.h-date{font-size:12px;color:#5B6B60;margin:4px 0;}');
+        win.document.write('.h-subject-scores{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;justify-content:center;}');
+        win.document.write('.h-subject-scores span{background:#f4f1ea;padding:2px 10px;border-radius:999px;font-size:11px;}');
+        win.document.write('</style></head><body>');
+        win.document.write(card.innerHTML);
+        win.document.write('</body></html>');
+        win.document.close();
+        win.print();
+        return;
+    }
+
+    if (action === 'history-share') {
+        const id = el.getAttribute('data-id');
+        const entry = state.historyEntries.find(function(e) { return e.id === id; });
+        if (!entry) { showToast('Entry not found.', 'error'); return; }
+        
+        const subjectStr = Object.keys(entry.subject_scores || {}).map(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            return (subj ? subj.name : sid) + ': ' + entry.subject_scores[sid];
+        }).join(', ');
+        
+        const text = '📊 MyUTME Result\n' +
+            '📝 ' + (entry.exam_title || entry.mode) + '\n' +
+            '📅 ' + formatDate(entry.submitted_at) + '\n' +
+            '🎯 Score: ' + entry.total_score + ' / ' + entry.max_score + '\n' +
+            '📋 Subjects: ' + subjectStr + '\n' +
+            '✅ ' + entry.answered_count + ' of ' + entry.total_questions + ' answered';
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'MyUTME Exam Result',
+                text: text,
+            }).catch(function() {});
+        } else {
+            // Fallback: copy to clipboard
+            navigator.clipboard.writeText(text).then(function() {
+                showToast('Result copied to clipboard!', 'success');
+            }).catch(function() {
+                // Fallback: prompt
+                prompt('Copy this result:', text);
+            });
+        }
+        return;
+    }
+
+    // REVISE WEAK QUESTIONS
+    if (action === 'weak-toggle-view') {
+        const wid = el.getAttribute('data-wid');
+        state.weakQuestionStates['view_' + wid] = !state.weakQuestionStates['view_' + wid];
+        render();
+        return;
+    }
+
+    if (action === 'weak-toggle-reattempt') {
+        const wid = el.getAttribute('data-wid');
+        state.weakQuestionStates['reattempt_' + wid] = !state.weakQuestionStates['reattempt_' + wid];
+        state.weakQuestionStates['answer_' + wid] = null;
+        render();
+        return;
+    }
+
+    if (action === 'weak-reattempt-answer') {
+        const wid = el.getAttribute('data-wid');
+        const idx = parseInt(el.getAttribute('data-idx'), 10);
+        state.weakQuestionStates['answer_' + wid] = idx;
+        render();
+        return;
+    }
+
+    if (action === 'weak-submit-reattempt') {
+        const wid = el.getAttribute('data-wid');
+        const wq = state.weakQuestions.find(function(w) { return w.id === wid; });
+        if (!wq) { showToast('Question not found.', 'error'); return; }
+        
+        const answer = state.weakQuestionStates['answer_' + wid];
+        if (answer === null || answer === undefined) {
+            showToast('Please select an answer.', 'error');
+            return;
+        }
+        
+        const q = wq.questions;
+        const isCorrect = answer === q.correct_answer;
+        
+        if (isCorrect) {
+            // Remove from weak questions
+            removeWeakQuestion(state.authUser.id, wq.question_id).then(function() {
+                // Save to history
+                saveHistoryEntry({
+                    mode: 'revise',
+                    subjects: [q.subject_name || 'Unknown'],
+                    subject_scores: {},
+                    total_score: 1,
+                    max_score: 1,
+                    total_questions: 1,
+                    answered_count: 1,
+                    submitted_at: new Date().toISOString(),
+                    exam_title: 'Revise: ' + (q.subject_name || 'Question'),
+                });
+                showToast('✅ Correct! Removed from weak list.', 'success');
+                state.weakQuestionsLoaded = false;
+                state.weakQuestionStates = {};
+                loadWeakQuestions();
+            });
+        } else {
+            // Update timestamp
+            saveWeakQuestion(state.authUser.id, wq.question_id, wq.subject_id, 'revise').then(function() {
+                showToast('❌ Wrong again. Still in weak list.', 'error');
+                state.weakQuestionsLoaded = false;
+                state.weakQuestionStates = {};
+                loadWeakQuestions();
+            });
+        }
+        return;
+    }
+
+    if (action === 'flag-weak-question') {
+        const qid = el.getAttribute('data-qid');
+        const subject = el.getAttribute('data-subject');
+        const mode = el.getAttribute('data-mode') || 'revise';
+        
+        if (!state.authUser) { showToast('Please login first.', 'error'); return; }
+        
+        state.showFlagModal = true;
+        state.flagModalData = {
+            questionId: qid,
+            subjectId: subject || '',
+            mode: mode,
+        };
+        render();
+        return;
+    }
+
+    if (action === 'flag-review-question') {
+        const qid = el.getAttribute('data-qid');
+        const subject = el.getAttribute('data-subject');
+        const mode = el.getAttribute('data-mode');
+        
+        if (!state.authUser) { showToast('Please login first.', 'error'); return; }
+        
+        state.showFlagModal = true;
+        state.flagModalData = {
+            questionId: qid,
+            subjectId: subject || '',
+            mode: mode || 'unknown',
+        };
+        render();
+        return;
+    }
+
+    if (action === 'flag-close') {
+        state.showFlagModal = false;
+        state.flagModalData = null;
+        render();
+        return;
+    }
+
+    if (action === 'flag-submit') {
+        const data = state.flagModalData;
+        if (!data || !data.questionId) { showToast('No question to flag.', 'error'); return; }
+        
+        const reason = document.getElementById('flag-reason-input')?.value?.trim() || '';
+        const userId = state.authUser?.id;
+        const username = state.profile?.name || 'Unknown';
+        
+        if (!userId) { showToast('Please login first.', 'error'); return; }
+        
+        saveFlaggedQuestion(userId, username, data.questionId, data.subjectId, data.mode, reason).then(function() {
+            showToast('Question flagged. Thank you — our team will review it.', 'success');
+            state.showFlagModal = false;
+            state.flagModalData = null;
+            loadFlaggedCount();
+            render();
+        });
+        return;
+    }
+
+    if (action === 'start-weak-review') {
+        // For now, just redirect to revise view which handles the new inline UI
+        state.view = 'revise';
+        render();
+        return;
+    }
 });
 
 // ============================================================
@@ -8314,8 +9683,6 @@ document.addEventListener('change', function(e) {
 
     if (id === 'exam-year-select') {
         state.examYear = parseInt(e.target.value, 10);
-    } else if (id === 'doc-subject-select') {
-        state.admin.docSubject = e.target.value || '';
     } else if (id === 'doc-file-input') {
         const file = e.target.files[0];
         if (!file) return;
@@ -8375,6 +9742,7 @@ document.addEventListener('input', function(e) {
     if (id === 'activate-code-input') state.activateCode = e.target.value;
     else if (id === 'doc-name-input') state.admin.docName = e.target.value;
     else if (id === 'syllabus-text-area') state.admin.syllabusText = e.target.value;
+    else if (id === 'syllabus-name-input') { /* handled elsewhere */ }
     else if (id === 'admin-mock-title') state.admin.mockTitle = e.target.value;
     else if (id === 'admin-mock-scheduled') state.admin.mockScheduledDate = e.target.value;
     else if (id === 'admin-mock-reg-deadline') state.admin.mockRegistrationDeadline = e.target.value;
@@ -8416,7 +9784,8 @@ async function init() {
     await loadAllQuestionsCount();
     await loadLeaderboard('cbt');
     await loadNotifications();
-    await loadActivationPlans();
+    await loadActivationPlans();   
+    loadFlaggedCount();
 
     render();
 
