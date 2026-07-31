@@ -2614,20 +2614,22 @@ let state = {
     activationPlansLoaded: false,
 
     settingsCache: {
-        cbtQuestionsPerSubject: 25,
-        cbtTimeLimit: 100,
-        subjectQuestionsPerSubject: 25,
-        subjectTimeLimit: 25,
-        mockQuestionsPerSubject: 25,
-        mockTimeLimit: 100,
-        calculatorEnabled: true,
-        examTimeLimit: 100,
-        novelTimeLimit: 100,
-        topicTimeLimit: 60,
-        reviseTimeLimit: 60,
-        cbtSubjectCount: 3,
-        mockSubjectCount: 4,
-    },
+    cbtQuestionsPerSubject: 25,
+    cbtTimeLimit: 100,
+    subjectQuestionsPerSubject: 25,
+    subjectTimeLimit: 25,
+    mockQuestionsPerSubject: 25,
+    mockTimeLimit: 100,
+    calculatorEnabled: true,
+    examTimeLimit: 100,
+    novelTimeLimit: 100,
+    topicTimeLimit: 60,
+    reviseTimeLimit: 60,
+    cbtSubjectCount: 3,
+    mockSubjectCount: 4,
+    underConstruction: false,
+    constructionReopenTime: null,
+},
 
     showSubmitModal: false,
     submitModalData: null,
@@ -2652,10 +2654,17 @@ let state = {
     showNotifyModal: false,
     notifyModalData: null,
     
-    // Flagged questions count
+      // Flagged questions count
     flaggedCount: 0,
+    
+    // Under Construction
+    underConstruction: false,
+    constructionReopenTime: null,
 };
 
+// ============================================================
+//  DATABASE FUNCTIONS
+// ============================================================
 // ============================================================
 //  DATABASE FUNCTIONS
 // ============================================================
@@ -2871,6 +2880,7 @@ async function loadQuestions(type, subjectId, year, limit) {
         else if (type === 'exam') lmt = 50;
         else if (type === 'subject') lmt = settings.subjectQuestionsPerSubject || 25;
         else if (type === 'mock') lmt = settings.mockQuestionsPerSubject || 25;
+        else if (type === 'NOVEL (CBT)') lmt = 25;
 
         const { data, error } = await query.limit(lmt);
         if (error) {
@@ -2972,6 +2982,8 @@ async function loadSettings() {
             reviseTimeLimit: settings.revise_settings?.time_limit_minutes || 60,
             cbtSubjectCount: settings.cbt_settings?.subject_count || 3,
             mockSubjectCount: settings.mock_settings?.subject_count || 4,
+            underConstruction: settings.under_construction || false,
+            constructionReopenTime: settings.construction_reopen_time || null,
         };
         state.settingsCache = result;
         return result;
@@ -4270,7 +4282,7 @@ async function startLiteratureCbt() {
     // Use LHM for Normal Literature Mode
     const litSubject = SUBJECTS.find(function(s) { return s.id === 'LHM'; });
     if (!litSubject) { state.isLoading = false; render(); return; }
-    const questions = await loadQuestions('literature', 'LHM');
+    const questions = await loadQuestions('NOVEL (CBT)', 'LHM');
     state.isLoading = false;
     
     if (questions.length === 0) {
@@ -4689,6 +4701,27 @@ function render() {
         return;
     }
 
+    // Check for under construction
+    const settings = state.settingsCache;
+    if (settings.underConstruction && !isAdmin()) {
+        let html = renderUnderConstruction();
+        
+        // If login modal should show, append it
+        if (state.showLogin) {
+            const overlay = document.createElement('div');
+            overlay.innerHTML = renderLoginModal();
+            html += overlay.innerHTML;
+        }
+        
+        root.innerHTML = html;
+        
+        // Re-bind the login modal after rendering
+        if (state.showLogin) {
+            // The click handler will handle this via the event listener
+        }
+        return;
+    }
+
     let html = renderApp();
     
     if (state.showSubmitModal && state.submitModalData) {
@@ -4729,7 +4762,6 @@ function render() {
         root.appendChild(overlay.firstElementChild);
     }
 }
-
 // ============================================================
 //  SPLASH
 // ============================================================
@@ -4747,6 +4779,52 @@ function renderSplash() {
     );
 }
 
+// ADD THIS NEW FUNCTION AFTER renderSplash()
+function renderUnderConstruction() {
+    const settings = state.settingsCache;
+    const reopenTime = settings.constructionReopenTime;
+    let timeDisplay = '';
+    if (reopenTime) {
+        try {
+            const date = new Date(reopenTime);
+            timeDisplay = date.toLocaleString();
+        } catch (e) {
+            timeDisplay = reopenTime;
+        }
+    }
+
+    return (
+        '<div id="app-shell"><div id="app-inner" style="display:flex;align-items:center;justify-content:center;background:var(--card-bg);min-height:100vh;padding:24px">' +
+        '<div style="text-align:center;max-width:320px;width:100%">' +
+        '<div style="margin-bottom:24px">' + logoSvg(80) + '</div>' +
+        '<h1 style="font-family:var(--font-serif);font-size:36px;margin:0 0 8px;color:var(--ink)">🔧 Coming Soon</h1>' +
+        '<p style="font-size:14px;color:var(--muted);margin:0 0 24px;line-height:1.6">' +
+        'We\'re working hard to bring you an even better experience. The site is currently under construction.' +
+        '</p>' +
+        '<div style="background:var(--bg);border-radius:16px;padding:20px;margin-bottom:24px">' +
+        '<div style="width:60px;height:60px;border-radius:999px;background:var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:30px">🛠️</div>' +
+        '<p style="font-size:13px;color:var(--ink);margin:0;font-weight:600">We\'ll be back soon!</p>' +
+        (timeDisplay ? '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">⏱️ Scheduled reopen: ' + esc(timeDisplay) + '</p>' : '') +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px">' +
+        '<div style="display:flex;gap:8px;justify-content:center">' +
+        '<span style="background:var(--line);border-radius:999px;padding:4px 12px;font-size:11px;color:var(--muted)">📚 New Questions</span>' +
+        '<span style="background:var(--line);border-radius:999px;padding:4px 12px;font-size:11px;color:var(--muted)">⚡ Faster Performance</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;justify-content:center">' +
+        '<span style="background:var(--line);border-radius:999px;padding:4px 12px;font-size:11px;color:var(--muted)">🎯 More Features</span>' +
+        '<span style="background:var(--line);border-radius:999px;padding:4px 12px;font-size:11px;color:var(--muted)">📱 Mobile Optimized</span>' +
+        '</div>' +
+        '</div>' +
+        // Admin Login Link - hidden behind a subtle link
+        '<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">' +
+        '<button data-action="show-login" style="font-size:12px;color:var(--faint);background:none;border:none;cursor:pointer;text-decoration:underline">Admin Login</button>' +
+        '</div>' +
+        '<p style="font-size:11px;color:var(--faint);margin:12px 0 0">MyUTME — JAMB CBT Practice</p>' +
+        '</div>' +
+        '</div></div>'
+    );
+}
 // ============================================================
 //  APP
 // ============================================================
@@ -7231,6 +7309,18 @@ function renderAdminSettings() {
         '<p style="font-size:10px;color:var(--faint);margin:0 0 8px">' + (s.mockTimeLimit || 100) + ' minutes</p>' +
         '</div>' +
         
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">' +
+        '<p style="font-weight:600;font-size:13px;margin:0 0 8px">🔧 Maintenance Mode</p>' +
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">' +
+        '<label style="font-size:14px;color:var(--ink)">' +
+        '<input type="checkbox" id="admin-under-construction" ' + (s.underConstruction ? 'checked' : '') + ' style="width:18px;height:18px;accent-color:var(--green);vertical-align:middle;margin-right:6px" />' +
+        'Enable "Under Construction" mode (users see maintenance page)</label>' +
+        '</div>' +
+        '<label class="field-label">Scheduled Reopen Time</label>' +
+        '<input class="field" id="admin-reopen-time" type="datetime-local" value="' + (s.constructionReopenTime || '') + '" style="margin-bottom:4px" />' +
+        '<p style="font-size:10px;color:var(--faint);margin:0 0 8px">Leave empty for no scheduled reopen</p>' +
+        '</div>' +
+        
         '<label class="field-label" style="margin-top:8px">Enable Calculator</label>' +
         '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">' +
         '<label style="font-size:14px;color:var(--ink)">' +
@@ -7241,7 +7331,6 @@ function renderAdminSettings() {
         '</div>'
     );
 }
-
 // ============================================================
 //  ADMIN DOCUMENTS
 // ============================================================
@@ -9108,72 +9197,77 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'admin-save-settings') {
-        const cbtQs = parseInt(document.getElementById('admin-cbt-questions')?.value || 25);
-        const cbtTime = parseFloat(document.getElementById('admin-cbt-time')?.value || 1.67) * 60;
-        const subjQs = parseInt(document.getElementById('admin-subject-questions')?.value || 25);
-        const subjTime = parseFloat(document.getElementById('admin-subject-time')?.value || 0.42) * 60;
-        const examTime = parseFloat(document.getElementById('admin-exam-time')?.value || 1.67) * 60;
-        const novelTime = parseFloat(document.getElementById('admin-novel-time')?.value || 1.67) * 60;
-        const topicQs = parseInt(document.getElementById('admin-topic-questions')?.value || 25);
-        const topicTime = parseFloat(document.getElementById('admin-topic-time')?.value || 1) * 60;
-        const reviseTime = parseFloat(document.getElementById('admin-revise-time')?.value || 1) * 60;
-        const mockQs = parseInt(document.getElementById('admin-mock-questions')?.value || 25);
-        const mockTime = parseFloat(document.getElementById('admin-mock-time')?.value || 1.67) * 60;
-        const cbtSubjectCount = parseInt(document.getElementById('admin-cbt-subject-count')?.value || 3);
-        const mockSubjectCount = parseInt(document.getElementById('admin-mock-subject-count')?.value || 4);
-        const calcEnabled = document.getElementById('admin-calc-enabled')?.checked !== false;
-        
-        state.admin.questionsPerSubject = cbtQs;
-        state.admin.cbtTimeLimit = Math.round(cbtTime);
-        state.admin.subjectTimeLimit = Math.round(subjTime);
-        state.admin.mockTimeLimit = Math.round(mockTime);
-        state.admin.mockQuestionsPerSubject = mockQs;
-        state.admin.calculatorEnabled = calcEnabled;
-        state.admin.cbtSubjectCount = cbtSubjectCount;
-        state.admin.mockSubjectCount = mockSubjectCount;
-        state.admin.examTimeLimit = Math.round(examTime);
-        state.admin.novelTimeLimit = Math.round(novelTime);
-        state.admin.topicTimeLimit = Math.round(topicTime);
-        state.admin.reviseTimeLimit = Math.round(reviseTime);
+    const cbtQs = parseInt(document.getElementById('admin-cbt-questions')?.value || 25);
+    const cbtTime = parseFloat(document.getElementById('admin-cbt-time')?.value || 1.67) * 60;
+    const subjQs = parseInt(document.getElementById('admin-subject-questions')?.value || 25);
+    const subjTime = parseFloat(document.getElementById('admin-subject-time')?.value || 0.42) * 60;
+    const examTime = parseFloat(document.getElementById('admin-exam-time')?.value || 1.67) * 60;
+    const novelTime = parseFloat(document.getElementById('admin-novel-time')?.value || 1.67) * 60;
+    const topicQs = parseInt(document.getElementById('admin-topic-questions')?.value || 25);
+    const topicTime = parseFloat(document.getElementById('admin-topic-time')?.value || 1) * 60;
+    const reviseTime = parseFloat(document.getElementById('admin-revise-time')?.value || 1) * 60;
+    const mockQs = parseInt(document.getElementById('admin-mock-questions')?.value || 25);
+    const mockTime = parseFloat(document.getElementById('admin-mock-time')?.value || 1.67) * 60;
+    const cbtSubjectCount = parseInt(document.getElementById('admin-cbt-subject-count')?.value || 3);
+    const mockSubjectCount = parseInt(document.getElementById('admin-mock-subject-count')?.value || 4);
+    const calcEnabled = document.getElementById('admin-calc-enabled')?.checked !== false;
+    const underConstruction = document.getElementById('admin-under-construction')?.checked !== false;
+    const reopenTime = document.getElementById('admin-reopen-time')?.value || null;
+    
+    state.admin.questionsPerSubject = cbtQs;
+    state.admin.cbtTimeLimit = Math.round(cbtTime);
+    state.admin.subjectTimeLimit = Math.round(subjTime);
+    state.admin.mockTimeLimit = Math.round(mockTime);
+    state.admin.mockQuestionsPerSubject = mockQs;
+    state.admin.calculatorEnabled = calcEnabled;
+    state.admin.cbtSubjectCount = cbtSubjectCount;
+    state.admin.mockSubjectCount = mockSubjectCount;
+    state.admin.examTimeLimit = Math.round(examTime);
+    state.admin.novelTimeLimit = Math.round(novelTime);
+    state.admin.topicTimeLimit = Math.round(topicTime);
+    state.admin.reviseTimeLimit = Math.round(reviseTime);
 
-        const updates = [
-            { setting_key: 'cbt_settings', setting_value: { questions_per_subject: cbtQs, time_limit_minutes: Math.round(cbtTime), subject_count: cbtSubjectCount } },
-            { setting_key: 'subject_settings', setting_value: { questions_per_subject: subjQs, time_limit_minutes: Math.round(subjTime) } },
-            { setting_key: 'exam_settings', setting_value: { time_limit_minutes: Math.round(examTime) } },
-            { setting_key: 'novel_settings', setting_value: { time_limit_minutes: Math.round(novelTime) } },
-            { setting_key: 'topic_settings', setting_value: { questions_per_subject: topicQs, time_limit_minutes: Math.round(topicTime) } },
-            { setting_key: 'revise_settings', setting_value: { time_limit_minutes: Math.round(reviseTime) } },
-            { setting_key: 'mock_settings', setting_value: { questions_per_subject: mockQs, time_limit_minutes: Math.round(mockTime), subject_count: mockSubjectCount } },
-            { setting_key: 'calculator_enabled', setting_value: calcEnabled },
-        ];
+    const updates = [
+        { setting_key: 'cbt_settings', setting_value: { questions_per_subject: cbtQs, time_limit_minutes: Math.round(cbtTime), subject_count: cbtSubjectCount } },
+        { setting_key: 'subject_settings', setting_value: { questions_per_subject: subjQs, time_limit_minutes: Math.round(subjTime) } },
+        { setting_key: 'exam_settings', setting_value: { time_limit_minutes: Math.round(examTime) } },
+        { setting_key: 'novel_settings', setting_value: { time_limit_minutes: Math.round(novelTime) } },
+        { setting_key: 'topic_settings', setting_value: { questions_per_subject: topicQs, time_limit_minutes: Math.round(topicTime) } },
+        { setting_key: 'revise_settings', setting_value: { time_limit_minutes: Math.round(reviseTime) } },
+        { setting_key: 'mock_settings', setting_value: { questions_per_subject: mockQs, time_limit_minutes: Math.round(mockTime), subject_count: mockSubjectCount } },
+        { setting_key: 'calculator_enabled', setting_value: calcEnabled },
+        { setting_key: 'under_construction', setting_value: underConstruction },
+        { setting_key: 'construction_reopen_time', setting_value: reopenTime },
+    ];
 
-        Promise.all(updates.map(function(u) {
-            return supabase.from('admin_settings').upsert(u, { onConflict: 'setting_key' });
-        })).then(function() {
-            state.settingsCache = {
-                cbtQuestionsPerSubject: cbtQs,
-                cbtTimeLimit: Math.round(cbtTime),
-                subjectQuestionsPerSubject: subjQs,
-                subjectTimeLimit: Math.round(subjTime),
-                mockQuestionsPerSubject: mockQs,
-                mockTimeLimit: Math.round(mockTime),
-                calculatorEnabled: calcEnabled,
-                examTimeLimit: Math.round(examTime),
-                novelTimeLimit: Math.round(novelTime),
-                topicTimeLimit: Math.round(topicTime),
-                reviseTimeLimit: Math.round(reviseTime),
-                cbtSubjectCount: cbtSubjectCount,
-                mockSubjectCount: mockSubjectCount,
-            };
-            showToast('Settings saved!', 'success');
-            render();
-        }).catch(function(err) { 
-            console.error('Save settings error:', err);
-            showToast('Error saving settings: ' + (err.message || 'unknown'), 'error'); 
-        });
-        return;
-    }
-
+    Promise.all(updates.map(function(u) {
+        return supabase.from('admin_settings').upsert(u, { onConflict: 'setting_key' });
+    })).then(function() {
+        state.settingsCache = {
+            cbtQuestionsPerSubject: cbtQs,
+            cbtTimeLimit: Math.round(cbtTime),
+            subjectQuestionsPerSubject: subjQs,
+            subjectTimeLimit: Math.round(subjTime),
+            mockQuestionsPerSubject: mockQs,
+            mockTimeLimit: Math.round(mockTime),
+            calculatorEnabled: calcEnabled,
+            examTimeLimit: Math.round(examTime),
+            novelTimeLimit: Math.round(novelTime),
+            topicTimeLimit: Math.round(topicTime),
+            reviseTimeLimit: Math.round(reviseTime),
+            cbtSubjectCount: cbtSubjectCount,
+            mockSubjectCount: mockSubjectCount,
+            underConstruction: underConstruction,
+            constructionReopenTime: reopenTime,
+        };
+        showToast('Settings saved!', 'success');
+        render();
+    }).catch(function(err) { 
+        console.error('Save settings error:', err);
+        showToast('Error saving settings: ' + (err.message || 'unknown'), 'error'); 
+    });
+    return;
+}
     if (action === 'admin-upload-doc') {
     if (!state.admin.docFile) { showToast('Choose a file first.', 'error'); return; }
     const name = state.admin.docName.trim() || state.admin.docFile.name;
@@ -9795,6 +9889,13 @@ async function init() {
             render();
         }
     }, 5000);
+
+    // Check maintenance status every 60 seconds
+    setInterval(function() {
+        loadSettings().then(function() {
+            render();
+        });
+    }, 60000);
 }
 
 init();
