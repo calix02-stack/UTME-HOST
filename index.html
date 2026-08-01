@@ -2460,6 +2460,11 @@ let state = {
     cbtSubjectQuestions: {},
     cbtSubjectOrder: [],
     cbtCurrentSubject: null,
+    englishBatchTracker: 1,
+currentEnglishPassage: null,
+hasPassage: false,
+passageRead: false,
+passageQuestionIds: [],
 
     examSubject: null,
     examYear: 2026,
@@ -2645,6 +2650,8 @@ let state = {
     // Flag modal
     showFlagModal: false,
     flagModalData: null,
+    showPassageModal: false,
+    
     
     // History
     historyLoaded: false,
@@ -2863,8 +2870,8 @@ async function saveScore(type, data) {
         showToast("Error saving score: " + (e.message || "unknown"), "error");
     }
 }
-
-async function loadQuestions(type, subjectId, year, limit) {
+ 
+async function loadQuestions(type, subjectId, year, limit, batchNumber) {
     try {
         let query = supabase
             .from('questions')
@@ -2873,6 +2880,7 @@ async function loadQuestions(type, subjectId, year, limit) {
             .eq('type', type);
 
         if (year) query = query.eq('year', year);
+        if (batchNumber) query = query.eq('batch_number', batchNumber);
 
         const settings = await loadSettings();
         let lmt = limit || 25;
@@ -2882,7 +2890,7 @@ async function loadQuestions(type, subjectId, year, limit) {
         else if (type === 'mock') lmt = settings.mockQuestionsPerSubject || 25;
         else if (type === 'NOVEL (CBT)') lmt = 25;
 
-        const { data, error } = await query.limit(lmt);
+        const { data, error } = await query.order('display_order', { ascending: true }).limit(lmt);
         if (error) {
             console.warn("Load questions error:", error);
             return [];
@@ -2894,6 +2902,25 @@ async function loadQuestions(type, subjectId, year, limit) {
     }
 }
 
+async function loadPassage(batchNumber) {
+    try {
+        const { data, error } = await supabase
+            .from('passages')
+            .select('*')
+            .eq('batch_number', batchNumber)
+            .eq('subject_id', 'eng')
+            .maybeSingle();
+            
+        if (error) {
+            console.warn("Load passage error:", error);
+            return null;
+        }
+        return data || null;
+    } catch (e) {
+        console.warn("Load passage exception:", e);
+        return null;
+    }
+}
 async function loadAllQuestionsCount() {
     try {
         let allQs = [];
@@ -4186,19 +4213,114 @@ async function startCbt() {
     }
 
     state.isLoading = true;
-    render();
+render();
 
-    let subjects = [];
-    if (isFull) {
-        const eng = SUBJECTS.find(function(s) { return s.compulsory; });
-        subjects = [eng, ...selected.map(function(id) { return SUBJECTS.find(function(s) { return s.id === id; }); })];
-    } else {
-        subjects = selected.map(function(id) { return SUBJECTS.find(function(s) { return s.id === id; }); });
+// Reset passage state
+state.currentEnglishPassage = null;
+state.hasPassage = false;
+state.passageRead = false;
+state.passageQuestionIds = [];
+
+// Load saved batch tracker
+if (state.authUser) {
+    const savedBatch = storage.get('englishBatchTracker_' + state.authUser.id);
+    if (savedBatch) {
+        state.englishBatchTracker = parseInt(savedBatch, 10) || 1;
     }
+}
 
-    let allQuestions = [];
+let subjects = [];
+if (isFull) {
+    const eng = SUBJECTS.find(function(s) { return s.compulsory; });
+    subjects = [eng, ...selected.map(function(id) { return SUBJECTS.find(function(s) { return s.id === id; }); })];
+} else {
+    subjects = selected.map(function(id) { return SUBJECTS.find(function(s) { return s.id === id; }); });
+}
+
+let allQuestions = [];
+    
     for (const subject of subjects) {
-        const qs = await loadQuestions('cbt', subject.id);
+        let qs = [];
+        
+        // Check if this is English
+        if (subject.id === 'eng') {
+            const currentBatch = state.englishBatchTracker || 1;
+            qs = await loadQuestions('cbt', subject.id, null, 25, currentBatch);
+             
+           // Questions are already sorted by display_order from the database
+// No need to sort here
+            if (qs.length > 0) {
+                qs.sort(function(a, b) {
+                    const aHasPassage = a.passage_id === currentBatch ? 0 : 1;
+                    const bHasPassage = b.passage_id === currentBatch ? 0 : 1;
+                    if (aHasPassage !== bHasPassage) {
+                        return aHasPassage - bHasPassage;
+                    }
+                    return a.id - b.id;
+                });
+            }
+                
+            const passage = await loadPassage(currentBatch);
+if (passage) {
+    state.currentEnglishPassage = passage;
+    state.hasPassage = true;
+    state.passageRead = false;
+    state.passageQuestionIds = [];
+    
+    // Get the passage question IDs for this     batch
+    const passageQuestionIds = [];
+    qs.forEach(function(q) {
+        if (q.passage_id === currentBatch) {
+            passageQuestionIds.push(q.id);
+        }
+    });
+    
+    // Store passage question IDs so we know which ones to show after passage
+    state.passageQuestionIds = passageQuestionIds;
+} else {
+    state.currentEnglishPassage = null;
+    state.hasPassage = false;
+    state.passageRead = false;
+    state.passageQuestionIds = [];
+}
+            
+            if (qs.length === 0 && currentBatch < 6) {
+                state.englishBatchTracker = currentBatch + 1;
+                qs = await loadQuestions('cbt', subject.id, null, 25, state.englishBatchTracker);
+                
+                if (qs.length > 0) {
+                    const nextBatch = state.englishBatchTracker;
+                    qs.sort(function(a, b) {
+                        const aHasPassage = a.passage_id === nextBatch ? 0 : 1;
+                        const bHasPassage = b.passage_id === nextBatch ? 0 : 1;
+                        if (aHasPassage !== bHasPassage) {
+                            return aHasPassage - bHasPassage;
+                        }
+                        return a.id - b.id;
+                    });
+                }
+                
+                const nextPassage = await loadPassage(state.englishBatchTracker);
+                if (nextPassage) {
+                    state.currentEnglishPassage = nextPassage;
+                    state.hasPassage = true;
+                    state.passageRead = false;
+                    
+                    const passageQuestionIds = [];
+                    qs.forEach(function(q) {
+                        if (q.passage_id === state.englishBatchTracker) {
+                            passageQuestionIds.push(q.id);
+                        }
+                    });
+                    state.passageQuestionIds = passageQuestionIds;
+                }
+            }
+        } else {
+            // For non-English subjects, load randomized
+            qs = await loadQuestions('cbt', subject.id);
+            qs = shuffleArray(qs);
+        }
+        
         const qsWithSubject = qs.map(function(q) {
             return Object.assign({}, q, { subject_name: subject.name });
         });
@@ -4206,26 +4328,13 @@ async function startCbt() {
     }
 
     state.isLoading = false;
-
+            
     if (allQuestions.length === 0) {
         showToast('No questions available for these subjects.', 'error');
         return;
     }
 
-    const perSubject = settings.cbtQuestionsPerSubject || 25;
-    const grouped = {};
-    allQuestions.forEach(function(q) {
-        if (!grouped[q.subject_id]) grouped[q.subject_id] = [];
-        grouped[q.subject_id].push(q);
-    });
-    let finalQuestions = [];
-    Object.keys(grouped).forEach(function(subjId) {
-        const qs = grouped[subjId];
-        const limited = qs.slice(0, perSubject);
-        finalQuestions = finalQuestions.concat(limited);
-    });
-
-    state.cbtQuestions = shuffleArray(finalQuestions);
+    state.cbtQuestions = allQuestions;
     state.cbtIndex = 0;
     state.cbtAnswers = new Array(state.cbtQuestions.length).fill(null);
     state.cbtFinished = false;
@@ -4248,7 +4357,6 @@ async function startCbt() {
             clearInterval(state.cbtTimer);
             state.cbtTimer = null;
             if (!state.cbtSubmitted) {
-                // Auto-submit on time up, but only if there are answers
                 const hasAnswers = state.cbtAnswers.some(function(a) { return a !== null && a !== undefined; });
                 if (hasAnswers) {
                     state.cbtSubmitted = true;
@@ -4266,7 +4374,6 @@ async function startCbt() {
         }
     }, 1000);
 }
-
 async function startLiteratureCbt() {
     if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
     if (!isUserActive()) {
@@ -4737,10 +4844,13 @@ function render() {
         html += renderResetModal();
     }
     if (state.showFlagModal) {
-        html += renderFlagModal();
+    html += renderFlagModal();
+    }
+    if (state.showPassageModal) {
+    html += renderPassageModal();
     }
     if (state.showNotifyModal) {
-        html += renderNotifyModal();
+    html += renderNotifyModal();
     }
     
     // Check for password reset redirect
@@ -5070,9 +5180,49 @@ function renderCbtMode() {
 // ============================================================
 //  CBT EXAM - Subject-based with tabs
 // ============================================================
-function renderCbtExam() {
-    if (!state.cbtQuestions || state.cbtQuestions.length === 0) return renderHome();
+function renderPassagePage() {
+    const passage = state.currentEnglishPassage;
+    if (!passage) return renderCbtExam();
+    
+    return (
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+        '<button class="back-link" data-action="cbt-exit" style="margin:0">' + svg("chevleft", 16) + ' Exit</button>' +
+        '</div>' +
+        '<div class="timer-bar">' +
+        '<span class="label">⏱️ Time left</span>' +
+        '<span class="time">' + formatTime(state.cbtTimeLeft) + '</span>' +
+        '</div>' +
+        '<div class="card" style="padding:20px;margin-bottom:16px;min-height:300px">' +
+        '<h3 style="font-family:var(--font-serif);margin:0 0 12px;color:var(--ink)">📖 ' + esc(passage.title || 'Reading Passage') + '</h3>' +
+        '<div style="font-size:15px;line-height:1.8;color:var(--ink);white-space:pre-wrap">' + esc(passage.passage_text) + '</div>' +
+        '</div>' +
+        '<button class="btn btn-green" data-action="passage-done">I\'ve Read It — Next</button>' +
+        '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:12px">Read the passage carefully. You\'ll answer 3 questions based on it.</p>' +
+        '</div>'
+    );
+}
 
+function renderPassageModal() {
+    const passage = state.currentEnglishPassage;
+    if (!passage || !state.showPassageModal) return '';
+    
+    return (
+        '<div class="flag-overlay" data-action="close-passage">' +
+        '<div class="flag-modal" data-action="prevent-close">' +
+        '<h3 style="font-family:var(--font-serif);margin:0 0 12px">📖 ' + esc(passage.title || 'Reading Passage') + '</h3>' +
+        '<div style="font-size:14px;line-height:1.8;color:var(--ink);white-space:pre-wrap;max-height:400px;overflow-y:auto">' + esc(passage.passage_text) + '</div>' +
+        '<button class="btn btn-green" style="margin-top:12px" data-action="close-passage">Close</button>' +
+        '</div>' +
+        '</div>'
+    );
+}
+    function renderCbtExam() {
+    if (state.hasPassage && state.currentEnglishPassage && !state.passageRead) {
+        // Show passage page
+        return renderPassagePage();
+    }
+
+    if (!state.cbtQuestions || state.cbtQuestions.length === 0) return renderHome();
     if (state.cbtFinished || state.cbtSubmitted) {
         let score = 0;
         const subjectScores = {};
@@ -5084,7 +5234,6 @@ function renderCbtExam() {
                 if (!subjectScores[item.subject_id]) subjectScores[item.subject_id] = 0;
                 subjectScores[item.subject_id]++;
             } else {
-                // Wrong answer - save to weak questions
                 weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id });
             }
         });
@@ -5184,12 +5333,13 @@ function renderCbtExam() {
     }
 
     const totalQ = state.cbtQuestions.length;
-    const answeredCount = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
-    const settings = state.settingsCache;
-    const calcEnabled = settings.calculatorEnabled !== false;
-    
-    // Subject tabs
-    let subjectTabs = '';
+const answeredCount = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
+const settings = state.settingsCache;
+const calcEnabled = settings.calculatorEnabled !== false;
+
+// Subject tabs - only show if more than 1 subject
+let subjectTabs = '';
+if (state.cbtSubjectOrder.length > 1) {
     state.cbtSubjectOrder.forEach(function(sid) {
         const subj = SUBJECTS.find(function(s) { return s.id === sid; });
         const isActive = state.cbtCurrentSubject === sid;
@@ -5208,11 +5358,12 @@ function renderCbtExam() {
             '</button>'
         );
     });
+}
 
-    // Get current question index for this subject
-    const currentSubjectQuestions = getQuestionsForSubject(state.cbtCurrentSubject, state.cbtSubjectQuestions);
-    const currentSubjectIndex = currentSubjectQuestions.indexOf(state.cbtIndex);
-    const totalInCurrentSubject = currentSubjectQuestions.length;
+// Get current question index for this subject
+const currentSubjectQuestions = getQuestionsForSubject(state.cbtCurrentSubject, state.cbtSubjectQuestions);
+const currentSubjectIndex = currentSubjectQuestions.indexOf(state.cbtIndex);
+const totalInCurrentSubject = currentSubjectQuestions.length;
     
     // If current subject has no questions or index out of bounds, adjust
     if (currentSubjectQuestions.length === 0) {
@@ -5234,66 +5385,70 @@ function renderCbtExam() {
         render();
         return '';
     }
-
+ 
     const item = state.cbtQuestions[state.cbtIndex];
-    const subj = item ? SUBJECTS.find(function(s) { return s.id === item.subject_id; }) : null;
+const subj = item ? SUBJECTS.find(function(s) { return s.id === item.subject_id; }) : null;
 
-    let opts = "";
-    if (item && item.options) {
-        item.options.forEach(function(o, i) {
-            const chosen = state.cbtAnswers[state.cbtIndex] === i;
-            opts += (
-                '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="cbt-answer" data-idx="' +
-                i + '">' +
-                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
-                '</button>'
-            );
-        });
-    }
+let opts = "";
+if (item && item.options) {
+    item.options.forEach(function(o, i) {
+        const chosen = state.cbtAnswers[state.cbtIndex] === i;
+        opts += (
+            '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="cbt-answer" data-idx="' +
+            i + '">' +
+            '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
+            '</button>'
+        );
+    });
+}
 
-    // Navigation within subject
-    const hasPrev = currentSubjectIndex > 0;
-    const hasNext = currentSubjectIndex < totalInCurrentSubject - 1;
-    const prevIdx = hasPrev ? currentSubjectQuestions[currentSubjectIndex - 1] : null;
-    const nextIdx = hasNext ? currentSubjectQuestions[currentSubjectIndex + 1] : null;
+// Navigation within subject
+const hasPrev = currentSubjectIndex > 0;
+const hasNext = currentSubjectIndex < totalInCurrentSubject - 1;
+const prevIdx = hasPrev ? currentSubjectQuestions[currentSubjectIndex - 1] : null;
+const nextIdx = hasNext ? currentSubjectQuestions[currentSubjectIndex + 1] : null;
 
-    return (
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
-        '<button class="back-link" data-action="cbt-exit" style="margin:0">' + svg("chevleft", 16) + ' Exit</button>' +
-        '</div>' +
-        '<div class="exam-top-bar">' +
-        '<div class="left-group">' +
-        (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" title="Calculator">' + svg("calculator", 18) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 18) + '</button>'
-        ) +
-        '</div>' +
-        '<div class="right-group">' +
-        '<button class="attempt-btn" data-action="show-attempted-cbt">' +
-        '📋 <span style="font-weight:600">' + answeredCount + '/' + totalQ + '</span>' +
-        '<span class="dot-indicator"></span>' +
-        '</button>' +
-        '<button class="submit-btn" data-action="cbt-submit">Submit</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="timer-bar">' +
-        '<span class="label">⏱️ Time left</span>' +
-        '<span class="time' + (state.cbtTimeLeft < 300 ? ' warning' : '') + '">' +
-        formatTime(state.cbtTimeLeft) +
-        '</span>' +
-        '</div>' +
-        '<div class="subject-tabs">' + subjectTabs + '</div>' +
-        '<div class="exam-nav">' +
-        '<span class="q-counter">Question ' + (currentSubjectIndex + 1) + ' of ' + totalInCurrentSubject + ' in ' + (subj ? subj.name : '') + '</span>' +
-        '</div>' +
-        '<div class="card" style="margin-bottom:16px"><p style="font-size:15px;font-weight:600;margin:0">' + esc(item
-            ?.text || '') + '</p></div>' +
-        opts +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">' +
-        (hasPrev ? '<button class="btn btn-outline" style="flex:1" data-action="cbt-goto" data-idx="' + prevIdx + '">Previous</button>' : '') +
-        (hasNext ? '<button class="btn btn-green" style="flex:1" data-action="cbt-goto" data-idx="' + nextIdx + '">Next</button>' : '') +
-        '</div>'
-    );
+// Check if this batch has a passage
+const hasPassage = state.hasPassage && state.currentEnglishPassage && state.passageRead;
+
+return (
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+    '<button class="back-link" data-action="cbt-exit" style="margin:0">' + svg("chevleft", 16) + ' Exit</button>' +
+    '</div>' +
+    '<div class="exam-top-bar">' +
+    '<div class="left-group">' +
+    (calcEnabled ? 
+        '<button class="calc-btn enabled" data-action="toggle-calculator" title="Calculator">' + svg("calculator", 18) + '</button>' :
+        '<button class="calc-btn" data-action="toggle-calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 18) + '</button>'
+    ) + 
+    (hasPassage ? '<button class="calc-btn" style="background:var(--gold);color:var(--ink);height:34px;padding:0 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;font-size:12px;font-weight:600" data-action="show-passage" title="View Passage" aria-label="View Passage">📖 Passage</button>' : '') +
+    '</div>' +
+    '<div class="right-group">' +
+    '<button class="attempt-btn" data-action="show-attempted-cbt">' +
+    '📋 <span style="font-weight:600">' + answeredCount + '/' + totalQ + '</span>' +
+    '<span class="dot-indicator"></span>' +
+    '</button>' +
+    '<button class="submit-btn" data-action="cbt-submit">Submit</button>' +
+    '</div>' +
+    '</div>' +
+    '<div class="timer-bar">' +
+    '<span class="label">⏱️ Time left</span>' +
+    '<span class="time' + (state.cbtTimeLeft < 300 ? ' warning' : '') + '">' +
+    formatTime(state.cbtTimeLeft) +
+    '</span>' +
+    '</div>' +
+    '<div class="subject-tabs">' + subjectTabs + '</div>' +
+    '<div class="exam-nav">' +
+    '<span class="q-counter">Question ' + (currentSubjectIndex + 1) + ' of ' + totalInCurrentSubject + ' in ' + (subj ? subj.name : '') + '</span>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:16px"><p style="font-size:15px;font-weight:600;margin:0">' + esc(item
+        ?.text || '') + '</p></div>' +
+    opts +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">' +
+    (hasPrev ? '<button class="btn btn-outline" style="flex:1" data-action="cbt-goto" data-idx="' + prevIdx + '">Previous</button>' : '') +
+    (hasNext ? '<button class="btn btn-green" style="flex:1" data-action="cbt-goto" data-idx="' + nextIdx + '">Next</button>' : '') +
+    '</div>'
+);
 }
 
 // ============================================================
@@ -8371,75 +8526,140 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'cbt-submit') {
-        if (state.cbtSubmitted) return;
-        const subjectMap = {};
-        state.cbtQuestions.forEach(function(q, i) {
-            if (!subjectMap[q.subject_id]) {
-                const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
-                subjectMap[q.subject_id] = {
-                    name: subj ? subj.name : q.subject_id,
-                    total: 0,
-                    answered: 0,
-                    unanswered: 0,
-                };
-            }
-            subjectMap[q.subject_id].total++;
-            const isAnswered = state.cbtAnswers[i] !== null && state.cbtAnswers[i] !== undefined;
-            if (isAnswered) subjectMap[q.subject_id].answered++;
-            else subjectMap[q.subject_id].unanswered++;
-        });
-        const subjectSummaries = Object.values(subjectMap);
-        const totalAnswered = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
-        const totalQuestions = state.cbtQuestions.length;
-        
-        state.showSubmitModal = true;
-        state.submitModalData = {
-            total: totalQuestions,
-            answered: totalAnswered,
-            subjects: subjectSummaries,
-            isMock: false,
-            onConfirm: function() {
-                state.showSubmitModal = false;
-                state.submitModalData = null;
-                state.cbtSubmitted = true;
-                state.cbtFinished = true;
-                if (state.cbtTimer) { clearInterval(state.cbtTimer);
-                    state.cbtTimer = null; }
-                render();
-            },
-            onCancel: function() {
-                state.showSubmitModal = false;
-                state.submitModalData = null;
-                render();
-            }
-        };
-        render();
-        return;
+    if (state.cbtSubmitted) return;
+    const subjectMap = {};
+    state.cbtQuestions.forEach(function(q, i) {
+        if (!subjectMap[q.subject_id]) {
+            const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
+            subjectMap[q.subject_id] = {
+                name: subj ? subj.name : q.subject_id,
+                total: 0,
+                answered: 0,
+                unanswered: 0,
+            };
+        }
+        subjectMap[q.subject_id].total++;
+        const isAnswered = state.cbtAnswers[i] !== null && state.cbtAnswers[i] !== undefined;
+        if (isAnswered) subjectMap[q.subject_id].answered++;
+        else subjectMap[q.subject_id].unanswered++;
+    });
+    const subjectSummaries = Object.values(subjectMap);
+    const totalAnswered = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
+    const totalQuestions = state.cbtQuestions.length;
+    
+    // Check if English was in this attempt
+const hasEnglish = state.cbtQuestions.some(function(q) { return q.subject_id === 'eng'; });
+if (hasEnglish && state.authUser) {
+    // Check if this batch was already submitted
+    const submittedBatches = JSON.parse(storage.get('submittedBatches_' + state.authUser.id) || '[]');
+    const currentBatch = state.englishBatchTracker || 1;
+    
+    // Only mark as submitted if not already
+    if (submittedBatches.indexOf(currentBatch) === -1) {
+        submittedBatches.push(currentBatch);
+        storage.set('submittedBatches_' + state.authUser.id, JSON.stringify(submittedBatches));
     }
+    
+    // Find next unsubmitted batch
+    let nextBatch = 1;
+    for (let i = 1; i <= 6; i++) {
+        if (submittedBatches.indexOf(i) === -1) {
+            nextBatch = i;
+            break;
+        }
+    }
+    
+    // If all 6 are done, reset to 1
+    if (submittedBatches.length >= 6) {
+        nextBatch = 1;
+        storage.set('submittedBatches_' + state.authUser.id, JSON.stringify([]));
+    }
+    
+    state.englishBatchTracker = nextBatch;
+    storage.set('englishBatchTracker_' + state.authUser.id, String(nextBatch));
+}
+    
+    state.showSubmitModal = true;
+    state.submitModalData = {
+        total: totalQuestions,
+        answered: totalAnswered,
+        subjects: subjectSummaries,
+        isMock: false,
+        onConfirm: function() {
+            state.showSubmitModal = false;
+            state.submitModalData = null;
+            state.cbtSubmitted = true;
+            state.cbtFinished = true;
+            state.currentEnglishPassage = null;
+            state.hasPassage = false;
+            state.passageRead = false;
+            state.passageQuestionIds = [];
+            if (state.cbtTimer) { clearInterval(state.cbtTimer);
+                state.cbtTimer = null; }
+            render();
+        },
+        onCancel: function() {
+            state.showSubmitModal = false;
+            state.submitModalData = null;
+            render();
+        }
+    };
+    render();
+    return;
+}
 
     if (action === 'cbt-exit') {
-        if (state.cbtTimer) { clearInterval(state.cbtTimer);
-            state.cbtTimer = null; }
-        // Remove auto-submit - just exit without saving
-        state.cbtQuestions = [];
-        state.cbtIndex = 0;
-        state.cbtAnswers = [];
-        state.cbtFinished = false;
-        state.cbtSubmitted = false;
-        state.cbtSelected = [];
-        state.cbtSubjectQuestions = {};
-        state.cbtSubjectOrder = [];
-        state.cbtCurrentSubject = null;
-        state.view = 'home';
-        render();
-        return;
-    }
-
+    if (state.cbtTimer) { clearInterval(state.cbtTimer);
+        state.cbtTimer = null; }
+    state.cbtQuestions = [];
+    state.cbtIndex = 0;
+    state.cbtAnswers = [];
+    state.cbtFinished = false;
+    state.cbtSubmitted = false;
+    state.cbtSelected = [];
+    state.cbtSubjectQuestions = {};
+    state.cbtSubjectOrder = [];
+    state.cbtCurrentSubject = null;
+    state.currentEnglishPassage = null;
+    state.hasPassage = false;
+    state.passageRead = false;
+    state.view = 'home';
+    render();
+    return;
+}
     if (action === 'cbt-toggle-review') {
-        state.cbtReviewMode = !state.cbtReviewMode;
+    state.cbtReviewMode = !state.cbtReviewMode;
+    render();
+    return;
+}
+
+if (action === 'passage-done') {
+        state.passageRead = true;
+        // Jump to the first passage-linked question, once
+        if (state.passageQuestionIds && state.passageQuestionIds.length > 0) {
+            const firstPassageId = state.passageQuestionIds[0];
+            const firstIndex = state.cbtQuestions.findIndex(function(q) { return q.id === firstPassageId; });
+            if (firstIndex !== -1) {
+                state.cbtIndex = firstIndex;
+                const q = state.cbtQuestions[state.cbtIndex];
+                if (q) state.cbtCurrentSubject = q.subject_id;
+            }
+        }
         render();
         return;
     }
+if (action === 'show-passage') {
+    // Show passage in a modal or overlay
+    state.showPassageModal = true;
+    render();
+    return;
+}
+
+if (action === 'close-passage') {
+    state.showPassageModal = false;
+    render();
+    return;
+}
 
     // EXAM MODE
     if (action === 'select-exam-subject') {
@@ -9892,7 +10112,7 @@ async function init() {
 
     // Check maintenance status every 60 seconds
     setInterval(function() {
-        loadSettings().then(function() {
+        loadSettings().then(function() {ren
             render();
         });
     }, 60000);
@@ -9902,3 +10122,4 @@ init();
 </script>
 </body>
 </html>
+
