@@ -4675,74 +4675,70 @@ function renderCalculator() {
 
 function renderResetModal() {
     if (!state.showReset) return '';
-    
-    const isShowing = state.showPassword['reset'] || false;
-    
     return (
         '<div class="reset-overlay" data-action="close-auth">' +
         '<div class="reset-modal" data-action="prevent-close">' +
         '<button class="close-x" data-action="close-auth">×</button>' +
-        '<h2>Reset Password</h2>' +
-        '<p class="sub">Enter your email to receive a password reset link.</p>' +
+        '<div style="width:56px;height:56px;border-radius:999px;background:linear-gradient(145deg,var(--green) 0%,var(--green-dark) 100%);display:flex;align-items:center;justify-content:center;margin:4px auto 16px;box-shadow:0 8px 20px rgba(15,107,63,0.25)">' +
+        svg('shield', 28).replace('stroke="currentColor"', 'stroke="white"') +
+        '</div>' +
+        '<h2 style="text-align:center;font-family:var(--font-serif);font-size:22px;margin:0 0 4px;color:var(--ink)">Reset Password</h2>' +
+        '<p class="sub" style="text-align:center">Enter the email linked to your account and we\'ll send a secure link to set a new password.</p>' +
         '<div class="field-group">' +
         '<label>Email address</label>' +
-        '<input id="reset-email" type="email" placeholder="you@example.com" value="' + esc(state.resetEmail) +
-        '" />' +
+        '<input id="reset-email" type="email" placeholder="you@example.com" value="' + esc(state.resetEmail) + '" />' +
         '</div>' +
-        (state.resetError ? '<p style="color:#C0392B;font-size:13px;margin:-6px 0 12px">' + esc(state.resetError) +
-            '</p>' : '') +
+        (state.resetError ? '<p style="color:#C0392B;font-size:13px;margin:-6px 0 12px;text-align:center">⚠️ ' + esc(state.resetError) + '</p>' : '') +
         '<button class="btn-submit" data-action="do-reset" ' + (state.authLoading ? 'disabled' : '') + '>' +
-        (state.authLoading ? 'Sending…' : 'Send Reset Link') +
+        (state.authLoading ? 'Sending…' : '✉️ Send Reset Link') +
         '</button>' +
-        '<div class="switch-link">' +
-        'Remember your password? <button data-action="switch-to-login">Log in</button>' +
-        '</div>' +
-        '</div>' +
-        '</div>'
+        '<div class="switch-link">Remember your password? <button data-action="switch-to-login">Log in</button></div>' +
+        '</div></div>'
     );
 }
 
 function renderPasswordResetForm() {
-    // Check if we're on the reset page (URL has reset=true)
     const urlParams = new URLSearchParams(window.location.search);
     if (!urlParams.get('reset')) return '';
-    
     const isShowing = state.showPassword['reset-form'] || false;
-    
+
+    if (state.resetSuccess) {
+        return (
+            '<div class="reset-overlay">' +
+            '<div class="reset-modal" style="text-align:center">' +
+            '<div style="width:64px;height:64px;border-radius:999px;background:var(--green);display:flex;align-items:center;justify-content:center;margin:4px auto 16px;font-size:30px">✅</div>' +
+            '<h2 style="font-family:var(--font-serif);font-size:22px;margin:0 0 4px;color:var(--ink)">Password Updated!</h2>' +
+            '<p class="sub">Your password has been changed. You can now log in with your new password.</p>' +
+            '<button class="btn-submit" data-action="reset-goto-login">Go to Log in</button>' +
+            '</div></div>'
+        );
+    }
+
     return (
-        '<div class="reset-overlay" data-action="close-auth">' +
+        '<div class="reset-overlay">' +
         '<div class="reset-modal" data-action="prevent-close">' +
-        '<h2>Create New Password</h2>' +
-        '<p class="sub">Enter your new password below.</p>' +
+        '<div style="width:56px;height:56px;border-radius:999px;background:linear-gradient(145deg,var(--gold) 0%,#d49a2e 100%);display:flex;align-items:center;justify-content:center;margin:4px auto 16px;box-shadow:0 8px 20px rgba(228,169,58,0.3);font-size:26px">🔑</div>' +
+        '<h2 style="text-align:center;font-family:var(--font-serif);font-size:22px;margin:0 0 4px;color:var(--ink)">Create New Password</h2>' +
+        '<p class="sub" style="text-align:center">Choose a strong new password for your account.</p>' +
         '<div class="field-group">' +
         '<label>New Password</label>' +
         '<div class="password-wrapper">' +
-        '<input id="reset-new-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="New password" />' +
-        '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + 
-        svg(isShowing ? 'eyeoff' : 'eye', 20) + 
-        '</button>' +
-        '</div>' +
-        '</div>' +
+        '<input id="reset-new-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="At least 6 characters" />' +
+        '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + svg(isShowing ? 'eyeoff' : 'eye', 20) + '</button>' +
+        '</div></div>' +
         '<div class="field-group">' +
         '<label>Confirm Password</label>' +
         '<div class="password-wrapper">' +
-        '<input id="reset-confirm-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="Confirm password" />' +
-        '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + 
-        svg(isShowing ? 'eyeoff' : 'eye', 20) + 
-        '</button>' +
-        '</div>' +
-        '</div>' +
-        (state.resetError ? '<p style="color:#C0392B;font-size:13px;margin:-6px 0 12px">' + esc(state.resetError) +
-            '</p>' : '') +
-        (state.resetSuccess ? '<p style="color:#0F6B3F;font-size:13px;margin:-6px 0 12px">✅ Password updated successfully!</p>' : '') +
+        '<input id="reset-confirm-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="Re-enter password" />' +
+        '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + svg(isShowing ? 'eyeoff' : 'eye', 20) + '</button>' +
+        '</div></div>' +
+        (state.resetError ? '<p style="color:#C0392B;font-size:13px;margin:-6px 0 12px;text-align:center">⚠️ ' + esc(state.resetError) + '</p>' : '') +
         '<button class="btn-submit" data-action="do-password-reset" ' + (state.authLoading ? 'disabled' : '') + '>' +
         (state.authLoading ? 'Updating…' : 'Update Password') +
         '</button>' +
-        '</div>' +
-        '</div>'
+        '</div></div>'
     );
 }
-
 function renderFlagModal() {
     if (!state.showFlagModal || !state.flagModalData) return '';
     
@@ -8469,6 +8465,15 @@ document.addEventListener('click', function(e) {
             render(); return; }
         
         updatePassword(password);
+        return;
+    }
+    if (action === 'reset-goto-login') {
+        const url = new URL(window.location);
+        url.searchParams.delete('reset');
+        window.history.replaceState({}, '', url);
+        state.resetSuccess = false;
+        state.showLogin = true;
+        render();
         return;
     }
     if (action === 'toggle-password') {
