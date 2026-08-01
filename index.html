@@ -4033,12 +4033,16 @@ function doSubmitMock(autoSubmit) {
     let totalScore = 0;
     const subjectScores = {};
     const weakQuestionsToSave = [];
+
+    // Ensure every registered subject shows up in the results, even with 0 correct
+    state.mockQuestions.forEach(function(q) {
+        if (!(q.subject_id in subjectScores)) subjectScores[q.subject_id] = 0;
+    });
      
     state.mockQuestions.forEach(function(q, i) {
         const isCorrect = state.mockAnswers[i] === q.correct_answer;
         if (isCorrect) {
             totalScore += 4;
-            if (!subjectScores[q.subject_id]) subjectScores[q.subject_id] = 0;
             subjectScores[q.subject_id] += 4;
         } else {
             // Wrong answer - save to weak questions
@@ -5271,17 +5275,19 @@ function renderPassageModal() {
         let score = 0;
         const subjectScores = {};
         const weakQuestionsToSave = [];
+// Ensure every selected subject shows up in the results, even with 0 correct
+state.cbtQuestions.forEach(function(item) {
+    if (!(item.subject_id in subjectScores)) subjectScores[item.subject_id] = 0;
+});
 state.cbtQuestions.forEach(function(item, i) {
             const isCorrect = state.cbtAnswers[i] === item.correct_answer;
             if (isCorrect) {
                 score++;
-                if (!subjectScores[item.subject_id]) subjectScores[item.subject_id] = 0;
                 subjectScores[item.subject_id]++;
             } else {
                 weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id, userAnswer: state.cbtAnswers[i], correctAnswer: item.correct_answer });
             }
-        });        
-
+        });
         const isFullCbt = state.cbtMode === "full";
         const maxScore = isFullCbt ? 400 : 100;
         const totalScore = isFullCbt ? score * 4 : score;
