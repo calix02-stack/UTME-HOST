@@ -4503,9 +4503,10 @@ async function startExam() {
     const s = SUBJECTS.find(function(x) { return x.id === state.examSubject; });
     const questions = await loadQuestions('exam', state.examSubject, state.examYear);
     state.isLoading = false;
+    render();
     
     if (questions.length === 0) {
-        showToast('No questions available for this subject and year.', 'error');
+        showToast('No questions uploaded for this subject and year yet.', 'error');
         return;
     }
     const qs = questions.map(function(q) {
