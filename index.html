@@ -2455,6 +2455,7 @@ let state = {
     cbtShowExplanation: false,
     cbtReviewMode: false,
     cbtSubmitted: false,
+    cbtHistorySaved: false,
     cbtScore: 0,
     cbtSubjectScores: {},
     cbtSubjectQuestions: {},
@@ -2475,6 +2476,7 @@ passageQuestionIds: [],
     examAnswers: [],
     examFinished: false,
     examSubmitted: false,
+    examHistorySaved: false,
 
     mockSubject: null,
     mockSelectedSubjects: [],
@@ -2505,6 +2507,7 @@ passageQuestionIds: [],
     topicAnswers: [],
     topicFinished: false,
     topicSubmitted: false,
+    topicHistorySaved: false,
     topicShowExplanation: false,
     topicReviewMode: false,
     topicTimer: null,
@@ -2517,7 +2520,7 @@ passageQuestionIds: [],
     litTimer: null,
     litTimeLeft: 0,
     litSubmitted: false,
-    litShowExplanation: false,
+    litHistorySaved: false,
     litReviewMode: false,
 
     syllabusViewSubject: null,
@@ -2828,22 +2831,31 @@ async function saveScore(type, data) {
 
         if (type === 'subject') query = query.eq('subject_id', data.subject_id);
 
-        const { data: existing, error: checkError } = await query.maybeSingle();
+        const { data: existingRows, error: checkError } = await query
+            .order('score', { ascending: false })
+            .limit(1);
+
+        if (checkError) {
+            console.warn("Check score error:", checkError);
+            showToast("Error checking existing score: " + checkError.message, "error");
+            return;
+        }
+
+        const existing = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
 
         if (existing) {
-            if (data.score > existing.score) {
-                const updateData = {
-                    score: data.score,
-                    total_questions: data.total_questions,
-                    subject_count: data.subject_count || 1,
-                    updated_at: new Date().toISOString(),
-                };
-                if (data.subject_scores) updateData.subject_scores = data.subject_scores;
-                const { error: updateError } = await supabase.from(table).update(updateData).eq('id', existing.id);
-                if (updateError) {
-                    console.warn("Update score error:", updateError);
-                    showToast("Error updating score: " + updateError.message, "error");
-                }
+            const updateData = {
+                score: data.score,
+                total_questions: data.total_questions,
+                subject_count: data.subject_count || 1,
+            };
+            if (data.subject_scores) updateData.subject_scores = data.subject_scores;
+            if (data.username) updateData.username = data.username;
+            const { error: updateError } = await supabase.from(table).update(updateData).eq('id', existing.id);
+            if (updateError) {
+                console.warn("Update score error:", updateError);
+                showToast("Error updating score: " + updateError.message, "error");
+                return;
             }
         } else {
             const insertData = {
@@ -2861,6 +2873,7 @@ async function saveScore(type, data) {
             if (insertError) {
                 console.warn("Insert score error:", insertError);
                 showToast("Error saving score: " + insertError.message, "error");
+                return;
             }
         }
 
@@ -3127,7 +3140,8 @@ async function loadHistory() {
             .order('submitted_at', { ascending: false });
             
         if (error) {
-            console.warn("Load history error:", error);
+            console.warn("Load history error:", error.message, error.details, error.hint, error.code);
+            showToast("History error: " + (error.message || error.details || "unknown"), "error");
             state.historyEntries = [];
             state.historyLoaded = true;
             render();
@@ -3137,13 +3151,13 @@ async function loadHistory() {
         state.historyLoaded = true;
         render();
     } catch (e) {
-        console.warn("Load history exception:", e);
+        console.warn("Load history exception:", e.message || e);
+        showToast("History error: " + (e.message || "unknown"), "error");
         state.historyEntries = [];
         state.historyLoaded = true;
         render();
     }
 }
-
 async function saveHistoryEntry(entry) {
     if (!state.authUser) return;
     
@@ -3170,46 +3184,54 @@ async function saveHistoryEntry(entry) {
 // ============================================================
 //  WEAK QUESTIONS FUNCTIONS
 // ============================================================
-async function saveWeakQuestion(userId, questionId, subjectId, mode) {
+async function saveWeakQuestion(userId, questionId, subjectId, mode, userAnswer, correctAnswer) {
     if (!userId || !questionId) return;
     
+    const uAns = (userAnswer !== undefined && userAnswer !== null) ? userAnswer : -1;
+    const cAns = (correctAnswer !== undefined && correctAnswer !== null) ? correctAnswer : -1;
+    
     try {
-        // Check if already exists
         const { data: existing, error: checkError } = await supabase
             .from('weak_questions')
-            .select('id')
+            .select('id, attempts')
             .eq('user_id', userId)
             .eq('question_id', questionId)
             .maybeSingle();
             
         if (checkError) {
-            console.warn("Check weak question error:", checkError);
+            console.warn("Check weak question error:", checkError.message, checkError.code);
             return;
         }
         
         if (existing) {
-            // Update timestamp
-            await supabase
+            const { error: updateError } = await supabase
                 .from('weak_questions')
-                .update({ created_at: new Date().toISOString() })
+                .update({
+                    user_answer: uAns,
+                    correct_answer: cAns,
+                    mode: mode || 'unknown',
+                    attempts: (existing.attempts || 1) + 1,
+                    last_attempted: new Date().toISOString(),
+                })
                 .eq('id', existing.id);
+            if (updateError) console.warn("Update weak question error:", updateError.message, updateError.code);
         } else {
-            // Insert new
-            await supabase
+            const { error: insertError } = await supabase
                 .from('weak_questions')
                 .insert([{
                     user_id: userId,
                     question_id: questionId,
                     subject_id: subjectId || '',
                     mode: mode || 'unknown',
-                    created_at: new Date().toISOString(),
+                    user_answer: uAns,
+                    correct_answer: cAns,
                 }]);
+            if (insertError) console.warn("Insert weak question error:", insertError.message, insertError.code);
         }
     } catch (e) {
-        console.warn("Save weak question error:", e);
+        console.warn("Save weak question error:", e.message || e);
     }
 }
-
 async function removeWeakQuestion(userId, questionId) {
     if (!userId || !questionId) return;
     
@@ -3989,6 +4011,7 @@ function doSubmitMock(autoSubmit) {
     let totalScore = 0;
     const subjectScores = {};
     const weakQuestionsToSave = [];
+     
     state.mockQuestions.forEach(function(q, i) {
         const isCorrect = state.mockAnswers[i] === q.correct_answer;
         if (isCorrect) {
@@ -3997,10 +4020,9 @@ function doSubmitMock(autoSubmit) {
             subjectScores[q.subject_id] += 4;
         } else {
             // Wrong answer - save to weak questions
-            weakQuestionsToSave.push({ questionId: q.id, subjectId: q.subject_id });
+            weakQuestionsToSave.push({ questionId: q.id, subjectId: q.subject_id, userAnswer: state.mockAnswers[i], correctAnswer: q.correct_answer });
         }
     });
-
     state.mockScore = totalScore;
     state.mockSubjectScores = subjectScores;
     state.mockTotal = state.mockQuestions.length * 4;
@@ -4014,7 +4036,7 @@ function doSubmitMock(autoSubmit) {
     // Save weak questions
     if (state.authUser) {
         weakQuestionsToSave.forEach(function(wq) {
-            saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'mock');
+            saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'mock', wq.userAnswer, wq.correctAnswer);
         });
         
         // Save history
@@ -4036,7 +4058,6 @@ function doSubmitMock(autoSubmit) {
             exam_title: exam ? exam.title : 'Mock Exam',
         });
     }
-
     supabase
         .from('mock_attempts')
         .update({
@@ -4339,6 +4360,7 @@ if (passage) {
     state.cbtAnswers = new Array(state.cbtQuestions.length).fill(null);
     state.cbtFinished = false;
     state.cbtSubmitted = false;
+    state.cbtHistorySaved = false;
     state.cbtShowExplanation = false;
     state.cbtReviewMode = false;
     const timeLimit = isFull ? settings.cbtTimeLimit : settings.subjectTimeLimit;
@@ -4404,6 +4426,7 @@ async function startLiteratureCbt() {
     state.litAnswers = new Array(state.litQuestions.length).fill(null);
     state.litFinished = false;
     state.litSubmitted = false;
+    state.litHistorySaved = false;
     state.litShowExplanation = false;
     state.litReviewMode = false;
     const settings = await loadSettings();
@@ -4471,6 +4494,7 @@ async function startExam() {
     state.examAnswers = new Array(state.examQuestions.length).fill(null);
     state.examFinished = false;
     state.examSubmitted = false;
+    state.examHistorySaved = false;
     state.examShowExplanation = false;
     state.examReviewMode = false;
 
@@ -4513,6 +4537,7 @@ async function startTopicPractice() {
     state.topicAnswers = new Array(qs.length).fill(null);
     state.topicFinished = false;
     state.topicSubmitted = false;
+    state.topicHistorySaved = false;
     state.topicShowExplanation = false;
     state.topicReviewMode = false;
     
@@ -5227,28 +5252,29 @@ function renderPassageModal() {
         let score = 0;
         const subjectScores = {};
         const weakQuestionsToSave = [];
-        state.cbtQuestions.forEach(function(item, i) {
+state.cbtQuestions.forEach(function(item, i) {
             const isCorrect = state.cbtAnswers[i] === item.correct_answer;
             if (isCorrect) {
                 score++;
                 if (!subjectScores[item.subject_id]) subjectScores[item.subject_id] = 0;
                 subjectScores[item.subject_id]++;
             } else {
-                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id });
+                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id, userAnswer: state.cbtAnswers[i], correctAnswer: item.correct_answer });
             }
-        });
+        });        
 
         const isFullCbt = state.cbtMode === "full";
         const maxScore = isFullCbt ? 400 : 100;
         const totalScore = isFullCbt ? score * 4 : score;
 
-        if (state.authUser && state.cbtSubmitted) {
+        if (state.authUser && state.cbtSubmitted && !state.cbtHistorySaved) {
+            state.cbtHistorySaved = true;
             const subjectId = isFullCbt ? null : state.cbtQuestions[0]?.subject_id;
             const subjectName = isFullCbt ? null : state.cbtQuestions[0]?.subject_name;
             
             // Save weak questions
             weakQuestionsToSave.forEach(function(wq) {
-                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'cbt');
+                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'cbt', wq.userAnswer, wq.correctAnswer);
             });
             
             // Save history
@@ -5508,21 +5534,22 @@ function renderExamExam() {
         let score = 0;
         const subjectScores = {};
         const weakQuestionsToSave = [];
-        state.examQuestions.forEach(function(item, i) {
+         
+state.examQuestions.forEach(function(item, i) {
             const isCorrect = state.examAnswers[i] === item.correct_answer;
             if (isCorrect) {
                 score++;
                 if (!subjectScores[item.subject_id]) subjectScores[item.subject_id] = 0;
                 subjectScores[item.subject_id]++;
             } else {
-                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id });
+                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id, userAnswer: state.examAnswers[i], correctAnswer: item.correct_answer });
             }
         });
-
-        if (state.authUser && state.examSubmitted) {
+        if (state.authUser && state.examSubmitted && !state.examHistorySaved) {
+            state.examHistorySaved = true;
             // Save weak questions
             weakQuestionsToSave.forEach(function(wq) {
-                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'exam');
+                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'exam', wq.userAnswer, wq.correctAnswer);
             });
             
             // Save history
@@ -5712,22 +5739,23 @@ function renderTopicExam() {
     if (state.topicFinished || state.topicSubmitted) {
         let score = 0;
         const subjectScores = {};
-        const weakQuestionsToSave = [];
-        state.topicQuestions.forEach(function(item, i) {
+        const weakQuestionsToSave = []; 
+state.topicQuestions.forEach(function(item, i) {
             const isCorrect = state.topicAnswers[i] === item.correct_answer;
             if (isCorrect) {
                 score++;
                 if (!subjectScores[item.subject_id]) subjectScores[item.subject_id] = 0;
                 subjectScores[item.subject_id]++;
             } else {
-                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id });
+                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id, userAnswer: state.topicAnswers[i], correctAnswer: item.correct_answer });
             }
         });
 
-        if (state.authUser && state.topicSubmitted) {
+        if (state.authUser && state.topicSubmitted && !state.topicHistorySaved) {
+            state.topicHistorySaved = true;
             // Save weak questions
             weakQuestionsToSave.forEach(function(wq) {
-                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'topic');
+                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'topic', wq.userAnswer, wq.correctAnswer);
             });
             
             // Save history
@@ -5859,18 +5887,19 @@ function renderLitExam() {
         let score = 0;
         const subjectScores = {};
         const weakQuestionsToSave = [];
-        state.litQuestions.forEach(function(item, i) {
+state.litQuestions.forEach(function(item, i) {
             const isCorrect = state.litAnswers[i] === item.correct_answer;
             if (isCorrect) {
                 score++;
                 if (!subjectScores[item.subject_id]) subjectScores[item.subject_id] = 0;
                 subjectScores[item.subject_id]++;
             } else {
-                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id });
+                weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id, userAnswer: state.litAnswers[i], correctAnswer: item.correct_answer });
             }
-        });
+        });  
 
-        if (state.authUser && state.litSubmitted) {
+        if (state.authUser && state.litSubmitted && !state.litHistorySaved) {
+            state.litHistorySaved = true;
             // Save weak questions
             weakQuestionsToSave.forEach(function(wq) {
                 saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'novel');
@@ -6060,7 +6089,6 @@ async function loadWeakQuestions() {
     }
     
     try {
-        // Get weak questions with question data joined
         const { data, error } = await supabase
             .from('weak_questions')
             .select('*, questions(*)')
@@ -6068,7 +6096,8 @@ async function loadWeakQuestions() {
             .order('created_at', { ascending: false });
             
         if (error) {
-            console.warn("Load weak questions error:", error);
+            console.warn("Load weak questions error:", error.message, error.code);
+            showToast("Weak questions error: " + (error.message || "unknown"), "error");
             state.weakQuestions = [];
             state.weakQuestionsLoaded = true;
             render();
@@ -6079,13 +6108,13 @@ async function loadWeakQuestions() {
         state.weakQuestionsLoaded = true;
         render();
     } catch (e) {
-        console.warn("Load weak questions exception:", e);
+        console.warn("Load weak questions exception:", e.message || e);
+        showToast("Weak questions error: " + (e.message || "unknown"), "error");
         state.weakQuestions = [];
         state.weakQuestionsLoaded = true;
         render();
     }
 }
-
 // ============================================================
 //  REVISE WEAK QUESTIONS - RENDER
 // ============================================================
@@ -7580,7 +7609,7 @@ function renderAdminNotifications() {
         notifList = '<div class="loading-spinner"><div class="spinner"></div><p>Loading notifications...</p></div>';
         loadNotifications();
     } else if (state.notifsList.length === 0) {
-        notifList =
+        notiflist =
             '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:12px">No notifications sent yet.</p>';
     } else {
         state.notifsList.forEach(function(n) {
@@ -7608,7 +7637,7 @@ function renderAdminNotifications() {
         });
     }
 
-    let imagePreview = "";
+                let imagePreview = "";
     if (state.admin.notifImageData) {
         imagePreview = '<img src="' + state.admin.notifImageData +
             '" class="preview-img" alt="Notification image preview" />';
@@ -8616,6 +8645,7 @@ if (hasEnglish && state.authUser) {
     state.cbtAnswers = [];
     state.cbtFinished = false;
     state.cbtSubmitted = false;
+    state.cbtHistorySaved = false;
     state.cbtSelected = [];
     state.cbtSubjectQuestions = {};
     state.cbtSubjectOrder = [];
@@ -8748,6 +8778,7 @@ if (action === 'close-passage') {
         state.examAnswers = [];
         state.examFinished = false;
         state.examSubmitted = false;
+        state.examHistorySaved = false;
         state.view = 'home';
         render();
         return;
@@ -8860,6 +8891,7 @@ if (action === 'close-passage') {
         state.topicAnswers = [];
         state.topicFinished = false;
         state.topicSubmitted = false;
+        state.topicHistorySaved = false;
         state.view = 'home';
         render();
         return;
@@ -8950,6 +8982,7 @@ if (action === 'close-passage') {
         state.litAnswers = [];
         state.litFinished = false;
         state.litSubmitted = false;
+        state.litHistorySaved = false;
         state.view = 'home';
         render();
         return;
@@ -9523,6 +9556,25 @@ if (action === 'close-passage') {
         });            
         return;
     }
+    
+    if (action === 'admin-delete-doc') {
+    const docId = el.getAttribute('data-docid');
+    if (!docId) { showToast('Document ID not found.', 'error'); return; }
+    if (!confirm('Delete this document permanently?')) return;
+    
+    supabase.from('materials').delete().eq('id', docId).then(function() {
+        showToast('Document deleted successfully.', 'success');
+        state.docsLoaded = false;
+        state.docsList = [];
+        loadDocuments().then(function() {
+            render();
+        });
+    }).catch(function(err) { 
+        console.error('Delete doc error:', err);
+        showToast('Error deleting document: ' + (err.message || 'unknown'), 'error'); 
+    });
+    return;
+}
         
     if (action === 'admin-save-syllabus') {
     const name = document.getElementById('syllabus-name-input')?.value?.trim() || '';
@@ -9655,32 +9707,54 @@ if (action === 'close-passage') {
         render();
         return;
     }
-
+ 
     if (action === 'admin-send-notification') {
-        const title = document.getElementById('admin-notif-title')?.value?.trim() || '';
-        const body = document.getElementById('admin-notif-body')?.value?.trim() || '';
-        const imageData = state.admin.notifImageData || null;
+    const title = document.getElementById('admin-notif-title')?.value?.trim() || '';
+    const body = document.getElementById('admin-notif-body')?.value?.trim() || '';
+    const imageData = state.admin.notifImageData || null;
 
-        if (!title || !body) { showToast('Fill in both title and body.', 'error'); return; }
-
-        const insertData = { title: title, body: body, target_user_id: null };
-        if (imageData) insertData.image_url = imageData;
-
-        supabase.from('notifications').insert([insertData]).then(function() {
-            showToast('Broadcast notification sent!', 'success');
-            document.getElementById('admin-notif-title').value = '';
-            document.getElementById('admin-notif-body').value = '';
-            state.admin.notifImage = null;
-            state.admin.notifImageData = null;
-            state.notifsLoaded = false;
-            loadNotifications();
-        }).catch(function(err) { 
-            console.error('Send notification error:', err);
-            showToast('Error sending notification.', 'error'); 
-        });
+    if (!title || !body) {
+        showToast('Fill in both title and body.', 'error');
         return;
     }
 
+    const insertData = { 
+        title: title, 
+        body: body, 
+        target_user_id: null,
+        created_at: new Date().toISOString()
+    };
+    if (imageData) insertData.image_url = imageData;
+
+    supabase.from('notifications').insert([insertData]).then(function() {
+        showToast('✅ Broadcast notification sent!', 'success');
+        
+        // Clear form
+        document.getElementById('admin-notif-title').value = '';
+        document.getElementById('admin-notif-body').value = '';
+        state.admin.notifImage = null;
+        state.admin.notifImageData = null;
+        
+        // Force reload
+        state.notifsLoaded = false;
+        state.notifsList = [];
+        state.notifs = [];
+        
+        // Load and render
+        loadNotifications();
+        render();
+        
+        // Double-check after 1 second
+        setTimeout(function() {
+            render();
+        }, 1000);
+        
+    }).catch(function(err) { 
+        console.error('Send notification error:', err);
+        showToast('Error sending notification: ' + (err.message || 'unknown'), 'error'); 
+    });
+    return;
+}
     if (action === 'admin-notify-user' || action === 'admin-notify-user-btn') {
         const userId = el.getAttribute('data-userid');
         const username = el.getAttribute('data-username') || 'User';
@@ -9698,48 +9772,71 @@ if (action === 'close-passage') {
     }
 
     if (action === 'notify-send') {
-        const title = document.getElementById('notify-title-input')?.value?.trim() || '';
-        const body = document.getElementById('notify-body-input')?.value?.trim() || '';
-        const userId = state.notifyModalData?.userId;
+    const title = document.getElementById('notify-title-input')?.value?.trim() || '';
+    const body = document.getElementById('notify-body-input')?.value?.trim() || '';
+    const userId = state.notifyModalData?.userId;
 
-        if (!title || !body) { showToast('Fill in both title and body.', 'error'); return; }
-        if (!userId) { showToast('No user selected.', 'error'); return; }
+    if (!title || !body) {
+        showToast('Fill in both title and body.', 'error');
+        return;
+    }
+    if (!userId) {
+        showToast('No user selected.', 'error');
+        return;
+    }
 
-        supabase.from('notifications').insert([{
-            title: title,
-            body: body,
-            target_user_id: userId,
-        }]).then(function() {
-            showToast('Notification sent to user!', 'success');
-            state.showNotifyModal = false;
-            state.notifyModalData = null;
+    supabase.from('notifications').insert([{
+        title: title,
+        body: body,
+        target_user_id: userId,
+        created_at: new Date().toISOString(),
+    }]).then(function() {
+        showToast('✅ Notification sent to user!', 'success');
+        state.showNotifyModal = false;
+        state.notifyModalData = null;
+        state.notifsLoaded = false;
+        state.notifsList = [];
+        state.notifs = [];
+        loadNotifications();
+        render();
+        setTimeout(function() {
+            render();
+        }, 1000);
+    }).catch(function(err) { 
+        console.error('Send user notification error:', err);
+        showToast('Error sending notification.', 'error'); 
+    });
+    return;
+}
+  if (action === 'admin-delete-notification') {
+    const id = el.getAttribute('data-id');
+    if (!id) { showToast('Notification ID not found.', 'error'); return; }
+    if (!confirm('Delete this notification permanently?')) return;
+
+    supabase.from('notifications').delete().eq('id', id).select()
+        .then(function(result) {
+            if (result.error) {
+                console.error('Delete notification error:', result.error);
+                showToast('Error deleting notification: ' + result.error.message, 'error');
+                return;
+            }
+            if (!result.data || result.data.length === 0) {
+                showToast('Nothing was deleted — check the DELETE policy on "notifications" (RLS).', 'error');
+                return;
+            }
+            showToast('✅ Notification deleted.', 'success');
             state.notifsLoaded = false;
+            state.notifsList = [];
+            state.notifs = [];
             loadNotifications();
-        }).catch(function(err) { 
-            console.error('Send user notification error:', err);
-            showToast('Error sending notification.', 'error'); 
+            render();
+        })
+        .catch(function(err) {
+            console.error('Delete notification exception:', err);
+            showToast('Error deleting notification.', 'error');
         });
-        return;
-    }
-
-    if (action === 'admin-delete-notification') {
-        const id = el.getAttribute('data-id');
-        if (!confirm('Delete this notification?')) return;
-        supabase.from('notifications').delete().eq('id', id).then(function() {
-            showToast('Notification deleted.', 'success');
-            state.notifsLoaded = false;
-            loadNotifications();
-        }).catch(function(err) { 
-            console.error('Delete notification error:', err);
-            showToast('Error deleting notification.', 'error'); 
-        });
-        return;
-    }
-
-    if (action === 'admin-add-plan') {
-        adminAddPlan();
-        return;
-    }
+    return;
+}
 
     if (action === 'admin-delete-plan') {
         const planId = el.getAttribute('data-planid');
@@ -9792,30 +9889,132 @@ if (action === 'close-passage') {
     // HISTORY
     if (action === 'history-print') {
         const id = el.getAttribute('data-id');
-        const card = document.getElementById('history-card-' + id);
-        if (!card) return;
-        
+        const entry = state.historyEntries.find(function(e) { return e.id === id; });
+        if (!entry) { showToast('Entry not found.', 'error'); return; }
+
         const win = window.open('', '_blank');
         if (!win) { showToast('Please allow popups to print.', 'error'); return; }
-        
-        win.document.write('<html><head><title>Exam Result</title>');
-        win.document.write('<style>body{font-family:Georgia,serif;padding:20px;max-width:400px;margin:0 auto;color:#13291D;}');
-        win.document.write('.result-card{border:2px solid #0F6B3F;border-radius:16px;padding:20px;text-align:center;}');
-        win.document.write('.score-big{font-family:monospace;font-size:48px;font-weight:700;color:#0F6B3F;margin:8px 0;}');
-        win.document.write('.subj-score{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E1EBE3;}');
-        win.document.write('.subj-score:last-child{border-bottom:none;}');
-        win.document.write('.h-title{font-weight:700;font-size:16px;margin:0;}');
-        win.document.write('.h-date{font-size:12px;color:#5B6B60;margin:4px 0;}');
-        win.document.write('.h-subject-scores{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;justify-content:center;}');
-        win.document.write('.h-subject-scores span{background:#f4f1ea;padding:2px 10px;border-radius:999px;font-size:11px;}');
-        win.document.write('</style></head><body>');
-        win.document.write(card.innerHTML);
-        win.document.write('</body></html>');
+
+        const pct = entry.max_score ? Math.round((entry.total_score / entry.max_score) * 100) : 0;
+        const studentName = state.profile.name || 'Guest';
+        const studentEmail = state.profile.email || '';
+
+        let subjRows = '';
+        const subjectScores = entry.subject_scores || {};
+        Object.keys(subjectScores).forEach(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            subjRows += (
+                '<tr>' +
+                '<td class="s-name">' + esc(subj ? subj.name : sid) + '</td>' +
+                '<td class="s-score">' + subjectScores[sid] + '</td>' +
+                '</tr>'
+            );
+        });
+
+        const printHtml =
+            '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>MyUTME Result Slip</title>' +
+            '<style>' +
+            '* { box-sizing: border-box; margin:0; padding:0; }' +
+            'body{font-family:Georgia,"Times New Roman",serif;background:#F4F1EA;padding:32px 16px;color:#13291D;}' +
+            '.sheet{max-width:480px;margin:0 auto;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.12);border:1px solid #E1EBE3;}' +
+            '.header{background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%);padding:28px 24px 22px;text-align:center;color:#fff;}' +
+            '.header .brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px;}' +
+            '.header .brand-name{font-family:Georgia,serif;font-size:26px;letter-spacing:-0.02em;}' +
+            '.header .brand-name b{color:#E4A93A;font-weight:400;}' +
+            '.header .tagline{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.75);margin-top:2px;}' +
+            '.header .slip-label{margin-top:16px;display:inline-block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;background:rgba(255,255,255,0.15);padding:4px 14px;border-radius:999px;}' +
+            '.body{padding:24px;}' +
+            '.student-row{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;margin-bottom:16px;border-bottom:1.5px dashed #E1EBE3;}' +
+            '.student-row .label{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#8A9990;margin-bottom:2px;}' +
+            '.student-row .value{font-size:15px;font-weight:700;color:#13291D;}' +
+            '.student-row .value.small{font-size:12px;font-weight:400;color:#5B6B60;}' +
+            '.exam-title{font-size:16px;font-weight:700;margin-bottom:2px;}' +
+            '.exam-date{font-size:12px;color:#5B6B60;margin-bottom:20px;}' +
+            '.score-block{text-align:center;background:#F4F1EA;border-radius:14px;padding:20px;margin-bottom:20px;}' +
+            '.score-block .big{font-family:"Courier New",monospace;font-size:44px;font-weight:700;color:#0F6B3F;}' +
+            '.score-block .of{font-size:16px;color:#8A9990;font-weight:400;}' +
+            '.score-block .pct{margin-top:4px;font-size:13px;color:#5B6B60;}' +
+            '.score-block .pct b{color:#E4A93A;background:#fff;padding:2px 10px;border-radius:999px;}' +
+            'table{width:100%;border-collapse:collapse;margin-bottom:16px;}' +
+            'table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#8A9990;padding:0 0 8px;border-bottom:1px solid #E1EBE3;}' +
+            'table td{padding:9px 0;font-size:13px;border-bottom:1px solid #F0EEE7;}' +
+            'table .s-score{text-align:right;font-weight:700;color:#0F6B3F;font-family:"Courier New",monospace;}' +
+            '.meta-row{display:flex;justify-content:space-between;font-size:11px;color:#8A9990;margin-top:4px;}' +
+            '.footer{text-align:center;padding:16px 24px 24px;font-size:10px;color:#8A9990;border-top:1px dashed #E1EBE3;}' +
+            '.footer .verified{color:#0F6B3F;font-weight:700;margin-bottom:4px;}' +
+            '@media print{body{background:#fff;padding:0;}.sheet{box-shadow:none;border-radius:0;border:none;max-width:100%;}}' +
+            '</style></head><body>' +
+            '<div class="sheet">' +
+            '<div class="header">' +
+            '<div class="brand">' + logoSvg(40) + '<span class="brand-name">My<b>UTME</b></span></div>' +
+            '<div class="tagline">JAMB CBT Practice</div>' +
+            '<div class="slip-label">Official Result Slip</div>' +
+            '</div>' +
+            '<div class="body">' +
+            '<div class="student-row">' +
+            '<div><div class="label">Candidate</div><div class="value">' + esc(studentName) + '</div>' +
+            (studentEmail ? '<div class="value small">' + esc(studentEmail) + '</div>' : '') + '</div>' +
+            '<div style="text-align:right"><div class="label">Date</div><div class="value small">' + formatDate(entry.submitted_at) + '</div></div>' +
+            '</div>' +
+            '<div class="exam-title">' + esc(entry.exam_title || entry.mode) + '</div>' +
+            '<div class="exam-date">' + entry.answered_count + ' of ' + entry.total_questions + ' questions answered</div>' +
+            '<div class="score-block">' +
+            '<div class="big">' + entry.total_score + ' <span class="of">/ ' + entry.max_score + '</span></div>' +
+            '<div class="pct">Overall score: <b>' + pct + '%</b></div>' +
+            '</div>' +
+            (subjRows ? '<table><tr><th>Subject</th><th style="text-align:right">Score</th></tr>' + subjRows + '</table>' : '') +
+            '</div>' +
+            '<div class="footer">' +
+            '<div class="verified">✓ Generated by MyUTME</div>' +
+            'This is a practice result slip, not an official JAMB document.' +
+            '</div>' +
+            '</div>' +
+            '</body></html>';
+
+        win.document.write(printHtml);
         win.document.close();
-        win.print();
+        setTimeout(function() { win.print(); }, 300);
         return;
     }
 
+    if (action === 'history-share') {
+        const id = el.getAttribute('data-id');
+        const entry = state.historyEntries.find(function(e) { return e.id === id; });
+        if (!entry) { showToast('Entry not found.', 'error'); return; }
+
+        const pct = entry.max_score ? Math.round((entry.total_score / entry.max_score) * 100) : 0;
+        const studentName = state.profile.name || 'Guest';
+
+        const subjectStr = Object.keys(entry.subject_scores || {}).map(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            return '   • ' + (subj ? subj.name : sid) + ': ' + entry.subject_scores[sid];
+        }).join('\n');
+
+        const text = '🎓 MyUTME — Official Result Slip\n' +
+            '━━━━━━━━━━━━━━━━━━━━\n' +
+            '👤 Candidate: ' + studentName + '\n' +
+            '📝 Exam: ' + (entry.exam_title || entry.mode) + '\n' +
+            '📅 Date: ' + formatDate(entry.submitted_at) + '\n' +
+            '🎯 Score: ' + entry.total_score + ' / ' + entry.max_score + ' (' + pct + '%)\n' +
+            (subjectStr ? '📋 Subject Breakdown:\n' + subjectStr + '\n' : '') +
+            '✅ ' + entry.answered_count + ' of ' + entry.total_questions + ' answered\n' +
+            '━━━━━━━━━━━━━━━━━━━━\n' +
+            'Practice smarter with MyUTME';
+
+        if (navigator.share) {
+            navigator.share({
+                title: 'MyUTME Exam Result — ' + studentName,
+                text: text,
+            }).catch(function() {});
+        } else {
+            navigator.clipboard.writeText(text).then(function() {
+                showToast('Result copied to clipboard!', 'success');
+            }).catch(function() {
+                prompt('Copy this result:', text);
+            });
+        }
+        return;
+    }
     if (action === 'history-share') {
         const id = el.getAttribute('data-id');
         const entry = state.historyEntries.find(function(e) { return e.id === id; });
@@ -9907,10 +10106,10 @@ if (action === 'close-passage') {
                 state.weakQuestionsLoaded = false;
                 state.weakQuestionStates = {};
                 loadWeakQuestions();
-            });
+            })
         } else {
-            // Update timestamp
-            saveWeakQuestion(state.authUser.id, wq.question_id, wq.subject_id, 'revise').then(function() {
+            // Update timestamp + record the new wrong answer
+            saveWeakQuestion(state.authUser.id, wq.question_id, wq.subject_id, 'revise', answer, q.correct_answer).then(function() {
                 showToast('❌ Wrong again. Still in weak list.', 'error');
                 state.weakQuestionsLoaded = false;
                 state.weakQuestionStates = {};
@@ -9987,8 +10186,8 @@ if (action === 'close-passage') {
         render();
         return;
     }
-});
-
+}); 
+                    
 // ============================================================
 //  INPUT EVENT HANDLING
 // ============================================================
@@ -10112,7 +10311,7 @@ async function init() {
 
     // Check maintenance status every 60 seconds
     setInterval(function() {
-        loadSettings().then(function() {ren
+        loadSettings().then(function() {
             render();
         });
     }, 60000);
@@ -10122,4 +10321,4 @@ init();
 </script>
 </body>
 </html>
-
+  
