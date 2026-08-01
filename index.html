@@ -2254,7 +2254,7 @@ const SUBJECTS = [
     { id: "com", code: "COM", name: "Commerce" },
     { id: "acc", code: "ACC", name: "Accounting" }, 
     { id: "lit", code: "LIT", name: "Literature", type: "cbt" },
-{ id: "LHM", code: "LHM", name: "The Lekki Headmaster", type: "literature" },
+{ id: "lhm", code: "LHM", name: "The Lekki Headmaster", type: "literature" },
     { id: "crs", code: "CRS", name: "CRS" },
     { id: "irs", code: "IRS", name: "IRS" },
     { id: "his", code: "HIS", name: "History" },
@@ -2904,7 +2904,7 @@ async function loadQuestions(type, subjectId, year, limit, batchNumber) {
         else if (type === 'exam') lmt = 50;
         else if (type === 'subject') lmt = settings.subjectQuestionsPerSubject || 25;
         else if (type === 'mock') lmt = settings.mockQuestionsPerSubject || 25;
-        else if (type === 'NOVEL (CBT)') lmt = 25;
+        else if (type === 'NOVEL (CBT)') lmt = 25;  // ADD THIS LINE
 
         const { data, error } = await query.order('display_order', { ascending: true }).limit(lmt);
         if (error) {
@@ -4435,9 +4435,9 @@ async function startLiteratureCbt() {
     render();
     
     // Use LHM for Normal Literature Mode
-    const litSubject = SUBJECTS.find(function(s) { return s.id === 'LHM'; });
+    const litSubject = SUBJECTS.find(function(s) { return s.id === 'lhm'; });
     if (!litSubject) { state.isLoading = false; render(); return; }
-    const questions = await loadQuestions('NOVEL (CBT)', 'LHM');
+    const questions = await loadQuestions('NOVEL (CBT)', 'lhm');
     state.isLoading = false;
     
     if (questions.length === 0) {
@@ -5126,19 +5126,19 @@ function renderLiteratureHome() {
 
 function renderLiteratureCbt() {
     // For Normal Literature Mode - use LHM subject
-    const litSubject = SUBJECTS.find(function(s) { return s.id === "LHM"; });
+    const litSubject = SUBJECTS.find(function(s) { return s.id === "lhm"; });
     if (!litSubject) return renderHome();
 
     let chips = "";
-    const sel = state.cbtSelected.indexOf("LHM") !== -1;
+    const sel = state.cbtSelected.indexOf("lhm") !== -1;
     chips += (
-        '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-cbt-subject" data-subject="LHM">' +
+        '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-cbt-subject" data-subject="lhm">' +
         subjectBadge(litSubject) +
         '<span class="sname">' + esc(litSubject.name) + '</span>' +
         '</button>'
     );
 
-    const ready = state.cbtSelected.indexOf("LHM") !== -1;
+    const ready = state.cbtSelected.indexOf("lhm") !== -1;
     return (
         '<button class="back-link" data-action="set-view" data-view="literature">' + svg("chevleft", 16) +
         ' Novel (CBT)</button>' +
@@ -10365,4 +10365,3 @@ init();
 </script>
 </body>
 </html>
-  
