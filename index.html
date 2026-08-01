@@ -2590,6 +2590,8 @@ passageQuestionIds: [],
         mockSubjectCount: 4,
         viewingMockAttempts: null,
         flaggedFilter: "unresolved",
+        flaggedLoaded: false,
+        flaggedLoading: false,
         notifyUserId: null,
         notifyModalOpen: false,
         notifyTitle: "",
@@ -2601,6 +2603,7 @@ passageQuestionIds: [],
 
     docsLoaded: false,
     docsList: [],
+    docsSearchQuery: "",
     syllabusLoaded: false,
     syllabusData: null,
     topicsLoaded: false,
@@ -3277,7 +3280,7 @@ async function loadFlaggedQuestions(filter) {
     try {
         let query = supabase
             .from('flagged_questions')
-            .select('*, questions(*)')
+            .select('*')
             .order('created_at', { ascending: false });
             
         if (filter === 'unresolved') {
@@ -3287,18 +3290,37 @@ async function loadFlaggedQuestions(filter) {
         }
         // 'all' shows everything
         
-        const { data, error } = await query;
+        const { data: flags, error } = await query;
         if (error) {
-            console.warn("Load flagged questions error:", error);
+            console.warn("Load flagged questions error:", error.message, error.details, error.hint, error.code);
             return [];
         }
-        return data || [];
+        if (!flags || flags.length === 0) return [];
+
+        // Fetch matching questions separately (avoids relying on a
+        // PostgREST-recognized foreign key relationship)
+        const questionIds = [...new Set(flags.map(function(f) { return f.question_id; }).filter(Boolean))];
+        let questionsById = {};
+        if (questionIds.length > 0) {
+            const { data: qData, error: qError } = await supabase
+                .from('questions')
+                .select('*')
+                .in('id', questionIds);
+            if (qError) {
+                console.warn("Load questions for flags error:", qError.message, qError.details, qError.hint, qError.code);
+            } else {
+                (qData || []).forEach(function(q) { questionsById[q.id] = q; });
+            }
+        }
+
+        return flags.map(function(f) {
+            return Object.assign({}, f, { questions: questionsById[f.question_id] || null });
+        });
     } catch (e) {
-        console.warn("Load flagged questions exception:", e);
+        console.warn("Load flagged questions exception:", e.message || e);
         return [];
     }
 }
-
 async function resolveFlaggedQuestions(questionId) {
     try {
         await supabase
@@ -6028,9 +6050,18 @@ function renderDocumentsUser() {
         loadDocuments();
     } else {
         let docs = state.docsList;
+        const q = (state.docsSearchQuery || '').trim().toLowerCase();
+        if (q) {
+            docs = docs.filter(function(d) {
+                return (d.name || '').toLowerCase().includes(q) ||
+                    (d.file_name || '').toLowerCase().includes(q);
+            });
+        }
         if (docs.length === 0) {
             rows =
-                '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:16px">No documents available yet.</p>';
+                '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:16px">' +
+                (q ? 'No documents match your search.' : 'No documents available yet.') +
+                '</p>';
         } else {
             rows = "";
             docs.forEach(function(d) {
@@ -6038,7 +6069,8 @@ function renderDocumentsUser() {
                     '<div class="card" style="margin-bottom:8px">' +
                     '<p style="font-size:13px;font-weight:600;margin:0">' + esc(d.name) + '</p>' +
                     '<p style="font-size:11px;color:var(--muted);margin:2px 0 10px">' + esc(d.file_name || '') + '</p>' +
-                    renderFileActions(d.file_url, d.file_name, d.file_type)
+                    renderFileActions(d.file_url, d.file_name, d.file_type) +
+                    '</div>'
                 );
             });
         }
@@ -6049,10 +6081,10 @@ function renderDocumentsUser() {
         '<div class="feature-icon" style="background:#4C5FD5">' + svg("folder", 34) + '</div>' +
         '<h2 class="title">Document File</h2>' +
         '<p class="sub">Past questions & study files</p>' +
+        '<input class="search-box" id="docs-search-input" placeholder="🔍 Search documents..." value="' + esc(state.docsSearchQuery || '') + '" />' +
         rows
     );
 }
-
 // Helper: render file view/download buttons
 function renderFileActions(fileUrl, fileName, fileType) {
     if (!fileUrl) return '';
@@ -7738,24 +7770,22 @@ function renderAdminMock() {
 //  ADMIN FLAGGED
 // ============================================================
 function renderAdminFlagged() {
-    if (state.adminLoading) {
+    if (state.admin.flaggedLoading) {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading flagged questions...</p></div>';
     }
 
     // We'll fetch flagged questions on demand
-    if (!state.admin.viewModeQuestions) {
-        state.adminLoading = true;
-        render();
-        
+    if (!state.admin.flaggedLoaded) {
+        state.admin.flaggedLoading = true;
         loadFlaggedQuestions(state.admin.flaggedFilter || 'unresolved').then(function(data) {
             state.admin.flaggedData = data || [];
-            state.adminLoading = false;
+            state.admin.flaggedLoaded = true;
+            state.admin.flaggedLoading = false;
             render();
         });
         
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading flagged questions...</p></div>';
     }
-
     const data = state.admin.flaggedData || [];
     const filter = state.admin.flaggedFilter || 'unresolved';
     
@@ -9172,14 +9202,10 @@ if (action === 'close-passage') {
                 render();
             });
         } else if (state.adminTab === 'flagged') {
-            state.admin.viewModeQuestions = false;
+            state.admin.flaggedLoaded = false;
             state.admin.flaggedData = null;
-            state.adminLoading = false;
+            state.admin.flaggedLoading = false;
             loadFlaggedCount();
-            loadFlaggedQuestions(state.admin.flaggedFilter || 'unresolved').then(function(data) {
-                state.admin.flaggedData = data || [];
-                render();
-            });
         }
         render();
         return;
@@ -9188,11 +9214,13 @@ if (action === 'close-passage') {
     if (action === 'admin-flagged-filter') {
         const filter = el.getAttribute('data-filter');
         state.admin.flaggedFilter = filter;
-        state.adminLoading = true;
+        state.admin.flaggedLoaded = false;
+        state.admin.flaggedLoading = true;
         render();
         loadFlaggedQuestions(filter).then(function(data) {
             state.admin.flaggedData = data || [];
-            state.adminLoading = false;
+            state.admin.flaggedLoaded = true;
+            state.admin.flaggedLoading = false;
             render();
         });
         return;
@@ -9262,6 +9290,7 @@ if (action === 'close-passage') {
             loadFlaggedCount();
             loadFlaggedQuestions(state.admin.flaggedFilter || 'unresolved').then(function(data) {
                 state.admin.flaggedData = data || [];
+                state.admin.flaggedLoaded = true;
                 state.admin.editingQuestionId = null;
                 render();
             });
@@ -9272,6 +9301,7 @@ if (action === 'close-passage') {
         return;
     }
 
+    // Keep admin question management actions
     // Keep admin question management actions
     if (action === 'admin-select-mode') {
         const mode = el.getAttribute('data-mode');
@@ -10278,6 +10308,9 @@ document.addEventListener('input', function(e) {
     else if (id === 'admin-view-search') {
         state.admin.searchQuery = e.target.value;
         render();
+    } else if (id === 'docs-search-input') {
+        state.docsSearchQuery = e.target.value;
+        render();
     } else if (action === 'qform-text') state.admin.qText = e.target.value;
     else if (action === 'qform-explanation') state.admin.qExplanation = e.target.value;
     else if (action === 'qform-opt') {
@@ -10285,7 +10318,6 @@ document.addEventListener('input', function(e) {
         state.admin.qOpts[idx] = e.target.value;
     }
 });
-
 // ============================================================
 //  INIT
 // ============================================================
