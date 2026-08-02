@@ -1,6 +1,6 @@
 // MyUTME service worker
 // Bump this string any time you change index.html / assets so old caches get replaced.
-const CACHE_NAME = "myutme-cache-v1";
+const CACHE_NAME = "myutme-cache-v2";
 
 // Only cache the app shell. Supabase API calls are NOT cached — they always go to the network.
 const APP_SHELL = [
