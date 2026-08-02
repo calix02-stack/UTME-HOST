@@ -2466,6 +2466,10 @@ currentEnglishPassage: null,
 hasPassage: false,
 passageRead: false,
 passageQuestionIds: [],
+engMockPassage: null,
+engMockHasPassage: false,
+engMockPassageRead: false,
+engMockPassageId: null,
 
     examSubject: null,
     examYear: 2026,
@@ -3726,18 +3730,22 @@ async function registerForMock(mockExamId, subjects) {
     const settings = await loadSettings();
     const requiredSubjects = settings.mockSubjectCount || 4;
     
-    if (subjects.length !== requiredSubjects) { 
-        showToast('Please select exactly ' + requiredSubjects + ' subjects.', 'error'); 
+    // User selects 3 subjects, English is compulsory (total = 4)
+    if (subjects.length !== 3) { 
+        showToast('Please select exactly 3 subjects (English is compulsory).', 'error'); 
         return; 
     }
-
+    
+    // Always include English first
+    const allSubjects = ['eng', ...subjects];
+    
     try {
         await supabase
             .from('mock_registrations')
             .insert([{
                 user_id: state.authUser.id,
                 mock_exam_id: mockExamId,
-                subjects: subjects,
+                subjects: allSubjects,
             }]);
 
         showToast('Registration successful!', 'success');
@@ -3788,6 +3796,13 @@ async function startMockExam(mockExamId) {
         let allQuestions = [];
         const subjects = reg.subjects;
 
+        // Reset English passage state for this run; it will be re-populated
+        // below either from the resumed attempt or from a fresh batch pick.
+        state.engMockPassage = null;
+        state.engMockHasPassage = false;
+        state.engMockPassageRead = false;
+        state.engMockPassageId = null;
+
         if (existing && !existing.is_submitted) {
             const questionIds = existing.question_ids || [];
             if (questionIds.length > 0) {
@@ -3804,6 +3819,35 @@ async function startMockExam(mockExamId) {
                     state.mockAnswers = allQuestions.map(function(q) {
                         return answersObj[q.id] !== undefined ? answersObj[q.id] : null;
                     });
+
+                    // Restore English passage state so it isn't lost on resume.
+                    const engQuestion = allQuestions.find(function(q) {
+                        return q.subject_id === 'eng' && q.batch_number;
+                    });
+                    if (engQuestion) {
+                        const { data: passage } = await supabase
+                            .from('passages')
+                            .select('*')
+                            .eq('batch_number', engQuestion.batch_number)
+                            .eq('subject_id', 'eng')
+                            .maybeSingle();
+                        if (passage) {
+                            state.engMockPassage = passage;
+                            state.engMockHasPassage = true;
+                            state.engMockPassageId = passage.id;
+                            // If the candidate had already answered an English
+                            // question in this attempt, treat the passage as read;
+                            // otherwise make them read it before continuing.
+                            const anyEngAnswered = allQuestions.some(function(q, idx) {
+                                return q.subject_id === 'eng' &&
+                                    state.mockAnswers[idx] !== null &&
+                                    state.mockAnswers[idx] !== undefined;
+                            });
+                            state.engMockPassageRead = anyEngAnswered;
+                        }
+                    } else {
+                        state.engMockPassageRead = true; // no English/no passage to gate on
+                    }
                     
                     const settings = await loadSettings();
                     const timeLimit = settings.mockTimeLimit || 100;
@@ -3813,7 +3857,6 @@ async function startMockExam(mockExamId) {
                     state.mockExamId = mockExamId;
                     state.isLoading = false;
                     
-                    // Build subject groups
                     buildMockSubjectGroups(allQuestions);
 
                     state.view = 'mock-exam';
@@ -3837,7 +3880,7 @@ async function startMockExam(mockExamId) {
         }
 
         const settings = await loadSettings();
-        const perSubject = settings.mockQuestionsPerSubject || 25;
+        const perSubject = settings.mockQuestionsPerSubject || 40;
         
         for (const subjectId of subjects) {
             const { data: usedQuestions, error: usedError } = await supabase
@@ -3857,42 +3900,153 @@ async function startMockExam(mockExamId) {
 
             if (usedIds.length > 0) query = query.not('id', 'in', '(' + usedIds.join(',') + ')');
 
-            const { data: availableQuestions, error: qError } = await query.limit(perSubject * 2);
-            if (qError) throw qError;
+            if (subjectId === 'eng') {
+                const { data: batches, error: batchError } = await supabase
+                    .from('passages')
+                    .select('batch_number')
+                    .eq('subject_id', 'eng')
+                    .order('batch_number');
 
-            let selectedQuestions;
-            if (availableQuestions.length < perSubject) {
-                await supabase
-                    .from('mock_user_question_tracking')
-                    .delete()
-                    .eq('user_id', state.authUser.id)
-                    .eq('subject_id', subjectId);
+                let engQuestionsLoaded = false;
 
-                const { data: resetQuestions, error: resetError } = await supabase
-                    .from('questions')
-                    .select('*')
-                    .eq('subject_id', subjectId)
-                    .eq('type', 'mock')
-                    .limit(perSubject * 2);
+                if (!batchError && batches && batches.length > 0) {
+                    const completedKey = 'eng_mock_completed_' + state.authUser.id;
+                    const completedBatches = JSON.parse(storage.get(completedKey) || '[]');
 
-                if (resetError) throw resetError;
-                const shuffled = shuffleArray(resetQuestions || []);
-                selectedQuestions = shuffled.slice(0, perSubject);
+                    let availableBatches = batches
+                        .map(function(b) { return b.batch_number; })
+                        .filter(function(bn) { return completedBatches.indexOf(bn) === -1; });
+
+                    if (availableBatches.length === 0) {
+                        storage.set(completedKey, JSON.stringify([]));
+                        availableBatches = batches.map(function(b) { return b.batch_number; });
+                    }
+
+                    // Randomize WHICH batch we try first — but never shuffle the
+                    // questions inside a batch once it's chosen.
+                    const batchTryOrder = shuffleArray(availableBatches);
+
+                    for (const selectedBatch of batchTryOrder) {
+                        const { data: qData, error: qError } = await supabase
+                            .from('questions')
+                            .select('*')
+                            .eq('subject_id', 'eng')
+                            .eq('type', 'mock')
+                            .eq('batch_number', selectedBatch)
+                            .order('display_order', { ascending: true })
+                            .limit(perSubject);
+
+                        if (!qError && qData && qData.length > 0) {
+                            const { data: passage, error: passageError } = await supabase
+                                .from('passages')
+                                .select('*')
+                                .eq('batch_number', selectedBatch)
+                                .eq('subject_id', 'eng')
+                                .maybeSingle();
+
+                            if (!passageError && passage) {
+                                state.engMockPassage = passage;
+                                state.engMockHasPassage = true;
+                                state.engMockPassageRead = false;
+                                state.engMockPassageId = passage.id;
+                            } else {
+                                state.engMockPassage = null;
+                                state.engMockHasPassage = false;
+                                state.engMockPassageRead = true;
+                                state.engMockPassageId = null;
+                            }
+
+                            allQuestions = allQuestions.concat(qData);
+                            engQuestionsLoaded = true;
+                            break;
+                        }
+                    }
+                }
+
+                // FALLBACK: no passage batches found (or none had mock questions) —
+                // still load English questions, in database order (no shuffling),
+                // so the subject actually appears in the mock.
+                if (!engQuestionsLoaded) {
+                    state.engMockPassage = null;
+                    state.engMockHasPassage = false;
+                    state.engMockPassageRead = true; // no passage to gate on
+                    state.engMockPassageId = null;
+
+                    const { data: usedEngQuestions } = await supabase
+                        .from('mock_user_question_tracking')
+                        .select('question_id')
+                        .eq('user_id', state.authUser.id)
+                        .eq('subject_id', 'eng');
+                    const usedEngIds = (usedEngQuestions || []).map(function(u) { return u.question_id; });
+
+                    let engQuery = supabase
+                        .from('questions')
+                        .select('*')
+                        .eq('subject_id', 'eng')
+                        .eq('type', 'mock')
+                        .order('display_order', { ascending: true });
+                    if (usedEngIds.length > 0) engQuery = engQuery.not('id', 'in', '(' + usedEngIds.join(',') + ')');
+
+                    let { data: engData } = await engQuery.limit(perSubject);
+                    if (!engData || engData.length < perSubject) {
+                        const { data: resetEngData } = await supabase
+                            .from('questions')
+                            .select('*')
+                            .eq('subject_id', 'eng')
+                            .eq('type', 'mock')
+                            .order('display_order', { ascending: true })
+                            .limit(perSubject);
+                        engData = resetEngData || [];
+                    }
+
+                    const selectedEng = engData.slice(0, perSubject);
+                    for (const q of selectedEng) {
+                        await supabase.from('mock_user_question_tracking').insert([{
+                            user_id: state.authUser.id,
+                            question_id: q.id,
+                            subject_id: 'eng',
+                        }]);
+                    }
+                    allQuestions = allQuestions.concat(selectedEng);
+                }
             } else {
-                const shuffled = shuffleArray(availableQuestions);
-                selectedQuestions = shuffled.slice(0, perSubject);
-            }
+                const { data: availableQuestions, error: qError } = await query.limit(perSubject * 2);
+                if (qError) throw qError;
 
-            for (const q of selectedQuestions) {
-                await supabase
-                    .from('mock_user_question_tracking')
-                    .insert([{
-                        user_id: state.authUser.id,
-                        question_id: q.id,
-                        subject_id: subjectId,
-                    }]);
+                let selectedQuestions;
+                if (availableQuestions.length < perSubject) {
+                    await supabase
+                        .from('mock_user_question_tracking')
+                        .delete()
+                        .eq('user_id', state.authUser.id)
+                        .eq('subject_id', subjectId);
+
+                    const { data: resetQuestions, error: resetError } = await supabase
+                        .from('questions')
+                        .select('*')
+                        .eq('subject_id', subjectId)
+                        .eq('type', 'mock')
+                        .limit(perSubject * 2);
+
+                    if (resetError) throw resetError;
+                    const shuffled = shuffleArray(resetQuestions || []);
+                    selectedQuestions = shuffled.slice(0, perSubject);
+                } else {
+                    const shuffled = shuffleArray(availableQuestions);
+                    selectedQuestions = shuffled.slice(0, perSubject);
+                }
+
+                for (const q of selectedQuestions) {
+                    await supabase
+                        .from('mock_user_question_tracking')
+                        .insert([{
+                            user_id: state.authUser.id,
+                            question_id: q.id,
+                            subject_id: subjectId,
+                        }]);
+                }
+                allQuestions = allQuestions.concat(selectedQuestions);
             }
-            allQuestions = allQuestions.concat(selectedQuestions);
         }
 
         const { data: attempt, error: attemptError } = await supabase
@@ -3944,6 +4098,7 @@ async function startMockExam(mockExamId) {
             }
         }, 1000);
 
+    
     } catch (e) {
         console.warn('Start mock error:', e);
         state.isLoading = false;
@@ -3952,7 +4107,6 @@ async function startMockExam(mockExamId) {
         render();
     }
 }
-
 function buildMockSubjectGroups(questions) {
     const groups = {};
     questions.forEach(function(q, i) {
@@ -5251,6 +5405,19 @@ function renderPassagePage() {
 }
 
 function renderPassageModal() {
+    if (state.engMockHasPassage && state.engMockPassage && state.showPassageModal) {
+        const passage = state.engMockPassage;
+        return (
+            '<div class="flag-overlay" data-action="close-passage">' +
+            '<div class="flag-modal" data-action="prevent-close">' +
+            '<h3 style="font-family:var(--font-serif);margin:0 0 12px">📖 ' + esc(passage.title || 'Reading Passage') + '</h3>' +
+            '<div style="font-size:14px;line-height:1.8;color:var(--ink);white-space:pre-wrap;max-height:400px;overflow-y:auto">' + esc(passage.passage_text) + '</div>' +
+            '<button class="btn btn-green" style="margin-top:12px" data-action="close-passage">Close</button>' +
+            '</div>' +
+            '</div>'
+        );
+    }
+    
     const passage = state.currentEnglishPassage;
     if (!passage || !state.showPassageModal) return '';
     
@@ -6483,20 +6650,20 @@ function renderMockExamPicker() {
             const isPastRegistration = scheduled <= now;
 
             const regDeadline = exam.registration_deadline ? new Date(exam.registration_deadline) : scheduled;
-            const isRegClosed = regDeadline <= now;
+const isRegClosed = regDeadline <= now;
 
-            if (isRegClosed || isPastRegistration) {
-                html += (
-                    '<div class="mock-card">' +
-                    '<p class="mock-title">' + esc(exam.title) + '</p>' +
-                    '<p class="mock-date">📅 ' + new Date(exam.scheduled_date).toLocaleString() + '</p>' +
-                    '<span class="mock-status ended">🔒 Registration Closed</span>' +
-                    '</div>'
-                );
-                return;
-            }
+if (isRegClosed || isPastRegistration) {
+    html += (
+        '<div class="mock-card">' +
+        '<p class="mock-title">' + esc(exam.title) + '</p>' +
+        '<p class="mock-date">📅 ' + new Date(exam.scheduled_date).toLocaleString() + '</p>' +
+        '<span class="mock-status ended">🔒 Registration Closed</span>' +
+        '</div>'
+    );
+    return;
+}
 
-            html += renderMockRegistrationForm(exam);
+html += renderMockRegistrationForm(exam);
         });
     }
 
@@ -6529,11 +6696,25 @@ function renderMockExamPicker() {
 
 function renderMockRegistrationForm(exam) {
     const selected = state.mockSelectedSubjects || [];
-    const subjects = SUBJECTS.filter(function(s) { return !s.compulsory; });
+    // Filter out English since it's compulsory
+    const subjects = SUBJECTS.filter(function(s) { return s.id !== 'eng'; });
     const settings = state.settingsCache;
     const requiredSubjects = settings.mockSubjectCount || 4;
 
     let chips = "";
+    
+    // Add English as compulsory (always selected and disabled)
+    const eng = SUBJECTS.find(function(s) { return s.id === 'eng'; });
+    if (eng) {
+        chips += (
+            '<button class="subject-chip selected" style="opacity:0.7;cursor:default;border-color:var(--green);pointer-events:none">' +
+            subjectBadge(eng) +
+            '<span class="sname">' + esc(eng.name) + ' (Compulsory)</span>' +
+            '</button>'
+        );
+    }
+
+    // Add other subjects
     subjects.forEach(function(s) {
         const sel = selected.indexOf(s.id) !== -1;
         chips += (
@@ -6545,7 +6726,8 @@ function renderMockRegistrationForm(exam) {
         );
     });
 
-    const ready = selected.length === requiredSubjects;
+    const ready = selected.length === 3; // User must select exactly 3 subjects
+    const totalSubjects = selected.length + 1; // +1 for English
 
     return (
         '<div class="mock-card active">' +
@@ -6554,10 +6736,10 @@ function renderMockRegistrationForm(exam) {
         '<p class="mock-date">⏰ Register by: ' + (exam.registration_deadline ? new Date(exam.registration_deadline)
             .toLocaleString() : '1 hour before') + '</p>' +
         '<span class="mock-status upcoming">📝 Register</span>' +
-        '<p style="font-size:13px;color:var(--muted);margin-top:8px">Select ' + requiredSubjects + ' subjects to register:</p>' +
+        '<p style="font-size:13px;color:var(--muted);margin-top:8px">English is compulsory. Select 3 more subjects:</p>' +
         '<div class="subject-grid" style="margin-top:8px">' + chips + '</div>' +
         '<div class="picker-footer">' +
-        '<p class="picker-count">' + selected.length + ' of ' + requiredSubjects + ' selected</p>' +
+        '<p class="picker-count">' + totalSubjects + ' of ' + requiredSubjects + ' selected (English + ' + selected.length + ' others)</p>' +
         '<button class="btn ' + (ready ? "btn-green" : "btn-outline") + '" data-action="register-mock" data-examid="' +
         exam.id + '"' + (ready ? '' :
             ' disabled style="opacity:0.5;pointer-events:none"') + '>Register for Mock</button>' +
@@ -6660,6 +6842,10 @@ function renderMockAttemptsView() {
 //  MOCK EXAM - Subject-based with tabs
 // ============================================================
 function renderMockExam() {
+    if (state.engMockHasPassage && state.engMockPassage && !state.engMockPassageRead) {
+        return renderMockPassagePage();
+    }
+    
     if (!state.mockQuestions || state.mockQuestions.length === 0) return renderHome();
 
     const totalQ = state.mockQuestions.length;
@@ -6667,7 +6853,6 @@ function renderMockExam() {
     const settings = state.settingsCache;
     const calcEnabled = settings.calculatorEnabled !== false;
    
-    // Subject tabs
     let subjectTabs = '';
     state.mockSubjectOrder.forEach(function(sid) {
         const subj = SUBJECTS.find(function(s) { return s.id === sid; });
@@ -6688,7 +6873,6 @@ function renderMockExam() {
         );
     });
 
-    // Get current question index for this subject
     const currentSubjectQuestions = getQuestionsForSubject(state.mockCurrentSubject, state.mockSubjectQuestions);
     const currentSubjectIndex = currentSubjectQuestions.indexOf(state.mockIndex);
     const totalInCurrentSubject = currentSubjectQuestions.length;
@@ -6733,6 +6917,8 @@ function renderMockExam() {
     const prevIdx = hasPrev ? currentSubjectQuestions[currentSubjectIndex - 1] : null;
     const nextIdx = hasNext ? currentSubjectQuestions[currentSubjectIndex + 1] : null;
 
+    const hasPassage = state.engMockHasPassage && state.engMockPassage;
+
     return (
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
         '<button class="back-link" data-action="mock-exit" style="margin:0">' + svg("chevleft", 16) + ' Exit</button>' +
@@ -6742,6 +6928,10 @@ function renderMockExam() {
         (calcEnabled ? 
             '<button class="calc-btn enabled" data-action="toggle-calculator" title="Calculator">' + svg("calculator", 18) + '</button>' :
             '<button class="calc-btn" data-action="toggle-calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 18) + '</button>'
+        ) +
+        (hasPassage ? 
+            '<button class="calc-btn" style="background:var(--gold);color:var(--ink);height:34px;padding:0 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;font-size:12px;font-weight:600" data-action="show-mock-passage" title="View Passage" aria-label="View Passage">📖 Passage</button>' : 
+            ''
         ) +
         '</div>' +
         '<div class="right-group">' +
@@ -6772,9 +6962,28 @@ function renderMockExam() {
     );
 }
 
-// ============================================================
-//  MOCK RESULT
-// ============================================================
+function renderMockPassagePage() {
+    const passage = state.engMockPassage;
+    if (!passage) return renderMockExam();
+    
+    return (
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+        '<button class="back-link" data-action="mock-exit" style="margin:0">' + svg("chevleft", 16) + ' Exit</button>' +
+        '</div>' +
+        '<div class="timer-bar">' +
+        '<span class="label">⏱️ Time left</span>' +
+        '<span class="time">' + formatTime(state.mockTimeLeft) + '</span>' +
+        '</div>' +
+        '<div class="card" style="padding:20px;margin-bottom:16px;min-height:300px">' +
+        '<h3 style="font-family:var(--font-serif);margin:0 0 12px;color:var(--ink)">📖 ' + esc(passage.title || 'Reading Passage') + '</h3>' +
+        '<div style="font-size:15px;line-height:1.8;color:var(--ink);white-space:pre-wrap">' + esc(passage.passage_text) + '</div>' +
+        '</div>' +
+        '<button class="btn btn-green" data-action="mock-passage-done">I\'ve Read It — Next</button>' +
+        '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:12px">Read the passage carefully. You\'ll answer 25 questions based on it.</p>' +
+        '</div>'
+    );
+}
+
 function renderMockResult() {
     if (state.mockWaitingForResults) {
         return (
@@ -9076,13 +9285,16 @@ if (action === 'close-passage') {
 
     // MOCK
     if (action === 'toggle-mock-subject') {
-        const id = el.getAttribute('data-subject');
-        const i = state.mockSelectedSubjects.indexOf(id);
-        if (i !== -1) state.mockSelectedSubjects.splice(i, 1);
-        else if (state.mockSelectedSubjects.length < (state.settingsCache.mockSubjectCount || 4)) state.mockSelectedSubjects.push(id);
-        render();
-        return;
+    const id = el.getAttribute('data-subject');
+    const i = state.mockSelectedSubjects.indexOf(id);
+    if (i !== -1) {
+        state.mockSelectedSubjects.splice(i, 1);
+    } else if (state.mockSelectedSubjects.length < 3) { // Max 3 non-English subjects
+        state.mockSelectedSubjects.push(id);
     }
+    render();
+    return;
+}
 
     if (action === 'register-mock') {
         const examId = el.getAttribute('data-examid');
@@ -9131,24 +9343,40 @@ if (action === 'close-passage') {
         submitMockExam(false);
         return;
     }
+    
+    if (action === 'mock-passage-done') {
+    state.engMockPassageRead = true;
+    render();
+    return;
+}
+
+if (action === 'show-mock-passage') {
+    state.showPassageModal = true;
+    render();
+    return;
+}
 
     if (action === 'mock-exit') {
-        if (state.mockTimer) { clearInterval(state.mockTimer);
-            state.mockTimer = null; }
-        state.mockQuestions = [];
-        state.mockAnswers = [];
-        state.mockIndex = 0;
-        state.mockFinished = false;
-        state.mockSubmitted = false;
-        state.mockWaitingForResults = false;
-        state.mockResultReleased = false;
-        state.mockSubjectQuestions = {};
-        state.mockSubjectOrder = [];
-        state.mockCurrentSubject = null;
-        state.view = 'home';
-        render();
-        return;
-    }
+    if (state.mockTimer) { clearInterval(state.mockTimer);
+        state.mockTimer = null; }
+    state.mockQuestions = [];
+    state.mockAnswers = [];
+    state.mockIndex = 0;
+    state.mockFinished = false;
+    state.mockSubmitted = false;
+    state.mockWaitingForResults = false;
+    state.mockResultReleased = false;
+    state.mockSubjectQuestions = {};
+    state.mockSubjectOrder = [];
+    state.mockCurrentSubject = null;
+    state.engMockPassage = null;
+    state.engMockHasPassage = false;
+    state.engMockPassageRead = false;
+    state.engMockPassageId = null;
+    state.view = 'home';
+    render();
+    return;
+}
 
     if (action === 'mock-toggle-review') {
         state.mockReviewMode = !state.mockReviewMode;
@@ -10365,3 +10593,4 @@ init();
 </script>
 </body>
 </html>
+  
