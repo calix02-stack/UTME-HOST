@@ -8,10 +8,12 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="MyUTME" />
-<link rel="apple-touch-icon" href="apple-touch-icon.png" />
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
-<title>MyUTME — JAMB CBT Practice</title>
+<meta name="apple-mobile-web-app-title" content="JAMB CBT App" />
+<link rel="apple-touch-icon" href="https://myutme.name.ng/icon-192.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="https://myutme.name.ng/icon-192.png" />
+<link rel="shortcut icon" href="https://myutme.name.ng/icon-192.png" />
+<title>JAMB CBT Practice App – Free UTME Mock Exams & Past Questions</title>
+<meta name="description" content="Practice JAMB CBT free with real exam-style questions, timed mock exams, past questions, and topic-by-topic drills. The easiest way to prepare for UTME on your phone." />
 <style>
     /* ============================================================
        CSS VARIABLES & RESET
@@ -2262,6 +2264,35 @@
         color: var(--muted);
         flex-shrink: 0;
     }
+
+    .jamb-countdown {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: linear-gradient(145deg, var(--green) 0%, var(--green-dark) 100%);
+        border-radius: 16px;
+        padding: 14px 16px;
+        margin: 4px 0 18px;
+        box-shadow: 0 8px 20px rgba(15, 107, 63, 0.25);
+    }
+    .jamb-countdown .cd-icon {
+        font-size: 26px;
+        flex-shrink: 0;
+    }
+    .jamb-countdown .cd-days {
+        font-family: var(--font-mono);
+        font-size: 20px;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+        line-height: 1.1;
+    }
+    .jamb-countdown .cd-label {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.8);
+        margin: 2px 0 0;
+    }
+</style>
 </style>
 </head>
 <body>
@@ -2440,6 +2471,17 @@ function formatDate(dateStr) {
     } catch (e) { return dateStr || ''; }
 }
 
+function getJambCountdown() {
+    const now = new Date();
+    const year = now.getFullYear();
+    let target = new Date(year, 3, 15); // April 15
+    if (now > target) {
+        target = new Date(year + 1, 3, 15);
+    }
+    const diffMs = target - now;
+    const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    return { days: days, year: target.getFullYear() };
+}
 function isAdmin() {
     return state.profile.email && state.profile.email.toLowerCase() === ADMIN_EMAIL;
 }
@@ -5334,9 +5376,21 @@ function renderHome() {
             '</button>'
         );
     });
+    const jamb = getJambCountdown();
+    const countdownBanner = (
+        '<div class="jamb-countdown">' +
+        '<span class="cd-icon">⏳</span>' +
+        '<div>' +
+        '<p class="cd-days">' + jamb.days + ' days</p>' +
+        '<p class="cd-label">to JAMB ' + jamb.year + ' (estimated)</p>' +
+        '</div>' +
+        '</div>'
+    );
+
     return (
         '<p class="hi-small">Welcome back,</p>' +
         '<h2 class="hi-name">' + esc(firstName) + '</h2>' +
+        countdownBanner +
         '<div class="home-grid">' + tiles + '</div>'
     );
 }
@@ -8346,10 +8400,12 @@ function renderDrawer(unread, isLoggedIn) {
         '<div class="slider"></div>' +
         '</div>' +
         '</div>' +
+        '<button class="drawer-item" data-action="whatsapp-share">' +
+        '<span class="left">' + svg("share", 16) + ' Share on WhatsApp</span>' +
+        '</button>' +
         navItems +
         authSection +
         '<div class="drawer-spacer"></div>' +
-        '</div>' +
         '<div class="drawer-overlay" data-action="close-drawer"></div>' +
         '</div>'
     );
@@ -8845,6 +8901,15 @@ document.addEventListener('click', function(e) {
         if (state.darkMode) document.documentElement.setAttribute('data-theme', 'dark');
         else document.documentElement.removeAttribute('data-theme');
         render();
+        return;
+    }
+
+    // WHATSAPP SHARE
+    if (action === 'whatsapp-share') {
+        const shareUrl = window.location.origin + window.location.pathname;
+        const shareText = 'Check out MyUTME — practice JAMB CBT, timed exams, mock tests and more! 📚 ' + shareUrl;
+        const waUrl = 'https://wa.me/?text=' + encodeURIComponent(shareText);
+        window.open(waUrl, '_blank');
         return;
     }
 
@@ -10773,4 +10838,4 @@ if ("serviceWorker" in navigator) {
 })();
 </script>
 </body>
-</html>      
+</html>        
