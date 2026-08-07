@@ -2318,6 +2318,50 @@ const SUPABASE_ANON_KEY =
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ===== PUSH NOTIFICATIONS =====
+const VAPID_PUBLIC_KEY = "BGJrYWOxcZHHoOWRKDq04O60_LCHxQhc5izRGIYgzwGCOXQO0xdZ2qT-wsPlWVyy6z24MKcFEQGkdehjSoiPuog";
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(function(c) { return c.charCodeAt(0); }));
+}
+
+async function subscribeToPush() {
+    try {
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+        if (!state.authUser) return;
+
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") return;
+
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+            });
+        }
+
+        await supabase.from("push_subscriptions").upsert({
+            user_id: state.authUser.id,
+            subscription: sub.toJSON(),
+        }, { onConflict: "user_id" });
+    } catch (e) {
+        console.warn("Push subscribe error:", e);
+    }
+}
+
+function updateAppBadge() {
+    try {
+        if (!navigator.setAppBadge) return;
+        if (state.notifsUnreadCount > 0) navigator.setAppBadge(state.notifsUnreadCount);
+        else navigator.clearAppBadge();
+    } catch (e) {}
+}
+
 // ============================================================
 //  STORAGE HELPERS
 // ============================================================
@@ -3524,6 +3568,7 @@ function markNotificationRead(notifId) {
         state.notifsUnreadCount = state.notifsList.filter(function(n) {
             return state.readNotifs.indexOf(n.id) === -1;
         }).length;
+        updateAppBadge();
         render();
     }
 }
@@ -3534,6 +3579,7 @@ function markAllNotificationsRead() {
     });
     storage.set("readNotifications", JSON.stringify(state.readNotifs));
     state.notifsUnreadCount = 0;
+    updateAppBadge();
     render();
 }
 
@@ -3569,6 +3615,7 @@ async function checkAuthSession() {
             state.formName = state.profile.name;
             state.formEmail = state.profile.email;
             storage.set("profile", JSON.stringify(state.profile));
+            subscribeToPush();
         }
         const readNotifs = storage.get("readNotifications");
         if (readNotifs) {
@@ -3697,6 +3744,7 @@ async function signIn(emailOrUsername, password) {
             state.formName = state.profile.name;
             state.formEmail = state.profile.email;
             storage.set("profile", JSON.stringify(state.profile));
+            subscribeToPush();
 
             state.showLogin = false;
             state.loginEmail = "";
