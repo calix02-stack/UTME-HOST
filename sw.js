@@ -49,14 +49,13 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// ===== NEW: PUSH NOTIFICATIONS =====
+// ===== PUSH NOTIFICATIONS =====
 self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {};
   event.waitUntil(
     self.registration.showNotification(data.title || "MyUTME", {
       body: data.body || "",
       icon: "./icon-192.png",
-      badge: "./icon-192.png",
       data: data.url || "/",
     })
   );
