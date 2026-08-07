@@ -1,8 +1,6 @@
 // MyUTME service worker
-// Bump this string any time you change index.html / assets so old caches get replaced.
 const CACHE_NAME = "myutme-cache-v2";
 
-// Only cache the app shell. Supabase API calls are NOT cached — they always go to the network.
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -33,13 +31,8 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
 
-  // Never intercept Supabase (auth/data) or cross-origin API calls — always go live.
-  if (url.origin !== self.location.origin) {
-    return;
-  }
-
-  // App shell: try cache first, fall back to network, and refresh cache in background.
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetchPromise = fetch(event.request)
@@ -50,9 +43,26 @@ self.addEventListener("fetch", (event) => {
           }
           return networkResponse;
         })
-        .catch(() => cached); // offline fallback
-
+        .catch(() => cached);
       return cached || fetchPromise;
     })
   );
+});
+
+// ===== NEW: PUSH NOTIFICATIONS =====
+self.addEventListener("push", (event) => {
+  const data = event.data ? event.data.json() : {};
+  event.waitUntil(
+    self.registration.showNotification(data.title || "MyUTME", {
+      body: data.body || "",
+      icon: "./icon-192.png",
+      badge: "./icon-192.png",
+      data: data.url || "/",
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(clients.openWindow(event.notification.data || "/"));
 });
