@@ -2292,6 +2292,153 @@
         color: rgba(255, 255, 255, 0.8);
         margin: 2px 0 0;
     }
+    .activate-banner {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: linear-gradient(120deg, #E4A93A 0%, #d49a2e 45%, #b9821f 100%);
+        border-radius: 18px;
+        padding: 16px 18px;
+        margin: 0 0 14px;
+        box-shadow: 0 10px 26px rgba(228, 169, 58, 0.35);
+        cursor: pointer;
+        transition: transform .15s ease;
+    }
+    .activate-banner:active { transform: scale(0.98); }
+    .activate-banner .shine {
+        position: absolute;
+        top: -50%;
+        left: -40%;
+        width: 60%;
+        height: 200%;
+        background: rgba(255, 255, 255, 0.25);
+        transform: rotate(20deg);
+        animation: shineMove 3.5s ease-in-out infinite;
+    }
+    @keyframes shineMove {
+        0% { left: -40%; }
+        50% { left: 120%; }
+        100% { left: 120%; }
+    }
+    .activate-banner .icon-circle {
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+    }
+    .activate-banner .icon-circle svg { width: 28px; height: 28px; color: #fff; }
+    .activate-banner .txt { position: relative; z-index: 1; }
+    .activate-banner .txt p.h { font-weight: 800; font-size: 15px; color: #3A2A0A; margin: 0; }
+    .activate-banner .txt p.s { font-size: 11px; color: #4a3a12; margin: 2px 0 0; }
+    .activate-banner .arrow { margin-left: auto; position: relative; z-index: 1; color: #3A2A0A; }
+
+    .plan-select-row {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        margin-bottom: 4px;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+    .plan-select-row::-webkit-scrollbar { height: 4px; }
+    .plan-select-card {
+        flex: 0 0 auto;
+        width: 150px;
+        scroll-snap-align: start;
+        position: relative;
+        background: var(--card-bg);
+        border: 2px solid var(--line);
+        border-radius: 16px;
+        padding: 16px 14px;
+        cursor: pointer;
+        transition: border-color 0.2s, transform 0.15s;
+    }
+    .plan-select-card:active { transform: scale(0.97); }
+    .plan-select-card.selected {
+        border-color: var(--green);
+        background: #F0F7F2;
+    }
+    [data-theme="dark"] .plan-select-card.selected { background: #1a2d1a; }
+    .plan-select-card .psc-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 0 0 6px;
+    }
+    .plan-select-card .psc-price {
+        font-family: var(--font-mono);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--green);
+        margin: 0 0 6px;
+    }
+    .plan-select-card .psc-days {
+        font-size: 11px;
+        color: var(--muted);
+        margin: 0;
+    }
+    .plan-select-badge {
+        position: absolute;
+        top: -9px;
+        right: 10px;
+        background: var(--green);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 999px;
+    }
+
+    .payment-method-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--card-bg);
+        border: 1.5px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    .payment-method-row.selected {
+        border-color: var(--green);
+        background: #F0F7F2;
+    }
+    [data-theme="dark"] .payment-method-row.selected { background: #1a2d1a; }
+    .payment-method-row .pmr-radio {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        border: 2px solid var(--line);
+        flex-shrink: 0;
+        position: relative;
+    }
+    .payment-method-row .pmr-radio.active {
+        border-color: var(--green);
+    }
+    .payment-method-row .pmr-radio.active::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--green);
+    }
+    .payment-method-row .pmr-icon { font-size: 20px; flex-shrink: 0; }
+    .payment-method-row .pmr-label { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0; }
+    .payment-method-row .pmr-desc { font-size: 11px; color: var(--muted); margin: 2px 0 0; }
 </style>
 </style>
 </head>
@@ -2377,6 +2524,7 @@ const storage = {
 const ADMIN_EMAIL = "muyiwaoladimeji0@gmail.com";
 const GREEN = "#0F6B3F";
 const GOLD = "#E4A93A";
+const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 
 const SUBJECT_PALETTE = ["#2E6FF2", "#E2543A", "#7C5CFC", "#0E9488", "#E4A93A", "#4C5FD5", "#0F6B3F", "#D64EA0",
     "#F2994A", "#5B8DEF", "#EA5455", "#00A896", "#8E44AD", "#16A085", "#C0392B", "#2980B9", "#B08968", "#3F72AF"
@@ -2529,9 +2677,9 @@ function getJambCountdown() {
 function isAdmin() {
     return state.profile.email && state.profile.email.toLowerCase() === ADMIN_EMAIL;
 }
-
 function isUserActive() {
     if (isAdmin()) return true;
+    if (!state.authUser) return false; // guests are never "active" — banner should show
     if (!state.profile.is_active) return false;
     if (state.profile.activation_expiry) {
         const expiry = new Date(state.profile.activation_expiry);
@@ -2539,12 +2687,38 @@ function isUserActive() {
     }
     return true;
 }
-
 function unreadCount() {
     return state.notifsUnreadCount || 0;
 }
 
 let toastTimer = null;
+
+function fallbackCopy(text) {
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Copied: ' + text, 'success');
+    } catch (e) {
+        showToast('Could not copy. Please copy it manually.', 'error');
+    }
+}
+
+function copyToClipboard(text) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            showToast('Copied: ' + text, 'success');
+        }).catch(function() { fallbackCopy(text); });
+    } else {
+        fallbackCopy(text);
+    }
+}
 
 function showToast(msg, type) {
     const old = document.querySelector('.toast-msg');
@@ -2692,6 +2866,9 @@ engMockPassageId: null,
     weakModeSubmitted: false,
     weakModeReviewMode: false,
     weakQuestionStates: {}, // track expanded/reattempt state per question
+    reviseView: 'modes',      // 'modes' | 'subjects' | 'questions'
+    reviseMode: null,
+    reviseSubject: null,
 
     leaderboardTab: "cbt",
     leaderboardData: [],
@@ -2751,6 +2928,15 @@ engMockPassageId: null,
         notifyModalOpen: false,
         notifyTitle: "",
         notifyBody: "",
+        editingPlanId: null,
+        // Topic Practice admin management
+        adminTopicSubject: null,
+        adminTopicsList: [],
+        adminTopicsLoaded: false,
+        adminSelectedTopicId: null,
+        adminTopicQuestions: [],
+        adminTopicQuestionsLoaded: false,
+        newTopicName: "",
     },
     adminLoading: false,
     questionCounts: {},
@@ -2778,7 +2964,11 @@ engMockPassageId: null,
 
     activationPlans: [],
     activationPlansLoaded: false,
-
+    adminKeys: [],
+    adminKeysLoaded: false,
+    activateStatusMsg: '',
+    selectedPlanId: null,
+    selectedPaymentMethod: 'paystack',
     settingsCache: {
     cbtQuestionsPerSubject: 40,
     cbtTimeLimit: 100,
@@ -3247,7 +3437,24 @@ async function loadTopics(subjectId) {
             render();
             return;
         }
-        state.topicsList = data || [];
+        let topics = data || [];
+        if (topics.length > 0) {
+            const topicIds = topics.map(function(t) { return t.id; });
+            const { data: countRows, error: countError } = await supabase
+                .from('topic_questions')
+                .select('topic_id')
+                .in('topic_id', topicIds);
+            if (!countError && countRows) {
+                const counts = {};
+                countRows.forEach(function(row) {
+                    counts[row.topic_id] = (counts[row.topic_id] || 0) + 1;
+                });
+                topics = topics.map(function(t) {
+                    return Object.assign({}, t, { question_count: counts[t.id] || 0 });
+                });
+            }
+        }
+        state.topicsList = topics;
         state.topicsSubjectId = subjectId;
         state.topicsLoaded = true;
         render();
@@ -3259,7 +3466,6 @@ async function loadTopics(subjectId) {
         render();
     }
 }
-
 async function loadTopicQuestions(topicId) {
     try {
         const { data, error } = await supabase
@@ -3278,6 +3484,76 @@ async function loadTopicQuestions(topicId) {
     }
 }
 
+async function loadAdminTopics(subjectId) {
+    state.admin.adminTopicsLoaded = false;
+    render();
+    try {
+        const { data, error } = await supabase
+            .from('topics')
+            .select('*')
+            .eq('subject_id', subjectId)
+            .order('name');
+        if (error) {
+            console.warn("Load admin topics error:", error);
+            state.admin.adminTopicsList = [];
+            state.admin.adminTopicsLoaded = true;
+            render();
+            return;
+        }
+        let topics = data || [];
+        if (topics.length > 0) {
+            const topicIds = topics.map(function(t) { return t.id; });
+            const { data: countRows, error: countError } = await supabase
+                .from('topic_questions')
+                .select('topic_id')
+                .in('topic_id', topicIds);
+            if (!countError && countRows) {
+                const counts = {};
+                countRows.forEach(function(row) {
+                    counts[row.topic_id] = (counts[row.topic_id] || 0) + 1;
+                });
+                topics = topics.map(function(t) {
+                    return Object.assign({}, t, { question_count: counts[t.id] || 0 });
+                });
+            }
+        }
+        state.admin.adminTopicsList = topics;
+        state.admin.adminTopicsLoaded = true;
+        render();
+    } catch (e) {
+        console.warn("Load admin topics exception:", e);
+        state.admin.adminTopicsList = [];
+        state.admin.adminTopicsLoaded = true;
+        render();
+    }
+}
+
+async function loadAdminTopicQuestions(topicId) {
+    state.admin.adminTopicQuestionsLoaded = false;
+    render();
+    try {
+        const { data, error } = await supabase
+            .from('topic_questions')
+            .select('*')
+            .eq('topic_id', topicId)
+            .order('created_at', { ascending: false });
+        if (error) {
+            console.warn("Load admin topic questions error:", error);
+            state.admin.adminTopicQuestions = [];
+            state.admin.adminTopicQuestionsLoaded = true;
+            render();
+            return;
+        }
+        state.admin.adminTopicQuestions = data || [];
+        state.admin.adminTopicQuestionsLoaded = true;
+        render();
+    } catch (e) {
+        console.warn("Load admin topic questions exception:", e);
+        state.admin.adminTopicQuestions = [];
+        state.admin.adminTopicQuestionsLoaded = true;
+        render();
+    }
+}
 async function loadAdminQuestions(type, subjectId, year) {
     const key = type + ':' + subjectId + ':' + (year || '');
     if (state.adminQuestionsLoaded && state.adminQuestionsKey === key) return;
@@ -4570,6 +4846,162 @@ async function adminDeactivateUser(userId) {
 }
 
 // ============================================================
+//  ACTIVATION KEYS (license key generation & redemption)
+// ============================================================
+function generateKeyString() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no confusing 0/O or 1/I
+    function block() {
+        let s = '';
+        for (let i = 0; i < 4; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+        return s;
+    }
+    return block() + '-' + block() + '-' + block();
+}
+
+async function loadActivationKeys() {
+    try {
+        const { data, error } = await supabase
+            .from('activation_keys')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) {
+            console.warn('Load activation keys error:', error);
+            state.adminKeys = [];
+            state.adminKeysLoaded = true;
+            render();
+            return;
+        }
+        state.adminKeys = data || [];
+        state.adminKeysLoaded = true;
+        render();
+    } catch (e) {
+        console.warn('Load activation keys exception:', e);
+        state.adminKeys = [];
+        state.adminKeysLoaded = true;
+        render();
+    }
+}
+
+async function adminGenerateKey(planId) {
+    const plan = state.activationPlans.find(function(p) { return p.id === planId; });
+    if (!plan) { showToast('Select a plan first.', 'error'); return; }
+
+    let key = generateKeyString();
+    let attempts = 0;
+    let inserted = null;
+
+    while (attempts < 5 && !inserted) {
+        const { data, error } = await supabase.from('activation_keys').insert([{
+            key_code: key,
+            plan_id: plan.id,
+            plan_name: plan.name,
+            days: plan.days,
+            price: plan.price,
+            is_used: false,
+        }]).select().single();
+
+        if (!error) { inserted = data; break; }
+        if (error.code === '23505') { // duplicate key, try a new one
+            key = generateKeyString();
+            attempts++;
+            continue;
+        }
+        console.warn('Generate key error:', error);
+        showToast('Error generating key: ' + error.message, 'error');
+        return;
+    }
+
+    if (inserted) {
+        showToast('Key generated: ' + key, 'success');
+        loadActivationKeys();
+    } else {
+        showToast('Could not generate a unique key, try again.', 'error');
+    }
+}
+
+async function redeemActivationKey(rawKey) {
+    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    const keyCode = (rawKey || '').trim().toUpperCase();
+    if (!keyCode) {
+        state.activateStatus = 'error';
+        state.activateStatusMsg = 'Please enter a license key.';
+        render();
+        return;
+    }
+
+    state.activateStatus = 'checking';
+    render();
+
+    try {
+        const { data: keyRow, error } = await supabase
+            .from('activation_keys')
+            .select('*')
+            .eq('key_code', keyCode)
+            .maybeSingle();
+
+        if (error) {
+            console.warn('Redeem key lookup error:', error);
+            state.activateStatus = 'error';
+            state.activateStatusMsg = 'Error checking key. Please try again.';
+            render();
+            return;
+        }
+        if (!keyRow) {
+            state.activateStatus = 'error';
+            state.activateStatusMsg = 'Invalid license key. Please check and try again.';
+            render();
+            return;
+        }
+        if (keyRow.is_used) {
+            state.activateStatus = 'error';
+            state.activateStatusMsg = 'This license key has already been used.';
+            render();
+            return;
+        }
+
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + (keyRow.days || 30));
+
+        const { error: keyUpdateError } = await supabase
+            .from('activation_keys')
+            .update({
+                is_used: true,
+                used_by: state.authUser.id,
+                used_by_username: state.profile.name,
+                used_at: new Date().toISOString(),
+            })
+            .eq('id', keyRow.id)
+            .eq('is_used', false);
+
+        if (keyUpdateError) {
+            console.warn('Redeem key update error:', keyUpdateError);
+            state.activateStatus = 'error';
+            state.activateStatusMsg = 'This key was just used by someone else. Try another key.';
+            render();
+            return;
+        }
+
+        await supabase.from('profiles').update({
+            is_active: true,
+            activation_expiry: expiryDate.toISOString(),
+        }).eq('id', state.authUser.id);
+
+        state.profile.is_active = true;
+        state.profile.activation_expiry = expiryDate.toISOString();
+        state.activateStatus = 'success';
+        state.activateStatusMsg = '🎉 Activated! Your account is now active for ' + (keyRow.days || 30) + ' days.';
+        state.activateCode = '';
+        showToast('Account activated!', 'success');
+        render();
+    } catch (e) {
+        console.warn('Redeem key exception:', e);
+        state.activateStatus = 'error';
+        state.activateStatusMsg = 'Something went wrong. Please try again.';
+        render();
+    }
+}
+
+// ============================================================
 //  CBT FUNCTIONS
 // ============================================================
 async function startCbt() {
@@ -5176,6 +5608,10 @@ function setView(v) {
     if (v === "history") loadHistory();
     if (v === "revise") {
         state.weakQuestionsLoaded = false;
+        state.reviseView = 'modes';
+        state.reviseMode = null;
+        state.reviseSubject = null;
+        state.weakQuestionStates = {};
         loadWeakQuestions();
     }
     render();
@@ -5388,6 +5824,7 @@ function renderView() {
     if (v === "profile") return renderProfile();
     if (v === "leaderboard") return renderLeaderboard();
     if (v === "activate") return renderActivate();
+    if (v === "license-plans") return renderLicensePlans();
     if (v === "admin" && isAdmin()) return renderAdmin();
     if (v === "cbt") return renderCbtMode();
     if (v === "exam") return renderExamMode();
@@ -5435,9 +5872,23 @@ function renderHome() {
         '</div>'
     );
 
+    const showActivateBanner = !isUserActive();
+    const activateBanner = showActivateBanner ? (
+        '<div class="activate-banner" data-action="set-view" data-view="activate">' +
+        '<div class="shine"></div>' +
+        '<div class="icon-circle">' + svg('zap', 26) + '</div>' +
+        '<div class="txt">' +
+        '<p class="h">Unlock Full Access ⚡</p>' +
+        '<p class="s">Activate now for unlimited mock exams &amp; past questions</p>' +
+        '</div>' +
+        '<div class="arrow">' + svg('chevleft', 20).replace('d="M15 18l-6-6 6-6"', 'd="M9 18l6-6-6-6"') + '</div>' +
+        '</div>'
+    ) : '';
+
     return (
         '<p class="hi-small">Welcome back,</p>' +
         '<h2 class="hi-name">' + esc(firstName) + '</h2>' +
+        activateBanner +
         countdownBanner +
         '<div class="home-grid">' + tiles + '</div>'
     );
@@ -5507,7 +5958,7 @@ function renderLiteratureCbt() {
 //  CBT MODE
 // ============================================================
 function renderCbtMode() {
-    const others = SUBJECTS.filter(function(s) { return !s.compulsory && s.id !== 'LHM'; });
+    const others = SUBJECTS.filter(function(s) { return !s.compulsory && s.id !== 'lhm'; });
     const eng = SUBJECTS.find(function(s) { return s.compulsory; });
 
     let chips = "";
@@ -5875,7 +6326,7 @@ return (
 // ============================================================
 function renderExamMode() {
     let chips = "";
-    SUBJECTS.forEach(function(s) {
+    SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
         const sel = state.examSubject === s.id;
         chips += (
             '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-exam-subject" data-subject="' +
@@ -5885,7 +6336,6 @@ function renderExamMode() {
             '</button>'
         );
     });
-
     let yearOptions = "";
     for (let y = 2026; y >= 2021; y--) {
         yearOptions += '<option value="' + y + '"' + (state.examYear === y ? ' selected' : '') + '>' + y + '</option>';
@@ -6063,7 +6513,7 @@ state.examQuestions.forEach(function(item, i) {
 // ============================================================
 function renderTopicsPicker() {
     let subjChips = "";
-    SUBJECTS.forEach(function(s) {
+    SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
         const sel = state.topicSubject === s.id;
         subjChips += (
             '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-topic-subject" data-subject="' +
@@ -6524,6 +6974,16 @@ async function loadWeakQuestions() {
 // ============================================================
 //  REVISE WEAK QUESTIONS - RENDER
 // ============================================================
+const REVISE_MODE_META = {
+    cbt: { label: 'CBT Mode', icon: 'monitor', color: '#2E6FF2' },
+    exam: { label: 'Exam Mode', icon: 'clipboard', color: '#E2543A' },
+    mock: { label: 'Mock Exam', icon: 'target', color: '#8E44AD' },
+    topic: { label: 'Topic Practice', icon: 'list', color: '#7C5CFC' },
+    novel: { label: 'Novel (CBT)', icon: 'book', color: '#0E9488' },
+    revise: { label: 'Revision Retry', icon: 'rotate', color: '#0F6B3F' },
+    unknown: { label: 'Other', icon: 'rotate', color: '#5B6B60' },
+};
+
 function renderReviseWeak() {
     if (!state.authUser) { 
         return (
@@ -6561,93 +7021,164 @@ function renderReviseWeak() {
         );
     }
 
-    // Group by subject
-    const grouped = {};
+    if (state.reviseView === 'subjects') return renderReviseModeSubjects();
+    if (state.reviseView === 'questions') return renderReviseModeQuestions();
+    return renderReviseModes();
+}
+
+function renderReviseModes() {
+    const counts = {};
     state.weakQuestions.forEach(function(wq) {
-        if (!grouped[wq.subject_id]) grouped[wq.subject_id] = [];
-        grouped[wq.subject_id].push(wq);
+        const m = wq.mode || 'unknown';
+        counts[m] = (counts[m] || 0) + 1;
+    });
+    const modeKeys = Object.keys(counts);
+
+    let cards = "";
+    modeKeys.forEach(function(m) {
+        const meta = REVISE_MODE_META[m] || REVISE_MODE_META.unknown;
+        cards += (
+            '<div class="admin-mode-card" data-action="revise-select-mode" data-mode="' + m + '">' +
+            '<div class="mode-info">' +
+            '<span class="mode-name" style="display:flex;align-items:center;gap:6px">' +
+            svg(meta.icon, 16).replace('stroke="currentColor"', 'stroke="' + meta.color + '"') +
+            esc(meta.label) + '</span>' +
+            '<span class="mode-count">' + counts[m] + ' missed question' + (counts[m] === 1 ? '' : 's') + '</span>' +
+            '</div>' +
+            '<div class="mode-actions"><span class="count-badge">' + counts[m] + '</span></div>' +
+            '</div>'
+        );
     });
 
-    let html = (
+    return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
         '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 34) + '</div>' +
         '<h2 class="title">Revise Weak Questions</h2>' +
-        '<p class="sub">Retry questions you\'ve missed</p>' +
-        '<p style="font-size:13px;color:var(--muted);margin-bottom:12px">Total: ' + state.weakQuestions.length + ' weak question(s)</p>'
+        '<p class="sub">Choose a mode to see what you\'ve missed</p>' +
+        '<p style="font-size:13px;color:var(--muted);margin-bottom:12px">Total: ' + state.weakQuestions.length + ' weak question(s)</p>' +
+        cards
+    );
+}
+
+function renderReviseModeSubjects() {
+    const mode = state.reviseMode;
+    const meta = REVISE_MODE_META[mode] || REVISE_MODE_META.unknown;
+    const inMode = state.weakQuestions.filter(function(wq) { return (wq.mode || 'unknown') === mode; });
+
+    const counts = {};
+    inMode.forEach(function(wq) { counts[wq.subject_id] = (counts[wq.subject_id] || 0) + 1; });
+    const subjIds = Object.keys(counts);
+
+    let cards = "";
+    subjIds.forEach(function(sid) {
+        const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+        const name = subj ? subj.name : (sid || 'Unknown');
+        cards += (
+            '<div class="admin-mode-card" data-action="revise-select-subject" data-subject="' + sid + '">' +
+            '<div class="mode-info">' +
+            '<span class="mode-name">' + esc(name) + '</span>' +
+            '<span class="mode-count">' + counts[sid] + ' missed question' + (counts[sid] === 1 ? '' : 's') + '</span>' +
+            '</div>' +
+            '<div class="mode-actions"><span class="count-badge">' + counts[sid] + '</span></div>' +
+            '</div>'
+        );
+    });
+
+    return (
+        '<button class="back-link" data-action="revise-back-to-modes">' + svg("chevleft", 16) + ' All modes</button>' +
+        '<h2 class="title" style="margin-bottom:4px">' + esc(meta.label) + '</h2>' +
+        '<p class="sub">Choose a subject</p>' +
+        cards
+    );
+}
+
+function renderReviseModeQuestions() {
+    const mode = state.reviseMode;
+    const subjectId = state.reviseSubject;
+    const meta = REVISE_MODE_META[mode] || REVISE_MODE_META.unknown;
+    const subj = SUBJECTS.find(function(s) { return s.id === subjectId; });
+    const subjName = subj ? subj.name : (subjectId || 'Unknown');
+
+    let list = state.weakQuestions.filter(function(wq) {
+        return (wq.mode || 'unknown') === mode && wq.subject_id === subjectId;
+    });
+    list.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+
+    let html = (
+        '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 16) + ' ' + esc(meta.label) + '</button>' +
+        '<h2 class="title" style="margin-bottom:4px">' + esc(subjName) + '</h2>' +
+        '<p class="sub">' + esc(meta.label) + ' · ' + list.length + ' missed question' + (list.length === 1 ? '' : 's') + '</p>'
     );
 
-    Object.keys(grouped).forEach(function(sid) {
-        const subj = SUBJECTS.find(function(s) { return s.id === sid; });
-        const subjName = subj ? subj.name : sid;
-        html += '<div class="card" style="margin-bottom:12px"><p style="font-weight:700;font-size:14px;margin:0 0 8px">' + esc(subjName) + ' (' + grouped[sid].length + ')</p>';
-        
-        // Sort by most recent first
-        grouped[sid].sort(function(a, b) {
-            return new Date(b.created_at) - new Date(a.created_at);
-        });
-        
-        grouped[sid].forEach(function(wq) {
-            const q = wq.questions;
-            if (!q) return;
-            
-            const isExpanded = state.weakQuestionStates['view_' + wq.id] || false;
-            const isReattempting = state.weakQuestionStates['reattempt_' + wq.id] || false;
-            const modeLabels = {
-                'cbt': 'CBT',
-                'exam': 'Exam',
-                'topic': 'Topic',
-                'novel': 'Novel',
-                'mock': 'Mock',
-                'unknown': 'Unknown'
-            };
-            const modeLabel = modeLabels[wq.mode] || wq.mode || 'Unknown';
-            
-            html += '<div class="weak-question-item" style="margin-bottom:8px">';
-            html += '<div class="q-header">';
-            html += '<p class="q-text">' + esc(q.text) + '</p>';
-            html += '<div class="q-actions">';
-            html += '<button class="mini-btn" data-action="weak-toggle-view" data-wid="' + wq.id + '">' + (isExpanded ? 'Hide Answer' : 'View Answer') + '</button>';
-            html += '<button class="mini-btn primary" data-action="weak-toggle-reattempt" data-wid="' + wq.id + '">' + (isReattempting ? 'Cancel' : 'Reattempt') + '</button>';
-            html += '<button class="mini-btn flag" data-action="flag-weak-question" data-qid="' + wq.question_id + '" data-subject="' + sid + '" data-mode="' + wq.mode + '">⚠️</button>';
-            html += '</div>';
-            html += '</div>';
-            html += '<div class="q-meta">From: ' + modeLabel + ' · ' + formatTimeAgo(wq.created_at) + '</div>';
-            
-            // View Answer
-            if (isExpanded) {
-                let optsList = '<ul class="admin-list">';
-                q.options.forEach(function(o, oi) {
-                    optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') + '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
-                });
-                optsList += '</ul>';
-                html += '<div class="q-options">' + optsList + '</div>';
-                if (q.explanation) {
-                    html += '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + esc(q.explanation) + '</div>';
-                }
+    if (list.length === 0) {
+        html += '<div class="card"><p style="text-align:center;color:var(--muted);padding:20px 0">No more weak questions here. Great job!</p></div>';
+        return html;
+    }
+
+    list.forEach(function(wq) {
+        const q = wq.questions;
+        if (!q) return;
+
+        const isExpanded = state.weakQuestionStates['view_' + wq.id] || false;
+        const isReattempting = state.weakQuestionStates['reattempt_' + wq.id] || false;
+        const userAnswer = state.weakQuestionStates['answer_' + wq.id];
+        const hasResult = state.weakQuestionStates['result_' + wq.id] !== undefined;
+        const resultCorrect = state.weakQuestionStates['result_' + wq.id];
+
+        html += '<div class="weak-question-item" style="margin-bottom:10px">';
+        html += '<div class="q-header">';
+        html += '<p class="q-text">' + esc(q.text) + '</p>';
+        html += '<div class="q-actions">';
+        if (!isReattempting) {
+            html += '<button class="mini-btn" data-action="weak-toggle-view" data-wid="' + wq.id + '">' + (isExpanded ? 'Hide Answer' : 'Check Revision') + '</button>';
+            html += '<button class="mini-btn primary" data-action="weak-toggle-reattempt" data-wid="' + wq.id + '">Reattempt</button>';
+        } else {
+            html += '<button class="mini-btn" data-action="weak-toggle-reattempt" data-wid="' + wq.id + '">Close</button>';
+        }
+        html += '<button class="mini-btn flag" data-action="flag-weak-question" data-qid="' + wq.question_id + '" data-subject="' + subjectId + '" data-mode="' + wq.mode + '">⚠️</button>';
+        html += '<button class="mini-btn danger" data-action="weak-remove-question" data-wid="' + wq.id + '" data-qid="' + wq.question_id + '">Remove</button>';
+        html += '</div></div>';
+
+        html += '<div class="q-meta">Attempts: ' + (wq.attempts || 1) + ' · Last missed ' + formatTimeAgo(wq.created_at) + '</div>';
+
+        if (isExpanded && !isReattempting) {
+            let optsList = '<ul class="admin-list">';
+            (q.options || []).forEach(function(o, oi) {
+                optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') + '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
+            });
+            optsList += '</ul>';
+            html += '<div class="q-options">' + optsList + '</div>';
+            if (q.explanation) {
+                html += '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + esc(q.explanation) + '</div>';
             }
-            
-            // Reattempt
-            if (isReattempting) {
-                // Show options for reattempt
-                const userAnswer = state.weakQuestionStates['answer_' + wq.id];
-                html += '<div class="reattempt-area">';
-                if (q.options) {
-                    q.options.forEach(function(o, oi) {
-                        const chosen = userAnswer === oi;
-                        html += (
-                            '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="weak-reattempt-answer" data-wid="' + wq.id + '" data-idx="' + oi + '">' +
-                            '<span class="qa-letter">' + String.fromCharCode(65 + oi) + '</span><span>' + esc(o) + '</span>' +
-                            '</button>'
-                        );
-                    });
+        }
+
+        if (isReattempting) {
+            html += '<div class="reattempt-area">';
+            (q.options || []).forEach(function(o, oi) {
+                let cls = 'qa-option';
+                if (hasResult) {
+                    if (oi === q.correct_answer) cls += ' correct';
+                    else if (oi === userAnswer) cls += ' wrong';
+                    cls += ' disabled';
+                } else if (userAnswer === oi) {
+                    cls += ' selected';
                 }
-                html += '<button class="btn btn-green" style="margin-top:8px" data-action="weak-submit-reattempt" data-wid="' + wq.id + '">Submit Reattempt</button>';
-                html += '</div>';
+                html += '<button class="' + cls + '" ' + (hasResult ? '' :
+                    'data-action="weak-reattempt-answer" data-wid="' + wq.id + '" data-idx="' + oi + '"') + '>' +
+                    '<span class="qa-letter">' + String.fromCharCode(65 + oi) + '</span><span>' + esc(o) + '</span>' +
+                    '</button>';
+            });
+            if (hasResult) {
+                html += '<div class="explanation-box" style="margin-top:8px">' +
+                    '<span class="label">' + (resultCorrect ? '✅ Correct!' : '❌ Wrong') + '</span>' +
+                    (q.explanation ? '<p>' + esc(q.explanation) + '</p>' : '<p>No explanation provided.</p>') +
+                    '</div>';
+                html += '<button class="btn btn-green" style="margin-top:8px" data-action="weak-next-question" data-wid="' + wq.id + '">Next Question →</button>';
             }
-            
             html += '</div>';
-        });
-        
+        }
+
         html += '</div>';
     });
 
@@ -6900,8 +7431,8 @@ html += renderMockRegistrationForm(exam);
 
 function renderMockRegistrationForm(exam) {
     const selected = state.mockSelectedSubjects || [];
-    // Filter out English since it's compulsory
-    const subjects = SUBJECTS.filter(function(s) { return s.id !== 'eng'; });
+    // Filter out English (compulsory) and Novel/Literature set text (not part of Mock Exam)
+    const subjects = SUBJECTS.filter(function(s) { return s.id !== 'eng' && s.id !== 'lhm'; });
     const settings = state.settingsCache;
     const requiredSubjects = settings.mockSubjectCount || 4;
 
@@ -7442,26 +7973,172 @@ function renderProfile() {
 //  ACTIVATE
 // ============================================================
 function renderActivate() {
-    let statusMsg = "";
-    if (state.activateStatus === "pending") {
-        statusMsg = '<p style="font-size:12px;margin-top:8px;color:' + GREEN +
-            '">Code received. Activation coming soon.</p>';
-    } else if (state.activateStatus === "empty") {
-        statusMsg = '<p style="font-size:12px;margin-top:8px;color:#B4472E">Enter a code first.</p>';
+    const isActive = isUserActive();
+    const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
+
+    let statusBox = "";
+    if (state.activateStatus === 'success') {
+        statusBox = '<div class="explanation-box" style="border-left-color:var(--green)"><p style="margin:0;color:var(--green);font-weight:600">' +
+            esc(state.activateStatusMsg) + '</p></div>';
+    } else if (state.activateStatus === 'error') {
+        statusBox = '<div class="explanation-box" style="border-left-color:var(--danger);background:#fce4ec"><p style="margin:0;color:#B23420;font-weight:600">' +
+            esc(state.activateStatusMsg) + '</p></div>';
+    } else if (state.activateStatus === 'checking') {
+        statusBox = '<p style="font-size:12px;color:var(--muted);margin-top:8px">Checking key…</p>';
     }
+
+    if (isActive && !isAdmin()) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
+            '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('shield', 34) + '</div>' +
+            '<h2 class="title">You\'re Activated! ✅</h2>' +
+            '<p class="sub">Your account has full access.</p>' +
+            '<div class="card" style="text-align:center;padding:24px">' +
+            '<p style="font-size:15px;font-weight:600;color:var(--green);margin:0">Premium Access Active</p>' +
+            (expiry ? '<p style="font-size:12px;color:var(--muted);margin:6px 0 0">Expires: ' + expiry.toLocaleDateString() + '</p>' : '') +
+            '</div>'
+        );
+    }
+
+    if (!state.authUser) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
+            '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 34) + '</div>' +
+            '<h2 class="title">Activate Your Account</h2>' +
+            '<p class="sub">Unlock unlimited mock exams &amp; past questions</p>' +
+            '<div class="card" style="text-align:center;padding:20px">' +
+            '<p style="font-size:13px;color:var(--muted);margin:0 0 12px">Please log in or create an account first.</p>' +
+            '<button class="btn btn-green" data-action="show-login">Log in</button>' +
+            '<button class="btn btn-outline" style="margin-top:8px" data-action="show-signup">Sign up</button>' +
+            '</div>'
+        );
+    }
+
     return (
-        '<h2 class="title" style="margin-bottom:4px">Activate</h2>' +
-        '<p class="sub">Unlock full mock exams and past questions.</p>' +
+        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
+        '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 34) + '</div>' +
+        '<h2 class="title">Activate Your Account</h2>' +
+        '<p class="sub">Unlock unlimited mock exams &amp; past questions</p>' +
+
+        '<div class="card" style="margin-bottom:14px">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 8px">Why do you need to activate?</p>' +
+        '<ul class="admin-list" style="font-size:12px">' +
+        '<li>Free access is limited — activation unlocks everything</li>' +
+        '<li>Get full Mock Exam scoring &amp; leaderboard ranking</li>' +
+        '<li>Practice every past question, not just samples</li>' +
+        '<li>Support the team maintaining and updating this app</li>' +
+        '</ul>' +
+        '</div>' +
+
         '<div class="card">' +
-        '<label class="field-label">Activation code</label>' +
-        '<input id="activate-code-input" class="field" placeholder="e.g. UTME-2026-XXXX" value="' + esc(state
-            .activateCode) + '" style="margin-bottom:12px" />' +
+        '<label class="field-label">Enter Activation License Key</label>' +
+        '<div style="display:flex;gap:8px;margin-bottom:6px">' +
+        '<input id="activate-code-input" class="field" placeholder="XXXX-XXXX-XXXX" style="flex:1;text-transform:uppercase;letter-spacing:0.05em;font-family:var(--font-mono)" value="' +
+        esc(state.activateCode) + '" />' +
+        '<button class="mini-btn primary" style="flex-shrink:0" data-action="paste-activation-code">📋 Paste</button>' +
+        '</div>' +
+        '<p style="font-size:11px;color:var(--faint);margin:0 0 12px">Format: 12 characters in 3 groups of 4 (letters &amp; numbers), e.g. <b>A1B2-C3D4-E5F6</b></p>' +
         '<button class="btn btn-gold" data-action="activate-submit">Activate</button>' +
-        statusMsg +
+        statusBox +
+        '</div>' +
+
+        '<div class="card" style="margin-top:14px;text-align:center">' +
+        '<p style="font-size:13px;color:var(--muted);margin:0 0 10px">Don\'t have an activation license key?</p>' +
+        '<button class="btn btn-outline" data-action="set-view" data-view="license-plans">Get License Key</button>' +
+        '</div>' +
+
+        '<div class="card" style="margin-top:12px;text-align:center">' +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 8px">Need help or have a question?</p>' +
+        '<button class="btn btn-outline" data-action="open-help-community">💬 Visit Help Community</button>' +
         '</div>'
     );
 }
 
+const PAYMENT_METHODS = [
+    { key: 'paystack', icon: '💚', label: 'Paystack', desc: 'Card · Bank Transfer · USSD' },
+    { key: 'transfer', icon: '🏦', label: 'Direct Bank Transfer', desc: 'Pay into our account, then send proof' },
+    { key: 'manual', icon: '🤝', label: 'Manual / Agent Payment', desc: 'Pay an agent or via WhatsApp' },
+];
+
+function renderLicensePlans() {
+    if (!state.activationPlansLoaded) {
+        loadActivationPlans();
+        return (
+            '<button class="back-link" data-action="set-view" data-view="activate">' + svg("chevleft", 16) + ' Activate</button>' +
+            '<div class="loading-spinner"><div class="spinner"></div><p>Loading plans...</p></div>'
+        );
+    }
+
+    if (state.activationPlans.length === 0) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="activate">' + svg("chevleft", 16) + ' Activate</button>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0">No plans available right now. Please check back soon.</p></div>'
+        );
+    }
+
+    if (!state.selectedPlanId || !state.activationPlans.find(function(p) { return p.id === state.selectedPlanId; })) {
+        state.selectedPlanId = state.activationPlans[0].id;
+    }
+    const selectedPlan = state.activationPlans.find(function(p) { return p.id === state.selectedPlanId; });
+
+    let planCards = "";
+    state.activationPlans.forEach(function(plan) {
+        const isSel = plan.id === state.selectedPlanId;
+        planCards += (
+            '<div class="plan-select-card' + (isSel ? ' selected' : '') + '" data-action="select-plan" data-planid="' + plan.id + '">' +
+            (isSel ? '<span class="plan-select-badge">✓ Selected</span>' : '') +
+            '<p class="psc-name">' + esc(plan.name) + '</p>' +
+            '<p class="psc-price">₦' + plan.price.toLocaleString() + '</p>' +
+            '<p class="psc-days">⏱️ ' + plan.days + ' days access</p>' +
+            '</div>'
+        );
+    });
+
+    let paymentRows = "";
+    PAYMENT_METHODS.forEach(function(pm) {
+        const isSel = state.selectedPaymentMethod === pm.key;
+        paymentRows += (
+            '<div class="payment-method-row' + (isSel ? ' selected' : '') + '" data-action="select-payment-method" data-method="' + pm.key + '">' +
+            '<span class="pmr-radio' + (isSel ? ' active' : '') + '"></span>' +
+            '<span class="pmr-icon">' + pm.icon + '</span>' +
+            '<div class="pmr-text"><p class="pmr-label">' + esc(pm.label) + '</p><p class="pmr-desc">' + esc(pm.desc) + '</p></div>' +
+            '</div>'
+        );
+    });
+
+    return (
+        '<button class="back-link" data-action="set-view" data-view="activate">' + svg("chevleft", 16) + ' Activate</button>' +
+        '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 34) + '</div>' +
+        '<h2 class="title">Choose Your Plan</h2>' +
+        '<p class="sub">Pick a plan that fits your JAMB prep timeline</p>' +
+
+        '<div class="card" style="margin-bottom:16px">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 8px">Why activate?</p>' +
+        '<ul class="admin-list" style="font-size:12px">' +
+        '<li>Unlock unlimited Mock Exams with real JAMB-style scoring</li>' +
+        '<li>Access every past question across all subjects</li>' +
+        '<li>Full CBT &amp; Exam Mode practice, no restrictions</li>' +
+        '<li>Track your weak questions and revise smarter</li>' +
+        '</ul>' +
+        '</div>' +
+
+        '<p class="section-label">How long do you need?</p>' +
+        '<div class="plan-select-row">' + planCards + '</div>' +
+
+        '<p class="section-label" style="margin-top:16px">Choose Payment Method</p>' +
+        paymentRows +
+
+        '<button class="btn btn-green" style="margin-top:16px" data-action="checkout-plan">' +
+        'Continue — ' + esc(selectedPlan.name) + ' (₦' + selectedPlan.price.toLocaleString() + ')' +
+        '</button>' +
+        '<p style="font-size:11px;color:var(--faint);text-align:center;margin-top:8px">This opens WhatsApp with your order details. Our team will confirm payment and send your license key.</p>' +
+
+        '<div class="card" style="margin-top:16px;text-align:center">' +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 8px">Prefer to ask us something first?</p>' +
+        '<button class="btn btn-outline" data-action="open-help-community">💬 Visit Help Community</button>' +
+        '</div>'
+    );
+}
 // ============================================================
 //  ADMIN PANEL
 // ============================================================
@@ -7548,7 +8225,7 @@ function renderAdminOverview() {
             const subject = q.subject_id || '';
             
             if (type === 'cbt') {
-    // ALL cbt questions go to CBT Mode
+    // ALL cbt questions go to CBT Mode (this includes the Literature subject 'lit')
     modeCounts.cbt += 1;
 } else if (type === 'exam') {
     modeCounts.exam += 1;
@@ -7556,8 +8233,8 @@ function renderAdminOverview() {
     modeCounts.mock += 1;
 } else if (type === 'subject') {
     modeCounts.topic += 1;
-} else if (type === 'literature') {
-    // ONLY type='literature' questions go to Literature section
+} else if (type === 'NOVEL (CBT)') {
+    // ONLY Novel (CBT) questions (subject 'lhm') go to the Novel section
     modeCounts.literature += 1;
 }
         });
@@ -7648,7 +8325,7 @@ function renderAdminQuestions() {
             const subject = q.subject_id || '';
             
             if (type === 'cbt') {
-    // ALL cbt questions go to CBT Mode
+    // ALL cbt questions go to CBT Mode (this includes the Literature subject 'lit')
     modeCounts.cbt += 1;
 } else if (type === 'exam') {
     modeCounts.exam += 1;
@@ -7656,8 +8333,8 @@ function renderAdminQuestions() {
     modeCounts.mock += 1;
 } else if (type === 'subject') {
     modeCounts.topic += 1;
-} else if (type === 'literature') {
-    // ONLY type='literature' questions go to Literature section
+} else if (type === 'NOVEL (CBT)') {
+    // ONLY Novel (CBT) questions (subject 'lhm') go to the Novel section
     modeCounts.literature += 1;
 }
         });
@@ -7698,6 +8375,7 @@ function renderAdminQuestions() {
 // ============================================================
 function renderAdminViewModeQuestions() {
     const type = state.admin.viewModeType;
+    if (type === 'topic') return renderAdminTopicManagement();
     const subject = state.admin.viewModeSubject;
     const year = state.admin.viewModeYear;
     const search = state.admin.searchQuery || '';
@@ -7711,9 +8389,9 @@ function renderAdminViewModeQuestions() {
 
     let filtered = state.allQuestions || [];
     if (type === 'literature') {
-    filtered = filtered.filter(function(q) { return q.type === 'literature' && q.subject_id === 'LHM'; });
+    filtered = filtered.filter(function(q) { return q.type === 'NOVEL (CBT)' && q.subject_id === 'lhm'; });
 } else if (type === 'cbt') {
-    filtered = filtered.filter(function(q) { return q.type === 'cbt' && q.subject_id !== 'lit'; });
+    filtered = filtered.filter(function(q) { return q.type === 'cbt'; });
 } else if (type) {
     filtered = filtered.filter(function(q) { return q.type === type; });
 }
@@ -7806,8 +8484,7 @@ function renderAdminViewModeQuestions() {
     }
  
     let subjOptions = '<option value="">Select subject</option>';
-    let filteredSubjects = type === "literature" ? SUBJECTS.filter(function(s) { return s.id === "lit"; }) :
-        type === "cbt" ? SUBJECTS.filter(function(s) { return s.id !== "lit"; }) :
+    let filteredSubjects = type === "literature" ? SUBJECTS.filter(function(s) { return s.id === "lhm"; }) :
         SUBJECTS;
     filteredSubjects.forEach(function(s) {
         subjOptions += '<option value="' + s.id + '"' + (state.admin.qSubject === s.id ? ' selected' : '') +
@@ -7870,6 +8547,151 @@ function renderAdminViewModeQuestions() {
         '<div class="admin-question-list">' + rows + '</div>' +
         addForm
     );
+}
+
+// ============================================================
+//  ADMIN TOPIC PRACTICE MANAGEMENT
+// ============================================================
+function renderAdminTopicManagement() {
+    const subjectId = state.admin.adminTopicSubject;
+
+    let subjOpts = '<option value="">Select subject</option>';
+    SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
+        subjOpts += '<option value="' + s.id + '"' + (subjectId === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>';
+    });
+
+    let body = '<div class="admin-view-mode-header">' +
+        '<span class="mode-title">Topic Practice Questions</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-back-from-view">← Back</button>' +
+        '</div>' +
+        '<label class="field-label">Subject</label>' +
+        '<select class="field" id="admin-topic-subject-select" style="margin-bottom:16px">' + subjOpts + '</select>';
+
+    if (!subjectId) {
+        return body + '<p style="text-align:center;color:var(--faint);padding:20px 0">Select a subject to manage its topics.</p>';
+    }
+
+    if (!state.admin.adminTopicsLoaded) {
+        loadAdminTopics(subjectId);
+        return body + '<div class="loading-spinner"><div class="spinner"></div><p>Loading topics...</p></div>';
+    }
+
+    body += '<div class="card" style="margin-bottom:16px">' +
+        '<p style="font-size:14px;font-weight:600;margin:0 0 12px">➕ Add New Topic</p>' +
+        '<input class="field" id="admin-new-topic-name" placeholder="Topic name e.g. Algebra" value="' + esc(state.admin.newTopicName || '') + '" style="margin-bottom:8px" />' +
+        '<button class="btn btn-green" data-action="admin-create-topic" data-subject="' + subjectId + '">Create Topic</button>' +
+        '</div>';
+
+    const topics = state.admin.adminTopicsList || [];
+    if (topics.length === 0) {
+        body += '<p style="text-align:center;color:var(--faint);padding:12px 0">No topics yet for this subject.</p>';
+        return body;
+    }
+
+    body += '<p class="section-label">Topics</p>';
+    topics.forEach(function(t) {
+        const isSelected = state.admin.adminSelectedTopicId === t.id;
+        body += '<div class="admin-mode-card" data-action="admin-select-topic" data-topicid="' + t.id + '">' +
+            '<div class="mode-info">' +
+            '<span class="mode-name">' + esc(t.name) + (isSelected ? ' (viewing)' : '') + '</span>' +
+            '<span class="mode-count">' + (t.question_count || 0) + ' questions</span>' +
+            '</div>' +
+            '<div class="mode-actions">' +
+            '<span class="edit-icon" style="background:var(--danger)" data-action="admin-delete-topic" data-topicid="' + t.id + '">🗑️</span>' +
+            '</div>' +
+            '</div>';
+    });
+
+    if (!state.admin.adminSelectedTopicId) return body;
+
+    if (!state.admin.adminTopicQuestionsLoaded) {
+        loadAdminTopicQuestions(state.admin.adminSelectedTopicId);
+        return body + '<div class="loading-spinner"><div class="spinner"></div><p>Loading questions...</p></div>';
+    }
+
+    body += '<p class="section-label" style="margin-top:16px">Questions in this topic</p>';
+    const tqs = state.admin.adminTopicQuestions || [];
+    if (tqs.length === 0) {
+        body += '<p style="text-align:center;color:var(--faint);padding:12px 0">No questions in this topic yet.</p>';
+    } else {
+        tqs.forEach(function(q) {
+            const isEditing = state.admin.editingQuestionId === q.id;
+            if (isEditing) {
+                let editOptsHtml = "";
+                for (let i = 0; i < 4; i++) {
+                    editOptsHtml += (
+                        '<div class="opt-row">' +
+                        '<input type="radio" name="edit-correct" value="' + i + '"' + (q.correct_answer === i ? ' checked' : '') +
+                        ' data-action="edit-correct" />' +
+                        '<input class="field" data-action="edit-opt" data-idx="' + i + '" placeholder="Option ' + (i + 1) +
+                        '" value="' + esc(q.options[i] || '') + '" />' +
+                        '</div>'
+                    );
+                }
+                body += (
+                    '<div class="edit-form">' +
+                    '<label class="field-label">Question text</label>' +
+                    '<textarea class="field" id="edit-text" rows="2" style="margin-bottom:8px">' + esc(q.text) + '</textarea>' +
+                    '<label class="field-label">Options</label>' +
+                    editOptsHtml +
+                    '<label class="field-label">Explanation</label>' +
+                    '<textarea class="field" id="edit-explanation" rows="2" style="margin-bottom:8px">' + esc(q.explanation || '') + '</textarea>' +
+                    '<div style="display:flex;gap:8px">' +
+                    '<button class="btn btn-green" style="flex:1" data-action="admin-save-topic-question-edit" data-qid="' + q.id + '">Save</button>' +
+                    '<button class="btn btn-outline" style="flex:0.5" data-action="cancel-edit">Cancel</button>' +
+                    '</div>' +
+                    '</div>'
+                );
+            } else {
+                let optsList = '<ul class="admin-list">';
+                (q.options || []).forEach(function(o, oi) {
+                    optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') + '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
+                });
+                optsList += '</ul>';
+                body += (
+                    '<div class="saved-question-item">' +
+                    '<div class="q-header">' +
+                    '<p class="q-text">' + esc(q.text) + '</p>' +
+                    '<div class="q-actions">' +
+                    '<button class="mini-btn edit" data-action="edit-question" data-qid="' + q.id + '">✏️</button>' +
+                    '<button class="mini-btn danger" data-action="admin-delete-topic-question" data-qid="' + q.id + '">×</button>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="q-options">' + optsList + '</div>' +
+                    (q.explanation ? '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + esc(q.explanation) + '</div>' : '') +
+                    '</div>'
+                );
+            }
+        });
+    }
+
+    let optsHtml = "";
+    for (let i = 0; i < 4; i++) {
+        optsHtml += (
+            '<div class="opt-row">' +
+            '<input type="radio" name="qform-correct" value="' + i + '"' + (state.admin.qCorrect === i ? ' checked' : '') +
+            ' data-action="qform-correct" />' +
+            '<input class="field" data-action="qform-opt" data-idx="' + i + '" placeholder="Option ' + (i + 1) +
+            '" value="' + esc(state.admin.qOpts[i]) + '" />' +
+            '</div>'
+        );
+    }
+
+    body += (
+        '<div class="card" style="margin-top:16px">' +
+        '<p style="font-size:14px;font-weight:600;margin:0 0 12px">➕ Add Question to This Topic</p>' +
+        '<textarea class="field" rows="3" data-action="qform-text" style="margin-bottom:10px" placeholder="Enter question...">' +
+        esc(state.admin.qText) + '</textarea>' +
+        '<label class="field-label">Options (tick the correct one)</label>' +
+        optsHtml +
+        '<label class="field-label">Explanation (shown after answering)</label>' +
+        '<textarea class="field" rows="2" data-action="qform-explanation" style="margin-bottom:10px" placeholder="Explain why this answer is correct...">' +
+        esc(state.admin.qExplanation) + '</textarea>' +
+        '<button class="btn btn-green" data-action="admin-add-topic-question" data-topicid="' + state.admin.adminSelectedTopicId + '">Save Question</button>' +
+        '</div>'
+    );
+
+    return body;
 }
 
 // ============================================================
@@ -8296,62 +9118,70 @@ function renderAdminFlagged() {
 function renderAdminActivation() {
     let plansHtml = "";
     state.activationPlans.forEach(function(plan) {
-        plansHtml += (
-            '<div class="plan-card">' +
-            '<div>' +
-            '<span class="plan-name">' + esc(plan.name) + '</span>' +
-            '<span style="font-size:11px;color:var(--muted);margin-left:8px">' + plan.days + ' days</span>' +
-            '</div>' +
-            '<div>' +
-            '<span class="plan-price">₦' + plan.price.toLocaleString() + '</span>' +
-            '<div class="plan-actions">' +
-            '<button class="mini-btn edit" data-action="admin-edit-plan" data-planid="' + plan.id +
-            '">✏️</button>' +
-            '<button class="mini-btn danger" data-action="admin-delete-plan" data-planid="' + plan.id +
-            '">×</button>' +
-            '</div>' +
-            '</div>' +
-            '</div>'
-        );
+        if (state.admin.editingPlanId === plan.id) {
+            plansHtml += (
+                '<div class="plan-card" style="flex-direction:column;align-items:stretch;gap:8px">' +
+                '<input class="field" id="edit-plan-name-' + plan.id + '" value="' + esc(plan.name) + '" placeholder="Plan name" />' +
+                '<input class="field" id="edit-plan-days-' + plan.id + '" type="number" value="' + plan.days + '" placeholder="Days" />' +
+                '<input class="field" id="edit-plan-price-' + plan.id + '" type="number" value="' + plan.price + '" placeholder="Price" />' +
+                '<div style="display:flex;gap:8px">' +
+                '<button class="btn btn-green" style="flex:1" data-action="admin-save-plan-edit" data-planid="' + plan.id + '">Save</button>' +
+                '<button class="btn btn-outline" style="flex:1" data-action="admin-cancel-plan-edit">Cancel</button>' +
+                '</div>' +
+                '</div>'
+            );
+        } else {
+            plansHtml += (
+                '<div class="plan-card">' +
+                '<div>' +
+                '<span class="plan-name">' + esc(plan.name) + '</span>' +
+                '<span style="font-size:11px;color:var(--muted);margin-left:8px">' + plan.days + ' days</span>' +
+                '</div>' +
+                '<div>' +
+                '<span class="plan-price">₦' + plan.price.toLocaleString() + '</span>' +
+                '<div class="plan-actions">' +
+                '<button class="mini-btn edit" data-action="admin-edit-plan" data-planid="' + plan.id + '">✏️</button>' +
+                '<button class="mini-btn danger" data-action="admin-delete-plan" data-planid="' + plan.id + '">×</button>' +
+                '</div>' +
+                '</div>' +
+                '</div>'
+            );
+        }
     });
 
-    let usersHtml = "";
-    state.allUsers.forEach(function(user) {
-        const isActive = user.is_active !== false;
-        const expiry = user.activation_expiry ? new Date(user.activation_expiry) : null;
-        usersHtml += (
-            '<div class="admin-user-row">' +
-            '<div class="user-info">' +
-            '<span class="user-name">' + esc(user.username) + '</span>' +
-            '<span class="user-email">' + esc(user.email || '') + '</span>' +
-            (expiry ? '<span style="font-size:10px;color:var(--muted)">Expires: ' + expiry.toLocaleDateString() +
-                '</span>' : '') +
-            '</div>' +
-            '<span class="user-status ' + (isActive ? 'active' : 'inactive') + '">' +
-            (isActive ? '✅ Active' : '⛔ Inactive') +
-            '</span>' +
-            '<div class="user-actions">' +
-            '<select class="field" style="width:100px;padding:4px 8px;font-size:11px" data-action="admin-activate-plan" data-userid="' +
-            user.id + '">' +
-            '<option value="">Select plan</option>' +
-            state.activationPlans.map(function(p) {
-                return '<option value="' + p.id + '">' + esc(p.name) + ' (₦' + p.price + ')</option>';
-            }).join('') +
-            '</select>' +
-            (isActive ?
-                '<button class="mini-btn danger" data-action="admin-deactivate-user" data-userid="' + user
-                .id + '">Deactivate</button>' :
-                '<button class="mini-btn primary" data-action="admin-activate-user" data-userid="' + user
-                .id + '">Activate</button>'
-            ) +
-            '</div>' +
-            '</div>'
-        );
+    let planOptions = '<option value="">Select a plan</option>';
+    state.activationPlans.forEach(function(plan) {
+        planOptions += '<option value="' + plan.id + '">' + esc(plan.name) + ' — ₦' +
+            plan.price.toLocaleString() + ' (' + plan.days + ' days)</option>';
     });
+
+    let keysHtml = "";
+    if (!state.adminKeysLoaded) {
+        keysHtml = '<div class="loading-spinner"><div class="spinner"></div><p>Loading keys...</p></div>';
+        loadActivationKeys();
+    } else if (state.adminKeys.length === 0) {
+        keysHtml = '<p style="font-size:12px;color:var(--faint);text-align:center;padding:16px 0">No activation keys generated yet.</p>';
+    } else {
+        state.adminKeys.forEach(function(k) {
+            keysHtml += (
+                '<div class="admin-user-row">' +
+                '<div class="user-info">' +
+                '<span class="user-name" style="font-family:var(--font-mono);letter-spacing:0.03em">' + esc(k.key_code) + '</span>' +
+                '<span class="user-email">' + esc(k.plan_name || '') + ' · ₦' + (k.price || 0).toLocaleString() +
+                ' · ' + (k.days || 0) + ' days</span>' +
+                (k.is_used ? '<span class="user-email">Used by ' + esc(k.used_by_username || 'Unknown') + ' · ' +
+                    formatTimeAgo(k.used_at) + '</span>' : '') +
+                '</div>' +
+                '<span class="user-status ' + (k.is_used ? 'inactive' : 'active') + '">' +
+                (k.is_used ? '🔒 Used' : '✅ Available') + '</span>' +
+                '</div>'
+            );
+        });
+    }
 
     return (
         '<div class="card" style="margin-bottom:16px">' +
-        '<p style="font-size:14px;font-weight:600;margin:0 0 12px">🔑 Activation Plans</p>' +
+        '<p style="font-size:14px;font-weight:600;margin:0 0 12px">🗂️ Manage Plans</p>' +
         '<div style="margin-bottom:12px">' +
         '<label class="field-label">Plan Name</label>' +
         '<input class="field" id="admin-plan-name" placeholder="e.g. 1 Month" style="margin-bottom:8px" />' +
@@ -8363,14 +9193,16 @@ function renderAdminActivation() {
         '</div>' +
         plansHtml +
         '</div>' +
-        '<div class="card">' +
-        '<p style="font-size:14px;font-weight:600;margin:0 0 12px">👥 User Activation</p>' +
-        '<p style="font-size:12px;color:var(--muted);margin-bottom:12px">Select a user and assign an activation plan</p>' +
-        usersHtml +
-        '</div>'
+        '<div class="card" style="margin-bottom:16px">' +
+        '<p style="font-size:14px;font-weight:600;margin:0 0 12px">🔑 Generate Activation Key</p>' +
+        '<label class="field-label">Choose a plan</label>' +
+        '<select class="field" id="admin-key-plan-select" style="margin-bottom:12px">' + planOptions + '</select>' +
+        '<button class="btn btn-gold" data-action="admin-generate-key">Generate Key</button>' +
+        '</div>' +
+        '<p class="section-label">All Generated Keys (' + state.adminKeys.length + ')</p>' +
+        keysHtml
     );
 }
-
 // ============================================================
 //  DRAWER
 // ============================================================
@@ -9275,6 +10107,136 @@ if (action === 'close-passage') {
         return;
     }
 
+    // ADMIN TOPIC PRACTICE MANAGEMENT
+    if (action === 'admin-create-topic') {
+        const subjectId = el.getAttribute('data-subject');
+        const name = (document.getElementById('admin-new-topic-name')?.value || '').trim();
+        if (!name) { showToast('Enter a topic name.', 'error'); return; }
+        supabase.from('topics').insert([{ subject_id: subjectId, name: name }]).then(function() {
+            showToast('Topic created!', 'success');
+            state.admin.newTopicName = '';
+            state.admin.adminTopicsLoaded = false;
+            loadAdminTopics(subjectId);
+        }).catch(function(err) {
+            console.error('Create topic error:', err);
+            showToast('Error creating topic.', 'error');
+        });
+        return;
+    }
+
+    if (action === 'admin-select-topic') {
+        const topicId = el.getAttribute('data-topicid');
+        state.admin.adminSelectedTopicId = topicId;
+        state.admin.adminTopicQuestionsLoaded = false;
+        state.admin.adminTopicQuestions = [];
+        state.admin.editingQuestionId = null;
+        loadAdminTopicQuestions(topicId);
+        return;
+    }
+
+    if (action === 'admin-delete-topic') {
+        const topicId = el.getAttribute('data-topicid');
+        if (!confirm('Delete this topic and all its questions?')) return;
+        supabase.from('topic_questions').delete().eq('topic_id', topicId).then(function() {
+            return supabase.from('topics').delete().eq('id', topicId);
+        }).then(function() {
+            showToast('Topic deleted.', 'success');
+            if (state.admin.adminSelectedTopicId === topicId) {
+                state.admin.adminSelectedTopicId = null;
+            }
+            state.admin.adminTopicsLoaded = false;
+            loadAdminTopics(state.admin.adminTopicSubject);
+        }).catch(function(err) {
+            console.error('Delete topic error:', err);
+            showToast('Error deleting topic.', 'error');
+        });
+        return;
+    }
+
+    if (action === 'admin-add-topic-question') {
+        const topicId = el.getAttribute('data-topicid');
+        const text = state.admin.qText || '';
+        const opts = state.admin.qOpts.map(function(o) { return o || ''; });
+        const explanation = state.admin.qExplanation || '';
+
+        if (!text || opts.some(function(o) { return !o; })) {
+            showToast('Fill in question text and all 4 options.', 'error');
+            return;
+        }
+
+        supabase.from('topic_questions').insert([{
+            topic_id: topicId,
+            text: text,
+            options: opts,
+            correct_answer: state.admin.qCorrect,
+            explanation: explanation,
+        }]).then(function() {
+            showToast('Question added!', 'success');
+            state.admin.qText = '';
+            state.admin.qOpts = ['', '', '', ''];
+            state.admin.qCorrect = 0;
+            state.admin.qExplanation = '';
+            state.admin.adminTopicQuestionsLoaded = false;
+            state.admin.adminTopicsLoaded = false;
+            loadAdminTopicQuestions(topicId);
+            loadAdminTopics(state.admin.adminTopicSubject);
+        }).catch(function(err) {
+            console.error('Add topic question error:', err);
+            showToast('Error adding question.', 'error');
+        });
+        return;
+    }
+
+    if (action === 'admin-delete-topic-question') {
+        const qid = el.getAttribute('data-qid');
+        if (!confirm('Delete this question?')) return;
+        supabase.from('topic_questions').delete().eq('id', qid).then(function() {
+            showToast('Question deleted.', 'success');
+            state.admin.adminTopicQuestionsLoaded = false;
+            state.admin.adminTopicsLoaded = false;
+            loadAdminTopicQuestions(state.admin.adminSelectedTopicId);
+            loadAdminTopics(state.admin.adminTopicSubject);
+        }).catch(function(err) {
+            console.error('Delete topic question error:', err);
+            showToast('Error deleting question.', 'error');
+        });
+        return;
+    }
+
+    if (action === 'admin-save-topic-question-edit') {
+        const qid = el.getAttribute('data-qid');
+        const text = document.getElementById('edit-text')?.value?.trim() || '';
+        const explanation = document.getElementById('edit-explanation')?.value?.trim() || '';
+        const options = [];
+        for (let i = 0; i < 4; i++) {
+            const opt = document.querySelector('[data-action="edit-opt"][data-idx="' + i + '"]')?.value?.trim() || '';
+            options.push(opt);
+        }
+        const correctRadio = document.querySelector('[data-action="edit-correct"]:checked');
+        const correct = correctRadio ? parseInt(correctRadio.value) : 0;
+
+        if (!text || options.some(function(o) { return !o; })) {
+            showToast('Fill in all fields.', 'error');
+            return;
+        }
+
+        supabase.from('topic_questions').update({
+            text: text,
+            options: options,
+            correct_answer: correct,
+            explanation: explanation,
+        }).eq('id', qid).then(function() {
+            showToast('Question updated!', 'success');
+            state.admin.editingQuestionId = null;
+            state.admin.adminTopicQuestionsLoaded = false;
+            loadAdminTopicQuestions(state.admin.adminSelectedTopicId);
+        }).catch(function(err) {
+            console.error('Update topic question error:', err);
+            showToast('Error updating question.', 'error');
+        });
+        return;
+    }
+
     if (action === 'start-topic-practice') {
         startTopicPractice();
         return;
@@ -9799,6 +10761,10 @@ if (action === 'show-mock-passage') {
         state.admin.viewModeYear = null;
         state.admin.searchQuery = '';
         state.admin.editingQuestionId = null;
+        state.admin.adminTopicSubject = null;
+        state.admin.adminTopicsLoaded = false;
+        state.admin.adminSelectedTopicId = null;
+        state.admin.adminTopicQuestionsLoaded = false;
         render();
         return;
     }
@@ -9900,7 +10866,7 @@ if (action === 'show-mock-passage') {
         }
 
         const qYear = (type === 'exam' || type === 'mock') ? year : null;
-        const actualType = type === 'literature' ? 'cbt' : type === 'topic' ? 'subject' : type;
+        const actualType = type === 'literature' ? 'NOVEL (CBT)' : type === 'topic' ? 'subject' : type;
 
         supabase.from('questions').insert([{
             subject_id: subject,
@@ -10331,16 +11297,77 @@ if (action === 'show-mock-passage') {
     return;
 }
 
-    if (action === 'admin-delete-plan') {
-        const planId = el.getAttribute('data-planid');
-        adminDeletePlan(planId);
+    if (action === 'admin-add-plan') {
+        adminAddPlan();
         return;
     }
 
-    if (action === 'admin-activate-plan') {
-        const userId = el.getAttribute('data-userid');
-        const planId = el.value;
-        adminActivateUserPlan(userId, planId);
+    if (action === 'admin-edit-plan') {
+        state.admin.editingPlanId = el.getAttribute('data-planid');
+        render();
+        return;
+    }
+
+    if (action === 'admin-cancel-plan-edit') {
+        state.admin.editingPlanId = null;
+        render();
+        return;
+    }
+
+    if (action === 'admin-save-plan-edit') {
+        const planId = el.getAttribute('data-planid');
+        const name = document.getElementById('edit-plan-name-' + planId)?.value?.trim() || '';
+        const days = parseInt(document.getElementById('edit-plan-days-' + planId)?.value || 0);
+        const price = parseInt(document.getElementById('edit-plan-price-' + planId)?.value || 0);
+        if (!name || days <= 0) { showToast('Enter plan name and days.', 'error'); return; }
+        supabase.from('activation_plans').update({ name: name, days: days, price: price }).eq('id', planId).then(function() {
+            showToast('Plan updated!', 'success');
+            state.admin.editingPlanId = null;
+            loadActivationPlans().then(function() { render(); });
+        }).catch(function(err) {
+            console.error('Update plan error:', err);
+            showToast('Error updating plan.', 'error');
+        });
+        return;
+    }
+
+    if (action === 'admin-add-plan') {
+        adminAddPlan();
+        return;
+    }
+
+    if (action === 'admin-edit-plan') {
+        state.admin.editingPlanId = el.getAttribute('data-planid');
+        render();
+        return;
+    }
+
+    if (action === 'admin-cancel-plan-edit') {
+        state.admin.editingPlanId = null;
+        render();
+        return;
+    }
+
+    if (action === 'admin-save-plan-edit') {
+        const planId = el.getAttribute('data-planid');
+        const name = document.getElementById('edit-plan-name-' + planId)?.value?.trim() || '';
+        const days = parseInt(document.getElementById('edit-plan-days-' + planId)?.value || 0);
+        const price = parseInt(document.getElementById('edit-plan-price-' + planId)?.value || 0);
+        if (!name || days <= 0) { showToast('Enter plan name and days.', 'error'); return; }
+        supabase.from('activation_plans').update({ name: name, days: days, price: price }).eq('id', planId).then(function() {
+            showToast('Plan updated!', 'success');
+            state.admin.editingPlanId = null;
+            loadActivationPlans().then(function() { render(); });
+        }).catch(function(err) {
+            console.error('Update plan error:', err);
+            showToast('Error updating plan.', 'error');
+        });
+        return;
+    }
+
+    if (action === 'admin-delete-plan') {
+        const planId = el.getAttribute('data-planid');
+        adminDeletePlan(planId);
         return;
     }
 
@@ -10359,19 +11386,69 @@ if (action === 'show-mock-passage') {
         return;
     }
 
+    if (action === 'admin-generate-key') {
+        const planId = document.getElementById('admin-key-plan-select')?.value || '';
+        if (!planId) { showToast('Select a plan first.', 'error'); return; }
+        adminGenerateKey(planId);
+        return;
+    }
+
     // ACTIVATE
     if (action === 'activate-submit') {
-        state.activateStatus = state.activateCode.trim() ? 'pending' : 'empty';
+        const code = document.getElementById('activate-code-input')?.value || state.activateCode || '';
+        state.activateCode = code;
+        redeemActivationKey(code);
+        return;
+    }
+
+    if (action === 'paste-activation-code') {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            navigator.clipboard.readText().then(function(text) {
+                state.activateCode = (text || '').trim();
+                render();
+            }).catch(function() {
+                showToast('Could not read clipboard. Please paste manually.', 'error');
+            });
+        } else {
+            showToast('Clipboard access not supported here. Please paste manually.', 'error');
+        }
+        return;
+    }
+
+    if (action === 'copy-text') {
+        copyToClipboard(el.getAttribute('data-copy') || '');
+        return;
+    }
+
+    if (action === 'open-help-community') {
+        window.open(WHATSAPP_CHANNEL_URL, '_blank');
+        return;
+    }
+
+    if (action === 'select-plan') {
+        state.selectedPlanId = el.getAttribute('data-planid');
         render();
         return;
     }
 
-    // NOTIFICATION IMAGE UPLOAD
-    if (action === 'notif-image-upload') {
-        document.getElementById('admin-notif-image')?.click();
+    if (action === 'select-payment-method') {
+        state.selectedPaymentMethod = el.getAttribute('data-method');
+        render();
         return;
     }
 
+    if (action === 'checkout-plan') {
+        const plan = state.activationPlans.find(function(p) { return p.id === state.selectedPlanId; });
+        if (!plan) { showToast('Select a plan first.', 'error'); return; }
+        const methodMeta = PAYMENT_METHODS.find(function(pm) { return pm.key === state.selectedPaymentMethod; });
+        const msg = 'Hi, I would like to activate MyUTME.\n\n' +
+            'Plan: ' + plan.name + ' (₦' + plan.price.toLocaleString() + ' / ' + plan.days + ' days)\n' +
+            'Payment method: ' + (methodMeta ? methodMeta.label : state.selectedPaymentMethod) + '\n' +
+            'My username: ' + (state.profile.name || 'Guest');
+        const waUrl = 'https://wa.me/?text=' + encodeURIComponent(msg);
+        window.open(waUrl, '_blank');
+        return;
+    }
     if (action === 'notif-remove-image') {
         state.admin.notifImage = null;
         state.admin.notifImageData = null;
@@ -10542,7 +11619,34 @@ if (action === 'show-mock-passage') {
         return;
     }
 
-    // REVISE WEAK QUESTIONS
+    // REVISE WEAK QUESTIONS - NAVIGATION
+    if (action === 'revise-select-mode') {
+        state.reviseMode = el.getAttribute('data-mode');
+        state.reviseView = 'subjects';
+        render();
+        return;
+    }
+    if (action === 'revise-select-subject') {
+        state.reviseSubject = el.getAttribute('data-subject');
+        state.reviseView = 'questions';
+        render();
+        return;
+    }
+    if (action === 'revise-back-to-modes') {
+        state.reviseView = 'modes';
+        state.reviseMode = null;
+        state.reviseSubject = null;
+        render();
+        return;
+    }
+    if (action === 'revise-back-to-subjects') {
+        state.reviseView = 'subjects';
+        state.reviseSubject = null;
+        render();
+        return;
+    }
+
+    // REVISE WEAK QUESTIONS - QUESTION INTERACTIONS
     if (action === 'weak-toggle-view') {
         const wid = el.getAttribute('data-wid');
         state.weakQuestionStates['view_' + wid] = !state.weakQuestionStates['view_' + wid];
@@ -10552,8 +11656,11 @@ if (action === 'show-mock-passage') {
 
     if (action === 'weak-toggle-reattempt') {
         const wid = el.getAttribute('data-wid');
-        state.weakQuestionStates['reattempt_' + wid] = !state.weakQuestionStates['reattempt_' + wid];
+        const opening = !state.weakQuestionStates['reattempt_' + wid];
+        state.weakQuestionStates['reattempt_' + wid] = opening;
         state.weakQuestionStates['answer_' + wid] = null;
+        delete state.weakQuestionStates['result_' + wid];
+        if (opening) state.weakQuestionStates['view_' + wid] = false;
         render();
         return;
     }
@@ -10561,29 +11668,18 @@ if (action === 'show-mock-passage') {
     if (action === 'weak-reattempt-answer') {
         const wid = el.getAttribute('data-wid');
         const idx = parseInt(el.getAttribute('data-idx'), 10);
-        state.weakQuestionStates['answer_' + wid] = idx;
-        render();
-        return;
-    }
-
-    if (action === 'weak-submit-reattempt') {
-        const wid = el.getAttribute('data-wid');
         const wq = state.weakQuestions.find(function(w) { return w.id === wid; });
-        if (!wq) { showToast('Question not found.', 'error'); return; }
-        
-        const answer = state.weakQuestionStates['answer_' + wid];
-        if (answer === null || answer === undefined) {
-            showToast('Please select an answer.', 'error');
-            return;
-        }
-        
+        if (!wq || !wq.questions) { showToast('Question not found.', 'error'); return; }
+
         const q = wq.questions;
-        const isCorrect = answer === q.correct_answer;
-        
+        const isCorrect = idx === q.correct_answer;
+
+        state.weakQuestionStates['answer_' + wid] = idx;
+        state.weakQuestionStates['result_' + wid] = isCorrect;
+        render();
+
         if (isCorrect) {
-            // Remove from weak questions
             removeWeakQuestion(state.authUser.id, wq.question_id).then(function() {
-                // Save to history
                 saveHistoryEntry({
                     mode: 'revise',
                     subjects: [q.subject_name || 'Unknown'],
@@ -10595,20 +11691,60 @@ if (action === 'show-mock-passage') {
                     submitted_at: new Date().toISOString(),
                     exam_title: 'Revise: ' + (q.subject_name || 'Question'),
                 });
-                showToast('✅ Correct! Removed from weak list.', 'success');
-                state.weakQuestionsLoaded = false;
-                state.weakQuestionStates = {};
-                loadWeakQuestions();
-            })
-        } else {
-            // Update timestamp + record the new wrong answer
-            saveWeakQuestion(state.authUser.id, wq.question_id, wq.subject_id, 'revise', answer, q.correct_answer).then(function() {
-                showToast('❌ Wrong again. Still in weak list.', 'error');
-                state.weakQuestionsLoaded = false;
-                state.weakQuestionStates = {};
-                loadWeakQuestions();
             });
+        } else {
+            saveWeakQuestion(state.authUser.id, wq.question_id, wq.subject_id, wq.mode, idx, q.correct_answer);
         }
+        return;
+    }
+
+    if (action === 'weak-next-question') {
+        const wid = el.getAttribute('data-wid');
+        const mode = state.reviseMode;
+        const subjectId = state.reviseSubject;
+
+        let list = state.weakQuestions.filter(function(w) {
+            return (w.mode || 'unknown') === mode && w.subject_id === subjectId;
+        });
+        list.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+        const currentIdx = list.findIndex(function(w) { return w.id === wid; });
+
+        state.weakQuestionStates['reattempt_' + wid] = false;
+        state.weakQuestionStates['answer_' + wid] = null;
+        delete state.weakQuestionStates['result_' + wid];
+
+        state.weakQuestionsLoaded = false;
+        loadWeakQuestions().then(function() {
+            const refreshedList = state.weakQuestions.filter(function(w) {
+                return (w.mode || 'unknown') === mode && w.subject_id === subjectId;
+            });
+            refreshedList.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+            const nextWq = refreshedList[currentIdx] || refreshedList[0];
+            if (nextWq) {
+                state.weakQuestionStates['reattempt_' + nextWq.id] = true;
+            }
+            render();
+        });
+        return;
+    }
+
+    if (action === 'weak-remove-question') {
+        const wid = el.getAttribute('data-wid');
+        const qid = el.getAttribute('data-qid');
+        if (!state.authUser) { showToast('Please login first.', 'error'); return; }
+        if (!confirm('Remove this question from your weak list?')) return;
+
+        removeWeakQuestion(state.authUser.id, qid).then(function() {
+            showToast('Removed from weak list.', 'success');
+            delete state.weakQuestionStates['view_' + wid];
+            delete state.weakQuestionStates['reattempt_' + wid];
+            delete state.weakQuestionStates['answer_' + wid];
+            delete state.weakQuestionStates['result_' + wid];
+            state.weakQuestionsLoaded = false;
+            loadWeakQuestions();
+        }).catch(function() {
+            showToast('Error removing question.', 'error');
+        });
         return;
     }
 
@@ -10738,6 +11874,12 @@ document.addEventListener('change', function(e) {
     } else if (id === 'admin-view-subject-filter') {
         state.admin.viewModeSubject = e.target.value || '';
         render();
+    } else if (id === 'admin-topic-subject-select') {
+        state.admin.adminTopicSubject = e.target.value || null;
+        state.admin.adminTopicsLoaded = false;
+        state.admin.adminSelectedTopicId = null;
+        state.admin.adminTopicQuestionsLoaded = false;
+        render();
     }
 });
 
@@ -10769,6 +11911,8 @@ document.addEventListener('input', function(e) {
     } else if (id === 'docs-search-input') {
         state.docsSearchQuery = e.target.value;
         render();
+    } else if (id === 'admin-new-topic-name') {
+        state.admin.newTopicName = e.target.value;
     } else if (action === 'qform-text') state.admin.qText = e.target.value;
     else if (action === 'qform-explanation') state.admin.qExplanation = e.target.value;
     else if (action === 'qform-opt') {
