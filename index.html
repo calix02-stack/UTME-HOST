@@ -9219,7 +9219,8 @@ function renderAdminSettings() {
         SUBJECTS.map(function(s) { return '<option value="' + s.id + '">' + esc(s.name) + '</option>'; }).join('') +
         '</select>' +
         '<button class="btn btn-outline" style="margin-bottom:8px" data-action="export-subject-file">⬇️ Export This Subject</button>' +
-        '<button class="btn btn-green" data-action="sync-subject-files-now">🔄 Sync All Subject Files Now</button>' +
+        '<button class="btn btn-green" style="margin-bottom:8px" data-action="sync-subject-files-now">🔄 Sync All Subject Files Now</button>' +
+        '<button class="btn btn-outline" data-action="force-sync-subject-file">🔁 Force Replace This Subject (deletes local copies not in file)</button>' +
         '</div>' +
         '<div class="card" style="margin-top:16px">' +
         '<p style="font-size:14px;font-weight:600;margin:0 0 12px">📦 Offline Question Data</p>' +
@@ -11439,6 +11440,20 @@ if (action === 'show-mock-passage') {
             const found = Object.keys(results).filter(function(k) { return results[k]; }).length;
             showToast('Synced ' + found + ' subject file(s) found on server.', 'success');
             state.allQuestions = [];
+            loadAllQuestionsForAdmin();
+            loadAllQuestionsCount();
+            render();
+        });
+        return;
+    }
+
+    if (action === 'force-sync-subject-file') {
+        const subjectId = document.getElementById('admin-export-subject-select')?.value || '';
+        if (!subjectId) { showToast('Select a subject first.', 'error'); return; }
+        if (!confirm('This will DELETE all local ' + subjectId + ' questions not present in the uploaded file, then reload from it. Continue?')) return;
+        window.OfflineDB.forceSyncSubjectFile(subjectId).then(function(result) {
+            if (!result) { showToast('No file found for this subject, or sync failed.', 'error'); return; }
+            showToast('Subject forcibly resynced from file.', 'success');
             loadAllQuestionsForAdmin();
             loadAllQuestionsCount();
             render();
