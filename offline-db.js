@@ -1,4 +1,3 @@
-
 // ============================================================
 // OFFLINE-DB.JS — Complete Offline Question Database
 // ============================================================
@@ -580,6 +579,37 @@ async function syncAllSubjectFiles(subjectIds) {
     return results;
 }
 
+// Force-replace: wipes local data for this subject FIRST, then loads fresh from the file.
+// Use this after deleting questions, to guarantee stale local copies can't survive.
+async function forceSyncSubjectFile(subjectId) {
+    try {
+        const response = await fetch('questions-' + subjectId + '.json', { cache: 'no-store' });
+        if (!response.ok) return null;
+        const data = await response.json();
+
+        const allQuestions = await dbGetAll('questions');
+        for (const q of allQuestions.filter(function(q) { return q.subject_id === subjectId; })) {
+            await dbDelete('questions', q.id);
+        }
+        const allPassages = await dbGetAll('passages');
+        for (const p of allPassages.filter(function(p) { return p.subject_id === subjectId; })) {
+            await dbDelete('passages', p.id);
+        }
+        const allTopics = await dbGetAll('topics');
+        const subjectTopics = allTopics.filter(function(t) { return t.subject_id === subjectId; });
+        const allTQs = await dbGetAll('topic_questions');
+        for (const t of subjectTopics) {
+            for (const tq of allTQs.filter(function(tq) { return tq.topic_id === t.id; })) {
+                await dbDelete('topic_questions', tq.id);
+            }
+            await dbDelete('topics', t.id);
+        }
+
+        return await upsertSubjectData(data);
+    } catch (e) {
+        return null;
+    }
+}
 // Build a downloadable file with everything for ONE subject
 async function exportSubjectData(subjectId) {
     const allQuestions = await dbGetAll('questions');
@@ -685,6 +715,7 @@ window.OfflineDB = {
     syncSubjectFile,
     syncAllSubjectFiles,
     exportSubjectData,
+    forceSyncSubjectFile,
     
     // Cache
     getCachedQuestions,
