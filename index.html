@@ -12576,6 +12576,10 @@ async function init() {
         if (window.OfflineDB && typeof window.OfflineDB.syncAllSubjectFiles === 'function') {
             window.OfflineDB.syncAllSubjectFiles(subjectIds).then(function() {
                 storage.set('lastSubjectFileSync', String(Date.now()));
+                if (state.view === 'admin') {
+                    loadAllQuestionsForAdmin();
+                    loadAllQuestionsCountOffline();
+                }
                 render();
             });
         } else {
