@@ -5477,10 +5477,11 @@ async function startLiteratureCbt() {
     state.isLoading = true;
     render();
     
-    // Use LHM for Normal Literature Mode
     const litSubject = SUBJECTS.find(function(s) { return s.id === 'lhm'; });
     if (!litSubject) { state.isLoading = false; render(); return; }
-    const questions = await window.OfflineDB.loadQuestionsOffline('NOVEL (CBT)', 'lhm');
+    
+    // --- FIX: Use getQuestionsOffline instead of loadQuestionsOffline ---
+    const questions = await window.OfflineDB.getQuestionsOffline('NOVEL (CBT)', 'lhm');
     state.isLoading = false;
     
     if (questions.length === 0) {
