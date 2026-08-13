@@ -9212,6 +9212,16 @@ function renderAdminSettings() {
         '<button class="btn btn-green" data-action="admin-save-settings">Save Settings</button>' +
         '</div>' +
         '<div class="card" style="margin-top:16px">' +
+        '<p style="font-size:14px;font-weight:600;margin:0 0 12px">📁 Per-Subject Question Files</p>' +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 12px">Export one subject at a time, upload the file next to your index.html on your server (e.g. <b>questions-eng.json</b>). Every user\'s app auto-syncs these files periodically — this is now the safe, permanent way to distribute questions.</p>' +
+        '<label class="field-label">Subject</label>' +
+        '<select class="field" id="admin-export-subject-select" style="margin-bottom:8px">' +
+        SUBJECTS.map(function(s) { return '<option value="' + s.id + '">' + esc(s.name) + '</option>'; }).join('') +
+        '</select>' +
+        '<button class="btn btn-outline" style="margin-bottom:8px" data-action="export-subject-file">⬇️ Export This Subject</button>' +
+        '<button class="btn btn-green" data-action="sync-subject-files-now">🔄 Sync All Subject Files Now</button>' +
+        '</div>' +
+        '<div class="card" style="margin-top:16px">' +
         '<p style="font-size:14px;font-weight:600;margin:0 0 12px">📦 Offline Question Data</p>' +
         '<p style="font-size:12px;color:var(--muted);margin:0 0 12px">Export all CBT / Exam / Mock / Novel / Topic Practice questions, passages, and topics currently stored on this device as <b>questions-seed.json</b>, then redeploy that file next to index.html so new installs start pre-seeded. Import loads a seed or backup file into this device.</p>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">' +
@@ -11412,6 +11422,30 @@ if (action === 'show-mock-passage') {
         return;
     }
 
+    if (action === 'export-subject-file') {
+        const subjectId = document.getElementById('admin-export-subject-select')?.value || '';
+        if (!subjectId) { showToast('Select a subject first.', 'error'); return; }
+        window.OfflineDB.exportSubjectData(subjectId).then(function() {
+            showToast('Exported questions-' + subjectId + '.json — upload it next to your index.html.', 'success');
+        });
+        return;
+    }
+
+    if (action === 'sync-subject-files-now') {
+        showToast('Syncing question files...', '');
+        const subjectIds = SUBJECTS.map(function(s) { return s.id; });
+        window.OfflineDB.syncAllSubjectFiles(subjectIds).then(function(results) {
+            storage.set('lastSubjectFileSync', String(Date.now()));
+            const found = Object.keys(results).filter(function(k) { return results[k]; }).length;
+            showToast('Synced ' + found + ' subject file(s) found on server.', 'success');
+            state.allQuestions = [];
+            loadAllQuestionsForAdmin();
+            loadAllQuestionsCount();
+            render();
+        });
+        return;
+    }
+
     if (action === 'admin-save-settings') {
     const cbtQs = parseInt(document.getElementById('admin-cbt-questions')?.value || 40);
     const cbtTime = parseFloat(document.getElementById('admin-cbt-time')?.value || 1.67) * 60;
@@ -12528,8 +12562,26 @@ async function init() {
     // so we still await them, but splash is already showing by now.
     await loadSettings();
     await checkAuthSession();
-    await seedOfflineDataIfNeeded();
+    if (typeof seedOfflineDataIfNeeded === 'function') {
+        await seedOfflineDataIfNeeded();
+    } else {
+        console.warn('seedOfflineDataIfNeeded is not defined — skipping offline seed.');
+    }
     render();
+
+    // Auto-sync per-subject question files (safe: only adds/updates, never deletes)
+    const lastSync = parseInt(storage.get('lastSubjectFileSync') || '0', 10);
+    if (Date.now() - lastSync > 12 * 60 * 60 * 1000) {
+        const subjectIds = SUBJECTS.map(function(s) { return s.id; });
+        if (window.OfflineDB && typeof window.OfflineDB.syncAllSubjectFiles === 'function') {
+            window.OfflineDB.syncAllSubjectFiles(subjectIds).then(function() {
+                storage.set('lastSubjectFileSync', String(Date.now()));
+                render();
+            });
+        } else {
+            console.warn('window.OfflineDB.syncAllSubjectFiles is not defined — skipping subject file sync.');
+        }
+    }
 
     // Everything else can load in the background and re-render when ready.
     // Each of these already calls render() internally when it finishes.
