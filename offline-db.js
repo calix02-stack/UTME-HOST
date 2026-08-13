@@ -1,3 +1,4 @@
+
 // ============================================================
 // OFFLINE-DB.JS — Complete Offline Question Database
 // ============================================================
@@ -532,6 +533,86 @@ async function isDBReady() {
     return dbReady;
 }
 
+// ============================================================
+//  PER-SUBJECT FILE SYNC
+// ============================================================
+
+// Merge one subject's data into IndexedDB (upsert by id — never deletes anything)
+async function upsertSubjectData(data) {
+    const counts = { questions: 0, passages: 0, topics: 0, topic_questions: 0 };
+    if (data.questions) {
+        for (const q of data.questions) { await dbPut('questions', q); counts.questions++; }
+        cachedQuestions = await dbGetAll('questions');
+    }
+    if (data.passages) {
+        for (const p of data.passages) { await dbPut('passages', p); counts.passages++; }
+        cachedPassages = await dbGetAll('passages');
+    }
+    if (data.topics) {
+        for (const t of data.topics) { await dbPut('topics', t); counts.topics++; }
+        cachedTopics = await dbGetAll('topics');
+    }
+    if (data.topic_questions) {
+        for (const tq of data.topic_questions) { await dbPut('topic_questions', tq); counts.topic_questions++; }
+        cachedTopicQuestions = await dbGetAll('topic_questions');
+    }
+    return counts;
+}
+
+// Fetch and merge one subject's file (questions-<subjectId>.json) if it exists on the server
+async function syncSubjectFile(subjectId) {
+    try {
+        const response = await fetch('questions-' + subjectId + '.json', { cache: 'no-store' });
+        if (!response.ok) return null; // no file uploaded for this subject yet — not an error
+        const data = await response.json();
+        return await upsertSubjectData(data);
+    } catch (e) {
+        return null; // offline or network error — keep existing local data, don't crash
+    }
+}
+
+// Sync every subject's file
+async function syncAllSubjectFiles(subjectIds) {
+    const results = {};
+    for (const id of subjectIds) {
+        results[id] = await syncSubjectFile(id);
+    }
+    return results;
+}
+
+// Build a downloadable file with everything for ONE subject
+async function exportSubjectData(subjectId) {
+    const allQuestions = await dbGetAll('questions');
+    const allPassages = await dbGetAll('passages');
+    const allTopics = await dbGetAll('topics');
+    const allTopicQuestions = await dbGetAll('topic_questions');
+
+    const questions = allQuestions.filter(function(q) { return q.subject_id === subjectId; });
+    const passages = allPassages.filter(function(p) { return p.subject_id === subjectId; });
+    const topics = allTopics.filter(function(t) { return t.subject_id === subjectId; });
+    const topicIds = topics.map(function(t) { return t.id; });
+    const topic_questions = allTopicQuestions.filter(function(tq) { return topicIds.indexOf(tq.topic_id) !== -1; });
+
+    const data = {
+        version: '1.0',
+        subject_id: subjectId,
+        exportedAt: new Date().toISOString(),
+        questions, passages, topics, topic_questions,
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'questions-' + subjectId + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return data;
+}
+
+
 // ---- CACHE HELPERS ----
 
 function getCachedQuestions() {
@@ -601,6 +682,9 @@ window.OfflineDB = {
     exportOfflineData,
     importOfflineData,
     seedOfflineDataIfNeeded,
+    syncSubjectFile,
+    syncAllSubjectFiles,
+    exportSubjectData,
     
     // Cache
     getCachedQuestions,
@@ -620,5 +704,12 @@ window.deleteTopicQuestionOffline = deleteTopicQuestionOffline;
 window.exportOfflineData = exportOfflineData;
 window.importOfflineData = importOfflineData;
 window.seedOfflineDataIfNeeded = seedOfflineDataIfNeeded;
+window.dbGetAll = dbGetAll;
+window.dbGet = dbGet;
+window.dbPut = dbPut;
+window.dbDelete = dbDelete;
+window.dbTransaction = dbTransaction;
+window.dbIndexGetAll = dbIndexGetAll;
+window.openDB = openDB;
 
 console.log('Offline-DB.js loaded successfully!');
