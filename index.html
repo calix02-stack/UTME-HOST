@@ -6,15 +6,28 @@
 <link rel="manifest" href="manifest.json" />            
 <meta name="theme-color" content="#0F6B3F" />
 <meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="JAMB CBT App" />
+<meta property="og:site_name" content="JAMB CBT App" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "JAMB CBT App",
+  "alternateName": "MyUTME",
+  "url": "https://myutme.name.ng"
+}
+</script>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="JAMB CBT App" />
 <link rel="apple-touch-icon" href="https://myutme.name.ng/icon-192.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="https://myutme.name.ng/icon-192.png" />
 <link rel="shortcut icon" href="https://myutme.name.ng/icon-192.png" />
 <title>JAMB CBT Practice App – Free UTME Mock Exams & Past Questions</title>
-<meta name="description" content="Practice JAMB CBT free with real exam-style questions, timed mock exams, past questions, and topic-by-topic drills. The easiest way to prepare for UTME on your phone." />
+<meta name="description" content="Free JAMB CBT app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions, and drill topics subject by subject. The easiest JAMB CBT practice app to prepare for UTME on your phone." />
 <style>
+    /* ============================================================
+       CSS VARIABLES & RESET
+       ============================================================ */
     :root {
         --green: #0F6B3F;
         --green-dark: #0A4A2B;
@@ -66,6 +79,7 @@
         --flag-color: #f1c40f;
     }
 
+    /* Anti-screenshot */
     * {
         -webkit-touch-callout: none;
         -webkit-user-select: none;
@@ -147,7 +161,8 @@
     }
 
     #splash {
-        min-height: 100vh;
+        height: 100vh;
+        height: 100dvh;
         width: 100%;
         display: flex;
         align-items: center;
@@ -157,6 +172,7 @@
         cursor: pointer;
         user-select: none;
         transition: background 0.3s;
+        overflow: hidden;
     }
     #splash .box {
         width: 100%;
@@ -319,6 +335,10 @@
         padding: 20px 16px 40px;
         background: var(--bg);
         transition: background 0.3s;
+        position: relative;
+    }
+    .view:has(.picker-footer) {
+        padding-bottom: 110px;
     }
 
     .back-link {
@@ -569,23 +589,23 @@
 
     .subject-grid {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(4, 1fr);
         gap: 10px;
         margin-bottom: 18px;
     }
     .subject-chip {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 12px;
-        padding: 14px 16px;
-        border-radius: 12px;
-        border: 1.5px solid var(--line);
+        gap: 6px;
+        padding: 6px 2px;
+        border-radius: 14px;
+        border: 1.5px solid transparent;
         transition: transform .1s ease, border-color 0.2s;
         background: var(--card-bg);
         cursor: pointer;
-        width: 100%;
     }
-    .subject-chip:active { transform: scale(0.98); }
+    .subject-chip:active { transform: scale(0.94); }
     .subject-chip.selected {
         border-color: var(--ink);
         background: #FBF3E3;
@@ -596,9 +616,9 @@
     }
 
     .subject-badge {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -606,27 +626,30 @@
         font-family: var(--font-mono);
         font-weight: 700;
         font-size: 11px;
-        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+        position: relative;
     }
-    .subject-chip.selected .subject-badge { opacity: 0.8; }
+    .subject-chip.selected .subject-badge::after {
+        content: "✓";
+        position: absolute;
+        bottom: -3px;
+        right: -3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid var(--card-bg);
+    }
     .subject-chip .sname {
-        font-size: 13px;
-        text-align: left;
+        font-size: 10px;
+        text-align: center;
         line-height: 1.15;
         color: var(--ink);
-        flex: 1;
-    }
-    .subject-chip .stag {
-        font-size: 10px;
-        color: var(--muted);
-        background: var(--bg);
-        padding: 2px 10px;
-        border-radius: 999px;
-        flex-shrink: 0;
-    }
-    .subject-chip .stag.required {
-        background: var(--green);
-        color: #fff;
     }
 
     .compulsory-row {
@@ -653,11 +676,15 @@
     }
 
     .picker-footer {
-        position: sticky;
+        position: absolute;
+        left: 0;
+        right: 0;
         bottom: 0;
+        z-index: 15;
         background: var(--bg);
-        padding-top: 10px;
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
         border-top: 1px solid var(--line);
+        box-shadow: 0 -6px 16px rgba(0,0,0,0.06);
         transition: background 0.3s, border-color 0.3s;
     }
     .picker-count {
@@ -729,6 +756,7 @@
         margin: 4px 0 0;
     }
 
+    /* Exam Top Bar */
     .exam-top-bar {
         display: flex;
         align-items: center;
@@ -824,6 +852,7 @@
         color: var(--muted);
     }
 
+    /* Subject Tabs */
     .subject-tabs {
         display: flex;
         gap: 6px;
@@ -1112,6 +1141,7 @@
     }
     .result-card .subj-score:last-child { border-bottom: none; }
 
+    /* History Card Styles */
     .history-card {
         background: var(--card-bg);
         border: 1px solid var(--line);
@@ -1452,6 +1482,7 @@
     }
     .auth-modal .switch-link button:hover { color: var(--green-dark); }
 
+    /* Reset Password Modal */
     .reset-overlay {
         position: fixed;
         inset: 0;
@@ -1481,6 +1512,7 @@
         to { opacity: 1; transform: scale(1); }
     }
 
+    /* SUBMIT MODAL */
     .submit-overlay {
         position: fixed;
         inset: 0;
@@ -1546,6 +1578,7 @@
     }
     .submit-modal .btn-group .btn { flex: 1; }
 
+    /* Attempted Questions Modal */
     .attempt-overlay {
         position: fixed;
         inset: 0;
@@ -1602,17 +1635,17 @@
         color: var(--green);
         text-decoration: underline;
     }
-
+    /* Calculator Modal */
     .calc-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 100;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.6);
-        padding: 20px;
-    }
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 20px;
+}
     .calc-modal {
         background: var(--modal-bg);
         border-radius: 20px;
@@ -2189,7 +2222,7 @@
     }
 
     @media (max-width: 400px) {
-        .subject-grid { grid-template-columns: 1fr; }
+        .subject-grid { grid-template-columns: repeat(3, 1fr); }
         .home-grid { grid-template-columns: 1fr 1fr; }
         .auth-btn { font-size: 10px; padding: 4px 8px; }
         .brand span { font-size: 15px; }
@@ -2521,7 +2554,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 <script src="https://js.paystack.co/v1/inline.js"></script>
+<script src="offline-db.js"></script>
 <script>
 // ============================================================
 //  SUPABASE SETUP
@@ -2530,7 +2565,14 @@ const SUPABASE_URL = "https://msivcbkvuwawbkczpwix.supabase.co";
 const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zaXZjYmt2dXdhd2JrY3pwd2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4ODg0MDcsImV4cCI6MjA5OTQ2NDQwN30.pEOeuet0fOQhA9YNlaxV2L0KJumt9P3LTyD2bIOzXmI";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: window.localStorage,
+    },
+});
 
 // ===== PUSH NOTIFICATIONS =====
 const VAPID_PUBLIC_KEY = "BGJrYWOxcZHHoOWRKDq04O60_LCHxQhc5izRGIYgzwGCOXQO0xdZ2qT-wsPlWVyy6z24MKcFEQGkdehjSoiPuog";
@@ -2611,7 +2653,7 @@ const SUBJECTS = [
     { id: "com", code: "COM", name: "Commerce" },
     { id: "acc", code: "ACC", name: "Accounting" }, 
     { id: "lit", code: "LIT", name: "Literature", type: "cbt" },
-    { id: "lhm", code: "LHM", name: "The Lekki Headmaster", type: "literature" },
+{ id: "lhm", code: "LHM", name: "The Lekki Headmaster", type: "literature" },
     { id: "crs", code: "CRS", name: "CRS" },
     { id: "irs", code: "IRS", name: "IRS" },
     { id: "his", code: "HIS", name: "History" },
@@ -2736,7 +2778,7 @@ function formatDate(dateStr) {
 function getJambCountdown() {
     const now = new Date();
     const year = now.getFullYear();
-    let target = new Date(year, 3, 15);
+    let target = new Date(year, 3, 15); // April 15
     if (now > target) {
         target = new Date(year + 1, 3, 15);
     }
@@ -2744,14 +2786,12 @@ function getJambCountdown() {
     const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
     return { days: days, year: target.getFullYear() };
 }
-
 function isAdmin() {
     return state.profile.email && state.profile.email.toLowerCase() === ADMIN_EMAIL;
 }
-
 function isUserActive() {
     if (isAdmin()) return true;
-    if (!state.authUser) return false;
+    if (!state.authUser) return false; // guests are never "active" — banner should show
     if (!state.profile.is_active) return false;
     if (state.profile.activation_expiry) {
         const expiry = new Date(state.profile.activation_expiry);
@@ -2759,7 +2799,6 @@ function isUserActive() {
     }
     return true;
 }
-
 function unreadCount() {
     return state.notifsUnreadCount || 0;
 }
@@ -2860,14 +2899,14 @@ let state = {
     cbtSubjectOrder: [],
     cbtCurrentSubject: null,
     englishBatchTracker: 1,
-    currentEnglishPassage: null,
-    hasPassage: false,
-    passageRead: false,
-    passageQuestionIds: [],
-    engMockPassage: null,
-    engMockHasPassage: false,
-    engMockPassageRead: false,
-    engMockPassageId: null,
+currentEnglishPassage: null,
+hasPassage: false,
+passageRead: false,
+passageQuestionIds: [],
+engMockPassage: null,
+engMockHasPassage: false,
+engMockPassageRead: false,
+engMockPassageId: null,
 
     examSubject: null,
     examYear: 2026,
@@ -2925,6 +2964,9 @@ let state = {
     litHistorySaved: false,
     litReviewMode: false,
 
+    syllabusViewSubject: null,
+    docFilterSubject: null,
+
     weakQuestions: [],
     weakQuestionsLoaded: false,
     weakModeTimer: null,
@@ -2935,8 +2977,8 @@ let state = {
     weakModeFinished: false,
     weakModeSubmitted: false,
     weakModeReviewMode: false,
-    weakQuestionStates: {},
-    reviseView: 'modes',
+    weakQuestionStates: {}, // track expanded/reattempt state per question
+    reviseView: 'modes',      // 'modes' | 'subjects' | 'questions'
     reviseMode: null,
     reviseSubject: null,
 
@@ -2956,10 +2998,18 @@ let state = {
         qExplanation: "",
         qSubject: "",
         qYear: null,
+        questionsPerSubject: 40,
+        cbtTimeLimit: 100,
+        subjectTimeLimit: 25,
+        mockTimeLimit: 100,
+        mockQuestionsPerSubject: 40,
         editingQuestionId: null,
         docSubject: "",
         docName: "",
         docFile: null,
+        syllabusSubject: null,
+        syllabusText: "",
+        syllabusFile: null,
         mockTitle: "",
         mockScheduledDate: "",
         mockRegistrationDeadline: "",
@@ -2975,6 +3025,7 @@ let state = {
         submitModalData: null,
         calculatorEnabled: true,
         editingQuestionData: null,
+        // New settings
         examTimeLimit: 100,
         novelTimeLimit: 100,
         topicTimeLimit: 60,
@@ -2990,6 +3041,7 @@ let state = {
         notifyTitle: "",
         notifyBody: "",
         editingPlanId: null,
+        // Topic Practice admin management
         adminTopicSubject: null,
         adminTopicsList: [],
         adminTopicsLoaded: false,
@@ -2997,12 +3049,6 @@ let state = {
         adminTopicQuestions: [],
         adminTopicQuestionsLoaded: false,
         newTopicName: "",
-        adminQuestionsPerSubject: 40,
-        subjectQuestionsPerSubject: 40,
-        cbtTimeLimit: 100,
-        subjectTimeLimit: 25,
-        mockTimeLimit: 100,
-        mockQuestionsPerSubject: 40,
     },
     adminLoading: false,
     questionCounts: {},
@@ -3011,6 +3057,8 @@ let state = {
     docsLoaded: false,
     docsList: [],
     docsSearchQuery: "",
+    syllabusLoaded: false,
+    syllabusData: null,
     topicsLoaded: false,
     topicsList: [],
     topicsSubjectId: null,
@@ -3042,22 +3090,22 @@ let state = {
     adminSelectedSupportUsername: null,
     adminSupportMessages: [],
     settingsCache: {
-        cbtQuestionsPerSubject: 40,
-        cbtTimeLimit: 100,
-        subjectQuestionsPerSubject: 40,
-        subjectTimeLimit: 25,
-        mockQuestionsPerSubject: 40,
-        mockTimeLimit: 100,
-        calculatorEnabled: true,
-        examTimeLimit: 100,
-        novelTimeLimit: 100,
-        topicTimeLimit: 60,
-        reviseTimeLimit: 60,
-        cbtSubjectCount: 3,
-        mockSubjectCount: 4,
-        underConstruction: false,
-        constructionReopenTime: null,
-    },
+    cbtQuestionsPerSubject: 40,
+    cbtTimeLimit: 100,
+    subjectQuestionsPerSubject: 40,
+    subjectTimeLimit: 25,
+    mockQuestionsPerSubject: 40,
+    mockTimeLimit: 100,
+    calculatorEnabled: true,
+    examTimeLimit: 100,
+    novelTimeLimit: 100,
+    topicTimeLimit: 60,
+    reviseTimeLimit: 60,
+    cbtSubjectCount: 3,
+    mockSubjectCount: 4,
+    underConstruction: false,
+    constructionReopenTime: null,
+},
 
     showSubmitModal: false,
     submitModalData: null,
@@ -3067,27 +3115,40 @@ let state = {
     calcDisplay: "0",
     calcExpression: "",
     calcJustEvaluated: false,
+    // Password visibility tracking
     showPassword: {},
     
+    // Flag modal
     showFlagModal: false,
     flagModalData: null,
     showPassageModal: false,
     
+    
+    // History
     historyLoaded: false,
     historyEntries: [],
     
+    // Admin notify modal
     showNotifyModal: false,
     notifyModalData: null,
     
+      // Flagged questions count
     flaggedCount: 0,
     
+    // Under Construction
     underConstruction: false,
     constructionReopenTime: null,
 };
 
 // ============================================================
-//  DATABASE FUNCTIONS
+//  DATABASE FUNCTIONS - REMOVED (now in offline-db.js)
 // ============================================================
+// loadQuestions, loadPassage, loadAllQuestionsCount, 
+// getQuestionsForAdmin, loadTopics, loadTopicQuestions,
+// loadAdminTopics, loadAdminTopicQuestions, loadHistory,
+// saveHistoryEntry, saveWeakQuestion, removeWeakQuestion,
+// loadWeakQuestions have been REMOVED.
+
 async function loadAllUsers() {
     try {
         const { data, error } = await supabase
@@ -3155,6 +3216,7 @@ async function loadLeaderboard(type) {
         }
 
         const scores = data || [];
+        // Deduplicate by user_id, keeping highest score
         const scoreMap = {};
         scores.forEach(function(s) {
             if (!scoreMap[s.user_id] || s.score > scoreMap[s.user_id].score) {
@@ -3206,6 +3268,7 @@ async function loadSubjectLeaderboard(subjectId) {
         }
 
         const scores = data || [];
+        // Deduplicate by user_id, keeping highest score
         const scoreMap = {};
         scores.forEach(function(s) {
             if (!scoreMap[s.user_id] || s.score > scoreMap[s.user_id].score) {
@@ -3292,129 +3355,83 @@ async function saveScore(type, data) {
     }
 }
  
-async function loadQuestions(type, subjectId, year, limit, batchNumber) {
-    try {
-        let query = supabase
-            .from('questions')
-            .select('*')
-            .eq('subject_id', subjectId)
-            .eq('type', type);
+// loadQuestions removed - now in offline-db.js
+// loadPassage removed - now in offline-db.js
+// loadAllQuestionsCount removed - now in offline-db.js
+// getQuestionsForAdmin removed - now in offline-db.js
 
-        if (year) query = query.eq('year', year);
-        if (batchNumber) query = query.eq('batch_number', batchNumber);
-
-        const settings = await loadSettings();
-        let lmt = limit || 40;
-        if (type === 'cbt') lmt = settings.cbtQuestionsPerSubject || 40;
-        else if (type === 'exam') lmt = 40;
-        else if (type === 'subject') lmt = settings.subjectQuestionsPerSubject || 40;
-        else if (type === 'mock') lmt = settings.mockQuestionsPerSubject || 40;
-        else if (type === 'NOVEL (CBT)') lmt = 40;
-
-        const { data, error } = await query.order('display_order', { ascending: true }).limit(lmt);
-        if (error) {
-            console.warn("Load questions error:", error);
-            return [];
-        }
-        return data || [];
-    } catch (e) {
-        console.warn("Load questions exception:", e);
-        return [];
-    }
-}
-
-async function loadPassage(batchNumber) {
-    try {
-        const { data, error } = await supabase
-            .from('passages')
-            .select('*')
-            .eq('batch_number', batchNumber)
-            .eq('subject_id', 'eng')
-            .maybeSingle();
-            
-        if (error) {
-            console.warn("Load passage error:", error);
-            return null;
-        }
-        return data || null;
-    } catch (e) {
-        console.warn("Load passage exception:", e);
-        return null;
-    }
+async function loadAllQuestionsCountOffline() {
+  try {
+    const allQuestions = await dbGetAll('questions');
+    const counts = {};
+    allQuestions.forEach(function(q) {
+      const key = q.type + ':' + q.subject_id;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  } catch (e) {
+    console.warn("Load question counts exception:", e);
+    return {};
+  }
 }
 
 async function loadAllQuestionsCount() {
-    try {
-        let allQs = [];
-        let from = 0;
-        const pageSize = 1000;
-
-        while (true) {
-            const { data, error } = await supabase
-                .from('questions')
-                .select('*')
-                .range(from, from + pageSize - 1);
-
-            if (error) {
-                console.warn("Load question counts error:", error);
-                break;
-            }
-            if (!data || data.length === 0) break;
-
-            allQs = allQs.concat(data);
-            if (data.length < pageSize) break;
-            from += pageSize;
-        }
-
-        const counts = {};
-        allQs.forEach(function(q) {
-            const key = q.type + ':' + q.subject_id;
-            counts[key] = (counts[key] || 0) + 1;
-        });
-
-        state.questionCounts = counts;
-        state.allQuestions = allQs;
-        render();
-        return counts;
-    } catch (e) {
-        console.warn("Load question counts exception:", e);
-        state.questionCounts = {};
-        state.allQuestions = [];
-        render();
-        return {};
-    }
+  return await loadAllQuestionsCountOffline();
 }
 
-async function getQuestionsForAdmin(type, subjectId, year) {
+async function loadAllQuestionsForAdmin() {
     try {
-        let query = supabase
-            .from('questions')
-            .select('*')
-            .eq('subject_id', subjectId)
-            .eq('type', type);
-
-        if (year) query = query.eq('year', year);
-
-        const { data, error } = await query.order('created_at', { ascending: false });
-        if (error) {
-            console.warn("Load admin questions error:", error);
-            return [];
-        }
-        return data || [];
+        const all = await dbGetAll('questions');
+        state.allQuestions = all || [];
+        render();
     } catch (e) {
-        console.warn("Load admin questions exception:", e);
-        return [];
+        console.warn('Load all questions for admin error:', e);
+        state.allQuestions = [];
+    }
+}
+const OFFLINE_CACHE_PREFIX = 'myutme_cache_';
+
+function saveOfflineCache(key, data) {
+    try { storage.set(OFFLINE_CACHE_PREFIX + key, JSON.stringify({ data: data, savedAt: Date.now() })); } catch (e) {}
+}
+function loadOfflineCache(key) {
+    try {
+        const raw = storage.get(OFFLINE_CACHE_PREFIX + key);
+        if (!raw) return null;
+        return JSON.parse(raw).data;
+    } catch (e) { return null; }
+}
+function isOnline() { return navigator.onLine !== false; }
+
+async function cacheAllDataForOffline() {
+    if (!state.authUser || !isOnline()) return;
+    try {
+        const settings = await loadSettings();
+        const eng = SUBJECTS.find(function(s) { return s.compulsory; });
+        const cbtSubjects = SUBJECTS.filter(function(s) { return s.id !== 'lhm'; });
+
+        for (const subj of cbtSubjects) {
+            const qs = await window.OfflineDB.loadQuestionsOffline('cbt', subj.id, null, settings.cbtQuestionsPerSubject || 40);
+            if (qs.length > 0) saveOfflineCache('cbt_' + subj.id, qs);
+        }
+        saveOfflineCache('settings', settings);
+        showToast('Offline data ready — CBT works without internet now.', 'success');
+    } catch (e) {
+        console.warn('Offline cache build error:', e);
     }
 }
 
 async function loadSettings() {
+    if (!isOnline()) {
+        const cached = loadOfflineCache('settings');
+        if (cached) return cached;
+    }
     try {
         const { data, error } = await supabase.from('admin_settings').select('*');
         if (error) {
             console.warn("Load settings error:", error);
-            return state.settingsCache;
+            return loadOfflineCache('settings') || state.settingsCache;
         }
-
         const settings = {};
         (data || []).forEach(function(s) { settings[s.setting_key] = s.setting_value; });
 
@@ -3484,159 +3501,8 @@ async function loadSingleDocumentFile(docId) {
     }
 }
 
-async function loadTopics(subjectId) {
-    try {
-        const { data, error } = await supabase
-            .from('topics')
-            .select('*')
-            .eq('subject_id', subjectId)
-            .order('name');
-        if (error) {
-            console.warn("Load topics error:", error);
-            state.topicsList = [];
-            state.topicsSubjectId = subjectId;
-            state.topicsLoaded = true;
-            render();
-            return;
-        }
-        let topics = data || [];
-        if (topics.length > 0) {
-            const topicIds = topics.map(function(t) { return t.id; });
-            const { data: countRows, error: countError } = await supabase
-                .from('topic_questions')
-                .select('topic_id')
-                .in('topic_id', topicIds);
-            if (!countError && countRows) {
-                const counts = {};
-                countRows.forEach(function(row) {
-                    counts[row.topic_id] = (counts[row.topic_id] || 0) + 1;
-                });
-                topics = topics.map(function(t) {
-                    return Object.assign({}, t, { question_count: counts[t.id] || 0 });
-                });
-            }
-        }
-        state.topicsList = topics;
-        state.topicsSubjectId = subjectId;
-        state.topicsLoaded = true;
-        render();
-    } catch (e) {
-        console.warn("Load topics exception:", e);
-        state.topicsList = [];
-        state.topicsSubjectId = subjectId;
-        state.topicsLoaded = true;
-        render();
-    }
-}
-
-async function loadTopicQuestions(topicId) {
-    try {
-        const { data, error } = await supabase
-            .from('topic_questions')
-            .select('*')
-            .eq('topic_id', topicId)
-            .order('created_at', { ascending: false });
-        if (error) {
-            console.warn("Load topic questions error:", error);
-            return [];
-        }
-        return data || [];
-    } catch (e) {
-        console.warn("Load topic questions exception:", e);
-        return [];
-    }
-}
-
-async function loadAdminTopics(subjectId) {
-    state.admin.adminTopicsLoaded = false;
-    render();
-    try {
-        const { data, error } = await supabase
-            .from('topics')
-            .select('*')
-            .eq('subject_id', subjectId)
-            .order('name');
-        if (error) {
-            console.warn("Load admin topics error:", error);
-            state.admin.adminTopicsList = [];
-            state.admin.adminTopicsLoaded = true;
-            render();
-            return;
-        }
-        let topics = data || [];
-        if (topics.length > 0) {
-            const topicIds = topics.map(function(t) { return t.id; });
-            const { data: countRows, error: countError } = await supabase
-                .from('topic_questions')
-                .select('topic_id')
-                .in('topic_id', topicIds);
-            if (!countError && countRows) {
-                const counts = {};
-                countRows.forEach(function(row) {
-                    counts[row.topic_id] = (counts[row.topic_id] || 0) + 1;
-                });
-                topics = topics.map(function(t) {
-                    return Object.assign({}, t, { question_count: counts[t.id] || 0 });
-                });
-            }
-        }
-        state.admin.adminTopicsList = topics;
-        state.admin.adminTopicsLoaded = true;
-        render();
-    } catch (e) {
-        console.warn("Load admin topics exception:", e);
-        state.admin.adminTopicsList = [];
-        state.admin.adminTopicsLoaded = true;
-        render();
-    }
-}
-
-async function loadAdminTopicQuestions(topicId) {
-    state.admin.adminTopicQuestionsLoaded = false;
-    render();
-    try {
-        const { data, error } = await supabase
-            .from('topic_questions')
-            .select('*')
-            .eq('topic_id', topicId)
-            .order('created_at', { ascending: false });
-        if (error) {
-            console.warn("Load admin topic questions error:", error);
-            state.admin.adminTopicQuestions = [];
-            state.admin.adminTopicQuestionsLoaded = true;
-            render();
-            return;
-        }
-        state.admin.adminTopicQuestions = data || [];
-        state.admin.adminTopicQuestionsLoaded = true;
-        render();
-    } catch (e) {
-        console.warn("Load admin topic questions exception:", e);
-        state.admin.adminTopicQuestions = [];
-        state.admin.adminTopicQuestionsLoaded = true;
-        render();
-    }
-}
-
-async function loadAdminQuestions(type, subjectId, year) {
-    const key = type + ':' + subjectId + ':' + (year || '');
-    if (state.adminQuestionsLoaded && state.adminQuestionsKey === key) return;
-
-    state.adminQuestionsLoaded = false;
-    state.adminQuestionsList = [];
-    state.adminQuestionsKey = key;
-
-    try {
-        const questions = await getQuestionsForAdmin(type, subjectId, year);
-        state.adminQuestionsList = questions || [];
-        state.adminQuestionsKey = key;
-        state.adminQuestionsLoaded = true;
-        render();
-    } catch (e) {
-        state.adminQuestionsLoaded = true;
-        render();
-    }
-}
+// loadTopics removed - now in offline-db.js
+// loadTopicQuestions removed - now in offline-db.js
 
 // ============================================================
 //  HISTORY FUNCTIONS
@@ -3675,7 +3541,6 @@ async function loadHistory() {
         render();
     }
 }
-
 async function saveHistoryEntry(entry) {
     if (!state.authUser) return;
     
@@ -3750,7 +3615,6 @@ async function saveWeakQuestion(userId, questionId, subjectId, mode, userAnswer,
         console.warn("Save weak question error:", e.message || e);
     }
 }
-
 async function removeWeakQuestion(userId, questionId) {
     if (!userId || !questionId) return;
     
@@ -3785,6 +3649,7 @@ async function saveFlaggedQuestion(userId, username, questionId, subjectId, mode
                 resolved: false,
             }]);
             
+        // Also save to weak questions
         await saveWeakQuestion(userId, questionId, subjectId, mode);
     } catch (e) {
         console.warn("Save flagged question error:", e);
@@ -3803,6 +3668,7 @@ async function loadFlaggedQuestions(filter) {
         } else if (filter === 'resolved') {
             query = query.eq('resolved', true);
         }
+        // 'all' shows everything
         
         const { data: flags, error } = await query;
         if (error) {
@@ -3811,6 +3677,8 @@ async function loadFlaggedQuestions(filter) {
         }
         if (!flags || flags.length === 0) return [];
 
+        // Fetch matching questions separately (avoids relying on a
+        // PostgREST-recognized foreign key relationship)
         const questionIds = [...new Set(flags.map(function(f) { return f.question_id; }).filter(Boolean))];
         let questionsById = {};
         if (questionIds.length > 0) {
@@ -3833,7 +3701,6 @@ async function loadFlaggedQuestions(filter) {
         return [];
     }
 }
-
 async function resolveFlaggedQuestions(questionId) {
     try {
         await supabase
@@ -3855,6 +3722,12 @@ async function loadNotifications() {
             .select('*')
             .order('created_at', { ascending: false });
             
+        // If user is logged in, only show broadcast or their own targeted notifications
+        if (state.authUser) {
+            // We'll filter client-side since we need to support both null and specific user_id
+            // The query returns all, then we filter in JS
+        }
+        
         const { data, error } = await query;
         if (error) {
             console.warn("Load notifications error:", error);
@@ -3864,6 +3737,7 @@ async function loadNotifications() {
             return;
         }
 
+        // Filter: show if target_user_id is null (broadcast) OR matches the user's id
         const userId = state.authUser?.id;
         state.notifsList = (data || []).filter(function(n) {
             return !n.target_user_id || n.target_user_id === userId;
@@ -3964,6 +3838,7 @@ async function signUp(username, email, password) {
     render();
 
     try {
+        // Check if username already exists
         const { data: existing, error: checkErr } = await supabase
             .from('profiles')
             .select('username')
@@ -3987,6 +3862,7 @@ async function signUp(username, email, password) {
         if (error) throw error;
 
         if (data.user) {
+            // Insert profile with username check constraint
             await supabase
                 .from('profiles')
                 .insert([{ id: data.user.id, username: username, email: email, is_active: false }]);
@@ -4024,7 +3900,9 @@ async function signIn(emailOrUsername, password) {
     try {
         let email = emailOrUsername;
         
+        // Check if input is a username (doesn't contain @)
         if (!emailOrUsername.includes('@')) {
+            // Look up the user by username
             const { data: userData, error: userError } = await supabase
                 .from('profiles')
                 .select('email')
@@ -4079,6 +3957,7 @@ async function signIn(emailOrUsername, password) {
             state.loginPassword = "";
             showToast("Welcome back, " + state.profile.name + " 👋", "success");
             render();
+            cacheAllDataForOffline();
         }
     } catch (err) {
         state.authError = err.message || "Login failed. Check your email/username and password.";
@@ -4232,11 +4111,13 @@ async function registerForMock(mockExamId, subjects) {
     const settings = await loadSettings();
     const requiredSubjects = settings.mockSubjectCount || 4;
     
+    // User selects 3 subjects, English is compulsory (total = 4)
     if (subjects.length !== 3) { 
         showToast('Please select exactly 3 subjects (English is compulsory).', 'error'); 
         return; 
     }
     
+    // Always include English first
     const allSubjects = ['eng', ...subjects];
     
     try {
@@ -4296,6 +4177,8 @@ async function startMockExam(mockExamId) {
         let allQuestions = [];
         const subjects = reg.subjects;
 
+        // Reset English passage state for this run; it will be re-populated
+        // below either from the resumed attempt or from a fresh batch pick.
         state.engMockPassage = null;
         state.engMockHasPassage = false;
         state.engMockPassageRead = false;
@@ -4318,6 +4201,7 @@ async function startMockExam(mockExamId) {
                         return answersObj[q.id] !== undefined ? answersObj[q.id] : null;
                     });
 
+                    // Restore English passage state so it isn't lost on resume.
                     const engQuestion = allQuestions.find(function(q) {
                         return q.subject_id === 'eng' && q.batch_number;
                     });
@@ -4332,6 +4216,9 @@ async function startMockExam(mockExamId) {
                             state.engMockPassage = passage;
                             state.engMockHasPassage = true;
                             state.engMockPassageId = passage.id;
+                            // If the candidate had already answered an English
+                            // question in this attempt, treat the passage as read;
+                            // otherwise make them read it before continuing.
                             const anyEngAnswered = allQuestions.some(function(q, idx) {
                                 return q.subject_id === 'eng' &&
                                     state.mockAnswers[idx] !== null &&
@@ -4340,7 +4227,7 @@ async function startMockExam(mockExamId) {
                             state.engMockPassageRead = anyEngAnswered;
                         }
                     } else {
-                        state.engMockPassageRead = true;
+                        state.engMockPassageRead = true; // no English/no passage to gate on
                     }
                     
                     const settings = await loadSettings();
@@ -4416,6 +4303,8 @@ async function startMockExam(mockExamId) {
                         availableBatches = batches.map(function(b) { return b.batch_number; });
                     }
 
+                    // Randomize WHICH batch we try first — but never shuffle the
+                    // questions inside a batch once it's chosen.
                     const batchTryOrder = shuffleArray(availableBatches);
 
                     for (const selectedBatch of batchTryOrder) {
@@ -4455,10 +4344,13 @@ async function startMockExam(mockExamId) {
                     }
                 }
 
+                // FALLBACK: no passage batches found (or none had mock questions) —
+                // still load English questions, in database order (no shuffling),
+                // so the subject actually appears in the mock.
                 if (!engQuestionsLoaded) {
                     state.engMockPassage = null;
                     state.engMockHasPassage = false;
-                    state.engMockPassageRead = true;
+                    state.engMockPassageRead = true; // no passage to gate on
                     state.engMockPassageId = null;
 
                     const { data: usedEngQuestions } = await supabase
@@ -4594,7 +4486,6 @@ async function startMockExam(mockExamId) {
         render();
     }
 }
-
 function buildMockSubjectGroups(questions) {
     const groups = {};
     questions.forEach(function(q, i) {
@@ -4675,6 +4566,7 @@ function doSubmitMock(autoSubmit) {
     const rawSubjectCounts = {};
     const weakQuestionsToSave = [];
 
+    // Ensure every registered subject shows up in the results, even with 0 correct
     state.mockQuestions.forEach(function(q) {
         if (!(q.subject_id in rawSubjectCounts)) rawSubjectCounts[q.subject_id] = 0;
     });
@@ -4684,16 +4576,20 @@ function doSubmitMock(autoSubmit) {
         if (isCorrect) {
             rawSubjectCounts[q.subject_id]++;
         } else {
+            // Wrong answer - save to weak questions
             weakQuestionsToSave.push({ questionId: q.id, subjectId: q.subject_id, userAnswer: state.mockAnswers[i], correctAnswer: q.correct_answer });
         }
     });
 
+    // Scale each subject's raw correct count (out of 40) to a mark out of 100
     const subjectScores = {}; Object.keys(rawSubjectCounts).forEach(function(sid) {
         subjectScores[sid] = Math.round((rawSubjectCounts[sid] / 40) * 100);
     });
     
+    // FIX: Use fixed subject count from settings, not dynamic
     const subjectCount = state.settingsCache.mockSubjectCount || 4;
     let totalScore = Object.values(subjectScores).reduce(function(a, b) { return a + b; }, 0);
+    // Cap at max possible
     const maxPossible = subjectCount * 100;
     if (totalScore > maxPossible) totalScore = maxPossible;
 
@@ -4706,11 +4602,13 @@ function doSubmitMock(autoSubmit) {
         answersObj[q.id] = state.mockAnswers[i];
     });
 
+    // Save weak questions
     if (state.authUser) {
         weakQuestionsToSave.forEach(function(wq) {
             saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'mock', wq.userAnswer, wq.correctAnswer);
         });
         
+        // Save history
         const subjects = Object.keys(subjectScores);
         const subjectNames = subjects.map(function(sid) {
             const subj = SUBJECTS.find(function(s) { return s.id === sid; });
@@ -4879,10 +4777,10 @@ async function adminDeactivateUser(userId) {
 }
 
 // ============================================================
-//  ACTIVATION KEYS
+//  ACTIVATION KEYS (license key generation & redemption)
 // ============================================================
 function generateKeyString() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no confusing 0/O or 1/I
     function block() {
         let s = '';
         for (let i = 0; i < 4; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -4934,7 +4832,7 @@ async function adminGenerateKey(planId) {
         }]).select().single();
 
         if (!error) { inserted = data; break; }
-        if (error.code === '23505') {
+        if (error.code === '23505') { // duplicate key, try a new one
             key = generateKeyString();
             attempts++;
             continue;
@@ -4962,7 +4860,7 @@ function payWithPaystack(plan) {
     const handler = PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: state.profile.email || (state.authUser.email || 'noemail@example.com'),
-        amount: plan.price * 100,
+        amount: plan.price * 100, // Paystack expects kobo
         currency: 'NGN',
         ref: 'MYUTME-' + Date.now() + '-' + Math.floor(Math.random() * 100000),
         metadata: {
@@ -5107,7 +5005,7 @@ async function redeemActivationKey(rawKey) {
 }
 
 // ============================================================
-//  SUPPORT CHAT
+//  SUPPORT CHAT (AI + Admin)
 // ============================================================
 async function loadSupportMessages() {
     if (!state.authUser) { state.supportMessages = []; state.supportMessagesLoaded = true; render(); return; }
@@ -5139,48 +5037,122 @@ async function loadSupportMessages() {
     }
 }
 
-function generateAiSupportReply(userText) {
+const SUPPORT_QUICK_ISSUES = [
+    { key: 'not_active', label: '🔒 Account not activated after payment' },
+    { key: 'key_invalid', label: '🔑 License key says invalid' },
+    { key: 'key_used', label: '🔑 License key says already used' },
+    { key: 'paystack_failed', label: '💳 Paystack payment failed/declined' },
+    { key: 'paystack_charged_no_activate', label: '💳 Card was charged but app not activated' },
+    { key: 'no_receipt', label: '🧾 I did not get a receipt or key' },
+    { key: 'wrong_plan', label: '📦 I paid for the wrong plan' },
+    { key: 'manual_payment_pending', label: '💬 Sent manual payment, still waiting' },
+    { key: 'refund', label: '↩️ I want a refund' },
+    { key: 'cant_login', label: '🔐 Cannot log in to my account' },
+    { key: 'forgot_password', label: '🔐 Forgot my password' },
+    { key: 'wrong_email', label: '✉️ Signed up with the wrong email' },
+    { key: 'app_slow', label: '🐢 App is slow or freezing' },
+    { key: 'app_crash', label: '💥 App crashed or showed an error' },
+    { key: 'no_questions', label: '❓ No questions loading for a subject' },
+    { key: 'mock_result_missing', label: '🎯 Mock exam result not showing' },
+    { key: 'mock_registration', label: '🎯 Cannot register for a mock exam' },
+    { key: 'wrong_score', label: '📊 My score looks wrong' },
+    { key: 'offline_issue', label: '📶 App not working without internet' },
+    { key: 'other', label: '💭 Something else' },
+];
+
+const SUPPORT_QUICK_REPLIES = {
+    not_active: function() {
+        const isActive = isUserActive();
+        const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
+        if (isActive) {
+            return { text: '✅ Good news — your account currently shows ACTIVE' + (expiry ? ' until ' + expiry.toLocaleDateString() + '.' : '.') + ' Try fully closing and reopening the app. If it still looks locked after that, reply here and I\'ll get a human to check.', escalate: false };
+        }
+        return { text: 'Your account is showing as NOT active right now. If you already paid, please send your payment reference or a screenshot of the payment below — I\'m flagging this for our team to activate you manually.', escalate: true };
+    },
+    key_invalid: function() {
+        return { text: 'Keys are 12 characters in 3 groups of 4, like A1B2-C3D4-E5F6. Common causes: extra spaces, a typo, or mixing 0 (zero) with O (letter). Please retype it carefully. If it still says invalid, paste the exact key here and I\'ll get support to check it.', escalate: true };
+    },
+    key_used: function() {
+        return { text: 'That key has already been redeemed on an account. If this is your first time using it, someone else may have entered it by mistake, or it may have been reused from a screenshot. Please share the key here and we\'ll investigate who used it.', escalate: true };
+    },
+    paystack_failed: function() {
+        return { text: 'Paystack declines usually come from insufficient funds, bank restrictions on card-not-present payments, or an expired card. Try a different card or use bank transfer/USSD inside the Paystack popup instead. No money is deducted on a failed attempt.', escalate: false };
+    },
+    paystack_charged_no_activate: function() {
+        return { text: 'This can happen if your connection dropped right after payment before the app could confirm it. Your money is safe — Paystack has the record either way. Please send your payment reference (from your bank alert or Paystack receipt) here so support can verify and activate you.', escalate: true };
+    },
+    no_receipt: function() {
+        return { text: 'If you paid via Paystack, check your email for a receipt from Paystack directly. If you paid manually via WhatsApp, your license key is your receipt. Send me your username here and I\'ll ask support to locate your payment.', escalate: true };
+    },
+    wrong_plan: function() {
+        return { text: 'I understand — let support know which plan you meant to buy vs what you paid for, and they can adjust it for you. Please share both details here.', escalate: true };
+    },
+    manual_payment_pending: function() {
+        return { text: 'Manual payments are confirmed by our team, which can take a short while depending on how busy support is. Your message has been flagged — please hold on, someone will reply shortly to confirm.', escalate: true };
+    },
+    refund: function() {
+        return { text: 'I understand you\'d like a refund. This has to be reviewed by our support team directly — please describe why below and someone will get back to you.', escalate: true };
+    },
+    cant_login: function() {
+        return { text: 'Double-check you\'re using the right email or username, and that Caps Lock isn\'t on for your password. If you\'re sure the details are correct, try "Forgot password?" on the login screen. Still stuck? Tell me what error message you see.', escalate: false };
+    },
+    forgot_password: function() {
+        return { text: 'On the login screen, tap "Forgot password?" and enter your email — we\'ll send a reset link. Check your spam folder if it doesn\'t arrive in a few minutes.', escalate: false };
+    },
+    wrong_email: function() {
+        return { text: 'We can\'t change the login email directly for security reasons, but support can help move your activation/history to a new account. Please share both the old and correct email here.', escalate: true };
+    },
+    app_slow: function() {
+        return { text: 'Try closing other apps running in the background, and make sure you\'re on a stable connection. If it\'s consistently slow even after that, let me know your phone model and I\'ll pass it to our team to investigate.', escalate: false };
+    },
+    app_crash: function() {
+        return { text: 'Sorry about that! Please tell me exactly what you were doing when it crashed (which screen, which button) — that helps our team fix it fast. I\'ve flagged this conversation for review.', escalate: true };
+    },
+    no_questions: function() {
+        return { text: 'This usually means questions haven\'t been uploaded yet for that specific subject/mode combination. Try a different subject or mode in the meantime — I\'ve flagged this gap for our content team to fill.', escalate: true };
+    },
+    mock_result_missing: function() {
+        return { text: 'Mock exam results are released by admin after the exam window closes — they\'re not always instant. Check back on the Mock Exam page. If it\'s been over 24 hours since the mock ended, let me know which mock and I\'ll escalate it.', escalate: true };
+    },
+    mock_registration: function() {
+        return { text: 'Registration closes automatically at the deadline shown on the mock card, and each mock also has a fixed subject count. Double check you selected the right number of subjects. Still stuck? Tell me the mock name and I\'ll check for you.', escalate: true };
+    },
+    wrong_score: function() {
+        return { text: 'Scores are calculated automatically from your submitted answers, scaled to 100 per subject. If a specific question looks miskeyed, please use the "⚠️ Flag Question" button in your review screen — that goes straight to our content team. For anything else, describe the issue here.', escalate: true };
+    },
+    offline_issue: function() {
+        return { text: 'CBT Mode works offline once you\'ve logged in at least once while connected (we cache your questions automatically). Other modes like Mock Exams need internet. If CBT still isn\'t working offline, try logging in again once while connected so we can refresh your cache.', escalate: false };
+    },
+    other: function() {
+        return { text: 'No problem — please describe what\'s going on in as much detail as you can, and I\'ll do my best, or get our team to step in.', escalate: true };
+    },
+};
+
+function generateAiSupportReply(userText, issueKey) {
+    if (issueKey && SUPPORT_QUICK_REPLIES[issueKey]) {
+        return SUPPORT_QUICK_REPLIES[issueKey]();
+    }
+
     const t = (userText || '').toLowerCase();
     const isActive = isUserActive();
     const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
 
-    if (t.includes('activat')) {
-        if (isActive) {
-            return {
-                text: '✅ Good news — your account currently shows as ACTIVE' + (expiry ? ' until ' + expiry.toLocaleDateString() + '.' : '.') + ' If features still look locked, please log out and log back in, or refresh the app. Let us know if it still doesn\'t work.',
-                escalate: false,
-            };
-        }
-        return {
-            text: 'I checked your account and it is not showing as active yet. If you already paid, please share your payment reference or a screenshot here — I\'ve notified our support team, please hold on a moment, someone will reply shortly.',
-            escalate: true,
-        };
-    }
-    if (t.includes('key') && (t.includes('invalid') || t.includes('wrong') || t.includes('not work') || t.includes('error'))) {
-        return {
-            text: 'License keys look like XXXX-XXXX-XXXX (12 characters, letters & numbers). Please double check for typos and that it hasn\'t already been used. If it still fails, I\'ve flagged this for our support team — please hold on, someone will reply shortly.',
-            escalate: true,
-        };
-    }
-    if (t.includes('pay') || t.includes('paid') || t.includes('reference') || t.includes('transfer') || t.includes('debit')) {
-        return {
-            text: 'Thanks for letting us know about your payment. I\'ve notified our support team with your message — please hold on a moment, someone will reply shortly to confirm and activate your account.',
-            escalate: true,
-        };
-    }
-    if (t.includes('refund')) {
-        return {
-            text: 'I understand you\'d like a refund. This needs to be handled by our support team directly — please hold on, someone will reply shortly.',
-            escalate: true,
-        };
-    }
-    return {
-        text: 'I\'m not able to fully resolve that on my own. I\'ve notified our support team — please hold on a moment, someone will reply shortly to help you personally.',
-        escalate: true,
-    };
-}
+    if (t.includes('activat')) return SUPPORT_QUICK_REPLIES.not_active();
+    if (t.includes('key') && (t.includes('invalid') || t.includes('wrong'))) return SUPPORT_QUICK_REPLIES.key_invalid();
+    if (t.includes('key') && t.includes('used')) return SUPPORT_QUICK_REPLIES.key_used();
+    if (t.includes('paystack') || t.includes('card')) return SUPPORT_QUICK_REPLIES.paystack_failed();
+    if (t.includes('refund')) return SUPPORT_QUICK_REPLIES.refund();
+    if (t.includes('login') || t.includes('log in')) return SUPPORT_QUICK_REPLIES.cant_login();
+    if (t.includes('password')) return SUPPORT_QUICK_REPLIES.forgot_password();
+    if (t.includes('slow') || t.includes('lag')) return SUPPORT_QUICK_REPLIES.app_slow();
+    if (t.includes('crash') || t.includes('error')) return SUPPORT_QUICK_REPLIES.app_crash();
+    if (t.includes('score')) return SUPPORT_QUICK_REPLIES.wrong_score();
+    if (t.includes('offline')) return SUPPORT_QUICK_REPLIES.offline_issue();
+    if (t.includes('pay') || t.includes('paid') || t.includes('transfer')) return SUPPORT_QUICK_REPLIES.manual_payment_pending();
 
-async function sendSupportMessage(text) {
+    return { text: 'I\'m not fully sure what you mean — could you tap one of the quick options above, or describe it a bit more? If I still can\'t help, our team will step in shortly.', escalate: true };
+}
+async function sendSupportMessage(text, issueKey) {
     const msg = (text || '').trim();
     if (!msg) return;
     if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
@@ -5207,7 +5179,7 @@ async function sendSupportMessage(text) {
     render();
 
     setTimeout(async function() {
-        const ai = generateAiSupportReply(msg);
+        const ai = generateAiSupportReply(msg, issueKey);
         const { data: aiInserted } = await supabase.from('support_messages').insert([{
             user_id: state.authUser.id,
             username: state.profile.name || 'Guest',
@@ -5220,9 +5192,11 @@ async function sendSupportMessage(text) {
             state.supportMessages.push(aiInserted);
             render();
         }
-    }, 900);
+        if (ai.escalate) {
+            supabase.from('support_messages').select('id').eq('user_id', state.authUser.id).eq('sender', 'user').then(function() {});
+        }
+    }, 700);
 }
-
 async function loadAdminSupportConversations() {
     try {
         const { data, error } = await supabase
@@ -5329,37 +5303,42 @@ async function startCbt() {
     }
 
     state.isLoading = true;
-    render();
+render();
 
-    state.currentEnglishPassage = null;
-    state.hasPassage = false;
-    state.passageRead = false;
-    state.passageQuestionIds = [];
+// Reset passage state
+state.currentEnglishPassage = null;
+state.hasPassage = false;
+state.passageRead = false;
+state.passageQuestionIds = [];
 
-    if (state.authUser) {
-        const savedBatch = storage.get('englishBatchTracker_' + state.authUser.id);
-        if (savedBatch) {
-            state.englishBatchTracker = parseInt(savedBatch, 10) || 1;
-        }
+// Load saved batch tracker
+if (state.authUser) {
+    const savedBatch = storage.get('englishBatchTracker_' + state.authUser.id);
+    if (savedBatch) {
+        state.englishBatchTracker = parseInt(savedBatch, 10) || 1;
     }
+}
 
-    let subjects = [];
-    if (isFull) {
-        const eng = SUBJECTS.find(function(s) { return s.compulsory; });
-        subjects = [eng, ...selected.map(function(id) { return SUBJECTS.find(function(s) { return s.id === id; }); })];
-    } else {
-        subjects = selected.map(function(id) { return SUBJECTS.find(function(s) { return s.id === id; }); });
-    }
+let subjects = [];
+if (isFull) {
+    const eng = SUBJECTS.find(function(s) { return s.compulsory; });
+    subjects = [eng, ...selected.map(function(id) { return SUBJECTS.find(function(s) { return s.id === id; }); })];
+} else {
+    subjects = selected.map(function(id) { return SUBJECTS.find(function(s) { return s.id === id; }); });
+}
 
-    let allQuestions = [];
+let allQuestions = [];
     
     for (const subject of subjects) {
         let qs = [];
         
+        // Check if this is English
         if (subject.id === 'eng') {
             const currentBatch = state.englishBatchTracker || 1;
-            qs = await loadQuestions('cbt', subject.id, null, 40, currentBatch);
+            qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id, null, 40);
              
+           // Questions are already sorted by display_order from the database
+// No need to sort here
             if (qs.length > 0) {
                 qs.sort(function(a, b) {
                     const aHasPassage = a.passage_id === currentBatch ? 0 : 1;
@@ -5371,31 +5350,33 @@ async function startCbt() {
                 });
             }
                 
-            const passage = await loadPassage(currentBatch);
-            if (passage) {
-                state.currentEnglishPassage = passage;
-                state.hasPassage = true;
-                state.passageRead = false;
-                state.passageQuestionIds = [];
-                
-                const passageQuestionIds = [];
-                qs.forEach(function(q) {
-                    if (q.passage_id === currentBatch) {
-                        passageQuestionIds.push(q.id);
-                    }
-                });
-                
-                state.passageQuestionIds = passageQuestionIds;
-            } else {
-                state.currentEnglishPassage = null;
-                state.hasPassage = false;
-                state.passageRead = false;
-                state.passageQuestionIds = [];
-            }
+            const passage = await window.OfflineDB.getPassageOffline(currentBatch);
+if (passage) {
+    state.currentEnglishPassage = passage;
+    state.hasPassage = true;
+    state.passageRead = false;
+    state.passageQuestionIds = [];
+    
+    // Get the passage question IDs for this     batch
+    const passageQuestionIds = [];
+    qs.forEach(function(q) {
+        if (q.passage_id === currentBatch) {
+            passageQuestionIds.push(q.id);
+        }
+    });
+    
+    // Store passage question IDs so we know which ones to show after passage
+    state.passageQuestionIds = passageQuestionIds;
+} else {
+    state.currentEnglishPassage = null;
+    state.hasPassage = false;
+    state.passageRead = false;
+    state.passageQuestionIds = [];
+}
             
             if (qs.length === 0 && currentBatch < 6) {
                 state.englishBatchTracker = currentBatch + 1;
-                qs = await loadQuestions('cbt', subject.id, null, 40, state.englishBatchTracker);
+                qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id, null, 40);
                 
                 if (qs.length > 0) {
                     const nextBatch = state.englishBatchTracker;
@@ -5409,7 +5390,7 @@ async function startCbt() {
                     });
                 }
                 
-                const nextPassage = await loadPassage(state.englishBatchTracker);
+                const nextPassage = await window.OfflineDB.getPassageOffline(state.englishBatchTracker);
                 if (nextPassage) {
                     state.currentEnglishPassage = nextPassage;
                     state.hasPassage = true;
@@ -5425,7 +5406,8 @@ async function startCbt() {
                 }
             }
         } else {
-            qs = await loadQuestions('cbt', subject.id);
+            // For non-English subjects, load randomized
+            qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id);
             qs = shuffleArray(qs);
         }
         
@@ -5453,6 +5435,7 @@ async function startCbt() {
     const timeLimit = isFull ? settings.cbtTimeLimit : settings.subjectTimeLimit;
     state.cbtTimeLeft = timeLimit * 60 || (isFull ? 6000 : 1500);
     
+    // Build subject groups
     buildCbtSubjectGroups(state.cbtQuestions);
 
     state.view = 'cbt-exam';
@@ -5482,7 +5465,6 @@ async function startCbt() {
         }
     }, 1000);
 }
-
 async function startLiteratureCbt() {
     if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
     if (!isUserActive()) {
@@ -5495,9 +5477,10 @@ async function startLiteratureCbt() {
     state.isLoading = true;
     render();
     
+    // Use LHM for Normal Literature Mode
     const litSubject = SUBJECTS.find(function(s) { return s.id === 'lhm'; });
     if (!litSubject) { state.isLoading = false; render(); return; }
-    const questions = await loadQuestions('NOVEL (CBT)', 'lhm');
+    const questions = await window.OfflineDB.loadQuestionsOffline('NOVEL (CBT)', 'lhm');
     state.isLoading = false;
     
     if (questions.length === 0) {
@@ -5565,7 +5548,7 @@ async function startExam() {
     render();
     
     const s = SUBJECTS.find(function(x) { return x.id === state.examSubject; });
-    const questions = await loadQuestions('exam', state.examSubject, state.examYear);
+    const questions = await window.OfflineDB.loadQuestionsOffline('exam', state.examSubject, state.examYear);
     state.isLoading = false;
     render();
     
@@ -5606,7 +5589,7 @@ async function startTopicPractice() {
     state.isLoading = true;
     render();
     
-    const questions = await loadTopicQuestions(state.topicId);
+    const questions = await window.OfflineDB.getTopicQuestionsOffline(state.topicId);
     state.isLoading = false;
 
     if (questions.length === 0) {
@@ -5727,7 +5710,6 @@ function renderAttemptModal() {
         '</div>'
     );
 }
-
 function renderCalculator() {
     if (!state.showCalculator) return '';
     
@@ -5827,7 +5809,6 @@ function renderPasswordResetForm() {
         '</div></div>'
     );
 }
-
 function renderFlagModal() {
     if (!state.showFlagModal || !state.flagModalData) return '';
     
@@ -5882,7 +5863,8 @@ function setView(v) {
     }
     if (v === "admin") {
         loadAllUsers();
-        loadAllQuestionsCount();
+        loadAllQuestionsCountOffline();
+        loadAllQuestionsForAdmin();
         if (!state.docsLoaded) loadDocuments();
         if (!state.notifsLoaded) loadNotifications();
         if (!state.mockLoaded) loadMockExams();
@@ -5897,6 +5879,7 @@ function setView(v) {
             loadMockAttempts();
         }
     }
+    if (v === "syllabus" && !state.syllabusLoaded) loadSyllabus();
     if (v === "documents" && !state.docsLoaded) loadDocuments();
     if (v === "history") loadHistory();
     if (v === "support") {
@@ -5925,10 +5908,12 @@ function render() {
         return;
     }
 
+    // Check for under construction
     const settings = state.settingsCache;
     if (settings.underConstruction && !isAdmin()) {
         let html = renderUnderConstruction();
         
+        // If login modal should show, append it
         if (state.showLogin) {
             const overlay = document.createElement('div');
             overlay.innerHTML = renderLoginModal();
@@ -5937,7 +5922,9 @@ function render() {
         
         root.innerHTML = html;
         
+        // Re-bind the login modal after rendering
         if (state.showLogin) {
+            // The click handler will handle this via the event listener
         }
         return;
     }
@@ -5957,15 +5944,16 @@ function render() {
         html += renderResetModal();
     }
     if (state.showFlagModal) {
-        html += renderFlagModal();
+    html += renderFlagModal();
     }
     if (state.showPassageModal) {
-        html += renderPassageModal();
+    html += renderPassageModal();
     }
     if (state.showNotifyModal) {
-        html += renderNotifyModal();
+    html += renderNotifyModal();
     }
     
+    // Check for password reset redirect
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('reset') && !state.resetSuccess) {
         html += renderPasswordResetForm();
@@ -5984,7 +5972,6 @@ function render() {
         root.appendChild(overlay.firstElementChild);
     }
 }
-
 // ============================================================
 //  SPLASH
 // ============================================================
@@ -6038,6 +6025,7 @@ function renderUnderConstruction() {
         '<span style="background:var(--line);border-radius:999px;padding:4px 12px;font-size:11px;color:var(--muted)">📱 Mobile Optimized</span>' +
         '</div>' +
         '</div>' +
+        // Admin Login Link - hidden behind a subtle link
         '<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">' +
         '<button data-action="show-login" style="font-size:12px;color:var(--faint);background:none;border:none;cursor:pointer;text-decoration:underline">Admin Login</button>' +
         '</div>' +
@@ -6046,7 +6034,6 @@ function renderUnderConstruction() {
         '</div></div>'
     );
 }
-
 // ============================================================
 //  APP
 // ============================================================
@@ -6123,6 +6110,7 @@ function renderView() {
     if (v === "exam") return renderExamMode();
     if (v === "mockexam") return renderMockExamPicker();
     if (v === "topics") return renderTopicsPicker();
+    if (v === "syllabus") return renderSyllabusUser();
     if (v === "documents") return renderDocumentsUser();
     if (v === "literature") return renderLiteratureHome();
     if (v === "literature-cbt") return renderLiteratureCbt();
@@ -6216,6 +6204,7 @@ function renderLiteratureHome() {
 }
 
 function renderLiteratureCbt() {
+    // For Normal Literature Mode - use LHM subject
     const litSubject = SUBJECTS.find(function(s) { return s.id === "lhm"; });
     if (!litSubject) return renderHome();
 
@@ -6315,7 +6304,6 @@ function renderCbtMode() {
         '</div>'
     );
 }
-
 // ============================================================
 //  CBT EXAM - Subject-based with tabs
 // ============================================================
@@ -6368,9 +6356,9 @@ function renderPassageModal() {
         '</div>'
     );
 }
-
-function renderCbtExam() {
+    function renderCbtExam() {
     if (state.hasPassage && state.currentEnglishPassage && !state.passageRead) {
+        // Show passage page
         return renderPassagePage();
     }
 
@@ -6378,10 +6366,11 @@ function renderCbtExam() {
         let score = 0;
         const rawSubjectCounts = {};
         const weakQuestionsToSave = [];
-        state.cbtQuestions.forEach(function(item) {
-            if (!(item.subject_id in rawSubjectCounts)) rawSubjectCounts[item.subject_id] = 0;
-        });
-        state.cbtQuestions.forEach(function(item, i) {
+// Ensure every selected subject shows up in the results, even with 0 correct
+state.cbtQuestions.forEach(function(item) {
+    if (!(item.subject_id in rawSubjectCounts)) rawSubjectCounts[item.subject_id] = 0;
+});
+state.cbtQuestions.forEach(function(item, i) {
             const isCorrect = state.cbtAnswers[i] === item.correct_answer;
             if (isCorrect) {
                 score++;
@@ -6391,6 +6380,7 @@ function renderCbtExam() {
             }
         });
         const isFullCbt = state.cbtMode === "full";
+        // Scale each subject's raw correct count (out of 40) to a mark out of 100
         const subjectScores = {};
         Object.keys(rawSubjectCounts).forEach(function(sid) {
             subjectScores[sid] = Math.round((rawSubjectCounts[sid] / 40) * 100);
@@ -6406,10 +6396,12 @@ function renderCbtExam() {
             const subjectId = isFullCbt ? null : state.cbtQuestions[0]?.subject_id;
             const subjectName = isFullCbt ? null : state.cbtQuestions[0]?.subject_name;
             
+            // Save weak questions
             weakQuestionsToSave.forEach(function(wq) {
                 saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'cbt', wq.userAnswer, wq.correctAnswer);
             });
             
+            // Save history
             const subjects = Object.keys(subjectScores);
             const subjectNames = subjects.map(function(sid) {
                 const subj = SUBJECTS.find(function(s) { return s.id === sid; });
@@ -6491,37 +6483,41 @@ function renderCbtExam() {
     }
 
     const totalQ = state.cbtQuestions.length;
-    const answeredCount = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
-    const settings = state.settingsCache;
-    const calcEnabled = settings.calculatorEnabled !== false;
+const answeredCount = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
+const settings = state.settingsCache;
+const calcEnabled = settings.calculatorEnabled !== false;
 
-    let subjectTabs = '';
-    if (state.cbtSubjectOrder.length > 1) {
-        state.cbtSubjectOrder.forEach(function(sid) {
-            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
-            const isActive = state.cbtCurrentSubject === sid;
-            const questionsInSubject = getQuestionsForSubject(sid, state.cbtSubjectQuestions);
-            const answeredInSubject = questionsInSubject.filter(function(idx) {
-                return state.cbtAnswers[idx] !== null && state.cbtAnswers[idx] !== undefined;
-            }).length;
-            const totalInSubject = questionsInSubject.length;
-            const allDone = answeredInSubject === totalInSubject;
-            subjectTabs += (
-                '<button class="subject-tab' + (isActive ? ' active' : '') + '" data-action="switch-cbt-subject" data-subject="' +
-                sid + '">' +
-                (subj ? subj.code : sid) +
-                ' <span class="check-mark' + (allDone ? ' done' : '') + '">' + (allDone ? '✓' : answeredInSubject + '/' + totalInSubject) +
-                '</span>' +
-                '</button>'
-            );
-        });
-    }
+// Subject tabs - only show if more than 1 subject
+let subjectTabs = '';
+if (state.cbtSubjectOrder.length > 1) {
+    state.cbtSubjectOrder.forEach(function(sid) {
+        const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+        const isActive = state.cbtCurrentSubject === sid;
+        const questionsInSubject = getQuestionsForSubject(sid, state.cbtSubjectQuestions);
+        const answeredInSubject = questionsInSubject.filter(function(idx) {
+            return state.cbtAnswers[idx] !== null && state.cbtAnswers[idx] !== undefined;
+        }).length;
+        const totalInSubject = questionsInSubject.length;
+        const allDone = answeredInSubject === totalInSubject;
+        subjectTabs += (
+            '<button class="subject-tab' + (isActive ? ' active' : '') + '" data-action="switch-cbt-subject" data-subject="' +
+            sid + '">' +
+            (subj ? subj.code : sid) +
+            ' <span class="check-mark' + (allDone ? ' done' : '') + '">' + (allDone ? '✓' : answeredInSubject + '/' + totalInSubject) +
+            '</span>' +
+            '</button>'
+        );
+    });
+}
 
-    const currentSubjectQuestions = getQuestionsForSubject(state.cbtCurrentSubject, state.cbtSubjectQuestions);
-    const currentSubjectIndex = currentSubjectQuestions.indexOf(state.cbtIndex);
-    const totalInCurrentSubject = currentSubjectQuestions.length;
+// Get current question index for this subject
+const currentSubjectQuestions = getQuestionsForSubject(state.cbtCurrentSubject, state.cbtSubjectQuestions);
+const currentSubjectIndex = currentSubjectQuestions.indexOf(state.cbtIndex);
+const totalInCurrentSubject = currentSubjectQuestions.length;
     
+    // If current subject has no questions or index out of bounds, adjust
     if (currentSubjectQuestions.length === 0) {
+        // Move to next subject with questions
         for (const sid of state.cbtSubjectOrder) {
             const qs = getQuestionsForSubject(sid, state.cbtSubjectQuestions);
             if (qs.length > 0) {
@@ -6541,66 +6537,68 @@ function renderCbtExam() {
     }
  
     const item = state.cbtQuestions[state.cbtIndex];
-    const subj = item ? SUBJECTS.find(function(s) { return s.id === item.subject_id; }) : null;
+const subj = item ? SUBJECTS.find(function(s) { return s.id === item.subject_id; }) : null;
 
-    let opts = "";
-    if (item && item.options) {
-        item.options.forEach(function(o, i) {
-            const chosen = state.cbtAnswers[state.cbtIndex] === i;
-            opts += (
-                '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="cbt-answer" data-idx="' +
-                i + '">' +
-                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
-                '</button>'
-            );
-        });
-    }
+let opts = "";
+if (item && item.options) {
+    item.options.forEach(function(o, i) {
+        const chosen = state.cbtAnswers[state.cbtIndex] === i;
+        opts += (
+            '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="cbt-answer" data-idx="' +
+            i + '">' +
+            '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
+            '</button>'
+        );
+    });
+}
 
-    const hasPrev = currentSubjectIndex > 0;
-    const hasNext = currentSubjectIndex < totalInCurrentSubject - 1;
-    const prevIdx = hasPrev ? currentSubjectQuestions[currentSubjectIndex - 1] : null;
-    const nextIdx = hasNext ? currentSubjectQuestions[currentSubjectIndex + 1] : null;
+// Navigation within subject
+const hasPrev = currentSubjectIndex > 0;
+const hasNext = currentSubjectIndex < totalInCurrentSubject - 1;
+const prevIdx = hasPrev ? currentSubjectQuestions[currentSubjectIndex - 1] : null;
+const nextIdx = hasNext ? currentSubjectQuestions[currentSubjectIndex + 1] : null;
 
-    const hasPassage = state.hasPassage && state.currentEnglishPassage && state.passageRead;
+// Check if this batch has a passage
+const hasPassage = state.hasPassage && state.currentEnglishPassage && state.passageRead;
 
-    return (
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
-        '<button class="back-link" data-action="cbt-exit" style="margin:0">' + svg("chevleft", 16) + ' Exit</button>' +
-        '</div>' +
-        '<div class="exam-top-bar">' +
-        '<div class="left-group">' +
-        (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" title="Calculator">' + svg("calculator", 18) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 18) + '</button>'
-        ) + 
-        (hasPassage ? '<button class="calc-btn" style="background:var(--gold);color:var(--ink);height:34px;padding:0 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;font-size:12px;font-weight:600" data-action="show-passage" title="View Passage" aria-label="View Passage">📖 Passage</button>' : '') +
-        '</div>' +
-        '<div class="right-group">' +
-        '<button class="attempt-btn" data-action="show-attempted-cbt">' +
-        '📋 <span style="font-weight:600">' + answeredCount + '/' + totalQ + '</span>' +
-        '<span class="dot-indicator"></span>' +
-        '</button>' +
-        '<button class="submit-btn" data-action="cbt-submit">Submit</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="timer-bar">' +
-        '<span class="label">⏱️ Time left</span>' +
-        '<span class="time' + (state.cbtTimeLeft < 300 ? ' warning' : '') + '">' +
-        formatTime(state.cbtTimeLeft) +
-        '</span>' +
-        '</div>' +
-        '<div class="subject-tabs">' + subjectTabs + '</div>' +
-        '<div class="exam-nav">' +
-        '<span class="q-counter">Question ' + (currentSubjectIndex + 1) + ' of ' + totalInCurrentSubject + ' in ' + (subj ? subj.name : '') + '</span>' +
-        '</div>' +
-        '<div class="card" style="margin-bottom:16px"><p style="font-size:15px;font-weight:600;margin:0">' + esc(item
-            ?.text || '') + '</p></div>' +
-        opts +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">' +
-        (hasPrev ? '<button class="btn btn-outline" style="flex:1" data-action="cbt-goto" data-idx="' + prevIdx + '">Previous</button>' : '') +
-        (hasNext ? '<button class="btn btn-green" style="flex:1" data-action="cbt-goto" data-idx="' + nextIdx + '">Next</button>' : '') +
-        '</div>'
-    );
+return (
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+    '<button class="back-link" data-action="cbt-exit" style="margin:0">' + svg("chevleft", 16) + ' Exit</button>' +
+    '</div>' +
+    '<div class="exam-top-bar">' +
+    '<div class="left-group">' +
+    (calcEnabled ? 
+        '<button class="calc-btn enabled" data-action="toggle-calculator" title="Calculator">' + svg("calculator", 18) + '</button>' :
+        '<button class="calc-btn" data-action="toggle-calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 18) + '</button>'
+    ) + 
+    (hasPassage ? '<button class="calc-btn" style="background:var(--gold);color:var(--ink);height:34px;padding:0 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;font-size:12px;font-weight:600" data-action="show-passage" title="View Passage" aria-label="View Passage">📖 Passage</button>' : '') +
+    '</div>' +
+    '<div class="right-group">' +
+    '<button class="attempt-btn" data-action="show-attempted-cbt">' +
+    '📋 <span style="font-weight:600">' + answeredCount + '/' + totalQ + '</span>' +
+    '<span class="dot-indicator"></span>' +
+    '</button>' +
+    '<button class="submit-btn" data-action="cbt-submit">Submit</button>' +
+    '</div>' +
+    '</div>' +
+    '<div class="timer-bar">' +
+    '<span class="label">⏱️ Time left</span>' +
+    '<span class="time' + (state.cbtTimeLeft < 300 ? ' warning' : '') + '">' +
+    formatTime(state.cbtTimeLeft) +
+    '</span>' +
+    '</div>' +
+    '<div class="subject-tabs">' + subjectTabs + '</div>' +
+    '<div class="exam-nav">' +
+    '<span class="q-counter">Question ' + (currentSubjectIndex + 1) + ' of ' + totalInCurrentSubject + ' in ' + (subj ? subj.name : '') + '</span>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:16px"><p style="font-size:15px;font-weight:600;margin:0">' + esc(item
+        ?.text || '') + '</p></div>' +
+    opts +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">' +
+    (hasPrev ? '<button class="btn btn-outline" style="flex:1" data-action="cbt-goto" data-idx="' + prevIdx + '">Previous</button>' : '') +
+    (hasNext ? '<button class="btn btn-green" style="flex:1" data-action="cbt-goto" data-idx="' + nextIdx + '">Next</button>' : '') +
+    '</div>'
+);
 }
 
 // ============================================================
@@ -6659,7 +6657,8 @@ function renderExamExam() {
         let score = 0;
         const subjectScores = {};
         const weakQuestionsToSave = [];
-        state.examQuestions.forEach(function(item, i) {
+         
+state.examQuestions.forEach(function(item, i) {
             const isCorrect = state.examAnswers[i] === item.correct_answer;
             if (isCorrect) {
                 score++;
@@ -6671,10 +6670,12 @@ function renderExamExam() {
         });
         if (state.authUser && state.examSubmitted && !state.examHistorySaved) {
             state.examHistorySaved = true;
+            // Save weak questions
             weakQuestionsToSave.forEach(function(wq) {
                 saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'exam', wq.userAnswer, wq.correctAnswer);
             });
             
+            // Save history
             const subjects = Object.keys(subjectScores);
             const subjectNames = subjects.map(function(sid) {
                 const subj = SUBJECTS.find(function(s) { return s.id === sid; });
@@ -6861,8 +6862,8 @@ function renderTopicExam() {
     if (state.topicFinished || state.topicSubmitted) {
         let score = 0;
         const subjectScores = {};
-        const weakQuestionsToSave = [];
-        state.topicQuestions.forEach(function(item, i) {
+        const weakQuestionsToSave = []; 
+state.topicQuestions.forEach(function(item, i) {
             const isCorrect = state.topicAnswers[i] === item.correct_answer;
             if (isCorrect) {
                 score++;
@@ -6875,10 +6876,12 @@ function renderTopicExam() {
 
         if (state.authUser && state.topicSubmitted && !state.topicHistorySaved) {
             state.topicHistorySaved = true;
+            // Save weak questions
             weakQuestionsToSave.forEach(function(wq) {
                 saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'topic', wq.userAnswer, wq.correctAnswer);
             });
             
+            // Save history
             const subjects = Object.keys(subjectScores);
             const subjectNames = subjects.map(function(sid) {
                 const subj = SUBJECTS.find(function(s) { return s.id === sid; });
@@ -7007,7 +7010,7 @@ function renderLitExam() {
         let score = 0;
         const subjectScores = {};
         const weakQuestionsToSave = [];
-        state.litQuestions.forEach(function(item, i) {
+state.litQuestions.forEach(function(item, i) {
             const isCorrect = state.litAnswers[i] === item.correct_answer;
             if (isCorrect) {
                 score++;
@@ -7020,10 +7023,12 @@ function renderLitExam() {
 
         if (state.authUser && state.litSubmitted && !state.litHistorySaved) {
             state.litHistorySaved = true;
+            // Save weak questions
             weakQuestionsToSave.forEach(function(wq) {
                 saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'novel');
             });
             
+            // Save history
             const subjects = Object.keys(subjectScores);
             const subjectNames = subjects.map(function(sid) {
                 const subj = SUBJECTS.find(function(s) { return s.id === sid; });
@@ -7140,6 +7145,7 @@ function renderLitExam() {
 }
 
 // ============================================================
+ 
 //  DOCUMENTS
 // ============================================================
 function renderDocumentsUser() {
@@ -7187,7 +7193,7 @@ function renderDocumentsUser() {
         rows
     );
 }
-
+// Helper: render file view/download buttons
 function renderFileActions(fileUrl, fileName, fileType) {
     if (!fileUrl) return '';
     const isImage = fileType && fileType.startsWith('image/');
@@ -7221,7 +7227,7 @@ async function loadWeakQuestions() {
     try {
         const { data, error } = await supabase
             .from('weak_questions')
-            .select('*, questions(*)')
+            .select('*')
             .eq('user_id', state.authUser.id)
             .order('created_at', { ascending: false });
             
@@ -7233,8 +7239,22 @@ async function loadWeakQuestions() {
             render();
             return;
         }
-        
-        state.weakQuestions = data || [];
+
+        const rows = data || [];
+        // Attach the actual question object from IndexedDB (offline-db.js),
+        // since question data no longer lives in the Supabase 'questions' table.
+        const withQuestions = await Promise.all(rows.map(async function(row) {
+            let q = null;
+            try {
+                q = await dbGet('questions', row.question_id);
+            } catch (e) {
+                q = null;
+            }
+            return Object.assign({}, row, { questions: q });
+        }));
+
+        // Drop entries whose question no longer exists locally
+        state.weakQuestions = withQuestions.filter(function(w) { return w.questions; });
         state.weakQuestionsLoaded = true;
         render();
     } catch (e) {
@@ -7245,7 +7265,6 @@ async function loadWeakQuestions() {
         render();
     }
 }
-
 // ============================================================
 //  REVISE WEAK QUESTIONS - RENDER
 // ============================================================
@@ -7497,10 +7516,20 @@ function renderSupportChat() {
         });
     }
 
+    let quickIssuesHtml = '';
+    if (state.supportMessages.length === 0) {
+        quickIssuesHtml = '<p class="section-label" style="margin-top:8px">What can we help with?</p><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
+        SUPPORT_QUICK_ISSUES.forEach(function(issue) {
+            quickIssuesHtml += '<button class="mini-btn" style="font-size:11px" data-action="support-quick-issue" data-issue="' + issue.key + '">' + esc(issue.label) + '</button>';
+        });
+        quickIssuesHtml += '</div>';
+    }
+
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
         '<h2 class="title" style="margin-bottom:4px">💬 Support Chat</h2>' +
         '<p class="sub">Payment &amp; activation help — instant AI reply, our team follows up if needed</p>' +
+        quickIssuesHtml +
         '<div class="chat-window">' + bubbles + '</div>' +
         '<div class="chat-input-row">' +
         '<input class="field" id="support-chat-input" placeholder="Type a message..." value="' + esc(state.supportInput || '') + '" />' +
@@ -7614,6 +7643,7 @@ function renderHistory() {
             subjectScoreHtml += '<span>' + esc(name) + ': ' + subjectScores[sid] + '</span>';
         });
 
+        // Build card ID for printing
         const cardId = 'history-card-' + entry.id;
         
         html += (
@@ -7650,6 +7680,7 @@ function renderMockExamPicker() {
         '<p class="sub">Full JAMB-style mock test</p>'
     );
 
+    // If viewing mock attempts for admin
     if (state.admin.viewingMockAttempts) {
         return renderMockAttemptsView();
     }
@@ -7770,20 +7801,20 @@ function renderMockExamPicker() {
             const isPastRegistration = scheduled <= now;
 
             const regDeadline = exam.registration_deadline ? new Date(exam.registration_deadline) : scheduled;
-            const isRegClosed = regDeadline <= now;
+const isRegClosed = regDeadline <= now;
 
-            if (isRegClosed || isPastRegistration) {
-                html += (
-                    '<div class="mock-card">' +
-                    '<p class="mock-title">' + esc(exam.title) + '</p>' +
-                    '<p class="mock-date">📅 ' + new Date(exam.scheduled_date).toLocaleString() + '</p>' +
-                    '<span class="mock-status ended">🔒 Registration Closed</span>' +
-                    '</div>'
-                );
-                return;
-            }
+if (isRegClosed || isPastRegistration) {
+    html += (
+        '<div class="mock-card">' +
+        '<p class="mock-title">' + esc(exam.title) + '</p>' +
+        '<p class="mock-date">📅 ' + new Date(exam.scheduled_date).toLocaleString() + '</p>' +
+        '<span class="mock-status ended">🔒 Registration Closed</span>' +
+        '</div>'
+    );
+    return;
+}
 
-            html += renderMockRegistrationForm(exam);
+html += renderMockRegistrationForm(exam);
         });
     }
 
@@ -7816,12 +7847,14 @@ function renderMockExamPicker() {
 
 function renderMockRegistrationForm(exam) {
     const selected = state.mockSelectedSubjects || [];
+    // Filter out English (compulsory) and Novel/Literature set text (not part of Mock Exam)
     const subjects = SUBJECTS.filter(function(s) { return s.id !== 'eng' && s.id !== 'lhm'; });
     const settings = state.settingsCache;
     const requiredSubjects = settings.mockSubjectCount || 4;
 
     let chips = "";
     
+    // Add English as compulsory (always selected and disabled)
     const eng = SUBJECTS.find(function(s) { return s.id === 'eng'; });
     if (eng) {
         chips += (
@@ -7832,6 +7865,7 @@ function renderMockRegistrationForm(exam) {
         );
     }
 
+    // Add other subjects
     subjects.forEach(function(s) {
         const sel = selected.indexOf(s.id) !== -1;
         chips += (
@@ -7843,8 +7877,8 @@ function renderMockRegistrationForm(exam) {
         );
     });
 
-    const ready = selected.length === 3;
-    const totalSubjects = selected.length + 1;
+    const ready = selected.length === 3; // User must select exactly 3 subjects
+    const totalSubjects = selected.length + 1; // +1 for English
 
     return (
         '<div class="mock-card active">' +
@@ -7867,14 +7901,15 @@ function renderMockRegistrationForm(exam) {
 
 function renderMockResultForUser(exam, attempt) {
     const score = attempt.score || 0;
-    const subjectScores = attempt.subject_scores || {};
-    const maxScore = (state.settingsCache.mockSubjectCount || 4) * 100;
+            const subjectScores = attempt.subject_scores || {};
+            // FIX: Use fixed subject count from settings
+            const maxScore = (state.settingsCache.mockSubjectCount || 4) * 100;
     const submittedAt = attempt.submitted_at ? new Date(attempt.submitted_at) : null;
 
     let subjRows = "";
     Object.keys(subjectScores).forEach(function(sid) {
         const subj = SUBJECTS.find(function(s) { return s.id === sid; });
-        const sScore = subjectScores[sid] || 0;
+        const sScore = subjectScores[sid] ||     0;
         subjRows += (
             '<div class="subj-score">' +
             '<span>' + (subj ? subj.name : sid) + '</span>' +
@@ -8114,7 +8149,8 @@ function renderMockResult() {
 
     if (state.mockResultReleased) {
         const score = state.mockScore;
-        const maxScore = (state.settingsCache.mockSubjectCount || 4) * 100;
+            // FIX: Use fixed subject count from settings
+            const maxScore = (state.settingsCache.mockSubjectCount || 4) * 100;
         const questions = state.mockQuestions || [];
         const answers = state.mockAnswers || [];
         const subjectScores = state.mockSubjectScores || {};
@@ -8438,7 +8474,7 @@ const PAYMENT_METHODS = [
     { key: 'paystack', icon: '💚', label: 'Paystack', desc: 'Card · Bank Transfer · USSD' },
     { key: 'manual', icon: '💬', label: 'Manual Payment', desc: 'Chat with us on WhatsApp to pay & activate' },
 ];
-const ADMIN_WHATSAPP_NUMBER = "2348071826114";
+const ADMIN_WHATSAPP_NUMBER = "2348071826114"; // 08071826114 in international format, no + or spaces
 
 function renderLicensePlans() {
     if (!state.activationPlansLoaded) {
@@ -8519,7 +8555,6 @@ function renderLicensePlans() {
         '</div>'
     );
 }
-
 // ============================================================
 //  ADMIN PANEL
 // ============================================================
@@ -8568,6 +8603,7 @@ function renderAdmin() {
     else if (state.adminTab === "questions") body = renderAdminQuestions();
     else if (state.adminTab === "settings") body = renderAdminSettings();
     else if (state.adminTab === "documents") body = renderAdminDocuments();
+    else if (state.adminTab === "syllabus") body = renderAdminSyllabus();
     else if (state.adminTab === "users") body = renderAdminUsers();
     else if (state.adminTab === "notifications") body = renderAdminNotifications();
     else if (state.adminTab === "mock") body = renderAdminMock();
@@ -8600,20 +8636,25 @@ function renderAdminOverview() {
         literature: 0
     };
 
+    // Safely count questions by type and subject
     if (state.allQuestions && state.allQuestions.length > 0) {
         state.allQuestions.forEach(function(q) {
             const type = q.type || '';
+            const subject = q.subject_id || '';
+            
             if (type === 'cbt') {
-                modeCounts.cbt += 1;
-            } else if (type === 'exam') {
-                modeCounts.exam += 1;
-            } else if (type === 'mock') {
-                modeCounts.mock += 1;
-            } else if (type === 'subject') {
-                modeCounts.topic += 1;
-            } else if (type === 'NOVEL (CBT)') {
-                modeCounts.literature += 1;
-            }
+    // ALL cbt questions go to CBT Mode (this includes the Literature subject 'lit')
+    modeCounts.cbt += 1;
+} else if (type === 'exam') {
+    modeCounts.exam += 1;
+} else if (type === 'mock') {
+    modeCounts.mock += 1;
+} else if (type === 'subject') {
+    modeCounts.topic += 1;
+} else if (type === 'NOVEL (CBT)') {
+    // ONLY Novel (CBT) questions (subject 'lhm') go to the Novel section
+    modeCounts.literature += 1;
+}
         });
     }
 
@@ -8695,20 +8736,25 @@ function renderAdminQuestions() {
         literature: 0
     };
 
+    // Safely count questions by type and subject
     if (state.allQuestions && state.allQuestions.length > 0) {
         state.allQuestions.forEach(function(q) {
             const type = q.type || '';
+            const subject = q.subject_id || '';
+            
             if (type === 'cbt') {
-                modeCounts.cbt += 1;
-            } else if (type === 'exam') {
-                modeCounts.exam += 1;
-            } else if (type === 'mock') {
-                modeCounts.mock += 1;
-            } else if (type === 'subject') {
-                modeCounts.topic += 1;
-            } else if (type === 'NOVEL (CBT)') {
-                modeCounts.literature += 1;
-            }
+    // ALL cbt questions go to CBT Mode (this includes the Literature subject 'lit')
+    modeCounts.cbt += 1;
+} else if (type === 'exam') {
+    modeCounts.exam += 1;
+} else if (type === 'mock') {
+    modeCounts.mock += 1;
+} else if (type === 'subject') {
+    modeCounts.topic += 1;
+} else if (type === 'NOVEL (CBT)') {
+    // ONLY Novel (CBT) questions (subject 'lhm') go to the Novel section
+    modeCounts.literature += 1;
+}
         });
     }
 
@@ -8761,12 +8807,12 @@ function renderAdminViewModeQuestions() {
 
     let filtered = state.allQuestions || [];
     if (type === 'literature') {
-        filtered = filtered.filter(function(q) { return q.type === 'NOVEL (CBT)' && q.subject_id === 'lhm'; });
-    } else if (type === 'cbt') {
-        filtered = filtered.filter(function(q) { return q.type === 'cbt'; });
-    } else if (type) {
-        filtered = filtered.filter(function(q) { return q.type === type; });
-    }
+    filtered = filtered.filter(function(q) { return q.type === 'NOVEL (CBT)' && q.subject_id === 'lhm'; });
+} else if (type === 'cbt') {
+    filtered = filtered.filter(function(q) { return q.type === 'cbt'; });
+} else if (type) {
+    filtered = filtered.filter(function(q) { return q.type === type; });
+}
     if (subject) filtered = filtered.filter(function(q) { return q.subject_id === subject; });
     if (year) filtered = filtered.filter(function(q) { return q.year === year; });
     if (search) {
@@ -8903,6 +8949,15 @@ function renderAdminViewModeQuestions() {
         '<textarea class="field" rows="2" data-action="qform-explanation" style="margin-bottom:10px" placeholder="Explain why this answer is correct...">' +
         esc(state.admin.qExplanation) + '</textarea>' +
         '<button class="btn btn-green" data-action="qform-add-admin" style="margin-top:4px">Save Question</button>' +
+        '</div>' +
+        '<div class="card" style="margin-top:16px">' +
+        '<p style="font-size:14px;font-weight:600;margin:0 0 8px">📋 Or Paste Questions as JSON</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Paste an array of questions. Uses the Subject' +
+        (type === "exam" || type === "mock" ? ' and Year' : '') +
+        ' selected above unless each question specifies its own <code>subject_id</code>' +
+        (type === "exam" || type === "mock" ? '/<code>year</code>' : '') + '.</p>' +
+        '<textarea class="field" id="admin-json-import" rows="6" placeholder=\'[\n  {\n    "text": "What is 2+2?",\n    "options": ["3","4","5","6"],\n    "correct_answer": 1,\n    "explanation": "2+2 equals 4."\n  }\n]\' style="margin-bottom:10px;font-family:var(--font-mono);font-size:12px"></textarea>' +
+        '<button class="btn btn-gold" data-action="qform-import-json">Import Questions</button>' +
         '</div>'
     );
 
@@ -9067,7 +9122,7 @@ function renderAdminTopicManagement() {
 }
 
 // ============================================================
-//  ADMIN SETTINGS
+//  ADMIN SETTINGS (PATCH 13 applied)
 // ============================================================
 function renderAdminSettings() {
     const s = state.settingsCache;
@@ -9155,10 +9210,18 @@ function renderAdminSettings() {
         'Show calculator in exams</label>' +
         '</div>' +
         '<button class="btn btn-green" data-action="admin-save-settings">Save Settings</button>' +
+        '</div>' +
+        '<div class="card" style="margin-top:16px">' +
+        '<p style="font-size:14px;font-weight:600;margin:0 0 12px">📦 Offline Question Data</p>' +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 12px">Export all CBT / Exam / Mock / Novel / Topic Practice questions, passages, and topics currently stored on this device as <b>questions-seed.json</b>, then redeploy that file next to index.html so new installs start pre-seeded. Import loads a seed or backup file into this device.</p>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">' +
+        '<button class="btn btn-outline" style="flex:1" data-action="offline-export-questions">⬇️ Export Questions</button>' +
+        '<button class="btn btn-outline" style="flex:1" data-action="offline-import-questions-trigger">⬆️ Import Questions File</button>' +
+        '</div>' +
+        '<input type="file" id="offline-import-file-input" accept="application/json" style="display:none" />' +
         '</div>'
     );
 }
-
 // ============================================================
 //  ADMIN DOCUMENTS
 // ============================================================
@@ -9202,6 +9265,8 @@ function renderAdminDocuments() {
 }
 
 // ============================================================
+//============================================================
+             
 //  ADMIN USERS
 // ============================================================
 function renderAdminUsers() {
@@ -9251,7 +9316,7 @@ function renderAdminNotifications() {
         notifList = '<div class="loading-spinner"><div class="spinner"></div><p>Loading notifications...</p></div>';
         loadNotifications();
     } else if (state.notifsList.length === 0) {
-        notifList =
+        notiflist =
             '<p style="font-size:12px;color:var(--faint);text-align:center;margin-top:12px">No notifications sent yet.</p>';
     } else {
         state.notifsList.forEach(function(n) {
@@ -9279,7 +9344,7 @@ function renderAdminNotifications() {
         });
     }
 
-    let imagePreview = "";
+                let imagePreview = "";
     if (state.admin.notifImageData) {
         imagePreview = '<img src="' + state.admin.notifImageData +
             '" class="preview-img" alt="Notification image preview" />';
@@ -9318,6 +9383,7 @@ function renderAdminMock() {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading mock data...</p></div>';
     }
 
+    // If viewing mock attempts
     if (state.admin.viewingMockAttempts) {
         return renderMockAttemptsView();
     }
@@ -9387,6 +9453,7 @@ function renderAdminFlagged() {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading flagged questions...</p></div>';
     }
 
+    // We'll fetch flagged questions on demand
     if (!state.admin.flaggedLoaded) {
         state.admin.flaggedLoading = true;
         loadFlaggedQuestions(state.admin.flaggedFilter || 'unresolved').then(function(data) {
@@ -9401,6 +9468,7 @@ function renderAdminFlagged() {
     const data = state.admin.flaggedData || [];
     const filter = state.admin.flaggedFilter || 'unresolved';
     
+    // Group by question_id
     const grouped = {};
     data.forEach(function(f) {
         if (!grouped[f.question_id]) grouped[f.question_id] = [];
@@ -9446,6 +9514,7 @@ function renderAdminFlagged() {
         html += '</div>';
         html += '</div>';
         
+        // Show flag details
         html += '<div style="font-size:11px;color:var(--muted);margin:4px 0">';
         html += 'Flagged ' + flags.length + ' time' + (flags.length > 1 ? 's' : '') + ' · ';
         flags.slice(0, 3).forEach(function(f, i) {
@@ -9456,6 +9525,7 @@ function renderAdminFlagged() {
         html += '</div>';
         
         if (isEditing) {
+            // Edit form
             html += '<div class="edit-form" style="margin-top:8px">';
             html += '<label class="field-label">Question text</label>';
             html += '<textarea class="field" id="edit-text" rows="2" style="margin-bottom:8px">' + esc(q?.text || '') + '</textarea>';
@@ -9569,7 +9639,6 @@ function renderAdminActivation() {
         keysHtml
     );
 }
-
 // ============================================================
 //  DRAWER
 // ============================================================
@@ -9756,12 +9825,14 @@ document.addEventListener('click', function(e) {
     if (!el) return;
     const action = el.getAttribute('data-action');
 
+    // SPLASH
     if (action === 'skip-splash') {
         state.phase = 'app';
         render();
         return;
     }
 
+    // DRAWER
     if (action === 'open-drawer') {
         state.drawerOpen = true;
         render();
@@ -9773,11 +9844,13 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // NAVIGATION
     if (action === 'set-view') {
         setView(el.getAttribute('data-view'));
         return;
     }
 
+    // SUBMIT MODAL
     if (action === 'submit-confirm') {
         if (state.submitModalData && state.submitModalData.onConfirm) {
             state.submitModalData.onConfirm();
@@ -9791,6 +9864,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // ATTEMPT MODAL
     if (action === 'show-attempted-cbt') {
         const questions = state.cbtQuestions.map(function(q, i) {
             const ans = state.cbtAnswers[i];
@@ -9924,6 +9998,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // CALCULATOR
     if (action === 'toggle-calculator') {
         if (state.settingsCache.calculatorEnabled !== false) {
             state.showCalculator = !state.showCalculator;
@@ -10008,6 +10083,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // AUTH
     if (action === 'show-login') {
         state.showLogin = true;
         state.showSignup = false;
@@ -10134,6 +10210,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // DARK MODE
     if (action === 'toggle-dark-mode') {
         state.darkMode = !state.darkMode;
         storage.set('darkMode', state.darkMode ? 'true' : 'false');
@@ -10143,6 +10220,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // WHATSAPP SHARE
     if (action === 'whatsapp-share') {
         const shareUrl = window.location.origin + window.location.pathname;
         const shareText = 'Check out MyUTME — practice JAMB CBT, timed exams, mock tests and more! 📚 ' + shareUrl;
@@ -10151,6 +10229,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // CBT MODE SELECTION
     if (action === 'cbt-mode') {
         state.cbtMode = el.getAttribute('data-mode');
         state.cbtSelected = [];
@@ -10169,6 +10248,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // START CBT
     if (action === 'start-cbt') {
         startCbt();
         return;
@@ -10179,6 +10259,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // CBT EXAM ACTIONS
     if (action === 'cbt-answer') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         state.cbtAnswers[state.cbtIndex] = idx;
@@ -10209,111 +10290,117 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'cbt-submit') {
-        if (state.cbtSubmitted) return;
-        const subjectMap = {};
-        state.cbtQuestions.forEach(function(q, i) {
-            if (!subjectMap[q.subject_id]) {
-                const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
-                subjectMap[q.subject_id] = {
-                    name: subj ? subj.name : q.subject_id,
-                    total: 0,
-                    answered: 0,
-                    unanswered: 0,
-                };
-            }
-            subjectMap[q.subject_id].total++;
-            const isAnswered = state.cbtAnswers[i] !== null && state.cbtAnswers[i] !== undefined;
-            if (isAnswered) subjectMap[q.subject_id].answered++;
-            else subjectMap[q.subject_id].unanswered++;
-        });
-        const subjectSummaries = Object.values(subjectMap);
-        const totalAnswered = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
-        const totalQuestions = state.cbtQuestions.length;
-        
-        const hasEnglish = state.cbtQuestions.some(function(q) { return q.subject_id === 'eng'; });
-        if (hasEnglish && state.authUser) {
-            const submittedBatches = JSON.parse(storage.get('submittedBatches_' + state.authUser.id) || '[]');
-            const currentBatch = state.englishBatchTracker || 1;
-            
-            if (submittedBatches.indexOf(currentBatch) === -1) {
-                submittedBatches.push(currentBatch);
-                storage.set('submittedBatches_' + state.authUser.id, JSON.stringify(submittedBatches));
-            }
-            
-            let nextBatch = 1;
-            for (let i = 1; i <= 6; i++) {
-                if (submittedBatches.indexOf(i) === -1) {
-                    nextBatch = i;
-                    break;
-                }
-            }
-            
-            if (submittedBatches.length >= 6) {
-                nextBatch = 1;
-                storage.set('submittedBatches_' + state.authUser.id, JSON.stringify([]));
-            }
-            
-            state.englishBatchTracker = nextBatch;
-            storage.set('englishBatchTracker_' + state.authUser.id, String(nextBatch));
+    if (state.cbtSubmitted) return;
+    const subjectMap = {};
+    state.cbtQuestions.forEach(function(q, i) {
+        if (!subjectMap[q.subject_id]) {
+            const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
+            subjectMap[q.subject_id] = {
+                name: subj ? subj.name : q.subject_id,
+                total: 0,
+                answered: 0,
+                unanswered: 0,
+            };
         }
-        
-        state.showSubmitModal = true;
-        state.submitModalData = {
-            total: totalQuestions,
-            answered: totalAnswered,
-            subjects: subjectSummaries,
-            isMock: false,
-            onConfirm: function() {
-                state.showSubmitModal = false;
-                state.submitModalData = null;
-                state.cbtSubmitted = true;
-                state.cbtFinished = true;
-                state.currentEnglishPassage = null;
-                state.hasPassage = false;
-                state.passageRead = false;
-                state.passageQuestionIds = [];
-                if (state.cbtTimer) { clearInterval(state.cbtTimer);
-                    state.cbtTimer = null; }
-                render();
-            },
-            onCancel: function() {
-                state.showSubmitModal = false;
-                state.submitModalData = null;
-                render();
-            }
-        };
-        render();
-        return;
+        subjectMap[q.subject_id].total++;
+        const isAnswered = state.cbtAnswers[i] !== null && state.cbtAnswers[i] !== undefined;
+        if (isAnswered) subjectMap[q.subject_id].answered++;
+        else subjectMap[q.subject_id].unanswered++;
+    });
+    const subjectSummaries = Object.values(subjectMap);
+    const totalAnswered = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
+    const totalQuestions = state.cbtQuestions.length;
+    
+    // Check if English was in this attempt
+const hasEnglish = state.cbtQuestions.some(function(q) { return q.subject_id === 'eng'; });
+if (hasEnglish && state.authUser) {
+    // Check if this batch was already submitted
+    const submittedBatches = JSON.parse(storage.get('submittedBatches_' + state.authUser.id) || '[]');
+    const currentBatch = state.englishBatchTracker || 1;
+    
+    // Only mark as submitted if not already
+    if (submittedBatches.indexOf(currentBatch) === -1) {
+        submittedBatches.push(currentBatch);
+        storage.set('submittedBatches_' + state.authUser.id, JSON.stringify(submittedBatches));
     }
+    
+    // Find next unsubmitted batch
+    let nextBatch = 1;
+    for (let i = 1; i <= 6; i++) {
+        if (submittedBatches.indexOf(i) === -1) {
+            nextBatch = i;
+            break;
+        }
+    }
+    
+    // If all 6 are done, reset to 1
+    if (submittedBatches.length >= 6) {
+        nextBatch = 1;
+        storage.set('submittedBatches_' + state.authUser.id, JSON.stringify([]));
+    }
+    
+    state.englishBatchTracker = nextBatch;
+    storage.set('englishBatchTracker_' + state.authUser.id, String(nextBatch));
+}
+    
+    state.showSubmitModal = true;
+    state.submitModalData = {
+        total: totalQuestions,
+        answered: totalAnswered,
+        subjects: subjectSummaries,
+        isMock: false,
+        onConfirm: function() {
+            state.showSubmitModal = false;
+            state.submitModalData = null;
+            state.cbtSubmitted = true;
+            state.cbtFinished = true;
+            state.currentEnglishPassage = null;
+            state.hasPassage = false;
+            state.passageRead = false;
+            state.passageQuestionIds = [];
+            if (state.cbtTimer) { clearInterval(state.cbtTimer);
+                state.cbtTimer = null; }
+            render();
+        },
+        onCancel: function() {
+            state.showSubmitModal = false;
+            state.submitModalData = null;
+            render();
+        }
+    };
+    render();
+    return;
+}
 
     if (action === 'cbt-exit') {
-        if (state.cbtTimer) { clearInterval(state.cbtTimer);
-            state.cbtTimer = null; }
-        state.cbtQuestions = [];
-        state.cbtIndex = 0;
-        state.cbtAnswers = [];
-        state.cbtFinished = false;
-        state.cbtSubmitted = false;
-        state.cbtHistorySaved = false;
-        state.cbtSelected = [];
-        state.cbtSubjectQuestions = {};
-        state.cbtSubjectOrder = [];
-        state.cbtCurrentSubject = null;
-        state.currentEnglishPassage = null;
-        state.hasPassage = false;
-        state.passageRead = false;
-        state.view = 'home';
-        render();
-        return;
-    }
+    if (state.cbtTimer) { clearInterval(state.cbtTimer);
+        state.cbtTimer = null; }
+    state.cbtQuestions = [];
+    state.cbtIndex = 0;
+    state.cbtAnswers = [];
+    state.cbtFinished = false;
+    state.cbtSubmitted = false;
+    state.cbtHistorySaved = false;
+    state.cbtSelected = [];
+    state.cbtSubjectQuestions = {};
+    state.cbtSubjectOrder = [];
+    state.cbtCurrentSubject = null;
+    state.currentEnglishPassage = null;
+    state.hasPassage = false;
+    state.passageRead = false;
+    state.view = 'home';
+    render();
+    return;
+}
     if (action === 'cbt-toggle-review') {
-        state.cbtReviewMode = !state.cbtReviewMode;
-        render();
-        return;
-    }
+    state.cbtReviewMode = !state.cbtReviewMode;
+    render();
+    return;
+}
 
-    if (action === 'passage-done') {
+if (action === 'passage-done') {
         state.passageRead = true;
+        // Jump to the first passage-linked question, once
         if (state.passageQuestionIds && state.passageQuestionIds.length > 0) {
             const firstPassageId = state.passageQuestionIds[0];
             const firstIndex = state.cbtQuestions.findIndex(function(q) { return q.id === firstPassageId; });
@@ -10326,18 +10413,20 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
-    if (action === 'show-passage') {
-        state.showPassageModal = true;
-        render();
-        return;
-    }
+if (action === 'show-passage') {
+    // Show passage in a modal or overlay
+    state.showPassageModal = true;
+    render();
+    return;
+}
 
-    if (action === 'close-passage') {
-        state.showPassageModal = false;
-        render();
-        return;
-    }
+if (action === 'close-passage') {
+    state.showPassageModal = false;
+    render();
+    return;
+}
 
+    // EXAM MODE
     if (action === 'select-exam-subject') {
         const id = el.getAttribute('data-subject');
         state.examSubject = state.examSubject === id ? null : id;
@@ -10436,6 +10525,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // TOPICS
     if (action === 'select-topic-subject') {
         const id = el.getAttribute('data-subject');
         state.topicSubject = state.topicSubject === id ? null : id;
@@ -10453,11 +10543,12 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // ADMIN TOPIC PRACTICE MANAGEMENT
     if (action === 'admin-create-topic') {
         const subjectId = el.getAttribute('data-subject');
         const name = (document.getElementById('admin-new-topic-name')?.value || '').trim();
         if (!name) { showToast('Enter a topic name.', 'error'); return; }
-        supabase.from('topics').insert([{ subject_id: subjectId, name: name }]).then(function() {
+        addTopicOffline(subjectId, name).then(function() {
             showToast('Topic created!', 'success');
             state.admin.newTopicName = '';
             state.admin.adminTopicsLoaded = false;
@@ -10482,9 +10573,7 @@ document.addEventListener('click', function(e) {
     if (action === 'admin-delete-topic') {
         const topicId = el.getAttribute('data-topicid');
         if (!confirm('Delete this topic and all its questions?')) return;
-        supabase.from('topic_questions').delete().eq('topic_id', topicId).then(function() {
-            return supabase.from('topics').delete().eq('id', topicId);
-        }).then(function() {
+        deleteTopicOffline(topicId).then(function() {
             showToast('Topic deleted.', 'success');
             if (state.admin.adminSelectedTopicId === topicId) {
                 state.admin.adminSelectedTopicId = null;
@@ -10509,13 +10598,12 @@ document.addEventListener('click', function(e) {
             return;
         }
 
-        supabase.from('topic_questions').insert([{
-            topic_id: topicId,
+        addTopicQuestionOffline(topicId, {
             text: text,
             options: opts,
             correct_answer: state.admin.qCorrect,
             explanation: explanation,
-        }]).then(function() {
+        }).then(function() {
             showToast('Question added!', 'success');
             state.admin.qText = '';
             state.admin.qOpts = ['', '', '', ''];
@@ -10535,7 +10623,7 @@ document.addEventListener('click', function(e) {
     if (action === 'admin-delete-topic-question') {
         const qid = el.getAttribute('data-qid');
         if (!confirm('Delete this question?')) return;
-        supabase.from('topic_questions').delete().eq('id', qid).then(function() {
+        deleteTopicQuestionOffline(qid).then(function() {
             showToast('Question deleted.', 'success');
             state.admin.adminTopicQuestionsLoaded = false;
             state.admin.adminTopicsLoaded = false;
@@ -10565,12 +10653,12 @@ document.addEventListener('click', function(e) {
             return;
         }
 
-        supabase.from('topic_questions').update({
+        updateTopicQuestionOffline(qid, {
             text: text,
             options: options,
             correct_answer: correct,
             explanation: explanation,
-        }).eq('id', qid).then(function() {
+        }).then(function() {
             showToast('Question updated!', 'success');
             state.admin.editingQuestionId = null;
             state.admin.adminTopicQuestionsLoaded = false;
@@ -10677,6 +10765,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // LITERATURE
     if (action === 'lit-answer') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         state.litAnswers[state.litIndex] = idx;
@@ -10767,14 +10856,19 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // SYLLABUS
     if (action === 'select-syllabus-subject') {
+        // No-op: subject selection removed
         return;
     }
 
+    // DOCUMENTS
     if (action === 'select-doc-filter') {
+        // No-op: subject filtering removed
         return;
     }
 
+    // NOTIFICATIONS
     if (action === 'mark-notif-read') {
         const id = el.getAttribute('data-id');
         if (id) markNotificationRead(id);
@@ -10786,6 +10880,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // LEADERBOARD
     if (action === 'lb-tab') {
         state.leaderboardTab = el.getAttribute('data-tab');
         loadLeaderboard(state.leaderboardTab);
@@ -10799,17 +10894,18 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // MOCK
     if (action === 'toggle-mock-subject') {
-        const id = el.getAttribute('data-subject');
-        const i = state.mockSelectedSubjects.indexOf(id);
-        if (i !== -1) {
-            state.mockSelectedSubjects.splice(i, 1);
-        } else if (state.mockSelectedSubjects.length < 3) {
-            state.mockSelectedSubjects.push(id);
-        }
-        render();
-        return;
+    const id = el.getAttribute('data-subject');
+    const i = state.mockSelectedSubjects.indexOf(id);
+    if (i !== -1) {
+        state.mockSelectedSubjects.splice(i, 1);
+    } else if (state.mockSelectedSubjects.length < 3) { // Max 3 non-English subjects
+        state.mockSelectedSubjects.push(id);
     }
+    render();
+    return;
+}
 
     if (action === 'register-mock') {
         const examId = el.getAttribute('data-examid');
@@ -10860,38 +10956,38 @@ document.addEventListener('click', function(e) {
     }
     
     if (action === 'mock-passage-done') {
-        state.engMockPassageRead = true;
-        render();
-        return;
-    }
+    state.engMockPassageRead = true;
+    render();
+    return;
+}
 
-    if (action === 'show-mock-passage') {
-        state.showPassageModal = true;
-        render();
-        return;
-    }
+if (action === 'show-mock-passage') {
+    state.showPassageModal = true;
+    render();
+    return;
+}
 
     if (action === 'mock-exit') {
-        if (state.mockTimer) { clearInterval(state.mockTimer);
-            state.mockTimer = null; }
-        state.mockQuestions = [];
-        state.mockAnswers = [];
-        state.mockIndex = 0;
-        state.mockFinished = false;
-        state.mockSubmitted = false;
-        state.mockWaitingForResults = false;
-        state.mockResultReleased = false;
-        state.mockSubjectQuestions = {};
-        state.mockSubjectOrder = [];
-        state.mockCurrentSubject = null;
-        state.engMockPassage = null;
-        state.engMockHasPassage = false;
-        state.engMockPassageRead = false;
-        state.engMockPassageId = null;
-        state.view = 'home';
-        render();
-        return;
-    }
+    if (state.mockTimer) { clearInterval(state.mockTimer);
+        state.mockTimer = null; }
+    state.mockQuestions = [];
+    state.mockAnswers = [];
+    state.mockIndex = 0;
+    state.mockFinished = false;
+    state.mockSubmitted = false;
+    state.mockWaitingForResults = false;
+    state.mockResultReleased = false;
+    state.mockSubjectQuestions = {};
+    state.mockSubjectOrder = [];
+    state.mockCurrentSubject = null;
+    state.engMockPassage = null;
+    state.engMockHasPassage = false;
+    state.engMockPassageRead = false;
+    state.engMockPassageId = null;
+    state.view = 'home';
+    render();
+    return;
+}
 
     if (action === 'mock-toggle-review') {
         state.mockReviewMode = !state.mockReviewMode;
@@ -10921,6 +11017,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // ADMIN - Admin actions
     if (action === 'admin-tab') {
         state.adminTab = el.getAttribute('data-tab');
         state.adminQuestionsLoaded = false;
@@ -10929,6 +11026,7 @@ document.addEventListener('click', function(e) {
         state.admin.viewModeQuestions = false;
         state.admin.viewingMockAttempts = null;
         if (state.adminTab === 'documents') state.docsLoaded = false;
+        else if (state.adminTab === 'syllabus') { state.syllabusLoaded = false; loadSyllabus(); }
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
         else if (state.adminTab === 'mock') { state.mockLoaded = false;
             loadMockExams(); if (state.authUser) { loadMockRegistrations();
@@ -11026,7 +11124,7 @@ document.addEventListener('click', function(e) {
             return;
         }
 
-        supabase.from('questions').update({
+        updateQuestionOffline(qid, {
             text: text,
             options: options,
             correct_answer: correct,
@@ -11034,8 +11132,9 @@ document.addEventListener('click', function(e) {
             subject_id: currentQ.subject_id,
             type: currentQ.type,
             year: currentQ.year || null,
-        }).eq('id', qid).then(function() {
+        }).then(function() {
             showToast('Question updated!', 'success');
+            // Also resolve the flag
             return resolveFlaggedQuestions(qid);
         }).then(function() {
             loadFlaggedCount();
@@ -11052,6 +11151,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // Keep admin question management actions
     if (action === 'admin-select-mode') {
         const mode = el.getAttribute('data-mode');
         state.admin.viewModeQuestions = true;
@@ -11061,6 +11161,7 @@ document.addEventListener('click', function(e) {
         state.admin.searchQuery = '';
         state.admin.editingQuestionId = null;
         loadAllQuestionsCount();
+        loadAllQuestionsForAdmin();
         render();
         return;
     }
@@ -11074,6 +11175,7 @@ document.addEventListener('click', function(e) {
         state.admin.searchQuery = '';
         state.admin.editingQuestionId = null;
         loadAllQuestionsCount();
+        loadAllQuestionsForAdmin();
         render();
         return;
     }
@@ -11086,6 +11188,7 @@ document.addEventListener('click', function(e) {
         state.admin.viewModeYear = null;
         state.admin.searchQuery = '';
         state.admin.editingQuestionId = null;
+        loadAllQuestionsForAdmin();
         render();
         return;
     }
@@ -11126,7 +11229,7 @@ document.addEventListener('click', function(e) {
     if (action === 'delete-question') {
         const qid = el.getAttribute('data-qid');
         if (!confirm('Delete this question?')) return;
-        supabase.from('questions').delete().eq('id', qid).then(function() {
+        deleteQuestionOffline(qid).then(function() {
             showToast('Question deleted.', 'success');
             state.adminQuestionsLoaded = false;
             state.adminQuestionsList = [];
@@ -11163,7 +11266,7 @@ document.addEventListener('click', function(e) {
             return;
         }
 
-        supabase.from('questions').update({
+        updateQuestionOffline(qid, {
             text: text,
             options: options,
             correct_answer: correct,
@@ -11171,7 +11274,7 @@ document.addEventListener('click', function(e) {
             subject_id: currentQ.subject_id,
             type: currentQ.type,
             year: currentQ.year || null,
-        }).eq('id', qid).then(function() {
+        }).then(function() {
             showToast('Question updated!', 'success');
             state.admin.editingQuestionId = null;
             state.admin.editingQuestionData = null;
@@ -11184,6 +11287,62 @@ document.addEventListener('click', function(e) {
             console.error('Save edit error:', err);
             showToast('Error updating question: ' + (err.message || 'unknown'), 'error'); 
         });
+        return;
+    }
+
+    if (action === 'qform-import-json') {
+        const jsonText = document.getElementById('admin-json-import')?.value?.trim() || '';
+        const type = state.admin.viewModeType || 'cbt';
+        const actualType = type === 'literature' ? 'NOVEL (CBT)' : type === 'topic' ? 'subject' : type;
+        const fallbackSubject = document.getElementById('admin-qsubject')?.value || (type === 'literature' ? 'lhm' : '');
+        const fallbackYear = parseInt(document.getElementById('admin-qyear')?.value || 2026);
+
+        if (!jsonText) { showToast('Paste some JSON first.', 'error'); return; }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(jsonText);
+        } catch (err) {
+            showToast('Invalid JSON: ' + err.message, 'error');
+            return;
+        }
+        if (!Array.isArray(parsed)) parsed = [parsed];
+
+        (async function() {
+            let added = 0;
+            let skipped = 0;
+            for (const item of parsed) {
+                const subjectId = item.subject_id || fallbackSubject;
+                if (!subjectId || !item.text || !Array.isArray(item.options) || item.options.length !== 4 ||
+                    item.correct_answer === undefined || item.correct_answer === null) {
+                    skipped++;
+                    continue;
+                }
+                const qYear = (type === 'exam' || type === 'mock') ? (item.year || fallbackYear) : null;
+                try {
+                    await addQuestionOffline({
+                        subject_id: subjectId,
+                        subject_name: SUBJECTS.find(function(s) { return s.id === subjectId; })?.name || subjectId,
+                        type: actualType,
+                        year: qYear,
+                        text: item.text,
+                        options: item.options,
+                        correct_answer: item.correct_answer,
+                        explanation: item.explanation || '',
+                    });
+                    added++;
+                } catch (e) {
+                    skipped++;
+                }
+            }
+            showToast('Imported ' + added + ' question(s)' + (skipped > 0 ? ', skipped ' + skipped : '') + '.',
+                added > 0 ? 'success' : 'error');
+            const ta = document.getElementById('admin-json-import');
+            if (ta) ta.value = '';
+            loadAllQuestionsForAdmin();
+            loadAllQuestionsCount();
+            render();
+        })();
         return;
     }
 
@@ -11204,7 +11363,7 @@ document.addEventListener('click', function(e) {
         const qYear = (type === 'exam' || type === 'mock') ? year : null;
         const actualType = type === 'literature' ? 'NOVEL (CBT)' : type === 'topic' ? 'subject' : type;
 
-        supabase.from('questions').insert([{
+        addQuestionOffline({
             subject_id: subject,
             subject_name: SUBJECTS.find(function(s) { return s.id === subject; })?.name || subject,
             type: actualType,
@@ -11213,7 +11372,7 @@ document.addEventListener('click', function(e) {
             options: opts,
             correct_answer: state.admin.qCorrect,
             explanation: explanation,
-        }]).then(function() {
+        }).then(function() {
             showToast('Question saved!', 'success');
             state.admin.qText = '';
             state.admin.qOpts = ['', '', '', ''];
@@ -11223,7 +11382,7 @@ document.addEventListener('click', function(e) {
             if (qYear) state.admin.examYear = qYear;
             loadAllQuestionsCount();
             if (state.admin.viewModeQuestions) {
-                state.allQuestions = [];
+                loadAllQuestionsForAdmin();
                 loadAllQuestionsCount();
                 state.adminQuestionsLoaded = false;
                 state.adminQuestionsList = [];
@@ -11237,127 +11396,196 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // PATCH 14: Export/Import click handlers
+    if (action === 'offline-export-questions') {
+        exportOfflineData().then(function() {
+            showToast('Questions exported as questions-seed.json', 'success');
+        }).catch(function() {
+            showToast('Error exporting questions.', 'error');
+        });
+        return;
+    }
+
+    if (action === 'offline-import-questions-trigger') {
+        const input = document.getElementById('offline-import-file-input');
+        if (input) input.click();
+        return;
+    }
+
     if (action === 'admin-save-settings') {
-        const cbtQs = parseInt(document.getElementById('admin-cbt-questions')?.value || 40);
-        const cbtTime = parseFloat(document.getElementById('admin-cbt-time')?.value || 1.67) * 60;
-        const subjQs = parseInt(document.getElementById('admin-subject-questions')?.value || 40);
-        const subjTime = parseFloat(document.getElementById('admin-subject-time')?.value || 0.42) * 60;
-        const examTime = parseFloat(document.getElementById('admin-exam-time')?.value || 1.67) * 60;
-        const novelTime = parseFloat(document.getElementById('admin-novel-time')?.value || 1.67) * 60;
-        const topicQs = parseInt(document.getElementById('admin-topic-questions')?.value || 25);
-        const topicTime = parseFloat(document.getElementById('admin-topic-time')?.value || 1) * 60;
-        const reviseTime = parseFloat(document.getElementById('admin-revise-time')?.value || 1) * 60;
-        const mockQs = parseInt(document.getElementById('admin-mock-questions')?.value || 40);
-        const mockTime = parseFloat(document.getElementById('admin-mock-time')?.value || 1.67) * 60;
-        const cbtSubjectCount = parseInt(document.getElementById('admin-cbt-subject-count')?.value || 3);
-        const mockSubjectCount = parseInt(document.getElementById('admin-mock-subject-count')?.value || 4);
-        const calcEnabled = document.getElementById('admin-calc-enabled')?.checked !== false;
-        const underConstruction = document.getElementById('admin-under-construction')?.checked !== false;
-        const reopenTime = document.getElementById('admin-reopen-time')?.value || null;
-        
-        state.admin.questionsPerSubject = cbtQs;
-        state.admin.cbtTimeLimit = Math.round(cbtTime);
-        state.admin.subjectTimeLimit = Math.round(subjTime);
-        state.admin.mockTimeLimit = Math.round(mockTime);
-        state.admin.mockQuestionsPerSubject = mockQs;
-        state.admin.calculatorEnabled = calcEnabled;
-        state.admin.cbtSubjectCount = cbtSubjectCount;
-        state.admin.mockSubjectCount = mockSubjectCount;
-        state.admin.examTimeLimit = Math.round(examTime);
-        state.admin.novelTimeLimit = Math.round(novelTime);
-        state.admin.topicTimeLimit = Math.round(topicTime);
-        state.admin.reviseTimeLimit = Math.round(reviseTime);
+    const cbtQs = parseInt(document.getElementById('admin-cbt-questions')?.value || 40);
+    const cbtTime = parseFloat(document.getElementById('admin-cbt-time')?.value || 1.67) * 60;
+    const subjQs = parseInt(document.getElementById('admin-subject-questions')?.value || 40);
+    const subjTime = parseFloat(document.getElementById('admin-subject-time')?.value || 0.42) * 60;
+    const examTime = parseFloat(document.getElementById('admin-exam-time')?.value || 1.67) * 60;
+    const novelTime = parseFloat(document.getElementById('admin-novel-time')?.value || 1.67) * 60;
+    const topicQs = parseInt(document.getElementById('admin-topic-questions')?.value || 25);
+    const topicTime = parseFloat(document.getElementById('admin-topic-time')?.value || 1) * 60;
+    const reviseTime = parseFloat(document.getElementById('admin-revise-time')?.value || 1) * 60;
+    const mockQs = parseInt(document.getElementById('admin-mock-questions')?.value || 40);
+    const mockTime = parseFloat(document.getElementById('admin-mock-time')?.value || 1.67) * 60;
+    const cbtSubjectCount = parseInt(document.getElementById('admin-cbt-subject-count')?.value || 3);
+    const mockSubjectCount = parseInt(document.getElementById('admin-mock-subject-count')?.value || 4);
+    const calcEnabled = document.getElementById('admin-calc-enabled')?.checked !== false;
+    const underConstruction = document.getElementById('admin-under-construction')?.checked !== false;
+    const reopenTime = document.getElementById('admin-reopen-time')?.value || null;
+    
+    state.admin.questionsPerSubject = cbtQs;
+    state.admin.cbtTimeLimit = Math.round(cbtTime);
+    state.admin.subjectTimeLimit = Math.round(subjTime);
+    state.admin.mockTimeLimit = Math.round(mockTime);
+    state.admin.mockQuestionsPerSubject = mockQs;
+    state.admin.calculatorEnabled = calcEnabled;
+    state.admin.cbtSubjectCount = cbtSubjectCount;
+    state.admin.mockSubjectCount = mockSubjectCount;
+    state.admin.examTimeLimit = Math.round(examTime);
+    state.admin.novelTimeLimit = Math.round(novelTime);
+    state.admin.topicTimeLimit = Math.round(topicTime);
+    state.admin.reviseTimeLimit = Math.round(reviseTime);
 
-        const updates = [
-            { setting_key: 'cbt_settings', setting_value: { questions_per_subject: cbtQs, time_limit_minutes: Math.round(cbtTime), subject_count: cbtSubjectCount } },
-            { setting_key: 'subject_settings', setting_value: { questions_per_subject: subjQs, time_limit_minutes: Math.round(subjTime) } },
-            { setting_key: 'exam_settings', setting_value: { time_limit_minutes: Math.round(examTime) } },
-            { setting_key: 'novel_settings', setting_value: { time_limit_minutes: Math.round(novelTime) } },
-            { setting_key: 'topic_settings', setting_value: { questions_per_subject: topicQs, time_limit_minutes: Math.round(topicTime) } },
-            { setting_key: 'revise_settings', setting_value: { time_limit_minutes: Math.round(reviseTime) } },
-            { setting_key: 'mock_settings', setting_value: { questions_per_subject: mockQs, time_limit_minutes: Math.round(mockTime), subject_count: mockSubjectCount } },
-            { setting_key: 'calculator_enabled', setting_value: calcEnabled },
-            { setting_key: 'under_construction', setting_value: underConstruction },
-            { setting_key: 'construction_reopen_time', setting_value: reopenTime },
-        ];
+    const updates = [
+        { setting_key: 'cbt_settings', setting_value: { questions_per_subject: cbtQs, time_limit_minutes: Math.round(cbtTime), subject_count: cbtSubjectCount } },
+        { setting_key: 'subject_settings', setting_value: { questions_per_subject: subjQs, time_limit_minutes: Math.round(subjTime) } },
+        { setting_key: 'exam_settings', setting_value: { time_limit_minutes: Math.round(examTime) } },
+        { setting_key: 'novel_settings', setting_value: { time_limit_minutes: Math.round(novelTime) } },
+        { setting_key: 'topic_settings', setting_value: { questions_per_subject: topicQs, time_limit_minutes: Math.round(topicTime) } },
+        { setting_key: 'revise_settings', setting_value: { time_limit_minutes: Math.round(reviseTime) } },
+        { setting_key: 'mock_settings', setting_value: { questions_per_subject: mockQs, time_limit_minutes: Math.round(mockTime), subject_count: mockSubjectCount } },
+        { setting_key: 'calculator_enabled', setting_value: calcEnabled },
+        { setting_key: 'under_construction', setting_value: underConstruction },
+        { setting_key: 'construction_reopen_time', setting_value: reopenTime },
+    ];
 
-        Promise.all(updates.map(function(u) {
-            return supabase.from('admin_settings').upsert(u, { onConflict: 'setting_key' });
-        })).then(function() {
-            state.settingsCache = {
-                cbtQuestionsPerSubject: cbtQs,
-                cbtTimeLimit: Math.round(cbtTime),
-                subjectQuestionsPerSubject: subjQs,
-                subjectTimeLimit: Math.round(subjTime),
-                mockQuestionsPerSubject: mockQs,
-                mockTimeLimit: Math.round(mockTime),
-                calculatorEnabled: calcEnabled,
-                examTimeLimit: Math.round(examTime),
-                novelTimeLimit: Math.round(novelTime),
-                topicTimeLimit: Math.round(topicTime),
-                reviseTimeLimit: Math.round(reviseTime),
-                cbtSubjectCount: cbtSubjectCount,
-                mockSubjectCount: mockSubjectCount,
-                underConstruction: underConstruction,
-                constructionReopenTime: reopenTime,
-            };
-            showToast('Settings saved!', 'success');
-            render();
-        }).catch(function(err) { 
-            console.error('Save settings error:', err);
-            showToast('Error saving settings: ' + (err.message || 'unknown'), 'error'); 
-        });
-        return;
-    }
+    Promise.all(updates.map(function(u) {
+        return supabase.from('admin_settings').upsert(u, { onConflict: 'setting_key' });
+    })).then(function() {
+        state.settingsCache = {
+            cbtQuestionsPerSubject: cbtQs,
+            cbtTimeLimit: Math.round(cbtTime),
+            subjectQuestionsPerSubject: subjQs,
+            subjectTimeLimit: Math.round(subjTime),
+            mockQuestionsPerSubject: mockQs,
+            mockTimeLimit: Math.round(mockTime),
+            calculatorEnabled: calcEnabled,
+            examTimeLimit: Math.round(examTime),
+            novelTimeLimit: Math.round(novelTime),
+            topicTimeLimit: Math.round(topicTime),
+            reviseTimeLimit: Math.round(reviseTime),
+            cbtSubjectCount: cbtSubjectCount,
+            mockSubjectCount: mockSubjectCount,
+            underConstruction: underConstruction,
+            constructionReopenTime: reopenTime,
+        };
+        showToast('Settings saved!', 'success');
+        render();
+    }).catch(function(err) { 
+        console.error('Save settings error:', err);
+        showToast('Error saving settings: ' + (err.message || 'unknown'), 'error'); 
+    });
+    return;
+}
     if (action === 'admin-upload-doc') {
-        if (!state.admin.docFile) { showToast('Choose a file first.', 'error'); return; }
-        const name = state.admin.docName.trim() || state.admin.docFile.name;
-        supabase.from('materials').insert([{
-            subject_id: 'general',
-            subject_name: 'General',
-            name: name,
-            file_name: state.admin.docFile.name,
-            file_url: state.admin.docFile.dataUrl,
-            file_type: state.admin.docFile.type,
-        }]).then(function() {
-            showToast('Document uploaded!', 'success');
-            state.admin.docFile = null;
-            state.admin.docName = '';
-            state.docsLoaded = false;
-            loadDocuments().then(function() { render(); });
+    if (!state.admin.docFile) { showToast('Choose a file first.', 'error'); return; }
+    const name = state.admin.docName.trim() || state.admin.docFile.name;
+    supabase.from('materials').insert([{
+        subject_id: 'general',
+        subject_name: 'General',
+        name: name,
+        file_name: state.admin.docFile.name,
+        file_url: state.admin.docFile.dataUrl,
+        file_type: state.admin.docFile.type,
+    }]).then(function() {
+        showToast('Document uploaded!', 'success');
+        state.admin.docFile = null;
+        state.admin.docName = '';
+        state.docsLoaded = false;
+        loadDocuments().then(function() { render(); });
+    }).catch(function(err) { 
+        console.error('Upload doc error:', err);
+        showToast('Error uploading document: ' + (err.message || JSON.stringify(err)), 'error'); 
+    });
+    return;
+}
+    if (action === 'admin-delete-syllabus') {
+        const id = el.getAttribute('data-id');
+        if (!confirm('Delete this syllabus entry?')) return;
+        supabase.from('syllabus').delete().eq('id', id).then(function() {
+            showToast('Syllabus entry deleted.', 'success');
+            state.syllabusLoaded = false;
+            loadSyllabus();
         }).catch(function(err) { 
-            console.error('Upload doc error:', err);
-            showToast('Error uploading document: ' + (err.message || JSON.stringify(err)), 'error'); 
-        });
+            console.error('Delete syllabus error:', err);
+            showToast('Error deleting syllabus entry.', 'error'); 
+        });            
         return;
     }
-        
-    if (action === 'load-doc-file') {
-        const docId = el.getAttribute('data-docid');
-        showToast('Loading file...', '');
-        loadSingleDocumentFile(docId);
-        return;
-    }
-
+    
     if (action === 'admin-delete-doc') {
-        const docId = el.getAttribute('data-docid');
-        if (!docId) { showToast('Document ID not found.', 'error'); return; }
-        if (!confirm('Delete this document permanently?')) return;
-        
-        supabase.from('materials').delete().eq('id', docId).then(function() {
-            showToast('Document deleted successfully.', 'success');
-            state.docsLoaded = false;
-            state.docsList = [];
-            loadDocuments().then(function() {
-                render();
-            });
-        }).catch(function(err) { 
-            console.error('Delete doc error:', err);
-            showToast('Error deleting document: ' + (err.message || 'unknown'), 'error'); 
+    const docId = el.getAttribute('data-docid');
+    if (!docId) { showToast('Document ID not found.', 'error'); return; }
+    if (!confirm('Delete this document permanently?')) return;
+    
+    supabase.from('materials').delete().eq('id', docId).then(function() {
+        showToast('Document deleted successfully.', 'success');
+        state.docsLoaded = false;
+        state.docsList = [];
+        loadDocuments().then(function() {
+            render();
         });
+    }).catch(function(err) { 
+        console.error('Delete doc error:', err);
+        showToast('Error deleting document: ' + (err.message || 'unknown'), 'error'); 
+    });
+    return;
+}
+
+    if (action === 'load-doc-file') {
+    const docId = el.getAttribute('data-docid');
+    showToast('Loading file...', '');
+    loadSingleDocumentFile(docId);
+    return;
+}
+        
+    if (action === 'admin-save-syllabus') {
+    const name = document.getElementById('syllabus-name-input')?.value?.trim() || '';
+    const text = state.admin.syllabusText || '';
+    const fileData = state.admin.syllabusFile;
+
+    if (!name && !text && !fileData) {
+        showToast('Please provide at least a name, text, or file.', 'error');
         return;
     }
 
+    const insertData = {
+        subject_id: 'general',
+        name: name || 'Untitled Syllabus',
+        content: text,
+        file_url: fileData ? fileData.dataUrl : null,
+        file_name: fileData ? fileData.name : null,
+        file_type: fileData ? fileData.type : null,
+    };
+
+    supabase.from('syllabus').insert([insertData])
+        .then(function() {
+            showToast('Syllabus saved!', 'success');
+            state.admin.syllabusFile = null;
+            state.admin.syllabusText = '';
+            const nameInput = document.getElementById('syllabus-name-input');
+            if (nameInput) nameInput.value = '';
+            const textArea = document.getElementById('syllabus-text-area');
+            if (textArea) textArea.value = '';
+            const fileInput = document.getElementById('syllabus-file-input');
+            if (fileInput) fileInput.value = '';
+            state.syllabusLoaded = false;
+            state.syllabusData = [];
+            loadSyllabus().then(function() { render(); });
+        })
+        .catch(function(err) { 
+            console.error('Save syllabus error:', err);
+            showToast('Error saving syllabus: ' + (err.message || JSON.stringify(err)), 'error');
+        });
+    return;
+}
     if (action === 'admin-schedule-mock') {
         const title = document.getElementById('admin-mock-title')?.value?.trim() || '';
         const scheduled = document.getElementById('admin-mock-scheduled')?.value || '';
@@ -11451,48 +11679,52 @@ document.addEventListener('click', function(e) {
     }
  
     if (action === 'admin-send-notification') {
-        const title = document.getElementById('admin-notif-title')?.value?.trim() || '';
-        const body = document.getElementById('admin-notif-body')?.value?.trim() || '';
-        const imageData = state.admin.notifImageData || null;
+    const title = document.getElementById('admin-notif-title')?.value?.trim() || '';
+    const body = document.getElementById('admin-notif-body')?.value?.trim() || '';
+    const imageData = state.admin.notifImageData || null;
 
-        if (!title || !body) {
-            showToast('Fill in both title and body.', 'error');
-            return;
-        }
-
-        const insertData = { 
-            title: title, 
-            body: body, 
-            target_user_id: null,
-            created_at: new Date().toISOString()
-        };
-        if (imageData) insertData.image_url = imageData;
-
-        supabase.from('notifications').insert([insertData]).then(function() {
-            showToast('✅ Broadcast notification sent!', 'success');
-            
-            document.getElementById('admin-notif-title').value = '';
-            document.getElementById('admin-notif-body').value = '';
-            state.admin.notifImage = null;
-            state.admin.notifImageData = null;
-            
-            state.notifsLoaded = false;
-            state.notifsList = [];
-            state.notifs = [];
-            
-            loadNotifications();
-            render();
-            
-            setTimeout(function() {
-                render();
-            }, 1000);
-            
-        }).catch(function(err) { 
-            console.error('Send notification error:', err);
-            showToast('Error sending notification: ' + (err.message || 'unknown'), 'error'); 
-        });
+    if (!title || !body) {
+        showToast('Fill in both title and body.', 'error');
         return;
     }
+
+    const insertData = { 
+        title: title, 
+        body: body, 
+        target_user_id: null,
+        created_at: new Date().toISOString()
+    };
+    if (imageData) insertData.image_url = imageData;
+
+    supabase.from('notifications').insert([insertData]).then(function() {
+        showToast('✅ Broadcast notification sent!', 'success');
+        
+        // Clear form
+        document.getElementById('admin-notif-title').value = '';
+        document.getElementById('admin-notif-body').value = '';
+        state.admin.notifImage = null;
+        state.admin.notifImageData = null;
+        
+        // Force reload
+        state.notifsLoaded = false;
+        state.notifsList = [];
+        state.notifs = [];
+        
+        // Load and render
+        loadNotifications();
+        render();
+        
+        // Double-check after 1 second
+        setTimeout(function() {
+            render();
+        }, 1000);
+        
+    }).catch(function(err) { 
+        console.error('Send notification error:', err);
+        showToast('Error sending notification: ' + (err.message || 'unknown'), 'error'); 
+    });
+    return;
+}
     if (action === 'admin-notify-user' || action === 'admin-notify-user-btn') {
         const userId = el.getAttribute('data-userid');
         const username = el.getAttribute('data-username') || 'User';
@@ -11510,48 +11742,49 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'notify-send') {
-        const title = document.getElementById('notify-title-input')?.value?.trim() || '';
-        const body = document.getElementById('notify-body-input')?.value?.trim() || '';
-        const userId = state.notifyModalData?.userId;
+    const title = document.getElementById('notify-title-input')?.value?.trim() || '';
+    const body = document.getElementById('notify-body-input')?.value?.trim() || '';
+    const userId = state.notifyModalData?.userId;
 
-        if (!title || !body) {
-            showToast('Fill in both title and body.', 'error');
-            return;
-        }
-        if (!userId) {
-            showToast('No user selected.', 'error');
-            return;
-        }
-
-        supabase.from('notifications').insert([{
-            title: title,
-            body: body,
-            target_user_id: userId,
-            created_at: new Date().toISOString(),
-        }]).then(function() {
-            showToast('✅ Notification sent to user!', 'success');
-            state.showNotifyModal = false;
-            state.notifyModalData = null;
-            state.notifsLoaded = false;
-            state.notifsList = [];
-            state.notifs = [];
-            loadNotifications();
-            render();
-            setTimeout(function() {
-                render();
-            }, 1000);
-        }).catch(function(err) { 
-            console.error('Send user notification error:', err);
-            showToast('Error sending notification.', 'error'); 
-        });
+    if (!title || !body) {
+        showToast('Fill in both title and body.', 'error');
         return;
     }
-    if (action === 'admin-delete-notification') {
-        const id = el.getAttribute('data-id');
-        if (!id) { showToast('Notification ID not found.', 'error'); return; }
-        if (!confirm('Delete this notification permanently?')) return;
+    if (!userId) {
+        showToast('No user selected.', 'error');
+        return;
+    }
 
-        supabase.from('notifications').delete().eq('id', id).then(function(result) {
+    supabase.from('notifications').insert([{
+        title: title,
+        body: body,
+        target_user_id: userId,
+        created_at: new Date().toISOString(),
+    }]).then(function() {
+        showToast('✅ Notification sent to user!', 'success');
+        state.showNotifyModal = false;
+        state.notifyModalData = null;
+        state.notifsLoaded = false;
+        state.notifsList = [];
+        state.notifs = [];
+        loadNotifications();
+        render();
+        setTimeout(function() {
+            render();
+        }, 1000);
+    }).catch(function(err) { 
+        console.error('Send user notification error:', err);
+        showToast('Error sending notification.', 'error'); 
+    });
+    return;
+}
+  if (action === 'admin-delete-notification') {
+    const id = el.getAttribute('data-id');
+    if (!id) { showToast('Notification ID not found.', 'error'); return; }
+    if (!confirm('Delete this notification permanently?')) return;
+
+    supabase.from('notifications').delete().eq('id', id).select()
+        .then(function(result) {
             if (result.error) {
                 console.error('Delete notification error:', result.error);
                 showToast('Error deleting notification: ' + result.error.message, 'error');
@@ -11567,9 +11800,44 @@ document.addEventListener('click', function(e) {
             state.notifs = [];
             loadNotifications();
             render();
-        }).catch(function(err) {
+        })
+        .catch(function(err) {
             console.error('Delete notification exception:', err);
             showToast('Error deleting notification.', 'error');
+        });
+    return;
+}
+
+    if (action === 'admin-add-plan') {
+        adminAddPlan();
+        return;
+    }
+
+    if (action === 'admin-edit-plan') {
+        state.admin.editingPlanId = el.getAttribute('data-planid');
+        render();
+        return;
+    }
+
+    if (action === 'admin-cancel-plan-edit') {
+        state.admin.editingPlanId = null;
+        render();
+        return;
+    }
+
+    if (action === 'admin-save-plan-edit') {
+        const planId = el.getAttribute('data-planid');
+        const name = document.getElementById('edit-plan-name-' + planId)?.value?.trim() || '';
+        const days = parseInt(document.getElementById('edit-plan-days-' + planId)?.value || 0);
+        const price = parseInt(document.getElementById('edit-plan-price-' + planId)?.value || 0);
+        if (!name || days <= 0) { showToast('Enter plan name and days.', 'error'); return; }
+        supabase.from('activation_plans').update({ name: name, days: days, price: price }).eq('id', planId).then(function() {
+            showToast('Plan updated!', 'success');
+            state.admin.editingPlanId = null;
+            loadActivationPlans().then(function() { render(); });
+        }).catch(function(err) {
+            console.error('Update plan error:', err);
+            showToast('Error updating plan.', 'error');
         });
         return;
     }
@@ -11636,6 +11904,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // ACTIVATE
     if (action === 'activate-submit') {
         const code = document.getElementById('activate-code-input')?.value || state.activateCode || '';
         state.activateCode = code;
@@ -11688,6 +11957,7 @@ document.addEventListener('click', function(e) {
             return;
         }
 
+        // Manual payment — open WhatsApp with the admin number pre-filled
         const msg = 'Hello, I want to activate my MyUTME account.\n\n' +
             '📦 Plan: ' + plan.name + '\n' +
             '💰 Amount: ₦' + plan.price.toLocaleString() + '\n' +
@@ -11698,7 +11968,7 @@ document.addEventListener('click', function(e) {
         window.open(waUrl, '_blank');
         return;
     }
-
+    // HISTORY
     if (action === 'history-print') {
         const id = el.getAttribute('data-id');
         const entry = state.historyEntries.find(function(e) { return e.id === id; });
@@ -11794,6 +12064,44 @@ document.addEventListener('click', function(e) {
         const entry = state.historyEntries.find(function(e) { return e.id === id; });
         if (!entry) { showToast('Entry not found.', 'error'); return; }
 
+        const pct = entry.max_score ? Math.round((entry.total_score / entry.max_score) * 100) : 0;
+        const studentName = state.profile.name || 'Guest';
+
+        const subjectStr = Object.keys(entry.subject_scores || {}).map(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            return '   • ' + (subj ? subj.name : sid) + ': ' + entry.subject_scores[sid];
+        }).join('\n');
+
+        const text = '🎓 MyUTME — Official Result Slip\n' +
+            '━━━━━━━━━━━━━━━━━━━━\n' +
+            '👤 Candidate: ' + studentName + '\n' +
+            '📝 Exam: ' + (entry.exam_title || entry.mode) + '\n' +
+            '📅 Date: ' + formatDate(entry.submitted_at) + '\n' +
+            '🎯 Score: ' + entry.total_score + ' / ' + entry.max_score + ' (' + pct + '%)\n' +
+            (subjectStr ? '📋 Subject Breakdown:\n' + subjectStr + '\n' : '') +
+            '✅ ' + entry.answered_count + ' of ' + entry.total_questions + ' answered\n' +
+            '━━━━━━━━━━━━━━━━━━━━\n' +
+            'Practice smarter with MyUTME';
+
+        if (navigator.share) {
+            navigator.share({
+                title: 'MyUTME Exam Result — ' + studentName,
+                text: text,
+            }).catch(function() {});
+        } else {
+            navigator.clipboard.writeText(text).then(function() {
+                showToast('Result copied to clipboard!', 'success');
+            }).catch(function() {
+                prompt('Copy this result:', text);
+            });
+        }
+        return;
+    }
+    if (action === 'history-share') {
+        const id = el.getAttribute('data-id');
+        const entry = state.historyEntries.find(function(e) { return e.id === id; });
+        if (!entry) { showToast('Entry not found.', 'error'); return; }
+        
         const subjectStr = Object.keys(entry.subject_scores || {}).map(function(sid) {
             const subj = SUBJECTS.find(function(s) { return s.id === sid; });
             return (subj ? subj.name : sid) + ': ' + entry.subject_scores[sid];
@@ -11812,15 +12120,18 @@ document.addEventListener('click', function(e) {
                 text: text,
             }).catch(function() {});
         } else {
+            // Fallback: copy to clipboard
             navigator.clipboard.writeText(text).then(function() {
                 showToast('Result copied to clipboard!', 'success');
             }).catch(function() {
+                // Fallback: prompt
                 prompt('Copy this result:', text);
             });
         }
         return;
     }
 
+    // REVISE WEAK QUESTIONS - NAVIGATION
     if (action === 'revise-select-mode') {
         state.reviseMode = el.getAttribute('data-mode');
         state.reviseView = 'subjects';
@@ -11847,6 +12158,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // REVISE WEAK QUESTIONS - QUESTION INTERACTIONS
     if (action === 'weak-toggle-view') {
         const wid = el.getAttribute('data-wid');
         state.weakQuestionStates['view_' + wid] = !state.weakQuestionStates['view_' + wid];
@@ -12010,16 +12322,34 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'start-weak-review') {
+        // For now, just redirect to revise view which handles the new inline UI
         state.view = 'revise';
         render();
         return;
     }
 
-    if (action === 'send-support-message') {
-        const val = document.getElementById('support-chat-input')?.value || '';
-        sendSupportMessage(val);
-        return;
+    // SUPPORT CHAT
+    let quickIssuesHtml = '';
+    if (state.supportMessages.length === 0) {
+        quickIssuesHtml = '<p class="section-label" style="margin-top:8px">What can we help with?</p><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
+        SUPPORT_QUICK_ISSUES.forEach(function(issue) {
+            quickIssuesHtml += '<button class="mini-btn" style="font-size:11px" data-action="support-quick-issue" data-issue="' + issue.key + '">' + esc(issue.label) + '</button>';
+        });
+        quickIssuesHtml += '</div>';
     }
+
+    return (
+        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 16) + ' Home</button>' +
+        '<h2 class="title" style="margin-bottom:4px">💬 Support Chat</h2>' +
+        '<p class="sub">Payment &amp; activation help — instant AI reply, our team follows up if needed</p>' +
+        quickIssuesHtml +
+        '<div class="chat-window">' + bubbles + '</div>' +
+        '<div class="chat-input-row">' +
+        '<input class="field" id="support-chat-input" placeholder="Type a message..." value="' + esc(state.supportInput || '') + '" />' +
+        '<button class="btn btn-green chat-send-btn" data-action="send-support-message">Send</button>' +
+        '</div>'
+    );
+
 
     if (action === 'admin-open-support') {
         state.adminSelectedSupportUser = el.getAttribute('data-userid');
@@ -12046,7 +12376,7 @@ document.addEventListener('click', function(e) {
 });
                     
 // ============================================================
-//  INPUT EVENT HANDLING
+//  INPUT EVENT HANDLING (PATCH 15 applied)
 // ============================================================
 document.addEventListener('change', function(e) {
     const id = e.target.id;
@@ -12059,6 +12389,16 @@ document.addEventListener('change', function(e) {
         const reader = new FileReader();
         reader.onload = function(ev) {
             state.admin.docFile = { name: file.name, type: file.type, size: file.size, dataUrl: ev.target.result };
+            render();
+        };
+        reader.readAsDataURL(file);
+    } else if (id === 'syllabus-file-input') {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            state.admin.syllabusFile = { name: file.name, type: file.type, size: file.size, dataUrl: ev.target
+                    .result };
             render();
         };
         reader.readAsDataURL(file);
@@ -12098,15 +12438,41 @@ document.addEventListener('change', function(e) {
         state.admin.adminSelectedTopicId = null;
         state.admin.adminTopicQuestionsLoaded = false;
         render();
+    } else if (id === 'offline-import-file-input') {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                const data = JSON.parse(ev.target.result);
+                importOfflineData(data, 'replace').then(function(result) {
+                    showToast('Imported ' + result.questions + ' questions, ' + result.passages +
+                        ' passages, ' + result.topics + ' topics, ' + result.topic_questions +
+                        ' topic questions.', 'success');
+                    state.allQuestions = [];
+                    loadAllQuestionsCount();
+                    render();
+                }).catch(function(err) {
+                    console.error('Import error:', err);
+                    showToast('Error importing file: ' + (err.message || 'unknown'), 'error');
+                });
+            } catch (parseErr) {
+                showToast('Invalid JSON file — could not parse.', 'error');
+            }
+            e.target.value = '';
+        };
+        reader.readAsText(file);
     }
 });
 
 document.addEventListener('input', function(e) {
-    const id = e.target.id;
+    const id = e.target.        id;
     const action = e.target.getAttribute && e.target.getAttribute('data-action');
 
     if (id === 'activate-code-input') state.activateCode = e.target.value;
     else if (id === 'doc-name-input') state.admin.docName = e.target.value;
+    else if (id === 'syllabus-text-area') state.admin.syllabusText = e.target.value;
+    else if (id === 'syllabus-name-input') { /* handled elsewhere */ }
     else if (id === 'admin-mock-title') state.admin.mockTitle = e.target.value;
     else if (id === 'admin-mock-scheduled') state.admin.mockScheduledDate = e.target.value;
     else if (id === 'admin-mock-reg-deadline') state.admin.mockRegistrationDeadline = e.target.value;
@@ -12138,7 +12504,6 @@ document.addEventListener('input', function(e) {
         state.admin.qOpts[idx] = e.target.value;
     }
 });
-
 // ============================================================
 //  INIT
 // ============================================================
@@ -12149,6 +12514,7 @@ async function init() {
         document.documentElement.setAttribute('data-theme', 'dark');
     }
 
+    // Paint the splash screen immediately — don't wait on any network calls
     render();
 
     setTimeout(function() {
@@ -12158,18 +12524,33 @@ async function init() {
         }
     }, 5000);
 
+    // These two are needed before the app is usable (auth + settings),
+    // so we still await them, but splash is already showing by now.
     await loadSettings();
     await checkAuthSession();
+    await seedOfflineDataIfNeeded();
     render();
 
+    // Everything else can load in the background and re-render when ready.
+    // Each of these already calls render() internally when it finishes.
     loadAllUsers();
     loadLeaderboard('cbt');
     loadNotifications();
     loadActivationPlans();
     loadFlaggedCount();
+    if (state.authUser) cacheAllDataForOffline();
 
+    window.addEventListener('online', function() {
+        showToast('Back online — syncing data...', '');
+        cacheAllDataForOffline();
+    });
+
+    // Check maintenance status every 60 seconds
     setInterval(function() {
-        loadSettings().then(function() {
+        const examViews = ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'];
+        if (examViews.indexOf(state.view) !== -1) return;
+        loadSettings().then(function(s) {
+            state.settingsCache = s;
             render();
         });
     }, 60000);
