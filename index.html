@@ -424,8 +424,8 @@
         text-align: center;
         border-radius: 10px;
         font-weight: 600;
-        padding: 11px;
-        font-size: 14px;
+        padding: 15px;
+        font-size: 16px;
         transition: background 0.2s, color 0.2s, border-color 0.2s;
         cursor: pointer;
     }
@@ -842,7 +842,7 @@
     }
     .timer-bar .time {
         font-family: var(--font-mono);
-        font-size: 18px;
+        font-size: 21px;
         font-weight: 700;
         color: var(--green);
     }
@@ -890,15 +890,16 @@
     .qa-option {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 14px;
         width: 100%;
         text-align: left;
         background: var(--card-bg);
         border: 1.5px solid var(--line);
-        border-radius: 12px;
-        padding: 10px 12px;
-        margin-bottom: 8px;
-        font-size: 14px;
+        border-radius: 14px;
+        padding: 18px 16px;
+        margin-bottom: 12px;
+        font-size: 17px;
+        line-height: 1.4;
         transition: background 0.3s, border-color 0.3s, color 0.3s;
         color: var(--ink);
         cursor: pointer;
@@ -921,15 +922,15 @@
     .qa-option.disabled { cursor: default; }
 
     .qa-letter {
-        width: 24px;
-        height: 24px;
+        width: 32px;
+        height: 32px;
         border-radius: 999px;
         background: var(--bg);
         display: flex;
         align-items: center;
         justify-content: center;
         font-family: var(--font-mono);
-        font-size: 11px;
+        font-size: 14px;
         font-weight: 700;
         flex-shrink: 0;
         transition: background 0.3s, color 0.3s;
@@ -1107,7 +1108,7 @@
     }
     .review-item .answer-row .correct-answer {
         color: var(--green);
-        font-weight: 600;
+        font-weight: 600;>
     }
     .review-item .answer-row .wrong-answer {
         color: var(--danger);
@@ -1721,17 +1722,41 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 12px;
-        padding: 8px 12px;
+        margin-bottom: 14px;
+        padding: 10px 14px;
         background: var(--card-bg);
         border-radius: 12px;
         border: 1px solid var(--line);
     }
     .exam-nav .q-counter {
         font-family: var(--font-mono);
-        font-size: 13px;
+        font-size: 15px;
         font-weight: 600;
         color: var(--ink);
+    }
+
+    .exam-body {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 320px);
+    }
+    .exam-question-card {
+        margin-bottom: 16px;
+    }
+    .exam-question-card p {
+        font-size: 18px !important;
+        line-height: 1.5;
+    }
+    .exam-options-wrap {
+        display: flex;
+        flex-direction: column;
+    }
+    .exam-nav-buttons {
+        margin-top: auto;
+        padding-top: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .admin-tabs {
@@ -6592,12 +6617,14 @@ return (
     '<div class="exam-nav">' +
     '<span class="q-counter">Question ' + (currentSubjectIndex + 1) + ' of ' + totalInCurrentSubject + ' in ' + (subj ? subj.name : '') + '</span>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:16px"><p style="font-size:15px;font-weight:600;margin:0">' + esc(item
+    '<div class="exam-body">' +
+    '<div class="card exam-question-card"><p style="font-weight:600;margin:0">' + esc(item
         ?.text || '') + '</p></div>' +
-    opts +
-    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">' +
+    '<div class="exam-options-wrap">' + opts + '</div>' +
+    '<div class="exam-nav-buttons">' +
     (hasPrev ? '<button class="btn btn-outline" style="flex:1" data-action="cbt-goto" data-idx="' + prevIdx + '">Previous</button>' : '') +
     (hasNext ? '<button class="btn btn-green" style="flex:1" data-action="cbt-goto" data-idx="' + nextIdx + '">Next</button>' : '') +
+    '</div>' +
     '</div>'
 );
 }
@@ -6777,14 +6804,16 @@ state.examQuestions.forEach(function(item, i) {
         '<div class="exam-nav">' +
         '<span class="q-counter">Question ' + (state.examIndex + 1) + ' of ' + totalQ + '</span>' +
         '</div>' +
-        '<div class="card" style="margin-bottom:16px"><p style="font-size:15px;font-weight:600;margin:0">' + esc(item
+        '<div class="exam-body">' +
+        '<div class="card exam-question-card"><p style="font-weight:600;margin:0">' + esc(item
             ?.text || '') + '</p></div>' +
-        opts +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">' +
+        '<div class="exam-options-wrap">' + opts + '</div>' +
+        '<div class="exam-nav-buttons">' +
         (state.examIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="exam-prev">Previous</button>' :
             '') +
         (state.examIndex < totalQ - 1 ?
             '<button class="btn btn-green" style="flex:1" data-action="exam-next">Next</button>' : '') +
+        '</div>' +
         '</div>'
     );
 }
@@ -6989,14 +7018,16 @@ state.topicQuestions.forEach(function(item, i) {
         '<div class="exam-nav">' +
         '<span class="q-counter">Question ' + (state.topicIndex + 1) + ' of ' + totalQ + '</span>' +
         '</div>' +
-        '<div class="card" style="margin-bottom:16px"><p style="font-size:15px;font-weight:600;margin:0">' + esc(item
+        '<div class="exam-body">' +
+        '<div class="card exam-question-card"><p style="font-weight:600;margin:0">' + esc(item
             ?.text || '') + '</p></div>' +
-        opts +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">' +
+        '<div class="exam-options-wrap">' + opts + '</div>' +
+        '<div class="exam-nav-buttons">' +
         (state.topicIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="topic-prev">Previous</button>' :
             '') +
         (state.topicIndex < totalQ - 1 ?
             '<button class="btn btn-green" style="flex:1" data-action="topic-next">Next</button>' : '') +
+        '</div>' +
         '</div>'
     );
 }
@@ -7133,14 +7164,16 @@ state.litQuestions.forEach(function(item, i) {
         '<div class="exam-nav">' +
         '<span class="q-counter">Question ' + (state.litIndex + 1) + ' of ' + totalQ + '</span>' +
         '</div>' +
-        '<div class="card" style="margin-bottom:16px"><p style="font-size:15px;font-weight:600;margin:0">' + esc(item
+        '<div class="exam-body">' +
+        '<div class="card exam-question-card"><p style="font-weight:600;margin:0">' + esc(item
             ?.text || '') + '</p></div>' +
-        opts +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">' +
+        '<div class="exam-options-wrap">' + opts + '</div>' +
+        '<div class="exam-nav-buttons">' +
         (state.litIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="lit-prev">Previous</button>' :
             '') +
         (state.litIndex < totalQ - 1 ?
             '<button class="btn btn-green" style="flex:1" data-action="lit-next">Next</button>' : '') +
+        '</div>' +
         '</div>'
     );
 }
@@ -8104,12 +8137,14 @@ function renderMockExam() {
         '<div class="exam-nav">' +
         '<span class="q-counter">Question ' + (currentSubjectIndex + 1) + ' of ' + totalInCurrentSubject + ' in ' + (subj ? subj.name : '') + '</span>' +
         '</div>' +
-        '<div class="card" style="margin-bottom:16px"><p style="font-size:15px;font-weight:600;margin:0">' + esc(item
+        '<div class="exam-body">' +
+        '<div class="card exam-question-card"><p style="font-weight:600;margin:0">' + esc(item
             ?.text || '') + '</p></div>' +
-        opts +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">' +
+        '<div class="exam-options-wrap">' + opts + '</div>' +
+        '<div class="exam-nav-buttons">' +
         (hasPrev ? '<button class="btn btn-outline" style="flex:1" data-action="mock-goto" data-idx="' + prevIdx + '">Previous</button>' : '') +
         (hasNext ? '<button class="btn btn-green" style="flex:1" data-action="mock-goto" data-idx="' + nextIdx + '">Next</button>' : '') +
+        '</div>' +
         '</div>'
     );
 }
