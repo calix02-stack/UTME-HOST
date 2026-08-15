@@ -619,37 +619,59 @@
         color: var(--ink);
     }
 
+    /* FIX: Subject selection - VERTICAL, NON-COLORED */
     .subject-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
         margin-bottom: 14px;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+    .subject-grid::-webkit-scrollbar {
+        width: 3px;
+    }
+    .subject-grid::-webkit-scrollbar-thumb {
+        background: var(--green);
+        border-radius: 3px;
     }
     .subject-chip {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 4px;
-        padding: 4px 2px;
-        border-radius: 12px;
-        border: 1.5px solid transparent;
-        transition: transform .1s ease, border-color 0.2s;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1.5px solid var(--line);
         background: var(--card-bg);
         cursor: pointer;
+        transition: transform .1s ease, border-color 0.2s, background 0.2s;
+        width: 100%;
+        text-align: left;
     }
-    .subject-chip:active { transform: scale(0.94); }
+    .subject-chip:active { transform: scale(0.97); }
     .subject-chip.selected {
-        border-color: var(--ink);
-        background: #FBF3E3;
+        border-color: var(--green);
+        background: #F0F7F2;
     }
     [data-theme="dark"] .subject-chip.selected {
-        background: #2d2d1a;
+        background: #1a2d1a;
         border-color: var(--gold);
     }
-
-    .subject-badge {
-        width: 38px;
-        height: 38px;
+    .subject-chip .sname {
+        font-size: 13px;
+        color: var(--ink);
+        flex: 1;
+    }
+    .subject-chip .scheck {
+        font-size: 14px;
+        color: var(--muted);
+    }
+    .subject-chip.selected .scheck {
+        color: var(--green);
+    }
+    .subject-chip .sbadge {
+        width: 30px;
+        height: 30px;
         border-radius: 999px;
         display: flex;
         align-items: center;
@@ -657,31 +679,8 @@
         color: #fff;
         font-family: var(--font-mono);
         font-weight: 700;
-        font-size: 10px;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-        position: relative;
-    }
-    .subject-chip.selected .subject-badge::after {
-        content: "✓";
-        position: absolute;
-        bottom: -2px;
-        right: -2px;
-        width: 14px;
-        height: 14px;
-        border-radius: 999px;
-        background: var(--ink);
-        color: #fff;
-        font-size: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid var(--card-bg);
-    }
-    .subject-chip .sname {
         font-size: 9px;
-        text-align: center;
-        line-height: 1.1;
-        color: var(--ink);
+        flex-shrink: 0;
     }
 
     .compulsory-row {
@@ -707,10 +706,24 @@
         padding: 2px 6px;
     }
 
+    /* FIX: Start button at TOP - picker-footer removed, replaced with mode-top */
+    .mode-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .mode-top .title {
+        font-size: 20px;
+        font-family: var(--font-serif);
+        color: var(--ink);
+    }
+    .mode-top .start-btn {
+        flex-shrink: 0;
+    }
+
     .picker-footer {
-        position: absolute;
-        left: 0;
-        right: 0;
+        position: sticky;
         bottom: 0;
         z-index: 15;
         background: var(--bg);
@@ -718,6 +731,8 @@
         border-top: 1px solid var(--line);
         box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
         transition: background 0.3s, border-color 0.3s;
+        margin: 0 -16px;
+        padding: 10px 16px;
     }
     .picker-count {
         font-size: 11px;
@@ -1402,16 +1417,17 @@
     }
     .goto-modal .goto-close:hover { background: var(--input-border); }
 
+    /* FIX: Full-page drawer with bigger icons */
     .drawer-wrap {
-        position: absolute;
+        position: fixed;
         inset: 0;
         z-index: 30;
         display: flex;
     }
     .drawer {
-        width: 280px;
+        width: 300px;
         height: 100%;
-        padding: 16px;
+        padding: 20px;
         display: flex;
         flex-direction: column;
         background: var(--drawer-bg);
@@ -1422,17 +1438,17 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
     }
     .drawer .head p.name {
         color: var(--drawer-text);
         font-family: var(--font-serif);
-        font-size: 17px;
+        font-size: 20px;
         margin: 0;
     }
     .drawer .head p.email {
         color: rgba(255, 255, 255, 0.7);
-        font-size: 11px;
+        font-size: 12px;
         margin: 2px 0 0;
         max-width: 160px;
         overflow: hidden;
@@ -1443,23 +1459,23 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
-        padding: 8px 12px;
-        border-radius: 6px;
-        margin-bottom: 2px;
-        font-size: 13px;
+        gap: 12px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin-bottom: 4px;
+        font-size: 15px;
         color: var(--drawer-text);
         width: 100%;
         transition: background 0.2s;
         cursor: pointer;
     }
-    .drawer-item:hover { background: rgba(255, 255, 255, 0.05); }
+    .drawer-item:hover { background: rgba(255, 255, 255, 0.08); }
     .drawer-item .left {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 14px;
     }
-    .drawer-item svg { width: 14px; height: 14px; }
+    .drawer-item .left svg { width: 20px; height: 20px; }
     .drawer-item.active {
         background: var(--gold);
         color: var(--ink);
@@ -1471,12 +1487,12 @@
     .drawer-item.admin.active { border-color: transparent; }
     .drawer-item .badge {
         font-family: var(--font-mono);
-        font-size: 9px;
+        font-size: 10px;
         color: #fff;
         background: var(--green-dark);
         border-radius: 999px;
-        width: 18px;
-        height: 18px;
+        width: 22px;
+        height: 22px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1484,16 +1500,24 @@
     .drawer-spacer { flex: 1; }
     .drawer-overlay {
         flex: 1;
-        background: rgba(0, 0, 0, 0.4);
+        background: rgba(0, 0, 0, 0.5);
         cursor: pointer;
+    }
+    .drawer .close-drawer-btn {
+        color: var(--drawer-text);
+        font-size: 28px;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 4px 8px;
     }
 
     .drawer-theme-toggle {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 8px 12px;
-        border-radius: 6px;
+        padding: 10px 14px;
+        border-radius: 8px;
         margin-bottom: 6px;
         color: var(--drawer-text);
         border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1502,8 +1526,8 @@
     .drawer-theme-toggle .left {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-size: 13px;
+        gap: 12px;
+        font-size: 14px;
     }
     .toggle-switch {
         position: relative;
@@ -2456,63 +2480,98 @@
         padding: 20px;
     }
 
-    /* Question count selector */
+    /* Question count selector - REMOVED for users, only admin */
     .q-count-selector {
-        display: flex;
-        gap: 6px;
-        justify-content: center;
-        margin: 6px 0 10px;
-    }
-    .q-count-selector .q-count-btn {
-        padding: 4px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        background: var(--card-bg);
-        border: 1.5px solid var(--line);
-        color: var(--muted);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .q-count-selector .q-count-btn.active {
-        border-color: var(--green);
-        background: var(--green);
-        color: #fff;
-    }
-    .q-count-selector .q-count-btn:hover:not(.active) {
-        border-color: var(--green);
-        color: var(--ink);
+        display: none;
     }
 
     .time-selector {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        margin: 4px 0 8px;
-        flex-wrap: wrap;
+        display: none;
     }
-    .time-selector .time-input-group {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-    .time-selector .time-input-group input {
-        width: 50px;
-        padding: 4px 6px;
-        border-radius: 4px;
-        border: 1px solid var(--line);
-        font-size: 13px;
-        text-align: center;
+
+    /* FIX: Activate banner - shown only when not logged in, clean design */
+    .activate-banner {
         background: var(--card-bg);
+        border: 2px dashed var(--gold);
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .activate-banner:hover {
+        background: var(--bg);
+    }
+    .activate-banner .icon {
+        font-size: 32px;
+    }
+    .activate-banner .txt {
+        flex: 1;
+    }
+    .activate-banner .txt .h {
+        font-weight: 700;
+        font-size: 15px;
         color: var(--ink);
     }
-    .time-selector .time-input-group label {
+    .activate-banner .txt .s {
+        font-size: 12px;
+        color: var(--muted);
+    }
+    .activate-banner .arrow {
+        font-size: 20px;
+        color: var(--muted);
+    }
+
+    /* FIX: Encouragement banner for results */
+    .encourage-banner {
+        background: linear-gradient(135deg, var(--green), #0a4a2b);
+        color: white;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        margin-bottom: 12px;
+    }
+    .encourage-banner .emoji {
+        font-size: 36px;
+        display: block;
+    }
+    .encourage-banner .msg {
+        font-weight: 700;
+        font-size: 18px;
+        margin: 4px 0;
+    }
+    .encourage-banner .sub {
+        opacity: 0.85;
+        font-size: 13px;
+    }
+
+    .result-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .result-stats .stat {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        text-align: center;
+    }
+    .result-stats .stat .num {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--green);
+    }
+    .result-stats .stat .label {
         font-size: 11px;
         color: var(--muted);
     }
 
     @media (max-width: 400px) {
-        .subject-grid { grid-template-columns: repeat(3, 1fr); }
+        .subject-grid { display: flex; flex-direction: column; }
         .home-grid { grid-template-columns: 1fr 1fr; }
         .auth-btn { font-size: 9px; padding: 3px 6px; }
         .brand span { font-size: 14px; }
@@ -2602,255 +2661,6 @@
         font-size: 10px;
         color: rgba(255, 255, 255, 0.8);
         margin: 1px 0 0;
-    }
-    .activate-banner {
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        background: linear-gradient(120deg, #E4A93A 0%, #d49a2e 45%, #b9821f 100%);
-        border-radius: 16px;
-        padding: 14px 16px;
-        margin: 0 0 12px;
-        box-shadow: 0 8px 20px rgba(228, 169, 58, 0.3);
-        cursor: pointer;
-        transition: transform .15s ease;
-    }
-    .activate-banner:active { transform: scale(0.98); }
-    .activate-banner .shine {
-        position: absolute;
-        top: -50%;
-        left: -40%;
-        width: 60%;
-        height: 200%;
-        background: rgba(255, 255, 255, 0.2);
-        transform: rotate(20deg);
-        animation: shineMove 3.5s ease-in-out infinite;
-    }
-    @keyframes shineMove {
-        0% { left: -40%; }
-        50% { left: 120%; }
-        100% { left: 120%; }
-    }
-    .activate-banner .icon-circle {
-        width: 44px;
-        height: 44px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        position: relative;
-        z-index: 1;
-    }
-    .activate-banner .icon-circle svg { width: 24px; height: 24px; color: #fff; }
-    .activate-banner .txt { position: relative; z-index: 1; }
-    .activate-banner .txt p.h { font-weight: 800; font-size: 14px; color: #3A2A0A; margin: 0; }
-    .activate-banner .txt p.s { font-size: 10px; color: #4a3a12; margin: 1px 0 0; }
-    .activate-banner .arrow { margin-left: auto; position: relative; z-index: 1; color: #3A2A0A; }
-
-    .plan-select-row {
-        display: flex;
-        gap: 10px;
-        overflow-x: auto;
-        padding-bottom: 6px;
-        margin-bottom: 2px;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
-    }
-    .plan-select-row::-webkit-scrollbar { height: 3px; }
-    .plan-select-card {
-        flex: 0 0 auto;
-        width: 130px;
-        scroll-snap-align: start;
-        position: relative;
-        background: var(--card-bg);
-        border: 2px solid var(--line);
-        border-radius: 14px;
-        padding: 14px 12px;
-        cursor: pointer;
-        transition: border-color 0.2s, transform 0.15s;
-    }
-    .plan-select-card:active { transform: scale(0.97); }
-    .plan-select-card.selected {
-        border-color: var(--green);
-        background: #F0F7F2;
-    }
-    [data-theme="dark"] .plan-select-card.selected { background: #1a2d1a; }
-    .plan-select-card .psc-name {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--ink);
-        margin: 0 0 4px;
-    }
-    .plan-select-card .psc-price {
-        font-family: var(--font-mono);
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--green);
-        margin: 0 0 4px;
-    }
-    .plan-select-card .psc-days {
-        font-size: 10px;
-        color: var(--muted);
-        margin: 0;
-    }
-    .plan-select-badge {
-        position: absolute;
-        top: -8px;
-        right: 8px;
-        background: var(--green);
-        color: #fff;
-        font-size: 8px;
-        font-weight: 700;
-        padding: 2px 6px;
-        border-radius: 999px;
-    }
-
-    .payment-method-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        background: var(--card-bg);
-        border: 1.5px solid var(--line);
-        border-radius: 12px;
-        padding: 10px 12px;
-        margin-bottom: 6px;
-        cursor: pointer;
-        transition: border-color 0.2s, background 0.2s;
-    }
-    .payment-method-row.selected {
-        border-color: var(--green);
-        background: #F0F7F2;
-    }
-    [data-theme="dark"] .payment-method-row.selected { background: #1a2d1a; }
-    .payment-method-row .pmr-radio {
-        width: 16px;
-        height: 16px;
-        border-radius: 999px;
-        border: 2px solid var(--line);
-        flex-shrink: 0;
-        position: relative;
-    }
-    .payment-method-row .pmr-radio.active {
-        border-color: var(--green);
-    }
-    .payment-method-row .pmr-radio.active::after {
-        content: "";
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: var(--green);
-    }
-    .payment-method-row .pmr-icon { font-size: 18px; flex-shrink: 0; }
-    .payment-method-row .pmr-label { font-size: 12px; font-weight: 600; color: var(--ink); margin: 0; }
-    .payment-method-row .pmr-desc { font-size: 10px; color: var(--muted); margin: 1px 0 0; }
-
-    .chat-window {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-        min-height: 150px;
-        max-height: 45vh;
-        overflow-y: auto;
-        padding: 6px 2px 12px;
-        margin-bottom: 6px;
-    }
-    .chat-empty {
-        text-align: center;
-        color: var(--muted);
-        font-size: 12px;
-        padding: 24px 14px;
-        background: var(--card-bg);
-        border: 1px dashed var(--line);
-        border-radius: 12px;
-    }
-    .chat-row {
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 4px;
-        max-width: 82%;
-    }
-    .chat-row.me { align-self: flex-end; align-items: flex-end; }
-    .chat-row.them { align-self: flex-start; align-items: flex-start; }
-    .chat-sender {
-        font-size: 9px;
-        color: var(--faint);
-        margin-bottom: 1px;
-        padding: 0 4px;
-    }
-    .chat-bubble {
-        border-radius: 12px;
-        padding: 8px 12px;
-        font-size: 12px;
-        line-height: 1.4;
-        position: relative;
-        word-wrap: break-word;
-    }
-    .chat-bubble.me {
-        background: var(--green);
-        color: #fff;
-        border-bottom-right-radius: 3px;
-    }
-    .chat-bubble.ai {
-        background: #E3F2FD;
-        color: #13291D;
-        border-bottom-left-radius: 3px;
-    }
-    [data-theme="dark"] .chat-bubble.ai { background: #16324a; color: #e8e8e8; }
-    .chat-bubble.admin {
-        background: var(--gold);
-        color: #3A2A0A;
-        border-bottom-left-radius: 3px;
-    }
-    .chat-bubble.them {
-        background: var(--card-bg);
-        border: 1px solid var(--line);
-        color: var(--ink);
-        border-bottom-left-radius: 3px;
-    }
-    .chat-bubble .chat-time {
-        display: block;
-        font-size: 8px;
-        opacity: 0.7;
-        margin-top: 3px;
-        text-align: right;
-    }
-    .chat-input-row {
-        display: flex;
-        gap: 6px;
-        position: sticky;
-        bottom: 0;
-        background: var(--bg);
-        padding-top: 6px;
-    }
-    .chat-input-row .field { flex: 1; margin-bottom: 0; }
-    .chat-send-btn { width: auto; padding: 8px 14px; flex-shrink: 0; }
-
-    /* Expiry badge in profile */
-    .expiry-badge {
-        display: inline-block;
-        padding: 2px 10px;
-        border-radius: 999px;
-        font-size: 10px;
-        font-weight: 600;
-    }
-    .expiry-badge.active {
-        background: #e8f5e9;
-        color: var(--green);
-    }
-    .expiry-badge.expiring-soon {
-        background: #fff3e0;
-        color: #e65100;
-    }
-    .expiry-badge.expired {
-        background: #fce4ec;
-        color: #c62828;
     }
 </style>
 </head>
@@ -3051,7 +2861,7 @@ function esc(s) {
 }
 
 function subjectBadge(s) {
-    return '<div class="subject-badge" style="background:' + s.color + '">' + esc(s.code) + '</div>';
+    return '<div class="sbadge" style="background:' + s.color + '">' + esc(s.code) + '</div>';
 }
 
 function formatTime(seconds) {
@@ -3221,7 +3031,7 @@ let state = {
     signupConfirm: "",
     authError: null,
 
-    // Question count selection (25, 30, 35, 40)
+    // Question count selection (users CANNOT change this - only admin)
     selectedQuestionCount: 40,
 
     // CBT
@@ -6565,16 +6375,15 @@ function renderHome() {
         '</div>'
     );
 
-    const showActivateBanner = !isUserActive();
+    const showActivateBanner = !isUserActive() && !isLoggedIn;
     const activateBanner = showActivateBanner ? (
         '<div class="activate-banner" data-action="set-view" data-view="activate">' +
-        '<div class="shine"></div>' +
-        '<div class="icon-circle">' + svg('zap', 22) + '</div>' +
+        '<div class="icon">⭐</div>' +
         '<div class="txt">' +
-        '<p class="h">Unlock Full Access ⚡</p>' +
-        '<p class="s">Activate now for unlimited mock exams &amp; past questions</p>' +
+        '<div class="h">Activate Your Account</div>' +
+        '<div class="s">Get full access to all features</div>' +
         '</div>' +
-        '<div class="arrow">' + svg('chevleft', 18).replace('d="M15 18l-6-6 6-6"', 'd="M9 18l6-6-6-6"') + '</div>' +
+        '<div class="arrow">→</div>' +
         '</div>'
     ) : '';
 
@@ -6626,6 +6435,7 @@ function renderLiteratureCbt() {
         '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-cbt-subject" data-subject="lhm">' +
         subjectBadge(litSubject) +
         '<span class="sname">' + esc(litSubject.name) + '</span>' +
+        '<span class="scheck">' + (sel ? '✓' : '○') + '</span>' +
         '</button>'
     );
 
@@ -6661,6 +6471,7 @@ function renderCbtMode() {
             s.id + '">' +
             subjectBadge(s) +
             '<span class="sname">' + esc(s.name) + '</span>' +
+            '<span class="scheck">' + (sel ? '✓' : '○') + '</span>' +
             '</button>'
         );
     });
@@ -6692,30 +6503,8 @@ function renderCbtMode() {
 
     let label = isFull ? 'Start CBT Practice (' + (requiredSubjects + 1) + ' subjects)' : 'Start Subject Practice (1 subject)';
 
-    // Question count selector
-    const qCounts = [25, 30, 35, 40];
-    let qCountHtml = '<div class="q-count-selector">';
-    qCounts.forEach(function(q) {
-        qCountHtml += '<button class="q-count-btn' + (state.selectedQuestionCount === q ? ' active' : '') + '" data-action="select-q-count" data-count="' + q + '">' + q + '</button>';
-    });
-    qCountHtml += '</div>';
-
-    // Time selector
-    const timeLimit = isFull ? settings.cbtTimeLimit : settings.subjectTimeLimit;
-    const hours = Math.floor(timeLimit / 60);
-    const minutes = timeLimit % 60;
-    let timeHtml = (
-        '<div class="time-selector">' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="cbt-hours" min="0" max="6" value="' + hours + '" />' +
-        '<label>h</label>' +
-        '</div>' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="cbt-minutes" min="0" max="59" value="' + minutes + '" />' +
-        '<label>m</label>' +
-        '</div>' +
-        '</div>'
-    );
+    // Question count selector - REMOVED for users, only admin can set this
+    // Time selector - REMOVED for users
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
@@ -6727,10 +6516,6 @@ function renderCbtMode() {
             'JAMB CBT covers <b>' + (requiredSubjects + 1) + ' subjects</b>: English is compulsory, plus <b>' + requiredSubjects + '</b> more of your choice.' :
             'Choose <b>1 subject</b> to practice.') +
         '</div>' +
-        '<p class="section-label">Questions per subject</p>' +
-        qCountHtml +
-        '<p class="section-label">Time limit</p>' +
-        timeHtml +
         '<p class="section-label">' + (isFull ? 'Compulsory' : 'Select a subject') + '</p>' +
         (isFull ?
             '<div class="compulsory-row">' + subjectBadge(eng) + '<span style="font-size:12px;font-weight:600">' +
@@ -6871,6 +6656,10 @@ function renderCbtExam() {
             addLog(state.authUser.id, state.profile.name, 'completed_cbt', 'Completed CBT ' + (isFullCbt ? 'Full' : 'Single') + ' with score ' + totalScore + '/' + maxScore);
         }
 
+        // FIX: Result display with encouragement banner, only attempt and average
+        const avg = Math.round((totalScore / maxScore) * 100);
+        const encouragement = getGrade(avg);
+
         let reviewItems = "";
         state.cbtQuestions.forEach(function(item, i) {
             const userAns = state.cbtAnswers[i];
@@ -6896,13 +6685,18 @@ function renderCbtExam() {
         });
 
         return (
-            '<h2 class="title">' + (isFullCbt ? 'CBT' : 'Subject') + ' — Result</h2>' +
-            '<div class="card" style="text-align:center;padding:20px;margin-bottom:12px">' +
-            '<p style="font-family:var(--font-mono);font-size:40px;margin:0;color:' + GREEN + '">' + totalScore +
-            ' / ' + maxScore + '</p>' +
-            '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Questions answered correctly</p>' +
-            '<p style="font-size:11px;color:var(--faint);margin:10px 0 0">' + Math.round((totalScore / maxScore) *
-                100) + '%</p>' +
+            '<div class="encourage-banner">' +
+            '<span class="emoji">' + encouragement.emoji + '</span>' +
+            '<div class="msg">' + encouragement.msg + '</div>' +
+            '<div class="sub">' + encouragement.sub + '</div>' +
+            '</div>' +
+            '<div class="result-stats">' +
+            '<div class="stat"><div class="num">' + state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length + '</div><div class="label">Attempted</div></div>' +
+            '<div class="stat"><div class="num">' + avg + '%</div><div class="label">Average</div></div>' +
+            '</div>' +
+            '<div class="card" style="text-align:center">' +
+            '<p style="font-size:13px;color:var(--muted);margin:0">' + state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length + ' of ' + state.cbtQuestions.length + ' questions attempted</p>' +
+            '<p style="font-size:11px;color:var(--faint);margin:4px 0 0">' + score + ' correct</p>' +
             (state.cbtMode === "full" ?
                 '<div style="margin-top:10px;text-align:left;border-top:1px solid var(--line);padding-top:10px">' +
                 Object.keys(subjectScores).map(function(sid) {
@@ -7052,6 +6846,7 @@ function renderExamMode() {
             s.id + '">' +
             subjectBadge(s) +
             '<span class="sname">' + esc(s.name) + '</span>' +
+            '<span class="scheck">' + (sel ? '✓' : '○') + '</span>' +
             '</button>'
         );
     });
@@ -7064,21 +6859,6 @@ function renderExamMode() {
     const selectedSubject = SUBJECTS.find(function(s) { return s.id === state.examSubject; });
     const settings = state.settingsCache;
     const timeLimit = settings.examTimeLimit || 100;
-    const hours = Math.floor(timeLimit / 60);
-    const minutes = timeLimit % 60;
-
-    let timeHtml = (
-        '<div class="time-selector">' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="exam-hours" min="0" max="6" value="' + hours + '" />' +
-        '<label>h</label>' +
-        '</div>' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="exam-minutes" min="0" max="59" value="' + minutes + '" />' +
-        '<label>m</label>' +
-        '</div>' +
-        '</div>'
-    );
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
@@ -7086,8 +6866,6 @@ function renderExamMode() {
         '<h2 class="title">Exam Mode</h2>' +
         '<p class="sub">Timed, no pausing — one subject at a time</p>' +
         '<div class="mode-note">Pick <b>one subject</b> and a <b>past year</b> (2021–2026) to sit a timed exam.</div>' +
-        '<p class="section-label">Time limit</p>' +
-        timeHtml +
         '<div class="year-select-wrap">' +
         '<label class="field-label">Exam year</label>' +
         '<select id="exam-year-select" class="field">' + yearOptions + '</select>' +
@@ -7123,6 +6901,12 @@ function renderExamExam() {
                 weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id, userAnswer: state.examAnswers[i], correctAnswer: item.correct_answer });
             }
         });
+        
+        const totalQ = state.examQuestions.length;
+        const answeredCount = state.examAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
+        const avg = Math.round((score / totalQ) * 100);
+        const encouragement = getGrade(avg);
+
         if (state.authUser && state.examSubmitted && !state.examHistorySaved) {
             state.examHistorySaved = true;
             weakQuestionsToSave.forEach(function(wq) {
@@ -7174,11 +6958,18 @@ function renderExamExam() {
         });
 
         return (
-            '<h2 class="title">Exam — Result</h2>' +
-            '<div class="card" style="text-align:center;padding:20px;margin-bottom:12px">' +
-            '<p style="font-family:var(--font-mono);font-size:40px;margin:0;color:' + GREEN + '">' + score +
-            ' / ' + state.examQuestions.length + '</p>' +
-            '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Questions answered correctly</p>' +
+            '<div class="encourage-banner">' +
+            '<span class="emoji">' + encouragement.emoji + '</span>' +
+            '<div class="msg">' + encouragement.msg + '</div>' +
+            '<div class="sub">' + encouragement.sub + '</div>' +
+            '</div>' +
+            '<div class="result-stats">' +
+            '<div class="stat"><div class="num">' + answeredCount + '</div><div class="label">Attempted</div></div>' +
+            '<div class="stat"><div class="num">' + avg + '%</div><div class="label">Average</div></div>' +
+            '</div>' +
+            '<div class="card" style="text-align:center">' +
+            '<p style="font-size:13px;color:var(--muted);margin:0">' + answeredCount + ' of ' + state.examQuestions.length + ' questions attempted</p>' +
+            '<p style="font-size:11px;color:var(--faint);margin:4px 0 0">' + score + ' correct</p>' +
             '</div>' +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="exam-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="exam-toggle-review">' +
@@ -7260,6 +7051,7 @@ function renderTopicsPicker() {
             s.id + '">' +
             subjectBadge(s) +
             '<span class="sname">' + esc(s.name) + '</span>' +
+            '<span class="scheck">' + (sel ? '✓' : '○') + '</span>' +
             '</button>'
         );
     });
@@ -7296,29 +7088,6 @@ function renderTopicsPicker() {
     const ready = !!(state.topicSubject && state.topicId);
     const settings = state.settingsCache;
     const timeLimit = settings.topicTimeLimit || 60;
-    const hours = Math.floor(timeLimit / 60);
-    const minutes = timeLimit % 60;
-
-    let timeHtml = (
-        '<div class="time-selector">' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="topic-hours" min="0" max="6" value="' + hours + '" />' +
-        '<label>h</label>' +
-        '</div>' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="topic-minutes" min="0" max="59" value="' + minutes + '" />' +
-        '<label>m</label>' +
-        '</div>' +
-        '</div>'
-    );
-
-    // Question count selector
-    const qCounts = [25, 30, 35, 40];
-    let qCountHtml = '<div class="q-count-selector">';
-    qCounts.forEach(function(q) {
-        qCountHtml += '<button class="q-count-btn' + (state.selectedQuestionCount === q ? ' active' : '') + '" data-action="select-q-count" data-count="' + q + '">' + q + '</button>';
-    });
-    qCountHtml += '</div>';
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
@@ -7326,10 +7095,6 @@ function renderTopicsPicker() {
         '<h2 class="title">Topic Practice</h2>' +
         '<p class="sub">Drill one topic at a time</p>' +
         '<div class="mode-note">Select a subject and topic to practice.</div>' +
-        '<p class="section-label">Questions per topic</p>' +
-        qCountHtml +
-        '<p class="section-label">Time limit</p>' +
-        timeHtml +
         '<p class="section-label">Select a subject</p>' +
         '<div class="subject-grid">' + subjChips + '</div>' +
         topicsHtml +
@@ -7360,6 +7125,11 @@ function renderTopicExam() {
                 weakQuestionsToSave.push({ questionId: item.id, subjectId: item.subject_id, userAnswer: state.topicAnswers[i], correctAnswer: item.correct_answer });
             }
         });
+
+        const totalQ = state.topicQuestions.length;
+        const answeredCount = state.topicAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
+        const avg = Math.round((score / totalQ) * 100);
+        const encouragement = getGrade(avg);
 
         if (state.authUser && state.topicSubmitted && !state.topicHistorySaved) {
             state.topicHistorySaved = true;
@@ -7412,11 +7182,18 @@ function renderTopicExam() {
         });
 
         return (
-            '<h2 class="title">Topic Practice — Result</h2>' +
-            '<div class="card" style="text-align:center;padding:20px;margin-bottom:12px">' +
-            '<p style="font-family:var(--font-mono);font-size:40px;margin:0;color:' + GREEN + '">' + score +
-            ' / ' + state.topicQuestions.length + '</p>' +
-            '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Questions answered correctly</p>' +
+            '<div class="encourage-banner">' +
+            '<span class="emoji">' + encouragement.emoji + '</span>' +
+            '<div class="msg">' + encouragement.msg + '</div>' +
+            '<div class="sub">' + encouragement.sub + '</div>' +
+            '</div>' +
+            '<div class="result-stats">' +
+            '<div class="stat"><div class="num">' + answeredCount + '</div><div class="label">Attempted</div></div>' +
+            '<div class="stat"><div class="num">' + avg + '%</div><div class="label">Average</div></div>' +
+            '</div>' +
+            '<div class="card" style="text-align:center">' +
+            '<p style="font-size:13px;color:var(--muted);margin:0">' + answeredCount + ' of ' + state.topicQuestions.length + ' questions attempted</p>' +
+            '<p style="font-size:11px;color:var(--faint);margin:4px 0 0">' + score + ' correct</p>' +
             '</div>' +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="topic-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="topic-toggle-review">' +
@@ -7513,6 +7290,11 @@ function renderLitExam() {
             }
         });  
 
+        const totalQ = state.litQuestions.length;
+        const answeredCount = state.litAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
+        const avg = Math.round((score / totalQ) * 100);
+        const encouragement = getGrade(avg);
+
         if (state.authUser && state.litSubmitted && !state.litHistorySaved) {
             state.litHistorySaved = true;
             weakQuestionsToSave.forEach(function(wq) {
@@ -7563,11 +7345,18 @@ function renderLitExam() {
         });
 
         return (
-            '<h2 class="title">Novel (CBT) — Result</h2>' +
-            '<div class="card" style="text-align:center;padding:20px;margin-bottom:12px">' +
-            '<p style="font-family:var(--font-mono);font-size:40px;margin:0;color:' + GREEN + '">' + score +
-            ' / ' + state.litQuestions.length + '</p>' +
-            '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Questions answered correctly</p>' +
+            '<div class="encourage-banner">' +
+            '<span class="emoji">' + encouragement.emoji + '</span>' +
+            '<div class="msg">' + encouragement.msg + '</div>' +
+            '<div class="sub">' + encouragement.sub + '</div>' +
+            '</div>' +
+            '<div class="result-stats">' +
+            '<div class="stat"><div class="num">' + answeredCount + '</div><div class="label">Attempted</div></div>' +
+            '<div class="stat"><div class="num">' + avg + '%</div><div class="label">Average</div></div>' +
+            '</div>' +
+            '<div class="card" style="text-align:center">' +
+            '<p style="font-size:13px;color:var(--muted);margin:0">' + answeredCount + ' of ' + state.litQuestions.length + ' questions attempted</p>' +
+            '<p style="font-size:11px;color:var(--faint);margin:4px 0 0">' + score + ' correct</p>' +
             '</div>' +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="lit-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="lit-toggle-review">' +
@@ -8143,7 +7932,7 @@ function renderHistory() {
         );
     }
 
-    // Calculate stats
+    // Calculate stats - FIX: only attempt and average, no correct
     let totalExams = filtered.length;
     let totalQuestions = 0;
     let totalCorrect = 0;
@@ -8154,21 +7943,20 @@ function renderHistory() {
         totalMaxScore += entry.max_score || 0;
     });
     const overallPercentage = totalMaxScore > 0 ? Math.round((totalCorrect / totalMaxScore) * 100) : 0;
+    const overallAttempted = filtered.reduce(function(sum, e) { return sum + (e.answered_count || 0); }, 0);
+    const overallTotal = filtered.reduce(function(sum, e) { return sum + (e.total_questions || 0); }, 0);
+
+    const encouragement = getGrade(overallPercentage);
 
     let statsHtml = (
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
-        '<div class="card" style="text-align:center;padding:10px;margin:0">' +
-        '<p style="font-size:20px;font-weight:700;color:var(--green);margin:0">' + totalExams + '</p>' +
-        '<p style="font-size:9px;color:var(--muted);margin:2px 0 0">Exams</p>' +
+        '<div class="encourage-banner">' +
+        '<span class="emoji">' + encouragement.emoji + '</span>' +
+        '<div class="msg">' + encouragement.msg + '</div>' +
+        '<div class="sub">' + encouragement.sub + '</div>' +
         '</div>' +
-        '<div class="card" style="text-align:center;padding:10px;margin:0">' +
-        '<p style="font-size:20px;font-weight:700;color:var(--green);margin:0">' + totalCorrect + '/' + totalQuestions + '</p>' +
-        '<p style="font-size:9px;color:var(--muted);margin:2px 0 0">Correct</p>' +
-        '</div>' +
-        '<div class="card" style="text-align:center;padding:10px;margin:0">' +
-        '<p style="font-size:20px;font-weight:700;color:' + (overallPercentage >= 70 ? 'var(--green)' : overallPercentage >= 50 ? 'var(--gold)' : 'var(--danger)') + ';margin:0">' + overallPercentage + '%</p>' +
-        '<p style="font-size:9px;color:var(--muted);margin:2px 0 0">Avg Score</p>' +
-        '</div>' +
+        '<div class="result-stats">' +
+        '<div class="stat"><div class="num">' + overallAttempted + '/' + overallTotal + '</div><div class="label">Attempted</div></div>' +
+        '<div class="stat"><div class="num">' + overallPercentage + '%</div><div class="label">Average</div></div>' +
         '</div>'
     );
 
@@ -8412,6 +8200,7 @@ function renderMockRegistrationForm(exam) {
             '<button class="subject-chip selected" style="opacity:0.7;cursor:default;border-color:var(--green);pointer-events:none">' +
             subjectBadge(eng) +
             '<span class="sname">' + esc(eng.name) + ' (Compulsory)</span>' +
+            '<span class="scheck">✓</span>' +
             '</button>'
         );
     }
@@ -8423,6 +8212,7 @@ function renderMockRegistrationForm(exam) {
             s.id + '">' +
             subjectBadge(s) +
             '<span class="sname">' + esc(s.name) + '</span>' +
+            '<span class="scheck">' + (sel ? '✓' : '○') + '</span>' +
             '</button>'
         );
     });
@@ -8454,6 +8244,8 @@ function renderMockResultForUser(exam, attempt) {
     const subjectScores = attempt.subject_scores || {};
     const maxScore = (state.settingsCache.mockSubjectCount || 4) * 100;
     const submittedAt = attempt.submitted_at ? new Date(attempt.submitted_at) : null;
+    const avg = Math.round((score / maxScore) * 100);
+    const encouragement = getGrade(avg);
 
     let subjRows = "";
     Object.keys(subjectScores).forEach(function(sid) {
@@ -8468,15 +8260,23 @@ function renderMockResultForUser(exam, attempt) {
     });
 
     return (
-        '<div class="result-card">' +
+        '<div class="encourage-banner">' +
+        '<span class="emoji">' + encouragement.emoji + '</span>' +
+        '<div class="msg">' + encouragement.msg + '</div>' +
+        '<div class="sub">' + encouragement.sub + '</div>' +
+        '</div>' +
+        '<div class="result-stats">' +
+        '<div class="stat"><div class="num">' + attempt.total_questions + '</div><div class="label">Attempted</div></div>' +
+        '<div class="stat"><div class="num">' + avg + '%</div><div class="label">Average</div></div>' +
+        '</div>' +
+        '<div class="result-card" style="text-align:center;border-color:var(--gold)">' +
         '<p style="font-size:14px;font-weight:600;margin:0 0 2px">' + esc(exam.title) + '</p>' +
         '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">📅 ' + new Date(exam.scheduled_date)
         .toLocaleString() + '</p>' +
         (submittedAt ? '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">⏱️ Submitted: ' + submittedAt
             .toLocaleString() + '</p>' : '') +
         '<div class="score-big" style="font-size:36px">' + score + ' / ' + maxScore + '</div>' +
-        '<p style="font-size:12px;color:var(--muted);margin:0 0 10px">' + Math.round((score / maxScore) * 100) +
-        '%</p>' +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 10px">' + avg + '%</p>' +
         '<div style="text-align:left;border-top:1px solid var(--line);padding-top:10px">' +
         subjRows +
         '</div>' +
@@ -8709,6 +8509,8 @@ function renderMockResult() {
         const subjectScores = state.mockSubjectScores || {};
         const submittedAt = state.mockSubmittedAt ? new Date(state.mockSubmittedAt) : null;
         const exam = state.mockExams.find(function(e) { return e.id === state.mockExamId; });
+        const avg = Math.round((score / maxScore) * 100);
+        const encouragement = getGrade(avg);
 
         let subjRows = "";
         Object.keys(subjectScores).forEach(function(sid) {
@@ -8747,7 +8549,16 @@ function renderMockResult() {
         });
 
         return (
-            '<div class="result-card">' +
+            '<div class="encourage-banner">' +
+            '<span class="emoji">' + encouragement.emoji + '</span>' +
+            '<div class="msg">' + encouragement.msg + '</div>' +
+            '<div class="sub">' + encouragement.sub + '</div>' +
+            '</div>' +
+            '<div class="result-stats">' +
+            '<div class="stat"><div class="num">' + answers.filter(function(a) { return a !== null && a !== undefined; }).length + '/' + questions.length + '</div><div class="label">Attempted</div></div>' +
+            '<div class="stat"><div class="num">' + avg + '%</div><div class="label">Average</div></div>' +
+            '</div>' +
+            '<div class="result-card" style="text-align:center;border-color:var(--gold)">' +
             '<p style="font-size:14px;font-weight:600;margin:0 0 2px">' + (exam ? esc(exam.title) : 'Mock Exam') +
             '</p>' +
             '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">📅 ' + (exam ? new Date(exam.scheduled_date)
@@ -8755,8 +8566,7 @@ function renderMockResult() {
             (submittedAt ? '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">⏱️ Submitted: ' + submittedAt
                 .toLocaleString() + '</p>' : '') +
             '<div class="score-big" style="font-size:36px">' + score + ' / ' + maxScore + '</div>' +
-            '<p style="font-size:12px;color:var(--muted);margin:0 0 10px">' + Math.round((score / maxScore) * 100) +
-            '%</p>' +
+            '<p style="font-size:12px;color:var(--muted);margin:0 0 10px">' + avg + '%</p>' +
             '<div style="text-align:left;border-top:1px solid var(--line);padding-top:10px">' +
             subjRows +
             '</div>' +
@@ -9757,9 +9567,9 @@ function renderAdminSettings() {
         '<label class="field-label">Questions per subject</label>' +
         '<input class="field" id="admin-cbt-questions" type="number" value="' + (s.cbtQuestionsPerSubject || 40) + '" style="margin-bottom:6px;font-size:13px" />' +
         '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-cbt-hours" min="0" max="6" value="' + cbtHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-cbt-minutes" min="0" max="59" value="' + cbtMinutes + '" style="width:45px" /><label>m</label></div>' +
+        '<div class="time-selector" style="margin:2px 0 4px;display:flex;gap:8px">' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-cbt-hours" min="0" max="6" value="' + cbtHours + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>h</label></div>' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-cbt-minutes" min="0" max="59" value="' + cbtMinutes + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>m</label></div>' +
         '</div>' +
         '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.cbtTimeLimit || 100) + ' minutes</p>' +
         '</div>' +
@@ -9769,9 +9579,9 @@ function renderAdminSettings() {
         '<label class="field-label">Questions per subject</label>' +
         '<input class="field" id="admin-subject-questions" type="number" value="' + (s.subjectQuestionsPerSubject || 40) + '" style="margin-bottom:6px;font-size:13px" />' +
         '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-subject-hours" min="0" max="6" value="' + subjectHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-subject-minutes" min="0" max="59" value="' + subjectMinutes + '" style="width:45px" /><label>m</label></div>' +
+        '<div class="time-selector" style="margin:2px 0 4px;display:flex;gap:8px">' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-subject-hours" min="0" max="6" value="' + subjectHours + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>h</label></div>' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-subject-minutes" min="0" max="59" value="' + subjectMinutes + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>m</label></div>' +
         '</div>' +
         '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.subjectTimeLimit || 25) + ' minutes</p>' +
         '</div>' +
@@ -9779,9 +9589,9 @@ function renderAdminSettings() {
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
         '<p style="font-weight:600;font-size:12px;margin:0 0 6px">📋 Exam Mode</p>' +
         '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-exam-hours" min="0" max="6" value="' + examHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-exam-minutes" min="0" max="59" value="' + examMinutes + '" style="width:45px" /><label>m</label></div>' +
+        '<div class="time-selector" style="margin:2px 0 4px;display:flex;gap:8px">' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-exam-hours" min="0" max="6" value="' + examHours + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>h</label></div>' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-exam-minutes" min="0" max="59" value="' + examMinutes + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>m</label></div>' +
         '</div>' +
         '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.examTimeLimit || 100) + ' minutes</p>' +
         '</div>' +
@@ -9789,9 +9599,9 @@ function renderAdminSettings() {
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
         '<p style="font-weight:600;font-size:12px;margin:0 0 6px">📖 Novel (CBT)</p>' +
         '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-novel-hours" min="0" max="6" value="' + novelHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-novel-minutes" min="0" max="59" value="' + novelMinutes + '" style="width:45px" /><label>m</label></div>' +
+        '<div class="time-selector" style="margin:2px 0 4px;display:flex;gap:8px">' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-novel-hours" min="0" max="6" value="' + novelHours + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>h</label></div>' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-novel-minutes" min="0" max="59" value="' + novelMinutes + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>m</label></div>' +
         '</div>' +
         '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.novelTimeLimit || 100) + ' minutes</p>' +
         '</div>' +
@@ -9801,9 +9611,9 @@ function renderAdminSettings() {
         '<label class="field-label">Questions per topic</label>' +
         '<input class="field" id="admin-topic-questions" type="number" value="' + (s.subjectQuestionsPerSubject || 25) + '" style="margin-bottom:6px;font-size:13px" />' +
         '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-topic-hours" min="0" max="6" value="' + topicHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-topic-minutes" min="0" max="59" value="' + topicMinutes + '" style="width:45px" /><label>m</label></div>' +
+        '<div class="time-selector" style="margin:2px 0 4px;display:flex;gap:8px">' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-topic-hours" min="0" max="6" value="' + topicHours + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>h</label></div>' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-topic-minutes" min="0" max="59" value="' + topicMinutes + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>m</label></div>' +
         '</div>' +
         '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.topicTimeLimit || 60) + ' minutes</p>' +
         '</div>' +
@@ -9811,9 +9621,9 @@ function renderAdminSettings() {
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
         '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔄 Revise Weak Questions</p>' +
         '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-revise-hours" min="0" max="6" value="' + reviseHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-revise-minutes" min="0" max="59" value="' + reviseMinutes + '" style="width:45px" /><label>m</label></div>' +
+        '<div class="time-selector" style="margin:2px 0 4px;display:flex;gap:8px">' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-revise-hours" min="0" max="6" value="' + reviseHours + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>h</label></div>' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-revise-minutes" min="0" max="59" value="' + reviseMinutes + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>m</label></div>' +
         '</div>' +
         '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.reviseTimeLimit || 60) + ' minutes</p>' +
         '</div>' +
@@ -9825,9 +9635,9 @@ function renderAdminSettings() {
         '<label class="field-label">Questions per subject</label>' +
         '<input class="field" id="admin-mock-questions" type="number" value="' + (s.mockQuestionsPerSubject || 40) + '" style="margin-bottom:6px;font-size:13px" />' +
         '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-mock-hours" min="0" max="6" value="' + mockHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-mock-minutes" min="0" max="59" value="' + mockMinutes + '" style="width:45px" /><label>m</label></div>' +
+        '<div class="time-selector" style="margin:2px 0 4px;display:flex;gap:8px">' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-mock-hours" min="0" max="6" value="' + mockHours + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>h</label></div>' +
+        '<div class="time-input-group" style="display:flex;align-items:center;gap:4px"><input type="number" id="admin-mock-minutes" min="0" max="59" value="' + mockMinutes + '" style="width:45px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--card-bg);color:var(--ink)" /><label>m</label></div>' +
         '</div>' +
         '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.mockTimeLimit || 100) + ' minutes</p>' +
         '</div>' +
@@ -10361,8 +10171,7 @@ function renderDrawer(unread, isLoggedIn) {
         '<div class="head">' +
         '<div><p class="name" style="font-size:16px">' + esc(state.profile.name || "Guest") + '</p><p class="email" style="font-size:10px">' + esc(state.profile
             .email || "No email set") + '</p></div>' +
-        '<button class="icon-btn" data-action="close-drawer" aria-label="Close menu">' + svg("x", 16).replace(
-            'stroke="currentColor"', 'stroke="white"') + '</button>' +
+        '<button class="close-drawer-btn" data-action="close-drawer" aria-label="Close menu">✕</button>' +
         '</div>' +
         '<div class="drawer-theme-toggle" data-action="toggle-dark-mode">' +
         '<span class="left" style="font-size:12px">' + themeIcon + ' ' + themeLabel + ' mode</span>' +
@@ -10376,6 +10185,7 @@ function renderDrawer(unread, isLoggedIn) {
         navItems +
         authSection +
         '<div class="drawer-spacer"></div>' +
+        '</div>' +
         '<div class="drawer-overlay" data-action="close-drawer"></div>' +
         '</div>'
     );
@@ -10463,7 +10273,7 @@ function renderSignupModal() {
         '<button class="btn-submit" data-action="do-signup" ' + (state.authLoading ? 'disabled' : '') + '>' +
         (state.authLoading ? 'Creating account…' : 'Create account') +
         '</button>' +
-        '<div class="switch-link" style="font-size:11px">' +
+        <div class="switch-link" style="font-size:11px">' +
         'Already have an account? <button data-action="switch-to-login" style="font-size:11px">Log in</button>' +
         '</div>' +
         '</div>' +
@@ -10501,13 +10311,7 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // Question count selection
-    if (action === 'select-q-count') {
-        const count = parseInt(el.getAttribute('data-count'), 10);
-        state.selectedQuestionCount = count;
-        render();
-        return;
-    }
+    // Question count selection - REMOVED for users
 
     // SUBMIT MODAL
     if (action === 'submit-confirm') {
@@ -11006,22 +10810,8 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // START CBT
+    // START CBT - No time inputs for users
     if (action === 'start-cbt') {
-        // Get hours and minutes from inputs
-        const hoursInput = document.getElementById('cbt-hours');
-        const minutesInput = document.getElementById('cbt-minutes');
-        if (hoursInput && minutesInput) {
-            const h = parseInt(hoursInput.value) || 0;
-            const m = parseInt(minutesInput.value) || 0;
-            const totalMinutes = h * 60 + m;
-            const isFull = state.cbtMode === 'full';
-            if (isFull) {
-                state.settingsCache.cbtTimeLimit = totalMinutes || 1;
-            } else {
-                state.settingsCache.subjectTimeLimit = totalMinutes || 1;
-            }
-        }
         startCbt();
         return;
     }
@@ -11200,13 +10990,6 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'start-exam') {
-        const hoursInput = document.getElementById('exam-hours');
-        const minutesInput = document.getElementById('exam-minutes');
-        if (hoursInput && minutesInput) {
-            const h = parseInt(hoursInput.value) || 0;
-            const m = parseInt(minutesInput.value) || 0;
-            state.settingsCache.examTimeLimit = h * 60 + m || 1;
-        }
         startExam();
         return;
     }
@@ -11443,13 +11226,6 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'start-topic-practice') {
-        const hoursInput = document.getElementById('topic-hours');
-        const minutesInput = document.getElementById('topic-minutes');
-        if (hoursInput && minutesInput) {
-            const h = parseInt(hoursInput.value) || 0;
-            const m = parseInt(minutesInput.value) || 0;
-            state.settingsCache.topicTimeLimit = h * 60 + m || 1;
-        }
         startTopicPractice();
         return;
     }
