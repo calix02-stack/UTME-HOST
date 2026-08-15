@@ -9406,78 +9406,137 @@ function renderAdminQuestions() {
 function renderAdminViewModeQuestions() {
     const type = state.admin.viewModeType;
     if (type === 'topic') return renderAdminTopicManagement();
+
+    // Novel (CBT) only has one subject — skip straight to it
+    if (type === 'literature' && !state.admin.viewModeSubject) {
+        state.admin.viewModeSubject = 'lhm';
+    }
+
     const subject = state.admin.viewModeSubject;
     const year = state.admin.viewModeYear;
-    const search = state.admin.searchQuery || '';
 
+    if (!subject) return renderAdminSubjectPicker(type);
+    if (type === 'exam' && !year) return renderAdminYearPicker(type, subject);
+    return renderAdminSubjectQuestions(type, subject, year);
+}
+
+function renderAdminSubjectPicker(type) {
     let title = 'All Questions';
     if (type === 'cbt') title = 'CBT Mode Questions';
     else if (type === 'exam') title = 'Exam Mode Questions';
     else if (type === 'mock') title = 'Mock Exam Questions';
-    else if (type === 'topic') title = 'Topic Practice Questions';
     else if (type === 'literature') title = 'Novel (CBT) Questions';
 
-    let filtered = state.allQuestions || [];
-    if (type === 'literature') {
-        filtered = filtered.filter(function(q) { return q.type === 'NOVEL (CBT)' && q.subject_id === 'lhm'; });
-    } else if (type === 'cbt') {
-        filtered = filtered.filter(function(q) { return q.type === 'cbt'; });
-    } else if (type) {
-        filtered = filtered.filter(function(q) { return q.type === type; });
+    const typeFilter = type === 'literature' ? 'NOVEL (CBT)' : type;
+    const counts = {};
+    (state.allQuestions || []).forEach(function(q) {
+        if (q.type === typeFilter) counts[q.subject_id] = (counts[q.subject_id] || 0) + 1;
+    });
+
+    let cards = '';
+    SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
+        const count = counts[s.id] || 0;
+        cards += (
+            '<div class="admin-mode-card" data-action="admin-select-view-subject" data-subject="' + s.id + '">' +
+            '<div class="mode-info">' +
+            '<span class="mode-name">' + esc(s.code) + ' — ' + esc(s.name) + '</span>' +
+            '<span class="mode-count">' + count + ' question' + (count === 1 ? '' : 's') + '</span>' +
+            '</div>' +
+            '<div class="mode-actions"><span class="count-badge">' + count + '</span></div>' +
+            '</div>'
+        );
+    });
+
+    return (
+        '<div class="admin-view-mode-header">' +
+        '<span class="mode-title" style="font-size:14px">' + title + '</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-back-from-view">← Back</button>' +
+        '</div>' +
+        '<p class="section-label">Select a subject to view or add questions</p>' +
+        cards
+    );
+}
+
+function renderAdminYearPicker(type, subject) {
+    const subj = SUBJECTS.find(function(s) { return s.id === subject; });
+    const counts = {};
+    (state.allQuestions || []).forEach(function(q) {
+        if (q.type === 'exam' && q.subject_id === subject) counts[q.year] = (counts[q.year] || 0) + 1;
+    });
+
+    let cards = '';
+    for (let y = 2026; y >= 2021; y--) {
+        const count = counts[y] || 0;
+        cards += (
+            '<div class="admin-mode-card" data-action="admin-select-view-year" data-year="' + y + '">' +
+            '<div class="mode-info">' +
+            '<span class="mode-name">📅 ' + y + '</span>' +
+            '<span class="mode-count">' + count + ' question' + (count === 1 ? '' : 's') + '</span>' +
+            '</div>' +
+            '<div class="mode-actions"><span class="count-badge">' + count + '</span></div>' +
+            '</div>'
+        );
     }
-    if (subject) filtered = filtered.filter(function(q) { return q.subject_id === subject; });
-    if (year) filtered = filtered.filter(function(q) { return q.year === year; });
+
+    return (
+        '<div class="admin-view-mode-header">' +
+        '<span class="mode-title" style="font-size:14px">' + esc(subj ? subj.name : subject) + ' — Exam Mode</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-back-to-subject-picker">← Subjects</button>' +
+        '</div>' +
+        '<p class="section-label">Select a year</p>' +
+        cards
+    );
+}
+
+function renderAdminSubjectQuestions(type, subject, year) {
+    const subj = SUBJECTS.find(function(s) { return s.id === subject; });
+    const search = state.admin.searchQuery || '';
+    const typeFilter = type === 'literature' ? 'NOVEL (CBT)' : type;
+
+    let filtered = (state.allQuestions || []).filter(function(q) {
+        return q.type === typeFilter && q.subject_id === subject && (type !== 'exam' || q.year === year);
+    });
+
     if (search) {
         const s = search.toLowerCase();
         filtered = filtered.filter(function(q) {
             return q.text.toLowerCase().includes(s) ||
-                (q.subject_name && q.subject_name.toLowerCase().includes(s)) ||
                 (q.options && q.options.some(function(o) { return o.toLowerCase().includes(s); }));
         });
     }
 
-    let subjOpts = '<option value="">All subjects</option>';
-    SUBJECTS.forEach(function(s) {
-        subjOpts += '<option value="' + s.id + '"' + (state.admin.viewModeSubject === s.id ? ' selected' : '') +
-            '>' + esc(s.name) + '</option>';
-    });
+    const backAction = type === 'exam' ? 'admin-back-to-year-picker' : 'admin-back-to-subject-picker';
+    const backLabel = type === 'exam' ? '← Years' : '← Subjects';
 
     let rows = "";
     if (filtered.length === 0) {
-        rows = '<p style="text-align:center;color:var(--faint);padding:20px 0;font-size:13px">No questions found.</p>';
+        rows = '<p style="text-align:center;color:var(--faint);padding:20px 0;font-size:13px">No questions yet. Add one below!</p>';
     } else {
-        filtered.forEach(function(q) {
-            const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
+        filtered.forEach(function(q, i) {
             const isEditing = state.admin.editingQuestionId === q.id;
-
             if (isEditing) {
                 let editOptsHtml = "";
-                for (let i = 0; i < 4; i++) {
+                for (let oi = 0; oi < 4; oi++) {
                     editOptsHtml += (
                         '<div class="opt-row">' +
-                        '<input type="radio" name="edit-correct" value="' + i + '"' + (q.correct_answer ===
-                            i ? ' checked' : '') +
+                        '<input type="radio" name="edit-correct" value="' + oi + '"' + (q.correct_answer === oi ? ' checked' : '') +
                         ' data-action="edit-correct" />' +
-                        '<input class="field" data-action="edit-opt" data-idx="' + i +
-                        '" placeholder="Option ' + (i + 1) + '" value="' + esc(q.options[i] || '') +
-                        '" style="font-size:13px" />' +
+                        '<input class="field" data-action="edit-opt" data-idx="' + oi + '" placeholder="Option ' + (oi + 1) +
+                        '" value="' + esc(q.options[oi] || '') + '" style="font-size:13px" />' +
                         '</div>'
                     );
                 }
                 rows += (
                     '<div class="edit-form">' +
-                    '<p style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:6px">✏️ Editing Question</p>' +
+                    '<p style="font-size:11px;font-weight:600;color:var(--gold);margin-bottom:6px">✏️ Editing Question ' + (i + 1) + '</p>' +
                     '<label class="field-label">Question text</label>' +
-                    '<textarea class="field" id="edit-text" rows="2" style="margin-bottom:6px;font-size:13px">' + esc(q
-                        .text) + '</textarea>' +
+                    '<textarea class="field" id="edit-text" rows="2" style="margin-bottom:6px;font-size:13px">' + esc(q.text) + '</textarea>' +
                     '<label class="field-label">Options</label>' +
                     editOptsHtml +
                     '<label class="field-label">Explanation</label>' +
-                    '<textarea class="field" id="edit-explanation" rows="2" style="margin-bottom:6px;font-size:13px">' + esc(
-                        q.explanation || '') + '</textarea>' +
+                    '<textarea class="field" id="edit-explanation" rows="2" style="margin-bottom:6px;font-size:13px">' + esc(q.explanation || '') + '</textarea>' +
                     '<div style="display:flex;gap:6px">' +
-                    '<button class="btn btn-green" style="flex:1;padding:8px" data-action="save-edit" data-qid="' + q
-                    .id + '">Save Changes</button>' +
+                    '<button class="btn btn-green" style="flex:1;padding:8px" data-action="save-edit" data-qid="' + q.id + '">Save Changes</button>' +
                     '<button class="btn btn-outline" style="flex:0.5;padding:8px" data-action="cancel-edit">Cancel</button>' +
                     '</div>' +
                     '</div>'
@@ -9485,90 +9544,50 @@ function renderAdminViewModeQuestions() {
             } else {
                 let optsList = '<ul class="admin-list">';
                 q.options.forEach(function(o, oi) {
-                    optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN +
-                        ';font-weight:600"' : '') + '>' + esc(o) + (oi === q.correct_answer ? ' ✓' :
-                        '') + '</li>';
+                    optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') +
+                        '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
                 });
                 optsList += '</ul>';
                 rows += (
                     '<div class="saved-question-item">' +
                     '<div class="q-header">' +
-                    '<p class="q-text">' + esc(q.text) + '</p>' +
+                    '<p class="q-text">Q' + (i + 1) + '. ' + esc(q.text) + '</p>' +
                     '<div class="q-actions">' +
-                    '<button class="mini-btn edit" data-action="edit-question" data-qid="' + q.id +
-                    '">✏️</button>' +
-                    '<button class="mini-btn danger" data-action="delete-question" data-qid="' + q.id +
-                    '">×</button>' +
+                    '<button class="mini-btn edit" data-action="edit-question" data-qid="' + q.id + '">✏️</button>' +
+                    '<button class="mini-btn danger" data-action="delete-question-immediate" data-qid="' + q.id + '">🗑️</button>' +
                     '</div>' +
                     '</div>' +
                     '<div class="q-options">' + optsList + '</div>' +
-                    (q.explanation ?
-                        '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' +
-                        esc(q.explanation) + '</div>' : '') +
-                    '<div class="q-meta">' + (subj ? subj.name : q.subject_id) + ' · ' + q.type +
-                    (q.year ? ' · ' + q.year : '') + '</div>' +
+                    (q.explanation ? '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + esc(q.explanation) + '</div>' : '') +
                     '</div>'
                 );
             }
         });
-    }
- 
-    let subjOptions = '<option value="">Select subject</option>';
-    let filteredSubjects = type === "literature" ? SUBJECTS.filter(function(s) { return s.id === "lhm"; }) :
-        SUBJECTS;
-    filteredSubjects.forEach(function(s) {
-        subjOptions += '<option value="' + s.id + '"' + (state.admin.qSubject === s.id ? ' selected' : '') +
-            '>' + esc(s.name) + '</option>';
-    });
-
-    let yearOptions = '';
-    if (type === "exam") {
-        const currentYear = state.admin.examYear || 2026;
-        for (let y = 2026; y >= 2021; y--) {
-            yearOptions += '<option value="' + y + '"' + (y === currentYear ? ' selected' : '') + '>' + y + '</option>';
-        }
     }
 
     let optsHtml = "";
     for (let i = 0; i < 4; i++) {
         optsHtml += (
             '<div class="opt-row">' +
-            '<input type="radio" name="qform-correct" value="' + i + '"' + (state.admin.qCorrect === i ?
-                ' checked' : '') + ' data-action="qform-correct" />' +
-            '<input class="field" data-action="qform-opt" data-idx="' + i + '" placeholder="Option ' + (i +
-                1) + '" value="' + esc(state.admin.qOpts[i]) + '" style="font-size:13px" />' +
+            '<input type="radio" name="qform-correct" value="' + i + '"' + (state.admin.qCorrect === i ? ' checked' : '') + ' data-action="qform-correct" />' +
+            '<input class="field" data-action="qform-opt" data-idx="' + i + '" placeholder="Option ' + (i + 1) + '" value="' + esc(state.admin.qOpts[i]) + '" style="font-size:13px" />' +
             '</div>'
         );
     }
 
-    let addForm = (
+    const addForm = (
         '<div class="card" style="margin-top:12px">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 10px">➕ Add Question</p>' +
-        '<div style="margin-bottom:10px">' +
-        '<label class="field-label">Subject</label>' +
-        '<select class="field" id="admin-qsubject" style="font-size:13px">' + subjOptions + '</select>' +
-        '</div>' +
-        (type === "exam" ?
-            '<div style="margin-bottom:10px">' +
-            '<label class="field-label">Year</label>' +
-            '<select class="field" id="admin-qyear" style="font-size:13px">' + yearOptions + '</select>' +
-            '</div>' : '') +
-        '<label class="field-label">Question text</label>' +
-        '<textarea class="field" rows="3" data-action="qform-text" style="margin-bottom:8px;font-size:13px" placeholder="Enter question...">' +
-        esc(state.admin.qText) + '</textarea>' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 10px">➕ Add Question to ' + esc(subj ? subj.name : subject) + (year ? ' (' + year + ')' : '') + '</p>' +
+        '<textarea class="field" rows="3" data-action="qform-text" style="margin-bottom:8px;font-size:13px" placeholder="Enter question...">' + esc(state.admin.qText) + '</textarea>' +
         '<label class="field-label">Options (tick the correct one)</label>' +
         optsHtml +
         '<label class="field-label">Explanation (shown after answering)</label>' +
-        '<textarea class="field" rows="2" data-action="qform-explanation" style="margin-bottom:8px;font-size:13px" placeholder="Explain why this answer is correct...">' +
-        esc(state.admin.qExplanation) + '</textarea>' +
+        '<textarea class="field" rows="2" data-action="qform-explanation" style="margin-bottom:8px;font-size:13px" placeholder="Explain why this answer is correct...">' + esc(state.admin.qExplanation) + '</textarea>' +
         '<button class="btn btn-green" data-action="qform-add-admin" style="padding:10px">Save Question</button>' +
         '</div>' +
         '<div class="card" style="margin-top:12px">' +
         '<p style="font-size:13px;font-weight:600;margin:0 0 6px">📋 Or Paste Questions as JSON</p>' +
-        '<p style="font-size:10px;color:var(--muted);margin:0 0 8px">Paste an array of questions. Uses the Subject' +
-        (type === "exam" || type === "mock" ? ' and Year' : '') +
-        ' selected above unless each question specifies its own <code>subject_id</code>' +
-        (type === "exam" || type === "mock" ? '/<code>year</code>' : '') + '.</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:0 0 8px">Adds to ' + esc(subj ? subj.name : subject) + (year ? ' (' + year + ')' : '') + ' unless a question specifies its own subject_id' + (type === 'exam' ? '/year' : '') + '.</p>' +
         '<textarea class="field" id="admin-json-import" rows="6" placeholder=\'[\n  {\n    "text": "What is 2+2?",\n    "options": ["3","4","5","6"],\n    "correct_answer": 1,\n    "explanation": "2+2 equals 4."\n  }\n]\' style="margin-bottom:8px;font-family:var(--font-mono);font-size:11px"></textarea>' +
         '<button class="btn btn-gold" data-action="qform-import-json" style="padding:10px">Import Questions</button>' +
         '</div>'
@@ -9576,19 +9595,15 @@ function renderAdminViewModeQuestions() {
 
     return (
         '<div class="admin-view-mode-header">' +
-        '<span class="mode-title" style="font-size:14px">' + title + '</span>' +
-        '<button class="btn btn-outline btn-sm" data-action="admin-back-from-view">← Back</button>' +
+        '<span class="mode-title" style="font-size:14px">' + esc(subj ? subj.name : subject) + (year ? ' — ' + year : '') + '</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="' + backAction + '">' + backLabel + '</button>' +
         '</div>' +
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">' +
-        '<select class="field" style="flex:1;min-width:100px;font-size:12px;padding:4px 8px" id="admin-view-subject-filter">' + subjOpts + '</select>' +
-        '<input class="search-box" style="flex:2;margin-bottom:0;font-size:12px;padding:4px 8px" id="admin-view-search" placeholder="🔍 Search questions..." value="' + esc(
-            search) + '" />' +
-        '</div>' +
-        '<div class="admin-question-list">' + rows + '</div>' +
+        '<input class="search-box" id="admin-view-search" placeholder="🔍 Search questions..." value="' + esc(search) + '" />' +
+        '<p style="font-size:11px;color:var(--muted);margin-bottom:8px">' + filtered.length + ' question(s)</p>' +
+        '<div class="admin-question-list" style="max-height:400px">' + rows + '</div>' +
         addForm
     );
 }
-
 // ============================================================
 //  ADMIN TOPIC PRACTICE MANAGEMENT
 // ============================================================
@@ -11959,7 +11974,7 @@ document.addEventListener('click', function(e) {
         const mode = el.getAttribute('data-mode');
         state.admin.viewModeQuestions = true;
         state.admin.viewModeType = mode;
-        state.admin.viewModeSubject = '';
+        state.admin.viewModeSubject = mode === 'literature' ? 'lhm' : '';
         state.admin.viewModeYear = null;
         state.admin.searchQuery = '';
         state.admin.editingQuestionId = null;
@@ -11973,7 +11988,7 @@ document.addEventListener('click', function(e) {
         const mode = el.getAttribute('data-mode');
         state.admin.viewModeQuestions = true;
         state.admin.viewModeType = mode;
-        state.admin.viewModeSubject = '';
+        state.admin.viewModeSubject = mode === 'literature' ? 'lhm' : '';
         state.admin.viewModeYear = null;
         state.admin.searchQuery = '';
         state.admin.editingQuestionId = null;
@@ -11987,7 +12002,7 @@ document.addEventListener('click', function(e) {
         const type = el.getAttribute('data-type');
         state.admin.viewModeQuestions = true;
         state.admin.viewModeType = type;
-        state.admin.viewModeSubject = '';
+        state.admin.viewModeSubject = type === 'literature' ? 'lhm' : '';
         state.admin.viewModeYear = null;
         state.admin.searchQuery = '';
         state.admin.editingQuestionId = null;
@@ -12011,6 +12026,50 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'admin-select-view-subject') {
+        state.admin.viewModeSubject = el.getAttribute('data-subject');
+        state.admin.viewModeYear = null;
+        state.admin.searchQuery = '';
+        state.admin.editingQuestionId = null;
+        render();
+        return;
+    }
+
+    if (action === 'admin-select-view-year') {
+        state.admin.viewModeYear = parseInt(el.getAttribute('data-year'), 10);
+        state.admin.searchQuery = '';
+        state.admin.editingQuestionId = null;
+        render();
+        return;
+    }
+
+    if (action === 'admin-back-to-subject-picker') {
+        state.admin.viewModeSubject = '';
+        state.admin.viewModeYear = null;
+        state.admin.searchQuery = '';
+        state.admin.editingQuestionId = null;
+        render();
+        return;
+    }
+
+    if (action === 'admin-back-to-year-picker') {
+        state.admin.viewModeYear = null;
+        state.admin.searchQuery = '';
+        state.admin.editingQuestionId = null;
+        render();
+        return;
+    }
+
+    if (action === 'delete-question-immediate') {
+        const qid = el.getAttribute('data-qid');
+        deleteQuestionOffline(qid).then(function() {
+            showToast('Question deleted.', 'success');
+            state.allQuestions = state.allQuestions.filter(function(q) { return q.id !== qid; });
+            loadAllQuestionsCount();
+            render();
+        }).catch(function() { showToast('Error deleting question.', 'error'); });
+        return;
+    }
     if (action === 'edit-question') {
         const qid = el.getAttribute('data-qid');
         state.admin.editingQuestionId = qid;
@@ -12097,8 +12156,8 @@ document.addEventListener('click', function(e) {
         const jsonText = document.getElementById('admin-json-import')?.value?.trim() || '';
         const type = state.admin.viewModeType || 'cbt';
         const actualType = type === 'literature' ? 'NOVEL (CBT)' : type === 'topic' ? 'subject' : type;
-        const fallbackSubject = document.getElementById('admin-qsubject')?.value || (type === 'literature' ? 'lhm' : '');
-        const fallbackYear = parseInt(document.getElementById('admin-qyear')?.value || state.admin.examYear || 2026);
+        const fallbackSubject = state.admin.viewModeSubject || (type === 'literature' ? 'lhm' : '');
+        const fallbackYear = state.admin.viewModeYear || 2026;
 
         if (!jsonText) { showToast('Paste some JSON first.', 'error'); return; }
 
@@ -12150,14 +12209,14 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'qform-add-admin') {
-        const subject = document.getElementById('admin-qsubject')?.value || '';
-        const year = parseInt(document.getElementById('admin-qyear')?.value || state.admin.examYear || 2026);
+        const subject = state.admin.viewModeSubject || '';
+        const year = state.admin.viewModeYear || null;
         const text = state.admin.qText || '';
         const opts = state.admin.qOpts.map(function(o) { return o || ''; });
         const explanation = state.admin.qExplanation || '';
         const type = state.admin.viewModeType || 'cbt';
 
-        if (!subject) { showToast('Select a subject.', 'error'); return; }
+        if (!subject) { showToast('No subject selected.', 'error'); return; }
         if (!text || opts.some(function(o) { return !o; })) {
             showToast('Fill in question text and all 4 options.', 'error');
             return;
@@ -12181,16 +12240,8 @@ document.addEventListener('click', function(e) {
             state.admin.qOpts = ['', '', '', ''];
             state.admin.qCorrect = 0;
             state.admin.qExplanation = '';
-            state.admin.qSubject = subject;
-            if (qYear) state.admin.examYear = qYear;
             loadAllQuestionsCount();
-            if (state.admin.viewModeQuestions) {
-                loadAllQuestionsForAdmin();
-                loadAllQuestionsCount();
-                state.adminQuestionsLoaded = false;
-                state.adminQuestionsList = [];
-                state.adminQuestionsKey = null;
-            }
+            loadAllQuestionsForAdmin();
             render();
         }).catch(function(err) { 
             console.error('Add question error:', err);
@@ -12198,7 +12249,6 @@ document.addEventListener('click', function(e) {
         });
         return;
     }
-
     // Export/Import handlers
     if (action === 'offline-export-questions') {
         exportOfflineData().then(function() {
