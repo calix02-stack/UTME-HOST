@@ -620,68 +620,71 @@
     }
 
     .subject-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
         margin-bottom: 14px;
     }
     .subject-chip {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
-        gap: 4px;
-        padding: 4px 2px;
-        border-radius: 12px;
-        border: 1.5px solid transparent;
-        transition: transform .1s ease, border-color 0.2s;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1.5px solid var(--line);
+        transition: border-color 0.15s;
         background: var(--card-bg);
         cursor: pointer;
     }
-    .subject-chip:active { transform: scale(0.94); }
+    .subject-chip:active { transform: scale(0.99); }
     .subject-chip.selected {
-        border-color: var(--ink);
-        background: #FBF3E3;
-    }
-    [data-theme="dark"] .subject-chip.selected {
-        background: #2d2d1a;
-        border-color: var(--gold);
+        border-color: var(--green);
     }
 
     .subject-badge {
-        width: 38px;
-        height: 38px;
-        border-radius: 999px;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #fff;
+        color: var(--muted);
+        background: var(--bg);
+        border: 1px solid var(--line);
         font-family: var(--font-mono);
         font-weight: 700;
         font-size: 10px;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-        position: relative;
+        flex-shrink: 0;
     }
-    .subject-chip.selected .subject-badge::after {
-        content: "✓";
-        position: absolute;
-        bottom: -2px;
-        right: -2px;
-        width: 14px;
-        height: 14px;
+    .subject-chip.selected .subject-badge {
+        border-color: var(--green);
+        color: var(--green);
+    }
+    .subject-chip .sname {
+        font-size: 13px;
+        text-align: left;
+        line-height: 1.2;
+        color: var(--ink);
+        flex: 1;
+    }
+    .subject-chip::after {
+        content: "";
+        width: 18px;
+        height: 18px;
         border-radius: 999px;
-        background: var(--ink);
+        border: 1.5px solid var(--line);
+        flex-shrink: 0;
+    }
+    .subject-chip.selected::after {
+        content: "✓";
+        border-color: var(--green);
+        background: var(--green);
         color: #fff;
-        font-size: 8px;
+        font-size: 11px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 2px solid var(--card-bg);
-    }
-    .subject-chip .sname {
-        font-size: 9px;
-        text-align: center;
-        line-height: 1.1;
-        color: var(--ink);
     }
 
     .compulsory-row {
@@ -2512,7 +2515,6 @@
     }
 
     @media (max-width: 400px) {
-        .subject-grid { grid-template-columns: repeat(3, 1fr); }
         .home-grid { grid-template-columns: 1fr 1fr; }
         .auth-btn { font-size: 9px; padding: 3px 6px; }
         .brand span { font-size: 14px; }
@@ -3052,7 +3054,7 @@ function esc(s) {
 }
 
 function subjectBadge(s) {
-    return '<div class="subject-badge" style="background:' + s.color + '">' + esc(s.code) + '</div>';
+    return '<div class="subject-badge">' + esc(s.code) + '</div>';
 }
 
 function formatTime(seconds) {
@@ -3356,6 +3358,7 @@ let state = {
         docSubject: "",
         docName: "",
         docFile: null,
+        examYear: 2026,
         syllabusSubject: null,
         syllabusText: "",
         syllabusFile: null,
@@ -6325,6 +6328,9 @@ function render() {
         return;
     }
 
+    const prevScrollEl = document.querySelector('.view-content');
+    const prevScrollTop = prevScrollEl ? prevScrollEl.scrollTop : 0;
+
     const settings = state.settingsCache;
     if (settings.underConstruction && !isAdmin()) {
         let html = renderUnderConstruction();
@@ -6336,9 +6342,6 @@ function render() {
         }
         
         root.innerHTML = html;
-        
-        if (state.showLogin) {
-        }
         return;
     }
 
@@ -6386,8 +6389,10 @@ function render() {
         overlay.innerHTML = renderSignupModal();
         root.appendChild(overlay.firstElementChild);
     }
-}
 
+    const newScrollEl = document.querySelector('.view-content');
+    if (newScrollEl) newScrollEl.scrollTop = prevScrollTop;
+}
 // ============================================================
 //  SPLASH
 // ============================================================
@@ -9518,8 +9523,9 @@ function renderAdminViewModeQuestions() {
 
     let yearOptions = '';
     if (type === "exam") {
+        const currentYear = state.admin.examYear || 2026;
         for (let y = 2026; y >= 2021; y--) {
-            yearOptions += '<option value="' + y + '">' + y + '</option>';
+            yearOptions += '<option value="' + y + '"' + (y === currentYear ? ' selected' : '') + '>' + y + '</option>';
         }
     }
 
@@ -12092,7 +12098,7 @@ document.addEventListener('click', function(e) {
         const type = state.admin.viewModeType || 'cbt';
         const actualType = type === 'literature' ? 'NOVEL (CBT)' : type === 'topic' ? 'subject' : type;
         const fallbackSubject = document.getElementById('admin-qsubject')?.value || (type === 'literature' ? 'lhm' : '');
-        const fallbackYear = parseInt(document.getElementById('admin-qyear')?.value || 2026);
+        const fallbackYear = parseInt(document.getElementById('admin-qyear')?.value || state.admin.examYear || 2026);
 
         if (!jsonText) { showToast('Paste some JSON first.', 'error'); return; }
 
@@ -12145,7 +12151,7 @@ document.addEventListener('click', function(e) {
 
     if (action === 'qform-add-admin') {
         const subject = document.getElementById('admin-qsubject')?.value || '';
-        const year = parseInt(document.getElementById('admin-qyear')?.value || 2026);
+        const year = parseInt(document.getElementById('admin-qyear')?.value || state.admin.examYear || 2026);
         const text = state.admin.qText || '';
         const opts = state.admin.qOpts.map(function(o) { return o || ''; });
         const explanation = state.admin.qExplanation || '';
