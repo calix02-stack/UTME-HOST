@@ -24,6 +24,15 @@
 <link rel="shortcut icon" href="https://myutme.name.ng/icon-192.png" />
 <title>JAMB CBT Practice App – Free UTME Mock Exams & Past Questions</title>
 <meta name="description" content="Free JAMB CBT app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions, and drill topics subject by subject. The easiest JAMB CBT practice app to prepare for UTME on your phone." />
+<meta property="og:title" content="MyUTME - JAMB CBT Practice App" />
+<meta property="og:description" content="Practice real JAMB CBT-style questions, take timed mock exams, and drill topics subject by subject." />
+<meta property="og:image" content="https://myutme.name.ng/icon-192.png" />
+<meta property="og:url" content="https://myutme.name.ng" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="MyUTME - JAMB CBT Practice App" />
+<meta name="twitter:description" content="Practice real JAMB CBT-style questions, take timed mock exams, and drill topics subject by subject." />
+<meta name="twitter:image" content="https://myutme.name.ng/icon-192.png" />
 <style>
     /* ============================================================
        CSS VARIABLES & RESET
@@ -3223,6 +3232,11 @@ let state = {
     signupPassword: "",
     signupConfirm: "",
     authError: null,
+
+    // Profile editing
+    profileEditing: false,
+    profileEditError: null,
+    profileEditLoading: false,
 
     // Question count selection (25, 30, 35, 40)
     selectedQuestionCount: 40,
@@ -6467,7 +6481,6 @@ function renderApp() {
     let leftContent = '';
     leftContent += '<button class="icon-btn" data-action="open-drawer" aria-label="Open menu">' +
         svg("menu", 20).replace('stroke="currentColor"', 'stroke="white"') +
-        (unread > 0 ? '<span class="dot"></span>' : '') +
         '</button>';
 
     if (!isLoggedIn) {
@@ -6479,6 +6492,10 @@ function renderApp() {
     }
 
     let rightContent = '';
+    rightContent += '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
+        svg('bell', 18).replace('stroke="currentColor"', 'stroke="white"') +
+        (unread > 0 ? '<span class="dot"></span>' : '') +
+        '</button>';
     const needsActivation = isLoggedIn && !isUserActive() && !isAdmin();
     if (needsActivation && !state.activateIconDismissed) {
         rightContent += (
@@ -6547,6 +6564,8 @@ function renderView() {
     if (v === "literature-cbt") return renderLiteratureCbt();
     if (v === "revise") return renderReviseWeak();
     if (v === "history") return renderHistory();
+    if (v === "privacy") return renderPrivacyPolicy();
+    if (v === "terms") return renderTermsOfService();
 
     const tile = HOME_TILES.find(function(t) { return t.key === v; });
     if (tile) return renderFeature(tile);
@@ -7009,8 +7028,8 @@ function renderCbtExam() {
         '<div class="exam-top-bar">' +
         '<div class="left-group">' +
         (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
+            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
+            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
         ) + 
         (hasPassage ? '<button class="calc-btn" style="background:var(--gold);color:var(--ink);height:28px;padding:0 8px;border-radius:6px;display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:10px;font-weight:600" data-action="show-passage" title="View Passage" aria-label="View Passage">📖 Passage</button>' : '') +
         '</div>' +
@@ -7223,8 +7242,8 @@ function renderExamExam() {
         '<div class="exam-top-bar">' +
         '<div class="left-group">' +
         (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
+            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
+            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
         ) +
         '</div>' +
         '<div class="right-group">' +
@@ -7461,8 +7480,8 @@ function renderTopicExam() {
         '<div class="exam-top-bar">' +
         '<div class="left-group">' +
         (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
+            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
+            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
         ) +
         '</div>' +
         '<div class="right-group">' +
@@ -7610,8 +7629,8 @@ function renderLitExam() {
         '<div class="exam-top-bar">' +
         '<div class="left-group">' +
         (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
+            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
+            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
         ) +
         '</div>' +
         '<div class="right-group">' +
@@ -7714,6 +7733,42 @@ function renderFileActions(fileUrl, fileName, fileType) {
     }
     html += '</div>';
     return html;
+}
+
+// ============================================================
+//  PRIVACY POLICY & TERMS OF SERVICE
+// ============================================================
+function renderPrivacyPolicy() {
+    return (
+        '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
+        '<h2 class="title" style="font-size:18px">Privacy Policy</h2>' +
+        '<p class="sub" style="font-size:11px">Last updated: August 2026</p>' +
+        '<div class="card" style="font-size:12px;line-height:1.6">' +
+        '<p style="margin-bottom:10px"><b>What we collect:</b> your username, email address, and exam performance data (scores, answers, weak questions) when you create an account and use the app.</p>' +
+        '<p style="margin-bottom:10px"><b>Payments:</b> card and payment details are handled entirely by Paystack. We never see or store your card number - we only receive a payment reference and status.</p>' +
+        '<p style="margin-bottom:10px"><b>How we use your data:</b> to run your account, track your progress, show you on leaderboards (using your username only), and send you notifications about your activation status.</p>' +
+        '<p style="margin-bottom:10px"><b>Sharing:</b> we do not sell or share your personal data with third parties, except Paystack (for payment processing) and Supabase (our database host).</p>' +
+        '<p style="margin-bottom:10px"><b>Your rights:</b> you can request a copy of your data or ask us to correct it at any time from your Profile page, or by contacting support.</p>' +
+        '<p style="margin-bottom:0"><b>Contact:</b> for privacy questions, use the Support Chat in the app or reach us on WhatsApp.</p>' +
+        '</div>'
+    );
+}
+
+function renderTermsOfService() {
+    return (
+        '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
+        '<h2 class="title" style="font-size:18px">Terms of Service</h2>' +
+        '<p class="sub" style="font-size:11px">Last updated: August 2026</p>' +
+        '<div class="card" style="font-size:12px;line-height:1.6">' +
+        '<p style="margin-bottom:10px"><b>Acceptance:</b> by using MyUTME, you agree to these terms. If you don\'t agree, please stop using the app.</p>' +
+        '<p style="margin-bottom:10px"><b>Account:</b> you are responsible for your login credentials. Your account is for personal use only.</p>' +
+        '<p style="margin-bottom:10px"><b>Activation:</b> a valid license key is required for full access. One key is valid for one account only.</p>' +
+        '<p style="margin-bottom:10px"><b>Payments:</b> all payments are processed through Paystack. They are final and non-refundable except where required by law.</p>' +
+        '<p style="margin-bottom:10px"><b>Content:</b> all questions and materials are provided for educational purposes only. The app is not affiliated with JAMB.</p>' +
+        '<p style="margin-bottom:10px"><b>Fair Use:</b> you may not copy, redistribute, or sell any content from this app.</p>' +
+        '<p style="margin-bottom:0"><b>Contact:</b> for any questions, use the Support Chat in the app or reach us on WhatsApp.</p>' +
+        '</div>'
+    );
 }
 
 // ============================================================
@@ -8215,14 +8270,88 @@ function renderHistory() {
             '<p style="font-size:11px;color:var(--muted);margin:0 0 4px">' + entry.answered_count + ' of ' + entry.total_questions + ' answered</p>' +
             '<div class="h-subject-scores">' + subjectScoreHtml + '</div>' +
             '<div class="h-actions">' +
-            '<button class="btn btn-outline btn-sm" data-action="history-print" data-id="' + entry.id + '" style="flex:1;font-size:10px;padding:4px 8px">' + svg("print", 12) + ' Print</button>' +
-            '<button class="btn btn-outline btn-sm" data-action="history-share" data-id="' + entry.id + '" style="flex:1;font-size:10px;padding:4px 8px">' + svg("share", 12) + ' Share</button>' +
+            '<button class="btn btn-outline btn-sm" data-action="history-print" data-id="' + entry.id + '" aria-label="Print result" style="flex:1;font-size:10px;padding:4px 8px">' + svg("print", 12) + ' Print</button>' +
+            '<button class="btn btn-outline btn-sm" data-action="history-share" data-id="' + entry.id + '" aria-label="Share result" style="flex:1;font-size:10px;padding:4px 8px">' + svg("share", 12) + ' Share</button>' +
             '</div>' +
             '</div>'
         );
     });
 
     return html;
+}
+
+// ============================================================
+//  PROFILE
+// ============================================================
+function renderProfile() {
+    const isLoggedIn = !!state.authUser;
+    const isActive = isUserActive();
+    const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
+    const isEditing = state.profileEditing || false;
+    let statusMsg = '';
+    let expiryBadge = '';
+    if (isLoggedIn) {
+        if (isActive) {
+            statusMsg = '<p style="font-size:12px;color:var(--green);margin-top:2px">✓ Account Active</p>';
+            if (expiry) {
+                const daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
+                let badgeClass = 'active';
+                if (daysLeft < 3) badgeClass = 'expiring-soon';
+                expiryBadge = '<span class="expiry-badge ' + badgeClass + '">' + daysLeft + ' days left</span>';
+                statusMsg += '<p style="font-size:10px;color:var(--muted);margin-top:1px">Expires: ' + expiry
+                    .toLocaleDateString() + ' ' + expiryBadge + '</p>';
+            }
+        } else {
+            statusMsg = '<p style="font-size:12px;color:var(--unanswered);margin-top:2px">⚠️ Account Inactive</p>' +
+                '<p style="font-size:10px;color:var(--muted);margin-top:1px">Contact admin for activation</p>';
+        }
+    }
+
+    let fieldsHtml = '';
+    if (isEditing && isLoggedIn) {
+        fieldsHtml =
+            '<label class="field-label">Username</label>' +
+            '<input class="field" id="edit-profile-username" value="' + esc(state.formName) +
+            '" style="margin-bottom:10px;font-size:13px" />' +
+            '<label class="field-label">Email</label>' +
+            '<input class="field" id="edit-profile-email" type="email" value="' + esc(state.formEmail) +
+            '" style="margin-bottom:4px;font-size:13px" />' +
+            '<p style="font-size:10px;color:var(--faint);margin:0 0 10px">Changing email sends a confirmation link to your new address.</p>' +
+            (state.profileEditError ? '<p style="color:#C0392B;font-size:12px;margin:0 0 10px">⚠️ ' + esc(state.profileEditError) + '</p>' : '') +
+            '<div style="display:flex;gap:6px">' +
+            '<button class="btn btn-green" style="flex:1;padding:10px" data-action="save-profile-edit"' + (state.profileEditLoading ? ' disabled' : '') + '>' +
+            (state.profileEditLoading ? 'Saving…' : 'Save Changes') + '</button>' +
+            '<button class="btn btn-outline" style="flex:0.6;padding:10px" data-action="cancel-profile-edit">Cancel</button>' +
+            '</div>';
+    } else {
+        fieldsHtml =
+            '<label class="field-label">Username</label>' +
+            '<input class="field" value="' + esc(state.formName) +
+            '" disabled style="background:var(--bg);color:var(--muted);margin-bottom:10px;font-size:13px" />' +
+            '<label class="field-label">Email</label>' +
+            '<input class="field" value="' + esc(state.formEmail) +
+            '" disabled style="background:var(--bg);color:var(--muted);margin-bottom:10px;font-size:13px" />' +
+            (isLoggedIn ? '<button class="btn btn-outline" style="padding:10px" data-action="start-profile-edit">Edit Profile</button>' : '');
+    }
+
+    return (
+        '<h2 class="title" style="margin-bottom:12px;font-size:18px">Profile</h2>' +
+        '<div class="card" style="text-align:center;padding:16px">' +
+        '<div style="margin:0 auto;width:56px;height:56px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:22px;color:#fff;background:' +
+        GREEN + '">' +
+        esc((state.formName || "G").trim().charAt(0).toUpperCase()) +
+        '</div>' +
+        (isLoggedIn ? statusMsg : '<p style="font-size:11px;color:var(--muted);margin-top:2px">Guest mode</p>') +
+        '</div>' +
+        '<div class="card" style="margin-top:10px">' +
+        fieldsHtml +
+        '</div>' +
+        (isLoggedIn && !isEditing ? '<button class="btn btn-outline" style="margin-top:10px;padding:10px" data-action="sign-out">Sign out</button>' : '') +
+        '<div style="display:flex;gap:10px;justify-content:center;margin-top:14px">' +
+        '<button data-action="set-view" data-view="privacy" style="font-size:11px;color:var(--faint);text-decoration:underline">Privacy Policy</button>' +
+        '<button data-action="set-view" data-view="terms" style="font-size:11px;color:var(--faint);text-decoration:underline">Terms of Service</button>' +
+        '</div>'
+    );
 }
 
 // ============================================================
@@ -8412,17 +8541,6 @@ function renderMockRegistrationForm(exam) {
     const requiredSubjects = settings.mockSubjectCount || 4;
 
     let chips = "";
-    
-    const eng = SUBJECTS.find(function(s) { return s.id === 'eng'; });
-    if (eng) {
-        chips += (
-            '<button class="subject-chip selected" style="opacity:0.7;cursor:default;border-color:var(--green);pointer-events:none">' +
-            subjectBadge(eng) +
-            '<span class="sname">' + esc(eng.name) + ' (Compulsory)</span>' +
-            '</button>'
-        );
-    }
-
     subjects.forEach(function(s) {
         const sel = selected.indexOf(s.id) !== -1;
         chips += (
@@ -8437,6 +8555,8 @@ function renderMockRegistrationForm(exam) {
     const ready = selected.length === 3;
     const totalSubjects = selected.length + 1;
 
+    const eng = SUBJECTS.find(function(s) { return s.id === 'eng'; });
+
     return (
         '<div class="mock-card active">' +
         '<p class="mock-title">' + esc(exam.title) + '</p>' +
@@ -8445,6 +8565,10 @@ function renderMockRegistrationForm(exam) {
             .toLocaleString() : '1 hour before') + '</p>' +
         '<span class="mock-status upcoming">📝 Register</span>' +
         '<p style="font-size:12px;color:var(--muted);margin-top:6px">English is compulsory. Select 3 more subjects:</p>' +
+        (eng ? '<div class="compulsory-row" style="margin-top:6px">' +
+            subjectBadge(eng) +
+            '<span style="font-size:12px;font-weight:600">' + esc(eng.name) + '</span>' +
+            '<span class="tag">Compulsory</span></div>' : '') +
         '<div class="subject-grid" style="margin-top:6px">' + chips + '</div>' +
         '<div class="picker-footer">' +
         '<p class="picker-count" style="font-size:11px">' + totalSubjects + ' of ' + requiredSubjects + ' selected (English + ' + selected.length + ' others)</p>' +
@@ -8633,8 +8757,8 @@ function renderMockExam() {
         '<div class="exam-top-bar">' +
         '<div class="left-group">' +
         (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
+            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
+            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
         ) +
         (hasPassage ? 
             '<button class="calc-btn" style="background:var(--gold);color:var(--ink);height:28px;padding:0 8px;border-radius:6px;display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:10px;font-weight:600" data-action="show-mock-passage" title="View Passage" aria-label="View Passage">📖 Passage</button>' : 
@@ -8898,55 +9022,6 @@ function renderNotifications() {
             '') +
         '</div>' +
         items
-    );
-}
-
-// ============================================================
-//  PROFILE
-// ============================================================
-function renderProfile() {
-    const isLoggedIn = !!state.authUser;
-    const isActive = isUserActive();
-    const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
-
-    let statusMsg = '';
-    let expiryBadge = '';
-    if (isLoggedIn) {
-        if (isActive) {
-            statusMsg = '<p style="font-size:12px;color:var(--green);margin-top:2px">✓ Account Active</p>';
-            if (expiry) {
-                const daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
-                let badgeClass = 'active';
-                if (daysLeft < 3) badgeClass = 'expiring-soon';
-                expiryBadge = '<span class="expiry-badge ' + badgeClass + '">' + daysLeft + ' days left</span>';
-                statusMsg += '<p style="font-size:10px;color:var(--muted);margin-top:1px">Expires: ' + expiry
-                    .toLocaleDateString() + ' ' + expiryBadge + '</p>';
-            }
-        } else {
-            statusMsg = '<p style="font-size:12px;color:var(--unanswered);margin-top:2px">⚠️ Account Inactive</p>' +
-                '<p style="font-size:10px;color:var(--muted);margin-top:1px">Contact admin for activation</p>';
-        }
-    }
-
-    return (
-        '<h2 class="title" style="margin-bottom:12px;font-size:18px">Profile</h2>' +
-        '<div class="card" style="text-align:center;padding:16px">' +
-        '<div style="margin:0 auto;width:56px;height:56px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:22px;color:#fff;background:' +
-        GREEN + '">' +
-        esc((state.formName || "G").trim().charAt(0).toUpperCase()) +
-        '</div>' +
-        (isLoggedIn ? statusMsg : '<p style="font-size:11px;color:var(--muted);margin-top:2px">Guest mode</p>') +
-        '</div>' +
-        '<div class="card" style="margin-top:10px">' +
-        '<label class="field-label">Username</label>' +
-        '<input class="field" value="' + esc(state.formName) +
-        '" disabled style="background:var(--bg);color:var(--muted);margin-bottom:10px;font-size:13px" />' +
-        '<label class="field-label">Email</label>' +
-        '<input class="field" value="' + esc(state.formEmail) +
-        '" disabled style="background:var(--bg);color:var(--muted);margin-bottom:10px;font-size:13px" />' +
-        (isLoggedIn ? '<button class="btn btn-outline" style="margin-top:6px;padding:10px" data-action="sign-out">Sign out</button>' :
-            '') +
-        '</div>'
     );
 }
 
@@ -11013,6 +11088,123 @@ document.addEventListener('click', function(e) {
         const shareText = '📚 Check out MyUTME — the best JAMB CBT practice app! Practice real UTME questions, take mock exams, and track your progress. Get it here: ' + shareUrl;
         const waUrl = 'https://wa.me/?text=' + encodeURIComponent(shareText);
         window.open(waUrl, '_blank');
+        return;
+    }
+
+    // Profile editing
+    if (action === 'start-profile-edit') {
+        state.profileEditing = true;
+        state.profileEditError = null;
+        render();
+        return;
+    }
+
+    if (action === 'cancel-profile-edit') {
+        state.profileEditing = false;
+        state.profileEditError = null;
+        render();
+        return;
+    }
+
+    if (action === 'save-profile-edit') {
+        const newUsername = document.getElementById('edit-profile-username')?.value?.trim() || '';
+        const newEmail = document.getElementById('edit-profile-email')?.value?.trim() || '';
+
+        if (!newUsername) {
+            state.profileEditError = 'Username cannot be empty.';
+            render();
+            return;
+        }
+        if (!newEmail || !newEmail.includes('@')) {
+            state.profileEditError = 'Enter a valid email.';
+            render();
+            return;
+        }
+
+        state.profileEditLoading = true;
+        state.profileEditError = null;
+        render();
+
+        (async function() {
+            try {
+                if (newUsername !== state.profile.name) {
+                    const { data: existing, error: checkErr } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .eq('username', newUsername)
+                        .neq('id', state.authUser.id)
+                        .maybeSingle();
+
+                    if (checkErr) {
+                        state.profileEditError = 'Could not check username availability.';
+                        state.profileEditLoading = false;
+                        render();
+                        return;
+                    }
+
+                    if (existing) {
+                        state.profileEditError = 'That username is already taken.';
+                        state.profileEditLoading = false;
+                        render();
+                        return;
+                    }
+
+                    const { error: updateErr } = await supabase
+                        .from('profiles')
+                        .update({ username: newUsername })
+                        .eq('id', state.authUser.id);
+
+                    if (updateErr) {
+                        state.profileEditError = 'Error updating username: ' + updateErr.message;
+                        state.profileEditLoading = false;
+                        render();
+                        return;
+                    }
+                }
+
+                if (newEmail !== state.profile.email) {
+                    const { error: emailErr } = await supabase.auth.updateUser({ email: newEmail });
+                    if (emailErr) {
+                        state.profileEditError = 'Email update failed: ' + emailErr.message;
+                        state.profileEditLoading = false;
+                        render();
+                        return;
+                    }
+
+                    const { error: updateErr } = await supabase
+                        .from('profiles')
+                        .update({ email: newEmail })
+                        .eq('id', state.authUser.id);
+
+                    if (updateErr) {
+                        state.profileEditError = 'Email saved but profile update failed: ' + updateErr.message;
+                        state.profileEditLoading = false;
+                        render();
+                        return;
+                    }
+
+                    showToast('Username saved! Check your new email to confirm the change.', 'success');
+                } else {
+                    showToast('Profile updated!', 'success');
+                }
+
+                state.profile.name = newUsername;
+                state.formName = newUsername;
+                state.profile.email = newEmail;
+                state.formEmail = newEmail;
+                storage.set('profile', JSON.stringify(state.profile));
+
+                state.profileEditing = false;
+                state.profileEditLoading = false;
+                render();
+
+            } catch (err) {
+                console.warn('Save profile error:', err);
+                state.profileEditError = err.message || 'Could not save changes.';
+                state.profileEditLoading = false;
+                render();
+            }
+        })();
         return;
     }
 
@@ -13325,14 +13517,21 @@ async function init() {
         document.documentElement.setAttribute('data-theme', 'dark');
     }
 
+    const hasSeenSplash = storage.get('hasSeenSplash');
+    if (hasSeenSplash) {
+        state.phase = 'app';
+    }
     render();
 
-    setTimeout(function() {
-        if (state.phase === 'splash') {
-            state.phase = 'app';
-            render();
-        }
-    }, 5000);
+    if (!hasSeenSplash) {
+        storage.set('hasSeenSplash', 'true');
+        setTimeout(function() {
+            if (state.phase === 'splash') {
+                state.phase = 'app';
+                render();
+            }
+        }, 5000);
+    }
 
     await loadSettings();
     await checkAuthSession();
