@@ -3361,6 +3361,7 @@ let state = {
         qOpts: ["", "", "", ""],
         qCorrect: 0,
         qExplanation: "",
+        jsonImportText: "",
         qSubject: "",
         qYear: null,
         questionsPerSubject: 40,
@@ -6345,6 +6346,14 @@ function render() {
     const prevScrollEl = document.querySelector('.view-content');
     const prevScrollTop = prevScrollEl ? prevScrollEl.scrollTop : 0;
 
+    const prevListEl = document.querySelector('.admin-question-list');
+    const prevListScrollTop = prevListEl ? prevListEl.scrollTop : 0;
+
+    const activeEl = document.activeElement;
+    const activeId = activeEl && activeEl.id ? activeEl.id : null;
+    const activeSelStart = (activeEl && typeof activeEl.selectionStart === 'number') ? activeEl.selectionStart : null;
+    const activeSelEnd = (activeEl && typeof activeEl.selectionEnd === 'number') ? activeEl.selectionEnd : null;
+
     const settings = state.settingsCache;
     if (settings.underConstruction && !isAdmin()) {
         let html = renderUnderConstruction();
@@ -6406,6 +6415,19 @@ function render() {
 
     const newScrollEl = document.querySelector('.view-content');
     if (newScrollEl) newScrollEl.scrollTop = prevScrollTop;
+
+    const newListEl = document.querySelector('.admin-question-list');
+    if (newListEl) newListEl.scrollTop = prevListScrollTop;
+
+    if (activeId) {
+        const newActiveEl = document.getElementById(activeId);
+        if (newActiveEl) {
+            newActiveEl.focus();
+            if (activeSelStart !== null && typeof newActiveEl.setSelectionRange === 'function') {
+                try { newActiveEl.setSelectionRange(activeSelStart, activeSelEnd); } catch (e) {}
+            }
+        }
+    }
 }
 // ============================================================
 //  SPLASH
@@ -9663,7 +9685,7 @@ function renderAdminSubjectQuestions(type, subject, year) {
         '<div class="card" style="margin-top:12px">' +
         '<p style="font-size:13px;font-weight:600;margin:0 0 6px">📋 Or Paste Questions as JSON</p>' +
         '<p style="font-size:10px;color:var(--muted);margin:0 0 8px">Adds to ' + esc(subj ? subj.name : subject) + (year ? ' (' + year + ')' : '') + ' unless a question specifies its own subject_id' + (type === 'exam' ? '/year' : '') + '.</p>' +
-        '<textarea class="field" id="admin-json-import" rows="6" placeholder=\'[\n  {\n    "text": "What is 2+2?",\n    "options": ["3","4","5","6"],\n    "correct_answer": 1,\n    "explanation": "2+2 equals 4."\n  }\n]\' style="margin-bottom:8px;font-family:var(--font-mono);font-size:11px"></textarea>' +
+        '<textarea class="field" id="admin-json-import" rows="6" placeholder=\'[\n  {\n    "text": "What is 2+2?",\n    "options": ["3","4","5","6"],\n    "correct_answer": 1,\n    "explanation": "2+2 equals 4."\n  }\n]\' style="margin-bottom:8px;font-family:var(--font-mono);font-size:11px">' + esc(state.admin.jsonImportText || '') + '</textarea>' +
         '<button class="btn btn-gold" data-action="qform-import-json" style="padding:10px">Import Questions</button>' +
         '</div>'
     );
@@ -12389,8 +12411,9 @@ document.addEventListener('click', function(e) {
                     skipped++;
                 }
             }
-            showToast('Imported ' + added + ' question(s)' + (skipped > 0 ? ', skipped ' + skipped : '') + '.',
+           showToast('Imported ' + added + ' question(s)' + (skipped > 0 ? ', skipped ' + skipped : '') + '.',
                 added > 0 ? 'success' : 'error');
+            state.admin.jsonImportText = '';
             const ta = document.getElementById('admin-json-import');
             if (ta) ta.value = '';
             loadAllQuestionsForAdmin();
@@ -13504,6 +13527,8 @@ document.addEventListener('input', function(e) {
     else if (action === 'qform-opt') {
         const idx = parseInt(e.target.getAttribute('data-idx'), 10);
         state.admin.qOpts[idx] = e.target.value;
+    } else if (id === 'admin-json-import') {
+        state.admin.jsonImportText = e.target.value;
     }
 });
 
