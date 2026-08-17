@@ -815,17 +815,17 @@
         gap: 8px;
     }
     .exam-top-bar .left-group .calc-btn {
-        width: 30px;
-        height: 30px;
+        padding: 4px 10px;
         border-radius: 6px;
         display: flex;
         align-items: center;
-        justify-content: center;
+        gap: 4px;
         background: var(--calculator-bg);
         color: #fff;
-        font-size: 14px;
+        font-size: 12px;
         transition: transform 0.15s;
         cursor: pointer;
+        font-weight: 600;
     }
     .exam-top-bar .left-group .calc-btn:hover { transform: scale(1.05); }
     .exam-top-bar .left-group .calc-btn.enabled { background: var(--gold); color: var(--ink); }
@@ -834,29 +834,6 @@
         display: flex;
         align-items: center;
         gap: 6px;
-    }
-    .exam-top-bar .right-group .attempt-btn {
-        font-size: 11px;
-        color: var(--muted);
-        background: var(--card-bg);
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        padding: 3px 8px;
-        display: flex;
-        align-items: center;
-        gap: 3px;
-        transition: all 0.2s;
-        cursor: pointer;
-    }
-    .exam-top-bar .right-group .attempt-btn:hover {
-        border-color: var(--green);
-        color: var(--ink);
-    }
-    .exam-top-bar .right-group .attempt-btn .dot-indicator {
-        width: 6px;
-        height: 6px;
-        border-radius: 999px;
-        background: var(--green);
     }
     .exam-top-bar .right-group .submit-btn {
         font-size: 11px;
@@ -1671,51 +1648,57 @@
         to { opacity: 1; transform: scale(1); }
     }
 
-    /* SUBMIT MODAL */
+    /* SUBMIT MODAL - Full screen review */
     .submit-overlay {
         position: fixed;
         inset: 0;
-        z-index: 100;
+        z-index: 60;
         display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.6);
-        padding: 20px;
+        flex-direction: column;
+        background: var(--bg);
+        padding: 16px;
+        overflow-y: auto;
     }
     .submit-modal {
-        background: var(--modal-bg);
-        border-radius: 16px;
-        padding: 20px;
-        max-width: 340px;
+        flex: 1;
+        max-width: 384px;
         width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        transition: background 0.3s;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
     }
     .submit-modal h3 {
         font-family: var(--font-serif);
-        font-size: 17px;
-        margin: 0 0 2px;
+        font-size: 20px;
+        margin: 0 0 4px;
         color: var(--ink);
     }
     .submit-modal .sub {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--muted);
-        margin: 0 0 12px;
+        margin: 0 0 16px;
     }
     .submit-modal .subject-summary {
-        background: var(--bg);
+        background: var(--card-bg);
         border-radius: 8px;
-        padding: 8px 10px;
+        padding: 10px 12px;
         margin-bottom: 4px;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        border-left: 4px solid transparent;
+        transition: background 0.3s;
+    }
+    .submit-modal .subject-summary.has-unanswered {
+        border-left-color: var(--danger);
+        background: #fce4ec;
+    }
+    [data-theme="dark"] .submit-modal .subject-summary.has-unanswered {
+        background: #3d1a1a;
     }
     .submit-modal .subject-summary .sname {
         font-weight: 600;
-        font-size: 12px;
+        font-size: 13px;
         color: var(--ink);
     }
     .submit-modal .subject-summary .scount {
@@ -1733,98 +1716,78 @@
     .submit-modal .btn-group {
         display: flex;
         gap: 6px;
-        margin-top: 12px;
+        margin-top: auto;
+        padding: 12px 0 0;
+        position: sticky;
+        bottom: 0;
+        background: var(--bg);
+        padding-bottom: 12px;
     }
     .submit-modal .btn-group .btn { flex: 1; }
 
-    /* Attempted Questions Modal */
-    .attempt-overlay {
+    /* Attempted Questions Modal - REMOVED */
+    /* Calculator Modal - draggable */
+    .calc-overlay {
         position: fixed;
         inset: 0;
         z-index: 100;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.6);
+        pointer-events: none;
         padding: 20px;
-    }
-    .attempt-modal {
-        background: var(--modal-bg);
-        border-radius: 16px;
-        padding: 20px;
-        max-width: 340px;
-        width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        transition: background 0.3s;
-    }
-    .attempt-modal h3 {
-        font-family: var(--font-serif);
-        font-size: 17px;
-        margin: 0 0 2px;
-        color: var(--ink);
-    }
-    .attempt-modal .sub {
-        font-size: 12px;
-        color: var(--muted);
-        margin: 0 0 12px;
-    }
-    .attempt-modal .question-status {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 4px 0;
-        border-bottom: 1px solid var(--line);
-        font-size: 12px;
-        width: 100%;
-        background: none;
-        border-left: none;
-        border-right: none;
-        border-top: none;
-        text-align: left;
-        cursor: pointer;
-        transition: background 0.15s;
+        align-items: flex-end;
+        justify-content: flex-end;
     }
-    .attempt-modal .question-status:hover {
-        background: var(--bg);
-    }
-    .attempt-modal .question-status .qnum {
-        font-weight: 600;
-        color: var(--green);
-        text-decoration: underline;
-    }
-    /* Calculator Modal */
-    .calc-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 20px;
-}
     .calc-modal {
+        pointer-events: auto;
         background: var(--modal-bg);
         border-radius: 16px;
-        padding: 16px;
-        max-width: 300px;
+        padding: 12px;
+        max-width: 280px;
         width: 100%;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         transition: background 0.3s;
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        z-index: 101;
+        touch-action: none;
+        cursor: grab;
+    }
+    .calc-modal:active { cursor: grabbing; }
+    .calc-modal .calc-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 4px 8px 8px;
+        cursor: grab;
+        touch-action: none;
+    }
+    .calc-modal .calc-header:active { cursor: grabbing; }
+    .calc-modal .calc-header .title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .calc-modal .calc-header .grip {
+        font-size: 16px;
+        color: var(--faint);
+        letter-spacing: 2px;
+        user-select: none;
     }
     .calc-modal .calc-display {
         background: var(--bg);
         border-radius: 10px;
-        padding: 12px;
+        padding: 10px 12px;
         text-align: right;
         font-family: var(--font-mono);
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 700;
         color: var(--ink);
-        margin-bottom: 10px;
-        min-height: 50px;
+        margin-bottom: 8px;
+        min-height: 44px;
         overflow: hidden;
     }
     .calc-modal .calc-grid {
@@ -1833,15 +1796,16 @@
         gap: 4px;
     }
     .calc-modal .calc-grid button {
-        padding: 12px 0;
+        padding: 10px 0;
         border-radius: 8px;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 600;
         background: var(--card-bg);
         border: 1px solid var(--line);
         color: var(--ink);
         transition: all 0.15s;
         cursor: pointer;
+        pointer-events: auto;
     }
     .calc-modal .calc-grid button:hover { background: var(--bg); }
     .calc-modal .calc-grid button:active { transform: scale(0.95); }
@@ -1865,14 +1829,15 @@
     .calc-modal .calc-grid .clear:hover { background: #c0392b; }
     .calc-modal .calc-close {
         width: 100%;
-        margin-top: 10px;
-        padding: 8px;
+        margin-top: 8px;
+        padding: 6px;
         border-radius: 8px;
         font-weight: 600;
         background: var(--line);
         color: var(--muted);
         cursor: pointer;
         transition: background 0.15s;
+        pointer-events: auto;
     }
     .calc-modal .calc-close:hover { background: var(--input-border); }
 
@@ -1899,14 +1864,17 @@
         gap: 4px;
     }
     .exam-nav .goto-btn-wrap .goto-btn {
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 10px;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 11px;
         font-weight: 600;
         background: var(--gold);
         color: var(--ink);
         cursor: pointer;
         transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
     }
     .exam-nav .goto-btn-wrap .goto-btn:hover { background: #d49a2e; }
 
@@ -1918,10 +1886,25 @@
     }
     .exam-question-card {
         margin-bottom: 12px;
+        position: relative;
     }
+    .exam-question-card .flag-inline {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        font-size: 14px;
+        padding: 2px 6px;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .exam-question-card .flag-inline:hover { border-color: var(--flag-color); }
     .exam-question-card p {
         font-size: 17px !important;
         line-height: 1.5;
+        padding-right: 36px;
     }
     .exam-options-wrap {
         display: flex;
@@ -2468,33 +2451,8 @@
         padding: 20px;
     }
 
-    /* Question count selector */
-    .q-count-selector {
-        display: flex;
-        gap: 6px;
-        justify-content: center;
-        margin: 6px 0 10px;
-    }
-    .q-count-selector .q-count-btn {
-        padding: 4px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        background: var(--card-bg);
-        border: 1.5px solid var(--line);
-        color: var(--muted);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .q-count-selector .q-count-btn.active {
-        border-color: var(--green);
-        background: var(--green);
-        color: #fff;
-    }
-    .q-count-selector .q-count-btn:hover:not(.active) {
-        border-color: var(--green);
-        color: var(--ink);
-    }
+    /* Question count selector - REMOVED */
+    .q-count-selector { display: none; }
 
     .time-selector {
         display: flex;
@@ -2802,6 +2760,7 @@
         line-height: 1.4;
         position: relative;
         word-wrap: break-word;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
     }
     .chat-bubble.me {
         background: var(--green);
@@ -2832,6 +2791,22 @@
         margin-top: 3px;
         text-align: right;
     }
+    .chat-avatar {
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+        margin-right: 4px;
+        background: var(--bg);
+        flex-shrink: 0;
+    }
+    .chat-avatar.ai { background: #E3F2FD; color: #0d47a1; }
+    .chat-avatar.admin { background: var(--gold); color: #3A2A0A; }
+    .chat-avatar.agent { background: var(--green); color: #fff; }
     .chat-input-row {
         display: flex;
         gap: 6px;
@@ -2839,9 +2814,19 @@
         bottom: 0;
         background: var(--bg);
         padding-top: 6px;
+        border-top: 1px solid var(--line);
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
     }
-    .chat-input-row .field { flex: 1; margin-bottom: 0; }
+    .chat-input-row textarea.field {
+        flex: 1;
+        margin-bottom: 0;
+        resize: none;
+        max-height: 72px;
+        min-height: 38px;
+        padding: 8px 10px;
+    }
     .chat-send-btn { width: auto; padding: 8px 14px; flex-shrink: 0; }
+    .chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* Expiry badge in profile */
     .expiry-badge {
@@ -2863,6 +2848,128 @@
         background: #fce4ec;
         color: #c62828;
     }
+
+    /* Notification tabs */
+    .notif-tabs {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        margin-bottom: 10px;
+        padding-bottom: 4px;
+    }
+    .notif-tab {
+        flex: 0 0 auto;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        white-space: nowrap;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .notif-tab.active {
+        background: var(--green);
+        color: #fff;
+        border-color: var(--green);
+    }
+
+    /* Support header */
+    .support-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+    }
+    .support-header .avatar-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--green);
+        flex-shrink: 0;
+    }
+    .support-header .avatar-icon svg { width: 24px; height: 24px; color: #fff; }
+    .support-header .info .name {
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--ink);
+        margin: 0;
+    }
+    .support-header .info .status {
+        font-size: 10px;
+        color: var(--green);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .support-header .info .status .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--green); display: inline-block; }
+
+    /* Typing indicator */
+    .typing-indicator {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        background: var(--bg);
+        border-radius: 12px;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 4px;
+        align-self: flex-start;
+        max-width: 120px;
+    }
+    .typing-indicator .dots span {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--muted);
+        margin: 0 1px;
+        animation: typingDot 1.4s infinite;
+    }
+    .typing-indicator .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator .dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingDot {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+        30% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* In-app notification banner */
+    #inapp-notif-banner {
+        position: fixed;
+        top: -80px;
+        left: 8px;
+        right: 8px;
+        z-index: 500;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 12px;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        max-width: 384px;
+        margin: 0 auto;
+        cursor: pointer;
+    }
+    #inapp-notif-banner.show { top: 8px; }
+    #inapp-notif-banner .icon { font-size: 20px; flex-shrink: 0; }
+    #inapp-notif-banner .text { flex: 1; min-width: 0; }
+    #inapp-notif-banner .text .title { font-weight: 600; font-size: 12px; color: var(--ink); margin: 0; }
+    #inapp-notif-banner .text .body { font-size: 11px; color: var(--muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #inapp-notif-banner .dismiss { font-size: 16px; color: var(--faint); cursor: pointer; padding: 0 4px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -2875,10 +2982,13 @@
     <span>📲 Install: tap <b>Share</b> then <b>"Add to Home Screen"</b></span>
     <button id="pwa-ios-tip-close" aria-label="Dismiss">×</button>
 </div>
+<div id="inapp-notif-banner">
+    <span class="icon">🔔</span>
+    <div class="text"><p class="title"></p><p class="body"></p></div>
+    <span class="dismiss" data-action="dismiss-inapp-banner">×</span>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
-<script src="https://js.paystack.co/v1/inline.js"></script>
 <script src="offline-db.js"></script>
 <script>
 // ============================================================
@@ -2976,7 +3086,7 @@ const SUBJECTS = [
     { id: "com", code: "COM", name: "Commerce" },
     { id: "acc", code: "ACC", name: "Accounting" }, 
     { id: "lit", code: "LIT", name: "Literature", type: "cbt" },
-{ id: "lhm", code: "LHM", name: "The Lekki Headmaster", type: "literature" },
+    { id: "lhm", code: "LHM", name: "The Lekki Headmaster", type: "literature" },
     { id: "crs", code: "CRS", name: "CRS" },
     { id: "irs", code: "IRS", name: "IRS" },
     { id: "his", code: "HIS", name: "History" },
@@ -3033,13 +3143,15 @@ const ICONS = {
     target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8" fill="currentColor" stroke="none"/>',
     upload: '<path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
     users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 19c1-3.2 3.5-5 6.5-5s5.5 1.8 6.5 5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M15.5 14c2.4.2 4.3 1.8 5 4.5"/>',
-    calculator: '<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="2" x2="16" y2="2"/><line x1="8" y1="22" x2="16" y2="22"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/>',
+    calculator: '<rect x="4" y="2" width="16" height="20" rx="2" stroke-width="1.5"/><line x1="8" y1="6" x2="16" y2="6" stroke-width="1.5"/><line x1="8" y1="10" x2="16" y2="10" stroke-width="1.5"/><line x1="8" y1="14" x2="16" y2="14" stroke-width="1.5"/><line x1="8" y1="18" x2="16" y2="18" stroke-width="1.5"/><rect x="6" y="7" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/><rect x="10" y="7" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/><rect x="14" y="7" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/><rect x="6" y="11" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/><rect x="10" y="11" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/><rect x="14" y="11" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/><rect x="6" y="15" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/><rect x="10" y="15" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/><rect x="14" y="15" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/>',
     eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
     eyeoff: '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>',
     clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/><line x1="3" y1="3" x2="21" y2="21"/>',
     share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>',
     print: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/><line x1="18" y1="14" x2="18" y2="14.01"/><line x1="10" y1="18" x2="14" y2="18"/>',
     chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+    chart: '<path d="M4 20h16"/><path d="M6 16v-4"/><path d="M12 16v-8"/><path d="M18 16v-6"/>',
 };
 
 function svg(name, size) {
@@ -3130,7 +3242,7 @@ function formatDate(dateStr) {
 function getJambCountdown() {
     const now = new Date();
     const year = now.getFullYear();
-    let target = new Date(year, 3, 15); // April 15
+    let target = new Date(year, 3, 15);
     if (now > target) {
         target = new Date(year + 1, 3, 15);
     }
@@ -3213,6 +3325,7 @@ let state = {
     activateCode: "",
     activateStatus: null,
     isLoading: false,
+    authReady: false,
 
     authUser: null,
     authProfile: null,
@@ -3233,12 +3346,10 @@ let state = {
     signupConfirm: "",
     authError: null,
 
-    // Profile editing
     profileEditing: false,
     profileEditError: null,
     profileEditLoading: false,
 
-    // Question count selection (25, 30, 35, 40)
     selectedQuestionCount: 40,
 
     // CBT
@@ -3272,6 +3383,7 @@ let state = {
     // Exam Mode
     examSubject: null,
     examYear: 2026,
+    examVariant: "standard",
     examShowExplanation: false,
     examReviewMode: false,
     examQuestions: [],
@@ -3280,6 +3392,7 @@ let state = {
     examFinished: false,
     examSubmitted: false,
     examHistorySaved: false,
+    examInstantResults: {},
 
     // Mock
     mockSubject: null,
@@ -3329,7 +3442,7 @@ let state = {
     litHistorySaved: false,
     litReviewMode: false,
 
-    // Weak Questions
+    // Weak Questions - Revised
     weakQuestions: [],
     weakQuestionsLoaded: false,
     weakModeTimer: null,
@@ -3344,6 +3457,7 @@ let state = {
     reviseView: 'modes',
     reviseMode: null,
     reviseSubject: null,
+    reviseIndex: 0,
 
     // Leaderboard
     leaderboardTab: "cbt",
@@ -3394,6 +3508,7 @@ let state = {
         editingQuestionData: null,
         examTimeLimit: 100,
         novelTimeLimit: 100,
+        novelQuestionsPerSubject: 40,
         topicTimeLimit: 60,
         reviseTimeLimit: 60,
         cbtSubjectCount: 3,
@@ -3402,6 +3517,7 @@ let state = {
         flaggedFilter: "unresolved",
         flaggedLoaded: false,
         flaggedLoading: false,
+        flaggedData: null,
         notifyUserId: null,
         notifyModalOpen: false,
         notifyTitle: "",
@@ -3414,15 +3530,14 @@ let state = {
         adminTopicQuestions: [],
         adminTopicQuestionsLoaded: false,
         newTopicName: "",
-        // Logs
         logs: [],
         logsLoaded: false,
-        // User activity
         userActivity: {},
     },
     adminLoading: false,
     questionCounts: {},
     allQuestions: [],
+    notifTab: "public",
 
     docsLoaded: false,
     docsList: [],
@@ -3469,6 +3584,7 @@ let state = {
         calculatorEnabled: true,
         examTimeLimit: 100,
         novelTimeLimit: 100,
+        novelQuestionsPerSubject: 40,
         topicTimeLimit: 60,
         reviseTimeLimit: 60,
         cbtSubjectCount: 3,
@@ -3485,32 +3601,26 @@ let state = {
     calcDisplay: "0",
     calcExpression: "",
     calcJustEvaluated: false,
-    // Password visibility tracking
+    calcPosition: { x: null, y: null },
     showPassword: {},
     activateIconDismissed: false,
     
-    // Flag modal
     showFlagModal: false,
     flagModalData: null,
     showPassageModal: false,
     
-    // Goto Question modal
     showGotoModal: false,
     gotoModalData: null,
     
-    // History/Result Analysis
     historyLoaded: false,
     historyEntries: [],
-    historyFilter: 'all', // 'all', 'cbt', 'exam', 'mock', 'novel', 'topic', 'revise'
+    historyFilter: 'all',
     
-    // Admin notify modal
     showNotifyModal: false,
     notifyModalData: null,
     
-    // Flagged questions count
     flaggedCount: 0,
     
-    // Under Construction
     underConstruction: false,
     constructionReopenTime: null,
 };
@@ -3812,6 +3922,7 @@ async function loadSettings() {
             calculatorEnabled: settings.calculator_enabled !== false,
             examTimeLimit: settings.exam_settings?.time_limit_minutes || 100,
             novelTimeLimit: settings.novel_settings?.time_limit_minutes || 100,
+            novelQuestionsPerSubject: settings.novel_settings?.questions_per_subject || 40,
             topicTimeLimit: settings.topic_settings?.time_limit_minutes || 60,
             reviseTimeLimit: settings.revise_settings?.time_limit_minutes || 60,
             cbtSubjectCount: settings.cbt_settings?.subject_count || 3,
@@ -3994,7 +4105,6 @@ async function checkAndDeactivateExpiredUsers() {
                 await addLog(user.id, user.username, 'auto_deactivated', 'Account deactivated due to plan expiry');
                 console.log('Auto-deactivated user:', user.username);
             }
-            // Reload users if admin view is open
             if (state.view === 'admin') {
                 loadAllUsers();
             }
@@ -4251,14 +4361,61 @@ async function checkAuthSession() {
             state.formEmail = state.profile.email;
             storage.set("profile", JSON.stringify(state.profile));
             subscribeToPush();
+            
+            // Setup Realtime notification listener
+            setupRealtimeNotifications();
         }
         const readNotifs = storage.get("readNotifications");
         if (readNotifs) {
             try { state.readNotifs = JSON.parse(readNotifs) || []; } catch (e) { state.readNotifs = []; }
         }
+        state.authReady = true;
     } catch (e) {
         console.warn("Auth session check:", e);
+        state.authReady = true;
     }
+}
+
+let notifChannel = null;
+function setupRealtimeNotifications() {
+    if (notifChannel) {
+        notifChannel.unsubscribe();
+        notifChannel = null;
+    }
+    if (!state.authUser) return;
+    
+    notifChannel = supabase.channel('notif-inbox')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, function(payload) {
+            const n = payload.new;
+            if (!n.target_user_id || n.target_user_id === state.authUser.id) {
+                showInAppNotificationBanner(n);
+                loadNotifications();
+            }
+        })
+        .subscribe();
+}
+
+let inAppBannerTimer = null;
+function showInAppNotificationBanner(n) {
+    const banner = document.getElementById('inapp-notif-banner');
+    if (!banner) return;
+    const titleEl = banner.querySelector('.title');
+    const bodyEl = banner.querySelector('.body');
+    if (titleEl) titleEl.textContent = n.title || 'Notification';
+    if (bodyEl) bodyEl.textContent = n.body || '';
+    banner.classList.add('show');
+    banner.dataset.notifId = n.id;
+    
+    if (inAppBannerTimer) clearTimeout(inAppBannerTimer);
+    inAppBannerTimer = setTimeout(function() {
+        banner.classList.remove('show');
+    }, 5000);
+}
+
+function dismissInAppBanner() {
+    const banner = document.getElementById('inapp-notif-banner');
+    if (banner) banner.classList.remove('show');
+    if (inAppBannerTimer) clearTimeout(inAppBannerTimer);
 }
 
 async function signUp(username, email, password) {
@@ -4309,6 +4466,7 @@ async function signUp(username, email, password) {
             state.signupPassword = "";
             state.signupConfirm = "";
             showToast("Account created! You need to be activated by admin.", "success");
+            setupRealtimeNotifications();
             render();
         }
     } catch (err) {
@@ -4376,6 +4534,7 @@ async function signIn(emailOrUsername, password) {
             state.formEmail = state.profile.email;
             storage.set("profile", JSON.stringify(state.profile));
             subscribeToPush();
+            setupRealtimeNotifications();
 
             state.showLogin = false;
             state.loginEmail = "";
@@ -4383,6 +4542,7 @@ async function signIn(emailOrUsername, password) {
             showToast("Welcome back, " + state.profile.name + " 👋", "success");
             render();
             cacheAllDataForOffline();
+            restoreSessionSnapshot();
         }
     } catch (err) {
         state.authError = err.message || "Login failed. Check your email/username and password.";
@@ -4394,6 +4554,10 @@ async function signIn(emailOrUsername, password) {
 
 async function signOut() {
     try {
+        if (notifChannel) {
+            notifChannel.unsubscribe();
+            notifChannel = null;
+        }
         await supabase.auth.signOut();
         state.authUser = null;
         state.authProfile = null;
@@ -4403,6 +4567,7 @@ async function signOut() {
         storage.set("profile", JSON.stringify(state.profile));
         state.view = "home";
         state.drawerOpen = false;
+        clearSessionSnapshot();
         showToast("Signed out.", "");
         render();
     } catch (e) {
@@ -4458,6 +4623,71 @@ async function updatePassword(newPassword) {
     }
     state.authLoading = false;
     render();
+}
+
+// ============================================================
+//  SESSION SNAPSHOT (Section 1)
+// ============================================================
+const SNAPSHOT_KEY = 'myutme_session_snapshot';
+
+function saveSessionSnapshot() {
+    try {
+        const snap = {
+            view: state.view,
+            cbtQuestions: state.cbtQuestions,
+            cbtIndex: state.cbtIndex,
+            cbtAnswers: state.cbtAnswers,
+            cbtSubjectQuestions: state.cbtSubjectQuestions,
+            cbtSubjectOrder: state.cbtSubjectOrder,
+            cbtCurrentSubject: state.cbtCurrentSubject,
+            cbtTimeLeft: state.cbtTimeLeft,
+            examQuestions: state.examQuestions,
+            examIndex: state.examIndex,
+            examAnswers: state.examAnswers,
+            mockQuestions: state.mockQuestions,
+            mockIndex: state.mockIndex,
+            mockAnswers: state.mockAnswers,
+            mockExamId: state.mockExamId,
+            mockTimeLeft: state.mockTimeLeft,
+            topicQuestions: state.topicQuestions,
+            topicIndex: state.topicIndex,
+            topicAnswers: state.topicAnswers,
+            topicTimeLeft: state.topicTimeLeft,
+            litQuestions: state.litQuestions,
+            litIndex: state.litIndex,
+            litAnswers: state.litAnswers,
+            litTimeLeft: state.litTimeLeft,
+            savedAt: Date.now(),
+        };
+        storage.set(SNAPSHOT_KEY, JSON.stringify(snap));
+    } catch (e) {}
+}
+
+function clearSessionSnapshot() {
+    storage.remove(SNAPSHOT_KEY);
+}
+
+function restoreSessionSnapshot() {
+    try {
+        const raw = storage.get(SNAPSHOT_KEY);
+        if (!raw) return false;
+        const snap = JSON.parse(raw);
+        if (!snap.savedAt || Date.now() - snap.savedAt > 6 * 60 * 60 * 1000) {
+            storage.remove(SNAPSHOT_KEY);
+            return false;
+        }
+        Object.assign(state, snap);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function firstUnansweredOrFirst(qs, answers) {
+    const unanswered = qs.find(function(idx) {
+        return answers[idx] === null || answers[idx] === undefined;
+    });
+    return unanswered !== undefined ? unanswered : qs[0];
 }
 
 // ============================================================
@@ -5587,7 +5817,20 @@ async function sendSupportMessage(text, issueKey) {
     state.supportMessages.push(inserted);
     render();
 
+    // Show typing indicator
+    const typingMsg = {
+        id: 'typing-' + Date.now(),
+        sender: 'ai',
+        message: '',
+        isTyping: true,
+        created_at: new Date().toISOString(),
+    };
+    state.supportMessages.push(typingMsg);
+    render();
+
     setTimeout(async function() {
+        // Remove typing indicator
+        state.supportMessages = state.supportMessages.filter(function(m) { return !m.isTyping; });
         const ai = generateAiSupportReply(msg, issueKey);
         const { data: aiInserted } = await supabase.from('support_messages').insert([{
             user_id: state.authUser.id,
@@ -5602,6 +5845,15 @@ async function sendSupportMessage(text, issueKey) {
             render();
         }
         if (ai.escalate) {
+            const note = {
+                id: 'escalate-' + Date.now(),
+                sender: 'ai',
+                message: '🔔 A team member has been notified and will reply here.',
+                created_at: new Date().toISOString(),
+                isSystem: true,
+            };
+            state.supportMessages.push(note);
+            render();
             supabase.from('support_messages').select('id').eq('user_id', state.authUser.id).eq('sender', 'user').then(function() {});
         }
     }, 700);
@@ -5735,14 +5987,14 @@ async function startCbt() {
     }
 
     let allQuestions = [];
-    const perSubject = state.selectedQuestionCount || 40;
+    const perSubject = settings.cbtQuestionsPerSubject || 40;
     
     for (const subject of subjects) {
         let qs = [];
         
         if (subject.id === 'eng') {
             const currentBatch = state.englishBatchTracker || 1;
-            qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id, null, state.selectedQuestionCount || 40);
+            qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id, null, perSubject);
              
             if (qs.length > 0) {
                 qs.sort(function(a, b) {
@@ -5778,7 +6030,7 @@ async function startCbt() {
             
             if (qs.length === 0 && currentBatch < 6) {
                 state.englishBatchTracker = currentBatch + 1;
-                qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id, null, state.selectedQuestionCount || 40);
+                qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id, null, perSubject);
                 
                 if (qs.length > 0) {
                     const nextBatch = state.englishBatchTracker;
@@ -5809,7 +6061,7 @@ async function startCbt() {
             }
         } else {
             qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id);
-            qs = shuffleArray(qs).slice(0, state.selectedQuestionCount || 40);
+            qs = shuffleArray(qs).slice(0, perSubject);
         }
         
         const qsWithSubject = qs.map(function(q) {
@@ -5864,6 +6116,8 @@ async function startCbt() {
             render();
         }
     }, 1000);
+    
+    saveSessionSnapshot();
 }
 async function startLiteratureCbt() {
     if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
@@ -5880,17 +6134,19 @@ async function startLiteratureCbt() {
     const litSubject = SUBJECTS.find(function(s) { return s.id === 'lhm'; });
     if (!litSubject) { state.isLoading = false; render(); return; }
     
-    const questions = await window.OfflineDB.getQuestionsOffline('NOVEL (CBT)', 'lhm');
+    const settings = await loadSettings();
+    const perBatch = settings.novelQuestionsPerSubject || 40;
+    const questions = await window.OfflineDB.getQuestionsOffline('NOVEL (CBT)', 'lhm', perBatch);
     state.isLoading = false;
     
     if (questions.length === 0) {
         showToast('No Novel questions available.', 'error');
         return;
     }
-    const qs = questions.map(function(q) {
+    const qs = shuffleArray(questions).map(function(q) {
         return Object.assign({}, q, { subject_name: 'The Lekki Headmaster' });
     });
-    state.litQuestions = shuffleArray(qs);
+    state.litQuestions = qs;
     state.litIndex = 0;
     state.litAnswers = new Array(state.litQuestions.length).fill(null);
     state.litFinished = false;
@@ -5898,7 +6154,6 @@ async function startLiteratureCbt() {
     state.litHistorySaved = false;
     state.litShowExplanation = false;
     state.litReviewMode = false;
-    const settings = await loadSettings();
     const timeLimit = settings.novelTimeLimit || 100;
     state.litTimeLeft = timeLimit * 60;
 
@@ -5928,6 +6183,8 @@ async function startLiteratureCbt() {
             render();
         }
     }, 1000);
+    
+    saveSessionSnapshot();
 }
 
 async function startExam() {
@@ -5967,9 +6224,11 @@ async function startExam() {
     state.examHistorySaved = false;
     state.examShowExplanation = false;
     state.examReviewMode = false;
+    state.examInstantResults = {};
 
     state.view = 'exam-exam';
     render();
+    saveSessionSnapshot();
 }
 
 async function startTopicPractice() {
@@ -5989,7 +6248,9 @@ async function startTopicPractice() {
     state.isLoading = true;
     render();
     
-    const questions = await window.OfflineDB.getTopicQuestionsOffline(state.topicId);
+    const settings = await loadSettings();
+    const perTopic = settings.subjectQuestionsPerSubject || 25;
+    const questions = await window.OfflineDB.getTopicQuestionsOffline(state.topicId, perTopic);
     state.isLoading = false;
 
     if (questions.length === 0) {
@@ -5998,11 +6259,11 @@ async function startTopicPractice() {
     }
 
     const s = SUBJECTS.find(function(x) { return x.id === state.topicSubject; });
-    const qs = questions.map(function(q) {
+    const qs = shuffleArray(questions).map(function(q) {
         return Object.assign({}, q, { subject_name: s.name, subject_id: state.topicSubject });
     });
 
-    
+    state.topicQuestions = qs;
     state.topicIndex = 0;
     state.topicAnswers = new Array(qs.length).fill(null);
     state.topicFinished = false;
@@ -6011,7 +6272,6 @@ async function startTopicPractice() {
     state.topicShowExplanation = false;
     state.topicReviewMode = false;
     
-    const settings = await loadSettings();
     const timeLimit = settings.topicTimeLimit || 60;
     state.topicTimeLeft = timeLimit * 60;
 
@@ -6041,6 +6301,8 @@ async function startTopicPractice() {
             render();
         }
     }, 1000);
+    
+    saveSessionSnapshot();
 }
 
 // ============================================================
@@ -6053,8 +6315,9 @@ function renderSubmitModal() {
     let subjectList = '';
     if (data.subjects) {
         data.subjects.forEach(function(s) {
+            const hasUnanswered = s.unanswered > 0;
             subjectList += (
-                '<div class="subject-summary">' +
+                '<div class="subject-summary' + (hasUnanswered ? ' has-unanswered' : '') + '">' +
                 '<span class="sname">' + esc(s.name) + '</span>' +
                 '<span class="scount">' +
                 '<span class="answered">' + s.answered + '</span> answered · ' +
@@ -6066,10 +6329,10 @@ function renderSubmitModal() {
     }
     
     return (
-        '<div class="submit-overlay">' +
-        '<div class="submit-modal">' +
-        '<h3>📝 Submit Exam?</h3>' +
-        '<p class="sub">You have ' + data.answered + ' of ' + data.total + ' questions attempted.</p>' +
+        '<div class="submit-overlay" data-action="submit-cancel">' +
+        '<div class="submit-modal" data-action="prevent-close">' +
+        '<h3>📝 Review before you submit</h3>' +
+        '<p class="sub">' + data.answered + ' of ' + data.total + ' questions attempted.</p>' +
         (subjectList ? '<div style="margin-bottom:10px">' + subjectList + '</div>' : '') +
         '<div class="btn-group">' +
         '<button class="btn btn-green" data-action="submit-confirm">Submit Anyway</button>' +
@@ -6081,34 +6344,8 @@ function renderSubmitModal() {
 }
 
 function renderAttemptModal() {
-    if (!state.showAttemptModal || !state.attemptModalData) return '';
-    
-    const data = state.attemptModalData;
-    let questionList = '';
-    data.questions.forEach(function(q) {
-        questionList += (
-            '<button class="question-status" data-action="goto-attempt-question" data-idx="' + q.idx +
-            '" data-mode="' + data.mode + '">' +
-            '<div><span class="qnum">Q' + q.number + '</span> <span class="qsubj">' + esc(q.subject) + '</span></div>' +
-            '<span class="status-badge ' + (q.answered ? 'answered' : 'unanswered') + '">' + 
-            (q.answered ? '✓ Attempted' : '✗ Unattempted') + 
-            '</span>' +
-            '</button>'
-        );
-    });
-    
-    return (
-        '<div class="attempt-overlay">' +
-        '<div class="attempt-modal">' +
-        '<h3>📋 Attempted Questions</h3>' +
-        '<p class="sub">' + data.answered + ' of ' + data.total + ' answered · tap a question to jump to it</p>' +
-        '<div style="max-height:250px;overflow-y:auto;margin-bottom:10px">' +
-        questionList +
-        '</div>' +
-        '<button class="btn btn-outline" data-action="attempt-close">Close</button>' +
-        '</div>' +
-        '</div>'
-    );
+    // REMOVED per Section 11
+    return '';
 }
 
 function renderGotoModal() {
@@ -6120,22 +6357,39 @@ function renderGotoModal() {
     const answers = data.answers || [];
     const mode = data.mode || '';
     
+    // Build subject-grouped grid if available
     let grid = '';
-    for (let i = 0; i < total; i++) {
-        const isAnswered = answers[i] !== null && answers[i] !== undefined;
-        const isCurrent = i === current;
-        const cls = 'goto-q' + 
-            (isAnswered ? ' answered' : ' unanswered') + 
-            (isCurrent ? ' current' : '');
-        grid += '<button class="' + cls + '" data-action="goto-q-select" data-idx="' + i + '" data-mode="' + mode + '">' + (i + 1) + (isAnswered ? ' ✓' : '') + '</button>';
+    if (data.bySubject && data.bySubject.length > 0) {
+        data.bySubject.forEach(function(subjGroup) {
+            grid += '<div style="font-size:9px;color:var(--muted);margin:6px 0 4px;font-weight:600">' + esc(subjGroup.subjectName) + ' (Q' + (subjGroup.startNum + 1) + '–' + (subjGroup.startNum + subjGroup.indices.length) + ')</div>';
+            grid += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:4px">';
+            subjGroup.indices.forEach(function(globalIdx, localIdx) {
+                const isAnswered = answers[globalIdx] !== null && answers[globalIdx] !== undefined;
+                const isCurrent = globalIdx === current;
+                const cls = 'goto-q' + 
+                    (isAnswered ? ' answered' : ' unanswered') + 
+                    (isCurrent ? ' current' : '');
+                grid += '<button class="' + cls + '" data-action="goto-q-select" data-idx="' + globalIdx + '" data-mode="' + mode + '">' + (localIdx + 1) + (isAnswered ? ' ✓' : '') + '</button>';
+            });
+            grid += '</div>';
+        });
+    } else {
+        for (let i = 0; i < total; i++) {
+            const isAnswered = answers[i] !== null && answers[i] !== undefined;
+            const isCurrent = i === current;
+            const cls = 'goto-q' + 
+                (isAnswered ? ' answered' : ' unanswered') + 
+                (isCurrent ? ' current' : '');
+            grid += '<button class="' + cls + '" data-action="goto-q-select" data-idx="' + i + '" data-mode="' + mode + '">' + (i + 1) + (isAnswered ? ' ✓' : '') + '</button>';
+        }
     }
     
     return (
         '<div class="goto-overlay" data-action="goto-close">' +
         '<div class="goto-modal" data-action="prevent-close">' +
-        '<h3>📋 Go to Question</h3>' +
+        '<h3>📋 Questions</h3>' +
         '<p class="sub">' + data.answered + ' of ' + total + ' answered · <span style="color:var(--green)">✓</span> attempted, <span style="color:var(--muted)">◻</span> unattempted</p>' +
-        '<div class="goto-grid">' + grid + '</div>' +
+        '<div>' + grid + '</div>' +
         '<button class="goto-close" data-action="goto-close">Close</button>' +
         '</div>' +
         '</div>'
@@ -6144,10 +6398,16 @@ function renderGotoModal() {
 
 function renderCalculator() {
     if (!state.showCalculator) return '';
+    const pos = state.calcPosition;
+    const style = (pos.x !== null && pos.y !== null) ? 'left:' + pos.x + 'px;top:' + pos.y + 'px;' : '';
     
     return (
-        '<div class="calc-overlay" data-action="calc-close">' +
-        '<div class="calc-modal" data-action="prevent-close">' +
+        '<div class="calc-overlay">' +
+        '<div class="calc-modal" style="' + style + '" data-action="prevent-close">' +
+        '<div class="calc-header" data-action="calc-drag-start">' +
+        '<span class="title">🧮 Calculator</span>' +
+        '<span class="grip">⋮⋮</span>' +
+        '</div>' +
         '<div class="calc-display">' + esc(state.calcDisplay) + '</div>' +
         '<div class="calc-grid">' +
         '<button data-action="calc-clear" class="clear">C</button>' +
@@ -6292,6 +6552,14 @@ function setView(v) {
     state.showCalculator = false;
     state.showGotoModal = false;
     state.gotoModalData = null;
+    
+    if (v === "notifications") {
+        loadNotifications();
+        // Auto-mark all as read when opening notifications
+        setTimeout(function() {
+            markAllNotificationsRead();
+        }, 300);
+    }
     if (v === "leaderboard") {
         loadLeaderboard(state.leaderboardTab);
     }
@@ -6326,9 +6594,11 @@ function setView(v) {
         state.reviseView = 'modes';
         state.reviseMode = null;
         state.reviseSubject = null;
+        state.reviseIndex = 0;
         state.weakQuestionStates = {};
         loadWeakQuestions();
     }
+    saveSessionSnapshot();
     render();
 }
 
@@ -6372,9 +6642,6 @@ function render() {
     
     if (state.showSubmitModal && state.submitModalData) {
         html += renderSubmitModal();
-    }
-    if (state.showAttemptModal && state.attemptModalData) {
-        html += renderAttemptModal();
     }
     if (state.showCalculator) {
         html += renderCalculator();
@@ -6514,9 +6781,10 @@ function renderApp() {
     }
 
     let rightContent = '';
+    const badgeLabel = unread > 9 ? '9+' : unread;
     rightContent += '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
         svg('bell', 18).replace('stroke="currentColor"', 'stroke="white"') +
-        (unread > 0 ? '<span class="dot"></span>' : '') +
+        (unread > 0 ? '<span style="position:absolute;top:-4px;right:-4px;background:#e2543a;color:#fff;border-radius:999px;font-size:9px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--topbar-bg)">' + badgeLabel + '</span>' : '') +
         '</button>';
     const needsActivation = isLoggedIn && !isUserActive() && !isAdmin();
     if (needsActivation && !state.activateIconDismissed) {
@@ -6740,31 +7008,6 @@ function renderCbtMode() {
 
     let label = isFull ? 'Start CBT Practice (' + (requiredSubjects + 1) + ' subjects)' : 'Start Subject Practice (1 subject)';
 
-    // Question count selector
-    const qCounts = [25, 30, 35, 40];
-    let qCountHtml = '<div class="q-count-selector">';
-    qCounts.forEach(function(q) {
-        qCountHtml += '<button class="q-count-btn' + (state.selectedQuestionCount === q ? ' active' : '') + '" data-action="select-q-count" data-count="' + q + '">' + q + '</button>';
-    });
-    qCountHtml += '</div>';
-
-    // Time selector
-    const timeLimit = isFull ? settings.cbtTimeLimit : settings.subjectTimeLimit;
-    const hours = Math.floor(timeLimit / 60);
-    const minutes = timeLimit % 60;
-    let timeHtml = (
-        '<div class="time-selector">' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="cbt-hours" min="0" max="6" value="' + hours + '" />' +
-        '<label>h</label>' +
-        '</div>' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="cbt-minutes" min="0" max="59" value="' + minutes + '" />' +
-        '<label>m</label>' +
-        '</div>' +
-        '</div>'
-    );
-
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
         '<div class="feature-icon" style="background:#2E6FF2">' + svg("monitor", 30) + '</div>' +
@@ -6775,10 +7018,6 @@ function renderCbtMode() {
             'JAMB CBT covers <b>' + (requiredSubjects + 1) + ' subjects</b>: English is compulsory, plus <b>' + requiredSubjects + '</b> more of your choice.' :
             'Choose <b>1 subject</b> to practice.') +
         '</div>' +
-        '<p class="section-label">Questions per subject</p>' +
-        qCountHtml +
-        '<p class="section-label">Time limit</p>' +
-        timeHtml +
         '<p class="section-label">' + (isFull ? 'Compulsory' : 'Select a subject') + '</p>' +
         (isFull ?
             '<div class="compulsory-row">' + subjectBadge(eng) + '<span style="font-size:12px;font-weight:600">' +
@@ -7006,7 +7245,7 @@ function renderCbtExam() {
             const qs = getQuestionsForSubject(sid, state.cbtSubjectQuestions);
             if (qs.length > 0) {
                 state.cbtCurrentSubject = sid;
-                state.cbtIndex = qs[0];
+                state.cbtIndex = firstUnansweredOrFirst(qs, state.cbtAnswers);
                 break;
             }
         }
@@ -7015,7 +7254,7 @@ function renderCbtExam() {
     }
     
     if (currentSubjectIndex === -1 || currentSubjectIndex >= currentSubjectQuestions.length) {
-        state.cbtIndex = currentSubjectQuestions[0] || 0;
+        state.cbtIndex = firstUnansweredOrFirst(currentSubjectQuestions, state.cbtAnswers);
         render();
         return '';
     }
@@ -7050,16 +7289,12 @@ function renderCbtExam() {
         '<div class="exam-top-bar">' +
         '<div class="left-group">' +
         (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
+            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 18) + ' Calc</button>' :
+            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 18) + ' Calc</button>'
         ) + 
         (hasPassage ? '<button class="calc-btn" style="background:var(--gold);color:var(--ink);height:28px;padding:0 8px;border-radius:6px;display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:10px;font-weight:600" data-action="show-passage" title="View Passage" aria-label="View Passage">📖 Passage</button>' : '') +
         '</div>' +
         '<div class="right-group">' +
-        '<button class="attempt-btn" data-action="show-attempted-cbt">' +
-        '📋 <span style="font-weight:600">' + answeredCount + '/' + totalQ + '</span>' +
-        '<span class="dot-indicator"></span>' +
-        '</button>' +
         '<button class="submit-btn" data-action="cbt-submit">Submit</button>' +
         '</div>' +
         '</div>' +
@@ -7073,12 +7308,14 @@ function renderCbtExam() {
         '<div class="exam-nav">' +
         '<span class="q-counter">Question ' + (currentSubjectIndex + 1) + ' of ' + totalInCurrentSubject + ' in ' + (subj ? subj.name : '') + '</span>' +
         '<div class="goto-btn-wrap">' +
-        '<button class="goto-btn" data-action="show-goto-cbt">📋 Go</button>' +
+        '<button class="goto-btn" data-action="show-goto-cbt">📋 Questions (' + answeredCount + '/' + totalQ + ')</button>' +
         '</div>' +
         '</div>' +
         '<div class="exam-body">' +
-        '<div class="card exam-question-card"><p style="font-weight:600;margin:0">' + esc(item
-            ?.text || '') + '</p></div>' +
+        '<div class="card exam-question-card">' +
+        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="cbt" title="Flag Question">⚠️</button>' +
+        '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
+        '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
         '<div class="exam-nav-buttons">' +
         (hasPrev ? '<button class="btn btn-outline" style="flex:1" data-action="cbt-goto" data-idx="' + prevIdx + '">Previous</button>' : '') +
@@ -7110,21 +7347,22 @@ function renderExamMode() {
 
     const ready = !!state.examSubject;
     const selectedSubject = SUBJECTS.find(function(s) { return s.id === state.examSubject; });
-    const settings = state.settingsCache;
-    const timeLimit = settings.examTimeLimit || 100;
-    const hours = Math.floor(timeLimit / 60);
-    const minutes = timeLimit % 60;
-
-    let timeHtml = (
-        '<div class="time-selector">' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="exam-hours" min="0" max="6" value="' + hours + '" />' +
-        '<label>h</label>' +
-        '</div>' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="exam-minutes" min="0" max="59" value="' + minutes + '" />' +
-        '<label>m</label>' +
-        '</div>' +
+    
+    // Mode toggle
+    const isStandard = state.examVariant === 'standard';
+    const isInstant = state.examVariant === 'instant';
+    let modeHtml = (
+        '<div class="cbt-mode-select">' +
+        '<button class="cbt-mode-btn' + (isStandard ? ' active' : '') + '" data-action="exam-variant" data-variant="standard">' +
+        '<span class="icon">📝</span>' +
+        '<span class="label">Standard</span>' +
+        '<span class="desc">Answer all, submit at end</span>' +
+        '</button>' +
+        '<button class="cbt-mode-btn' + (isInstant ? ' active' : '') + '" data-action="exam-variant" data-variant="instant">' +
+        '<span class="icon">⚡</span>' +
+        '<span class="label">Instant Check</span>' +
+        '<span class="desc">See right/wrong immediately</span>' +
+        '</button>' +
         '</div>'
     );
 
@@ -7132,10 +7370,11 @@ function renderExamMode() {
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
         '<div class="feature-icon" style="background:#E2543A">' + svg("clipboard", 30) + '</div>' +
         '<h2 class="title">Exam Mode</h2>' +
-        '<p class="sub">Timed, no pausing — one subject at a time</p>' +
-        '<div class="mode-note">Pick <b>one subject</b> and a <b>past year</b> (2021–2026) to sit a timed exam.</div>' +
-        '<p class="section-label">Time limit</p>' +
-        timeHtml +
+        '<p class="sub">One subject at a time</p>' +
+        modeHtml +
+        '<div class="mode-note">Pick <b>one subject</b> and a <b>past year</b> (2021–2026) to sit an exam.' + 
+        (isInstant ? ' <b>Instant Check</b> shows feedback right after each answer.' : '') +
+        '</div>' +
         '<div class="year-select-wrap">' +
         '<label class="field-label">Exam year</label>' +
         '<select id="exam-year-select" class="field">' + yearOptions + '</select>' +
@@ -7243,15 +7482,30 @@ function renderExamExam() {
     const answeredCount = state.examAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
     const settings = state.settingsCache;
     const calcEnabled = settings.calculatorEnabled !== false;
+    const isInstant = state.examVariant === 'instant';
+    const instantResult = state.examInstantResults[state.examIndex];
 
     let opts = "";
     if (item && item.options) {
         item.options.forEach(function(o, i) {
-            const chosen = state.examAnswers[state.examIndex] === i;
+            let cls = 'qa-option';
+            let disabled = false;
+            let letter = String.fromCharCode(65 + i);
+            let label = esc(o);
+            
+            if (isInstant && instantResult !== undefined) {
+                if (i === item.correct_answer) cls += ' correct';
+                else if (i === state.examAnswers[state.examIndex]) cls += ' wrong';
+                disabled = true;
+            } else {
+                const chosen = state.examAnswers[state.examIndex] === i;
+                if (chosen) cls += ' selected';
+            }
+            
             opts += (
-                '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="exam-answer" data-idx="' +
-                i + '">' +
-                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
+                '<button class="' + cls + '" data-action="exam-answer" data-idx="' + i + '"' + 
+                (disabled ? ' disabled style="cursor:default"' : '') + '>' +
+                '<span class="qa-letter">' + letter + '</span><span>' + label + '</span>' +
                 '</button>'
             );
         });
@@ -7264,28 +7518,29 @@ function renderExamExam() {
         '<div class="exam-top-bar">' +
         '<div class="left-group">' +
         (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
+            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 18) + ' Calc</button>' :
+            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 18) + ' Calc</button>'
         ) +
         '</div>' +
         '<div class="right-group">' +
-        '<button class="attempt-btn" data-action="show-attempted-exam">' +
-        '📋 <span style="font-weight:600">' + answeredCount + '/' + totalQ + '</span>' +
-        '<span class="dot-indicator"></span>' +
-        '</button>' +
         '<button class="submit-btn" data-action="exam-submit">Submit</button>' +
         '</div>' +
         '</div>' +
         '<div class="exam-nav">' +
         '<span class="q-counter">Question ' + (state.examIndex + 1) + ' of ' + totalQ + '</span>' +
         '<div class="goto-btn-wrap">' +
-        '<button class="goto-btn" data-action="show-goto-exam">📋 Go</button>' +
+        '<button class="goto-btn" data-action="show-goto-exam">📋 Questions (' + answeredCount + '/' + totalQ + ')</button>' +
         '</div>' +
         '</div>' +
         '<div class="exam-body">' +
-        '<div class="card exam-question-card"><p style="font-weight:600;margin:0">' + esc(item
-            ?.text || '') + '</p></div>' +
+        '<div class="card exam-question-card">' +
+        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="exam" title="Flag Question">⚠️</button>' +
+        '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
+        '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
+        (isInstant && instantResult !== undefined && item ? 
+            '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><p>' + esc(item.explanation || 'No explanation provided.') + '</p></div>' :
+            '') +
         '<div class="exam-nav-buttons">' +
         (state.examIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="exam-prev">Previous</button>' :
             '') +
@@ -7342,31 +7597,6 @@ function renderTopicsPicker() {
     }
 
     const ready = !!(state.topicSubject && state.topicId);
-    const settings = state.settingsCache;
-    const timeLimit = settings.topicTimeLimit || 60;
-    const hours = Math.floor(timeLimit / 60);
-    const minutes = timeLimit % 60;
-
-    let timeHtml = (
-        '<div class="time-selector">' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="topic-hours" min="0" max="6" value="' + hours + '" />' +
-        '<label>h</label>' +
-        '</div>' +
-        '<div class="time-input-group">' +
-        '<input type="number" id="topic-minutes" min="0" max="59" value="' + minutes + '" />' +
-        '<label>m</label>' +
-        '</div>' +
-        '</div>'
-    );
-
-    // Question count selector
-    const qCounts = [25, 30, 35, 40];
-    let qCountHtml = '<div class="q-count-selector">';
-    qCounts.forEach(function(q) {
-        qCountHtml += '<button class="q-count-btn' + (state.selectedQuestionCount === q ? ' active' : '') + '" data-action="select-q-count" data-count="' + q + '">' + q + '</button>';
-    });
-    qCountHtml += '</div>';
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
@@ -7374,10 +7604,6 @@ function renderTopicsPicker() {
         '<h2 class="title">Topic Practice</h2>' +
         '<p class="sub">Drill one topic at a time</p>' +
         '<div class="mode-note">Select a subject and topic to practice.</div>' +
-        '<p class="section-label">Questions per topic</p>' +
-        qCountHtml +
-        '<p class="section-label">Time limit</p>' +
-        timeHtml +
         '<p class="section-label">Select a subject</p>' +
         '<div class="subject-grid">' + subjChips + '</div>' +
         topicsHtml +
@@ -7502,15 +7728,11 @@ function renderTopicExam() {
         '<div class="exam-top-bar">' +
         '<div class="left-group">' +
         (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
+            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 18) + ' Calc</button>' :
+            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 18) + ' Calc</button>'
         ) +
         '</div>' +
         '<div class="right-group">' +
-        '<button class="attempt-btn" data-action="show-attempted-topic">' +
-        '📋 <span style="font-weight:600">' + answeredCount + '/' + totalQ + '</span>' +
-        '<span class="dot-indicator"></span>' +
-        '</button>' +
         '<button class="submit-btn" data-action="topic-submit">Submit</button>' +
         '</div>' +
         '</div>' +
@@ -7523,12 +7745,14 @@ function renderTopicExam() {
         '<div class="exam-nav">' +
         '<span class="q-counter">Question ' + (state.topicIndex + 1) + ' of ' + totalQ + '</span>' +
         '<div class="goto-btn-wrap">' +
-        '<button class="goto-btn" data-action="show-goto-topic">📋 Go</button>' +
+        '<button class="goto-btn" data-action="show-goto-topic">📋 Questions (' + answeredCount + '/' + totalQ + ')</button>' +
         '</div>' +
         '</div>' +
         '<div class="exam-body">' +
-        '<div class="card exam-question-card"><p style="font-weight:600;margin:0">' + esc(item
-            ?.text || '') + '</p></div>' +
+        '<div class="card exam-question-card">' +
+        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="topic" title="Flag Question">⚠️</button>' +
+        '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
+        '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
         '<div class="exam-nav-buttons">' +
         (state.topicIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="topic-prev">Previous</button>' :
@@ -7564,7 +7788,7 @@ function renderLitExam() {
         if (state.authUser && state.litSubmitted && !state.litHistorySaved) {
             state.litHistorySaved = true;
             weakQuestionsToSave.forEach(function(wq) {
-                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'novel');
+                saveWeakQuestion(state.authUser.id, wq.questionId, wq.subjectId, 'novel', wq.userAnswer, wq.correctAnswer);
             });
             
             const subjects = Object.keys(subjectScores);
@@ -7651,15 +7875,11 @@ function renderLitExam() {
         '<div class="exam-top-bar">' +
         '<div class="left-group">' +
         (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
+            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 18) + ' Calc</button>' :
+            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 18) + ' Calc</button>'
         ) +
         '</div>' +
         '<div class="right-group">' +
-        '<button class="attempt-btn" data-action="show-attempted-lit">' +
-        '📋 <span style="font-weight:600">' + answeredCount + '/' + totalQ + '</span>' +
-        '<span class="dot-indicator"></span>' +
-        '</button>' +
         '<button class="submit-btn" data-action="lit-submit">Submit</button>' +
         '</div>' +
         '</div>' +
@@ -7672,12 +7892,14 @@ function renderLitExam() {
         '<div class="exam-nav">' +
         '<span class="q-counter">Question ' + (state.litIndex + 1) + ' of ' + totalQ + '</span>' +
         '<div class="goto-btn-wrap">' +
-        '<button class="goto-btn" data-action="show-goto-lit">📋 Go</button>' +
+        '<button class="goto-btn" data-action="show-goto-lit">📋 Questions (' + answeredCount + '/' + totalQ + ')</button>' +
         '</div>' +
         '</div>' +
         '<div class="exam-body">' +
-        '<div class="card exam-question-card"><p style="font-weight:600;margin:0">' + esc(item
-            ?.text || '') + '</p></div>' +
+        '<div class="card exam-question-card">' +
+        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (item ? item.subject_id : '') + '" data-mode="novel" title="Flag Question">⚠️</button>' +
+        '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
+        '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
         '<div class="exam-nav-buttons">' +
         (state.litIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="lit-prev">Previous</button>' :
@@ -7794,7 +8016,7 @@ function renderTermsOfService() {
 }
 
 // ============================================================
-//  REVISE WEAK QUESTIONS
+//  REVISE WEAK QUESTIONS - Rebuilt as sequential exam flow
 // ============================================================
 async function loadWeakQuestions() {
     if (!state.authUser) {
@@ -7973,85 +8195,85 @@ function renderReviseModeQuestions() {
     });
     list.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
 
-    let html = (
-        '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
-        '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subjName) + '</h2>' +
-        '<p class="sub" style="font-size:12px">' + esc(meta.label) + ' · ' + list.length + ' missed question' + (list.length === 1 ? '' : 's') + '</p>'
-    );
-
     if (list.length === 0) {
-        html += '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">No more weak questions here. Great job!</p></div>';
-        return html;
+        return (
+            '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
+            '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subjName) + '</h2>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">No more weak questions here. Great job!</p></div>'
+        );
     }
 
-    list.forEach(function(wq) {
-        const q = wq.questions;
-        if (!q) return;
+    if (state.reviseIndex >= list.length) state.reviseIndex = 0;
+    const wq = list[state.reviseIndex];
+    const q = wq.questions;
+    if (!q) {
+        return (
+            '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Question data not found.</p></div>'
+        );
+    }
 
-        const isExpanded = state.weakQuestionStates['view_' + wq.id] || false;
-        const isReattempting = state.weakQuestionStates['reattempt_' + wq.id] || false;
-        const userAnswer = state.weakQuestionStates['answer_' + wq.id];
-        const hasResult = state.weakQuestionStates['result_' + wq.id] !== undefined;
-        const resultCorrect = state.weakQuestionStates['result_' + wq.id];
+    const isAnswered = state.weakQuestionStates['answer_' + wq.id] !== undefined;
+    const userAnswer = state.weakQuestionStates['answer_' + wq.id];
+    const resultCorrect = state.weakQuestionStates['result_' + wq.id];
 
-        html += '<div class="weak-question-item" style="margin-bottom:8px">';
-        html += '<div class="q-header">';
-        html += '<p class="q-text">' + esc(q.text) + '</p>';
-        html += '<div class="q-actions">';
-        if (!isReattempting) {
-            html += '<button class="mini-btn" style="font-size:9px" data-action="weak-toggle-view" data-wid="' + wq.id + '">' + (isExpanded ? 'Hide Answer' : 'Check Revision') + '</button>';
-            html += '<button class="mini-btn primary" style="font-size:9px" data-action="weak-toggle-reattempt" data-wid="' + wq.id + '">Reattempt</button>';
-        } else {
-            html += '<button class="mini-btn" style="font-size:9px" data-action="weak-toggle-reattempt" data-wid="' + wq.id + '">Close</button>';
+    let optsHtml = "";
+    (q.options || []).forEach(function(o, i) {
+        let cls = 'qa-option';
+        if (isAnswered) {
+            if (i === q.correct_answer) cls += ' correct';
+            else if (i === userAnswer) cls += ' wrong';
+            cls += ' disabled';
+        } else if (userAnswer === i) {
+            cls += ' selected';
         }
-        html += '<button class="mini-btn flag" style="font-size:9px" data-action="flag-weak-question" data-qid="' + wq.question_id + '" data-subject="' + subjectId + '" data-mode="' + wq.mode + '">⚠️</button>';
-        html += '<button class="mini-btn danger" style="font-size:9px" data-action="weak-remove-question" data-wid="' + wq.id + '" data-qid="' + wq.question_id + '">Remove</button>';
-        html += '</div></div>';
-
-        html += '<div class="q-meta">Attempts: ' + (wq.attempts || 1) + ' · Last missed ' + formatTimeAgo(wq.created_at) + '</div>';
-
-        if (isExpanded && !isReattempting) {
-            let optsList = '<ul class="admin-list">';
-            (q.options || []).forEach(function(o, oi) {
-                optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') + '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
-            });
-            optsList += '</ul>';
-            html += '<div class="q-options">' + optsList + '</div>';
-            if (q.explanation) {
-                html += '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + esc(q.explanation) + '</div>';
-            }
-        }
-
-        if (isReattempting) {
-            html += '<div class="reattempt-area">';
-            (q.options || []).forEach(function(o, oi) {
-                let cls = 'qa-option';
-                if (hasResult) {
-                    if (oi === q.correct_answer) cls += ' correct';
-                    else if (oi === userAnswer) cls += ' wrong';
-                    cls += ' disabled';
-                } else if (userAnswer === oi) {
-                    cls += ' selected';
-                }
-                html += '<button class="' + cls + '" ' + (hasResult ? '' :
-                    'data-action="weak-reattempt-answer" data-wid="' + wq.id + '" data-idx="' + oi + '"') + '>' +
-                    '<span class="qa-letter">' + String.fromCharCode(65 + oi) + '</span><span>' + esc(o) + '</span>' +
-                    '</button>';
-            });
-            if (hasResult) {
-                html += '<div class="explanation-box" style="margin-top:6px">' +
-                    '<span class="label">' + (resultCorrect ? '✅ Correct!' : '❌ Wrong') + '</span>' +
-                    (q.explanation ? '<p>' + esc(q.explanation) + '</p>' : '<p>No explanation provided.</p>') +
-                    '</div>';
-                html += '<button class="btn btn-green" style="margin-top:6px;padding:8px" data-action="weak-next-question" data-wid="' + wq.id + '">Next Question →</button>';
-            }
-            html += '</div>';
-        }
-
-        html += '</div>';
+        optsHtml += (
+            '<button class="' + cls + '" ' + (isAnswered ? '' :
+                'data-action="weak-reattempt-answer" data-wid="' + wq.id + '" data-idx="' + i + '"') + '>' +
+            '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
+            '</button>'
+        );
     });
 
-    return html;
+    let explanationHtml = "";
+    if (isAnswered) {
+        explanationHtml = (
+            '<div class="explanation-box" style="margin-top:6px">' +
+            '<span class="label">' + (resultCorrect ? '✅ Correct!' : '❌ Wrong') + '</span>' +
+            (q.explanation ? '<p>' + esc(q.explanation) + '</p>' : '<p>No explanation provided.</p>') +
+            '</div>'
+        );
+        // Don't write to history for revise attempts
+        // Score is handled in the click handler
+    }
+
+    const total = list.length;
+
+    return (
+        '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
+        '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subjName) + '</h2>' +
+        '<p class="sub" style="font-size:12px">' + esc(meta.label) + ' · ' + total + ' missed question' + (total === 1 ? '' : 's') + '</p>' +
+        
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+        '<span style="font-size:13px;font-weight:600">Question ' + (state.reviseIndex + 1) + ' of ' + total + '</span>' +
+        '<div style="display:flex;gap:4px">' +
+        '<button class="mini-btn flag" data-action="flag-review-question" data-qid="' + q.id + '" data-subject="' + subjectId + '" data-mode="' + mode + '" style="font-size:9px">⚠️</button>' +
+        '<button class="mini-btn danger" data-action="weak-remove-question" data-wid="' + wq.id + '" data-qid="' + q.id + '" style="font-size:9px">✕</button>' +
+        '</div>' +
+        '</div>' +
+
+        '<div class="card exam-question-card">' +
+        '<p style="font-weight:600;margin:0;font-size:16px">' + esc(q.text) + '</p>' +
+        '</div>' +
+        '<div class="exam-options-wrap">' + optsHtml + '</div>' +
+        explanationHtml +
+        
+        '<div style="display:flex;gap:6px;margin-top:12px">' +
+        (state.reviseIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="revise-prev">Previous</button>' : '') +
+        (state.reviseIndex < total - 1 ? '<button class="btn btn-green" style="flex:1" data-action="revise-next">Next</button>' : 
+            (isAnswered ? '<button class="btn btn-green" style="flex:1" data-action="revise-done">Done</button>' : '')) +
+        '</div>'
+    );
 }
 
 // ============================================================
@@ -8072,16 +8294,57 @@ function renderSupportChat() {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading chat...</p></div>';
     }
 
+    // Header
+    let headerHtml = (
+        '<div class="support-header">' +
+        '<div class="avatar-icon">' + logoSvg(36) + '</div>' +
+        '<div class="info">' +
+        '<p class="name">MyUTME Support</p>' +
+        '<p class="status"><span class="dot"></span> Online</p>' +
+        '</div>' +
+        '</div>'
+    );
+
     let bubbles = '';
     if (state.supportMessages.length === 0) {
         bubbles = '<div class="chat-empty">👋 Hi! Ask me anything about payments or activation. If I can\'t help, our team will jump in.</div>';
     } else {
+        let lastSender = '';
+        let lastTime = 0;
         state.supportMessages.forEach(function(m) {
+            if (m.isTyping) {
+                bubbles += (
+                    '<div class="typing-indicator">' +
+                    '<span>🤖</span>' +
+                    '<span class="dots"><span></span><span></span><span></span></span>' +
+                    '</div>'
+                );
+                return;
+            }
+            if (m.isSystem) {
+                bubbles += (
+                    '<div style="text-align:center;font-size:10px;color:var(--faint);padding:4px 0;width:100%">' +
+                    esc(m.message) +
+                    '</div>'
+                );
+                return;
+            }
             const isUser = m.sender === 'user';
             const senderLabel = m.sender === 'ai' ? '🤖 Assistant' : m.sender === 'admin' ? '🧑‍💼 Support Team' : '';
+            const showAvatar = (m.sender !== lastSender || (Date.now() - lastTime) > 120000);
+            lastSender = m.sender;
+            lastTime = Date.now();
+            
+            let avatarHtml = '';
+            if (!isUser && showAvatar) {
+                const cls = m.sender === 'ai' ? 'ai' : m.sender === 'admin' ? 'admin' : 'agent';
+                const label = m.sender === 'ai' ? 'AI' : m.sender === 'admin' ? 'AD' : 'SU';
+                avatarHtml = '<span class="chat-avatar ' + cls + '">' + label + '</span>';
+            }
+            
             bubbles += (
                 '<div class="chat-row ' + (isUser ? 'me' : 'them') + '">' +
-                (!isUser ? '<span class="chat-sender">' + senderLabel + '</span>' : '') +
+                (!isUser ? '<span class="chat-sender">' + avatarHtml + senderLabel + '</span>' : '') +
                 '<div class="chat-bubble ' + (isUser ? 'me' : (m.sender === 'admin' ? 'admin' : 'ai')) + '">' +
                 esc(m.message) +
                 '<span class="chat-time">' + formatTimeAgo(m.created_at) + '</span>' +
@@ -8092,22 +8355,21 @@ function renderSupportChat() {
     }
 
     let quickIssuesHtml = '';
-    if (state.supportMessages.length === 0) {
-        quickIssuesHtml = '<p class="section-label" style="margin-top:6px">What can we help with?</p><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">';
+    if (state.supportMessages.length === 0 || state.supportMessages.filter(function(m) { return m.sender === 'user'; }).length === 0) {
+        quickIssuesHtml = '<p class="section-label" style="margin-top:6px">What can we help with?</p><div style="display:flex;flex-wrap:nowrap;gap:4px;overflow-x:auto;padding-bottom:6px;margin-bottom:6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch">';
         SUPPORT_QUICK_ISSUES.forEach(function(issue) {
-            quickIssuesHtml += '<button class="mini-btn" style="font-size:9px" data-action="support-quick-issue" data-issue="' + issue.key + '">' + esc(issue.label) + '</button>';
+            quickIssuesHtml += '<button class="mini-btn" style="font-size:9px;flex:0 0 auto;scroll-snap-align:start;white-space:nowrap" data-action="support-quick-issue" data-issue="' + issue.key + '">' + esc(issue.label) + '</button>';
         });
         quickIssuesHtml += '</div>';
     }
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<h2 class="title" style="margin-bottom:2px;font-size:18px">💬 Support Chat</h2>' +
-        '<p class="sub" style="font-size:12px">Payment &amp; activation help — instant AI reply, our team follows up if needed</p>' +
+        headerHtml +
         quickIssuesHtml +
         '<div class="chat-window">' + bubbles + '</div>' +
         '<div class="chat-input-row">' +
-        '<input class="field" id="support-chat-input" placeholder="Type a message..." value="' + esc(state.supportInput || '') + '" style="font-size:13px;padding:6px 10px" />' +
+        '<textarea class="field" id="support-chat-input" placeholder="Type a message..." rows="1" style="font-size:13px;padding:6px 10px"></textarea>' +
         '<button class="btn btn-green chat-send-btn" data-action="send-support-message" style="padding:6px 12px;font-size:12px">Send</button>' +
         '</div>'
     );
@@ -8149,12 +8411,23 @@ function renderAdminSupportThread() {
     const username = state.adminSelectedSupportUsername || 'User';
 
     let bubbles = '';
+    let lastSender = '';
+    let lastTime = 0;
     state.adminSupportMessages.forEach(function(m) {
         const isAdminSide = m.sender !== 'user';
         const senderLabel = m.sender === 'ai' ? '🤖 Assistant' : m.sender === 'admin' ? '🧑‍💼 You' : esc(username);
+        const showAvatar = (m.sender !== lastSender || (Date.now() - lastTime) > 120000);
+        lastSender = m.sender;
+        lastTime = Date.now();
+        
+        let avatarHtml = '';
+        if (!isAdminSide && showAvatar) {
+            avatarHtml = '<span class="chat-avatar agent">' + (username.charAt(0) || 'U') + '</span>';
+        }
+        
         bubbles += (
             '<div class="chat-row ' + (isAdminSide ? 'me' : 'them') + '">' +
-            '<span class="chat-sender">' + senderLabel + '</span>' +
+            (!isAdminSide ? '<span class="chat-sender">' + avatarHtml + senderLabel + '</span>' : '') +
             '<div class="chat-bubble ' + (isAdminSide ? (m.sender === 'admin' ? 'me' : 'ai') : 'them') + '">' +
             esc(m.message) +
             '<span class="chat-time">' + formatTimeAgo(m.created_at) + '</span>' +
@@ -8170,7 +8443,7 @@ function renderAdminSupportThread() {
         '</div>' +
         '<div class="chat-window">' + bubbles + '</div>' +
         '<div class="chat-input-row">' +
-        '<input class="field" id="admin-support-reply-input" placeholder="Reply as support..." style="font-size:13px;padding:6px 10px" />' +
+        '<textarea class="field" id="admin-support-reply-input" placeholder="Reply as support..." rows="1" style="font-size:13px;padding:6px 10px"></textarea>' +
         '<button class="btn btn-green chat-send-btn" data-action="admin-send-support-reply" data-userid="' + userId + '" data-username="' + esc(username) + '" style="padding:6px 12px;font-size:12px">Send</button>' +
         '</div>'
     );
@@ -8194,7 +8467,7 @@ function renderHistory() {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading results...</p></div>';
     }
 
-    // Filter modes
+    // Filter modes - removed 'revise'
     const modeFilters = [
         { key: 'all', label: 'All' },
         { key: 'cbt-full', label: 'CBT Full' },
@@ -8203,7 +8476,6 @@ function renderHistory() {
         { key: 'mock', label: 'Mock' },
         { key: 'novel', label: 'Novel CBT' },
         { key: 'topic', label: 'Topic' },
-        { key: 'revise', label: 'Revise' },
     ];
 
     let filterHtml = '<div class="result-mode-tabs">';
@@ -8227,7 +8499,7 @@ function renderHistory() {
         );
     }
 
-    // Calculate stats
+    // Calculate stats - only 2 cards now
     let totalExams = filtered.length;
     let totalQuestions = 0;
     let totalCorrect = 0;
@@ -8240,14 +8512,10 @@ function renderHistory() {
     const overallPercentage = totalMaxScore > 0 ? Math.round((totalCorrect / totalMaxScore) * 100) : 0;
 
     let statsHtml = (
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">' +
         '<div class="card" style="text-align:center;padding:10px;margin:0">' +
         '<p style="font-size:20px;font-weight:700;color:var(--green);margin:0">' + totalExams + '</p>' +
         '<p style="font-size:9px;color:var(--muted);margin:2px 0 0">Exams</p>' +
-        '</div>' +
-        '<div class="card" style="text-align:center;padding:10px;margin:0">' +
-        '<p style="font-size:20px;font-weight:700;color:var(--green);margin:0">' + totalCorrect + '/' + totalQuestions + '</p>' +
-        '<p style="font-size:9px;color:var(--muted);margin:2px 0 0">Correct</p>' +
         '</div>' +
         '<div class="card" style="text-align:center;padding:10px;margin:0">' +
         '<p style="font-size:20px;font-weight:700;color:' + (overallPercentage >= 70 ? 'var(--green)' : overallPercentage >= 50 ? 'var(--gold)' : 'var(--danger)') + ';margin:0">' + overallPercentage + '%</p>' +
@@ -8277,7 +8545,6 @@ function renderHistory() {
         const modeLabel = entry.mode === 'cbt-full' ? 'CBT Full' :
                          entry.mode === 'cbt-single' ? 'CBT Single' :
                          entry.mode === 'novel' ? 'Novel CBT' :
-                         entry.mode === 'revise' ? 'Revision' :
                          entry.mode === 'mock' ? 'Mock Exam' :
                          entry.mode === 'exam' ? 'Exam' :
                          entry.mode === 'topic' ? 'Topic Practice' :
@@ -8735,7 +9002,7 @@ function renderMockExam() {
             const qs = getQuestionsForSubject(sid, state.mockSubjectQuestions);
             if (qs.length > 0) {
                 state.mockCurrentSubject = sid;
-                state.mockIndex = qs[0];
+                state.mockIndex = firstUnansweredOrFirst(qs, state.mockAnswers);
                 break;
             }
         }
@@ -8744,7 +9011,7 @@ function renderMockExam() {
     }
     
     if (currentSubjectIndex === -1 || currentSubjectIndex >= currentSubjectQuestions.length) {
-        state.mockIndex = currentSubjectQuestions[0] || 0;
+        state.mockIndex = firstUnansweredOrFirst(currentSubjectQuestions, state.mockAnswers);
         render();
         return '';
     }
@@ -8779,8 +9046,8 @@ function renderMockExam() {
         '<div class="exam-top-bar">' +
         '<div class="left-group">' +
         (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 16) + '</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 16) + '</button>'
+            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calculator", 18) + ' Calc</button>' :
+            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calculator", 18) + ' Calc</button>'
         ) +
         (hasPassage ? 
             '<button class="calc-btn" style="background:var(--gold);color:var(--ink);height:28px;padding:0 8px;border-radius:6px;display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:10px;font-weight:600" data-action="show-mock-passage" title="View Passage" aria-label="View Passage">📖 Passage</button>' : 
@@ -8788,10 +9055,6 @@ function renderMockExam() {
         ) +
         '</div>' +
         '<div class="right-group">' +
-        '<button class="attempt-btn" data-action="show-attempted-mock">' +
-        '📋 <span style="font-weight:600">' + answeredCount + '/' + totalQ + '</span>' +
-        '<span class="dot-indicator"></span>' +
-        '</button>' +
         '<button class="submit-btn" data-action="mock-submit">Submit</button>' +
         '</div>' +
         '</div>' +
@@ -8805,12 +9068,14 @@ function renderMockExam() {
         '<div class="exam-nav">' +
         '<span class="q-counter">Question ' + (currentSubjectIndex + 1) + ' of ' + totalInCurrentSubject + ' in ' + (subj ? subj.name : '') + '</span>' +
         '<div class="goto-btn-wrap">' +
-        '<button class="goto-btn" data-action="show-goto-mock">📋 Go</button>' +
+        '<button class="goto-btn" data-action="show-goto-mock">📋 Questions (' + answeredCount + '/' + totalQ + ')</button>' +
         '</div>' +
         '</div>' +
         '<div class="exam-body">' +
-        '<div class="card exam-question-card"><p style="font-weight:600;margin:0">' + esc(item
-            ?.text || '') + '</p></div>' +
+        '<div class="card exam-question-card">' +
+        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="mock" title="Flag Question">⚠️</button>' +
+        '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
+        '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
         '<div class="exam-nav-buttons">' +
         (hasPrev ? '<button class="btn btn-outline" style="flex:1" data-action="mock-goto" data-idx="' + prevIdx + '">Previous</button>' : '') +
@@ -9013,36 +9278,49 @@ function renderNotifications() {
         );
     }
 
-    let items = "";
-    if (state.notifs.length === 0) {
-        items = '<p style="text-align:center;color:var(--faint);padding:24px 0;font-size:13px">No notifications yet.</p>';
+    // Tabs: Public and Private
+    let tabHtml = (
+        '<div class="notif-tabs">' +
+        '<button class="notif-tab' + (state.notifTab === 'public' ? ' active' : '') + '" data-action="notif-tab" data-tab="public">Public</button>' +
+        '<button class="notif-tab' + (state.notifTab === 'private' ? ' active' : '') + '" data-action="notif-tab" data-tab="private">Private</button>' +
+        '</div>'
+    );
+
+    let filtered = state.notifsList;
+    if (state.notifTab === 'public') {
+        filtered = filtered.filter(function(n) { return !n.target_user_id; });
     } else {
-        state.notifs.forEach(function(n) {
+        filtered = filtered.filter(function(n) { return n.target_user_id === state.authUser?.id; });
+    }
+
+    let items = "";
+    if (filtered.length === 0) {
+        items = '<p style="text-align:center;color:var(--faint);padding:24px 0;font-size:13px">No notifications in this tab.</p>';
+    } else {
+        filtered.forEach(function(n) {
             let fileHtml = '';
             if (n.image_url) {
                 fileHtml = renderFileActions(n.image_url, 'notification-image', 'image/');
             }
+            const isUnread = state.readNotifs.indexOf(n.id) === -1;
             items += (
-                '<div class="notif-item' + (n.unread ? ' unread' : '') + '" data-action="mark-notif-read" data-id="' +
+                '<div class="notif-item' + (isUnread ? ' unread' : '') + '" data-action="mark-notif-read" data-id="' +
                 n.id + '">' +
-                '<div class="row"><p class="t" style="font-size:13px">' + esc(n.title) + '</p>' + (n.unread ?
+                '<div class="row"><p class="t" style="font-size:13px">' + esc(n.title) + '</p>' + (isUnread ?
                     '<span class="ball"></span>' : '') + '</div>' +
                 '<p class="b" style="font-size:11px">' + esc(n.body) + '</p>' +
                 (fileHtml ? '<div style="margin-top:6px">' + fileHtml + '</div>' : '') +
-                '<p class="time" style="font-size:9px">' + esc(n.time) + '</p>' +
+                '<p class="time" style="font-size:9px">' + esc(formatTimeAgo(n.created_at)) + '</p>' +
                 '</div>'
             );
         });
     }
 
-    const hasUnread = state.notifs.some(function(n) { return n.unread; });
-
     return (
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">' +
         '<h2 class="title" style="margin:0;font-size:18px">Notifications</h2>' +
-        (hasUnread ? '<button data-action="mark-all-notifs-read" style="font-size:11px;color:var(--muted);text-decoration:underline">Mark all read</button>' :
-            '') +
         '</div>' +
+        tabHtml +
         items
     );
 }
@@ -9896,18 +10174,12 @@ function renderAdminSettings() {
         '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.subjectTimeLimit || 25) + ' minutes</p>' +
         '</div>' +
         
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">📋 Exam Mode</p>' +
-        '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-exam-hours" min="0" max="6" value="' + examHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-exam-minutes" min="0" max="59" value="' + examMinutes + '" style="width:45px" /><label>m</label></div>' +
-        '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.examTimeLimit || 100) + ' minutes</p>' +
-        '</div>' +
+        // EXAM MODE TIME REMOVED per Section 9a
         
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
         '<p style="font-weight:600;font-size:12px;margin:0 0 6px">📖 Novel (CBT)</p>' +
+        '<label class="field-label">Questions per subject</label>' +
+        '<input class="field" id="admin-novel-questions" type="number" value="' + (s.novelQuestionsPerSubject || 40) + '" style="margin-bottom:6px;font-size:13px" />' +
         '<label class="field-label">Time limit</label>' +
         '<div class="time-selector" style="margin:2px 0 4px">' +
         '<div class="time-input-group"><input type="number" id="admin-novel-hours" min="0" max="6" value="' + novelHours + '" style="width:45px" /><label>h</label></div>' +
@@ -10420,15 +10692,14 @@ function renderDrawer(unread, isLoggedIn) {
     let navItems = (
         '<button class="drawer-item' + (state.view === "home" ? ' active' : '') +
         '" data-action="set-view" data-view="home">' +
-        '<span class="left">' + svg("bookopen", 14) + ' Home</span>' +
+        '<span class="left">' + svg("home", 14) + ' Home</span>' +
         '</button>'
     );
 
     const NAV = [
-        { key: "notifications", label: "Notifications", icon: "bell" },
         { key: "profile", label: "Profile", icon: "user" },
         { key: "leaderboard", label: "Leaderboard", icon: "trophy" },
-        { key: "history", label: "Result Analysis", icon: "clock" },
+        { key: "history", label: "Result Analysis", icon: "chart" },
         { key: "activate", label: "Activate", icon: "zap" },
         { key: "support", label: "Support Chat", icon: "chat" },
     ];
@@ -10437,7 +10708,6 @@ function renderDrawer(unread, isLoggedIn) {
             '<button class="drawer-item' + (state.view === n.key ? ' active' : '') +
             '" data-action="set-view" data-view="' + n.key + '">' +
             '<span class="left">' + svg(n.icon, 14) + ' ' + esc(n.label) + '</span>' +
-            (n.key === "notifications" && unread > 0 ? '<span class="badge">' + unread + '</span>' : '') +
             '</button>'
         );
     });
@@ -10621,10 +10891,20 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // Question count selection
-    if (action === 'select-q-count') {
-        const count = parseInt(el.getAttribute('data-count'), 10);
-        state.selectedQuestionCount = count;
+    if (action === 'dismiss-inapp-banner') {
+        dismissInAppBanner();
+        return;
+    }
+
+    if (action === 'dismiss-activate-icon') {
+        state.activateIconDismissed = true;
+        render();
+        return;
+    }
+
+    // NOTIFICATION TAB
+    if (action === 'notif-tab') {
+        state.notifTab = el.getAttribute('data-tab');
         render();
         return;
     }
@@ -10639,154 +10919,27 @@ document.addEventListener('click', function(e) {
     if (action === 'submit-cancel') {
         if (state.submitModalData && state.submitModalData.onCancel) {
             state.submitModalData.onCancel();
+        } else {
+            state.showSubmitModal = false;
+            state.submitModalData = null;
+            render();
         }
         return;
     }
 
-    // ATTEMPT MODAL
-    if (action === 'show-attempted-cbt') {
-        const questions = state.cbtQuestions.map(function(q, i) {
-            const ans = state.cbtAnswers[i];
-            const isAnswered = ans !== null && ans !== undefined;
-            const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
-            return {
-                idx: i,
-                number: i + 1,
-                subject: subj ? subj.name : q.subject_id,
-                answered: isAnswered,
-            };
-        });
-        state.showAttemptModal = true;
-        state.attemptModalData = {
-            mode: 'cbt',
-            total: state.cbtQuestions.length,
-            answered: state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
-            questions: questions,
-        };
-        render();
-        return;
-    }
-    if (action === 'show-attempted-exam') {
-        const questions = state.examQuestions.map(function(q, i) {
-            const ans = state.examAnswers[i];
-            const isAnswered = ans !== null && ans !== undefined;
-            const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
-            return {
-                idx: i,
-                number: i + 1,
-                subject: subj ? subj.name : q.subject_id,
-                answered: isAnswered,
-            };
-        });
-        state.showAttemptModal = true;
-        state.attemptModalData = {
-            mode: 'exam',
-            total: state.examQuestions.length,
-            answered: state.examAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
-            questions: questions,
-        };
-        render();
-        return;
-    }
-    if (action === 'show-attempted-topic') {
-        const questions = state.topicQuestions.map(function(q, i) {
-            const ans = state.topicAnswers[i];
-            const isAnswered = ans !== null && ans !== undefined;
-            const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
-            return {
-                idx: i,
-                number: i + 1,
-                subject: subj ? subj.name : q.subject_id,
-                answered: isAnswered,
-            };
-        });
-        state.showAttemptModal = true;
-        state.attemptModalData = {
-            mode: 'topic',
-            total: state.topicQuestions.length,
-            answered: state.topicAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
-            questions: questions,
-        };
-        render();
-        return;
-    }
-    if (action === 'show-attempted-lit') {
-        const questions = state.litQuestions.map(function(q, i) {
-            const ans = state.litAnswers[i];
-            const isAnswered = ans !== null && ans !== undefined;
-            const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
-            return {
-                idx: i,
-                number: i + 1,
-                subject: subj ? subj.name : q.subject_id,
-                answered: isAnswered,
-            };
-        });
-        state.showAttemptModal = true;
-        state.attemptModalData = {
-            mode: 'lit',
-            total: state.litQuestions.length,
-            answered: state.litAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
-            questions: questions,
-        };
-        render();
-        return;
-    }
-    if (action === 'show-attempted-mock') {
-        const questions = state.mockQuestions.map(function(q, i) {
-            const ans = state.mockAnswers[i];
-            const isAnswered = ans !== null && ans !== undefined;
-            const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
-            return {
-                idx: i,
-                number: i + 1,
-                subject: subj ? subj.name : q.subject_id,
-                answered: isAnswered,
-            };
-        });
-        state.showAttemptModal = true;
-        state.attemptModalData = {
-            mode: 'mock',
-            total: state.mockQuestions.length,
-            answered: state.mockAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
-            questions: questions,
-        };
-        render();
-        return;
-    }
-    if (action === 'attempt-close') {
-        state.showAttemptModal = false;
-        state.attemptModalData = null;
-        render();
-        return;
-    }
-
-    if (action === 'goto-attempt-question') {
-        const idx = parseInt(el.getAttribute('data-idx'), 10);
-        const mode = el.getAttribute('data-mode');
-        state.showAttemptModal = false;
-        state.attemptModalData = null;
-        if (mode === 'cbt') {
-            state.cbtIndex = idx;
-            const q = state.cbtQuestions[idx];
-            if (q) state.cbtCurrentSubject = q.subject_id;
-        } else if (mode === 'exam') {
-            state.examIndex = idx;
-        } else if (mode === 'topic') {
-            state.topicIndex = idx;
-        } else if (mode === 'lit') {
-            state.litIndex = idx;
-        } else if (mode === 'mock') {
-            state.mockIndex = idx;
-            const q = state.mockQuestions[idx];
-            if (q) state.mockCurrentSubject = q.subject_id;
-        }
-        render();
-        return;
-    }
-
-    // GOTO QUESTION
+    // GOTO QUESTION (replaces attempt modal)
     if (action === 'show-goto-cbt') {
+        const bySubject = state.cbtSubjectOrder.map(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            const indices = state.cbtSubjectQuestions[sid] || [];
+            const startNum = Math.min(...indices);
+            return {
+                subjectName: subj ? subj.name : sid,
+                subjectCode: subj ? subj.code : sid,
+                indices: indices,
+                startNum: startNum,
+            };
+        });
         state.showGotoModal = true;
         state.gotoModalData = {
             mode: 'cbt',
@@ -10794,6 +10947,7 @@ document.addEventListener('click', function(e) {
             current: state.cbtIndex,
             answers: state.cbtAnswers,
             answered: state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
+            bySubject: bySubject.length > 1 ? bySubject : null,
         };
         render();
         return;
@@ -10806,6 +10960,7 @@ document.addEventListener('click', function(e) {
             current: state.examIndex,
             answers: state.examAnswers,
             answered: state.examAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
+            bySubject: null,
         };
         render();
         return;
@@ -10818,6 +10973,7 @@ document.addEventListener('click', function(e) {
             current: state.topicIndex,
             answers: state.topicAnswers,
             answered: state.topicAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
+            bySubject: null,
         };
         render();
         return;
@@ -10830,11 +10986,23 @@ document.addEventListener('click', function(e) {
             current: state.litIndex,
             answers: state.litAnswers,
             answered: state.litAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
+            bySubject: null,
         };
         render();
         return;
     }
     if (action === 'show-goto-mock') {
+        const bySubject = state.mockSubjectOrder.map(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            const indices = state.mockSubjectQuestions[sid] || [];
+            const startNum = Math.min(...indices);
+            return {
+                subjectName: subj ? subj.name : sid,
+                subjectCode: subj ? subj.code : sid,
+                indices: indices,
+                startNum: startNum,
+            };
+        });
         state.showGotoModal = true;
         state.gotoModalData = {
             mode: 'mock',
@@ -10842,6 +11010,7 @@ document.addEventListener('click', function(e) {
             current: state.mockIndex,
             answers: state.mockAnswers,
             answered: state.mockAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
+            bySubject: bySubject.length > 1 ? bySubject : null,
         };
         render();
         return;
@@ -10885,6 +11054,9 @@ document.addEventListener('click', function(e) {
                 state.calcDisplay = "0";
                 state.calcExpression = "";
                 state.calcJustEvaluated = false;
+                if (state.calcPosition.x === null || state.calcPosition.y === null) {
+                    state.calcPosition = { x: null, y: null };
+                }
             }
             render();
         }
@@ -10893,6 +11065,39 @@ document.addEventListener('click', function(e) {
     if (action === 'calc-close') {
         state.showCalculator = false;
         render();
+        return;
+    }
+    
+    // Calculator drag
+    if (action === 'calc-drag-start') {
+        const modal = el.closest('.calc-modal');
+        if (!modal) return;
+        const rect = modal.getBoundingClientRect();
+        const startX = rect.left;
+        const startY = rect.top;
+        const offsetX = rect.width / 2;
+        const offsetY = 20;
+        
+        function onMove(ev) {
+            const x = (ev.clientX || ev.touches?.[0]?.clientX || 0) - offsetX;
+            const y = (ev.clientY || ev.touches?.[0]?.clientY || 0) - offsetY;
+            const clampedX = Math.max(0, Math.min(window.innerWidth - rect.width, x));
+            const clampedY = Math.max(0, Math.min(window.innerHeight - rect.height - 20, y));
+            state.calcPosition = { x: clampedX, y: clampedY };
+            modal.style.left = clampedX + 'px';
+            modal.style.top = clampedY + 'px';
+            render();
+        }
+        function onEnd() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend', onEnd);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+        document.addEventListener('touchmove', onMove, { passive: true });
+        document.addEventListener('touchend', onEnd, { passive: true });
         return;
     }
     
@@ -10962,12 +11167,6 @@ document.addEventListener('click', function(e) {
     }
 
     // AUTH
-    if (action === 'dismiss-activate-icon') {
-        state.activateIconDismissed = true;
-        render();
-        return;
-    }
-
     if (action === 'show-login') {
         state.showLogin = true;
         state.showSignup = false;
@@ -11039,22 +11238,17 @@ document.addEventListener('click', function(e) {
         state.signupEmail = email;
         state.signupPassword = password;
         state.signupConfirm = confirm;
-        if (!username) { state.authError = 'Please choose a username.';
-            render(); return; }
-        if (!email) { state.authError = 'Please enter your email address.';
-            render(); return; }
-        if (password.length < 6) { state.authError = 'Password must be at least 6 characters.';
-            render(); return; }
-        if (password !== confirm) { state.authError = 'Passwords do not match.';
-            render(); return; }
+        if (!username) { state.authError = 'Please choose a username.'; render(); return; }
+        if (!email) { state.authError = 'Please enter your email address.'; render(); return; }
+        if (password.length < 6) { state.authError = 'Password must be at least 6 characters.'; render(); return; }
+        if (password !== confirm) { state.authError = 'Passwords do not match.'; render(); return; }
         signUp(username, email, password);
         return;
     }
     if (action === 'do-reset') {
         const email = document.getElementById('reset-email')?.value?.trim() || '';
         state.resetEmail = email;
-        if (!email) { state.resetError = 'Please enter your email address.';
-            render(); return; }
+        if (!email) { state.resetError = 'Please enter your email address.'; render(); return; }
         sendPasswordReset(email);
         return;
     }
@@ -11064,10 +11258,8 @@ document.addEventListener('click', function(e) {
         state.resetPassword = password;
         state.resetConfirm = confirm;
         
-        if (password.length < 6) { state.resetError = 'Password must be at least 6 characters.';
-            render(); return; }
-        if (password !== confirm) { state.resetError = 'Passwords do not match.';
-            render(); return; }
+        if (password.length < 6) { state.resetError = 'Password must be at least 6 characters.'; render(); return; }
+        if (password !== confirm) { state.resetError = 'Passwords do not match.'; render(); return; }
         
         updatePassword(password);
         return;
@@ -11251,20 +11443,6 @@ document.addEventListener('click', function(e) {
 
     // START CBT
     if (action === 'start-cbt') {
-        // Get hours and minutes from inputs
-        const hoursInput = document.getElementById('cbt-hours');
-        const minutesInput = document.getElementById('cbt-minutes');
-        if (hoursInput && minutesInput) {
-            const h = parseInt(hoursInput.value) || 0;
-            const m = parseInt(minutesInput.value) || 0;
-            const totalMinutes = h * 60 + m;
-            const isFull = state.cbtMode === 'full';
-            if (isFull) {
-                state.settingsCache.cbtTimeLimit = totalMinutes || 1;
-            } else {
-                state.settingsCache.subjectTimeLimit = totalMinutes || 1;
-            }
-        }
         startCbt();
         return;
     }
@@ -11278,6 +11456,7 @@ document.addEventListener('click', function(e) {
     if (action === 'cbt-answer') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         state.cbtAnswers[state.cbtIndex] = idx;
+        saveSessionSnapshot();
         render();
         return;
     }
@@ -11288,6 +11467,7 @@ document.addEventListener('click', function(e) {
             state.cbtIndex = idx;
             const q = state.cbtQuestions[idx];
             if (q) state.cbtCurrentSubject = q.subject_id;
+            saveSessionSnapshot();
             render();
         }
         return;
@@ -11298,7 +11478,8 @@ document.addEventListener('click', function(e) {
         const qs = getQuestionsForSubject(sid, state.cbtSubjectQuestions);
         if (qs.length > 0) {
             state.cbtCurrentSubject = sid;
-            state.cbtIndex = qs[0];
+            state.cbtIndex = firstUnansweredOrFirst(qs, state.cbtAnswers);
+            saveSessionSnapshot();
             render();
         }
         return;
@@ -11370,6 +11551,7 @@ document.addEventListener('click', function(e) {
                 state.passageQuestionIds = [];
                 if (state.cbtTimer) { clearInterval(state.cbtTimer);
                     state.cbtTimer = null; }
+                clearSessionSnapshot();
                 render();
             },
             onCancel: function() {
@@ -11399,6 +11581,7 @@ document.addEventListener('click', function(e) {
         state.hasPassage = false;
         state.passageRead = false;
         state.view = 'home';
+        clearSessionSnapshot();
         render();
         return;
     }
@@ -11419,6 +11602,7 @@ document.addEventListener('click', function(e) {
                 if (q) state.cbtCurrentSubject = q.subject_id;
             }
         }
+        saveSessionSnapshot();
         render();
         return;
     }
@@ -11435,6 +11619,12 @@ document.addEventListener('click', function(e) {
     }
 
     // EXAM MODE
+    if (action === 'exam-variant') {
+        state.examVariant = el.getAttribute('data-variant');
+        render();
+        return;
+    }
+
     if (action === 'select-exam-subject') {
         const id = el.getAttribute('data-subject');
         state.examSubject = state.examSubject === id ? null : id;
@@ -11443,13 +11633,6 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'start-exam') {
-        const hoursInput = document.getElementById('exam-hours');
-        const minutesInput = document.getElementById('exam-minutes');
-        if (hoursInput && minutesInput) {
-            const h = parseInt(hoursInput.value) || 0;
-            const m = parseInt(minutesInput.value) || 0;
-            state.settingsCache.examTimeLimit = h * 60 + m || 1;
-        }
         startExam();
         return;
     }
@@ -11457,6 +11640,18 @@ document.addEventListener('click', function(e) {
     if (action === 'exam-answer') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         state.examAnswers[state.examIndex] = idx;
+        
+        if (state.examVariant === 'instant') {
+            const item = state.examQuestions[state.examIndex];
+            if (item) {
+                const isCorrect = idx === item.correct_answer;
+                state.examInstantResults[state.examIndex] = isCorrect;
+                if (!isCorrect) {
+                    saveWeakQuestion(state.authUser?.id, item.id, item.subject_id, 'exam', idx, item.correct_answer);
+                }
+            }
+        }
+        saveSessionSnapshot();
         render();
         return;
     }
@@ -11464,6 +11659,7 @@ document.addEventListener('click', function(e) {
     if (action === 'exam-next') {
         if (state.examIndex < state.examQuestions.length - 1) {
             state.examIndex++;
+            saveSessionSnapshot();
             render();
         }
         return;
@@ -11472,6 +11668,7 @@ document.addEventListener('click', function(e) {
     if (action === 'exam-prev') {
         if (state.examIndex > 0) {
             state.examIndex--;
+            saveSessionSnapshot();
             render();
         }
         return;
@@ -11510,6 +11707,7 @@ document.addEventListener('click', function(e) {
                 state.submitModalData = null;
                 state.examSubmitted = true;
                 state.examFinished = true;
+                clearSessionSnapshot();
                 render();
             },
             onCancel: function() {
@@ -11529,7 +11727,9 @@ document.addEventListener('click', function(e) {
         state.examFinished = false;
         state.examSubmitted = false;
         state.examHistorySaved = false;
+        state.examInstantResults = {};
         state.view = 'home';
+        clearSessionSnapshot();
         render();
         return;
     }
@@ -11686,13 +11886,6 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'start-topic-practice') {
-        const hoursInput = document.getElementById('topic-hours');
-        const minutesInput = document.getElementById('topic-minutes');
-        if (hoursInput && minutesInput) {
-            const h = parseInt(hoursInput.value) || 0;
-            const m = parseInt(minutesInput.value) || 0;
-            state.settingsCache.topicTimeLimit = h * 60 + m || 1;
-        }
         startTopicPractice();
         return;
     }
@@ -11700,6 +11893,7 @@ document.addEventListener('click', function(e) {
     if (action === 'topic-answer') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         state.topicAnswers[state.topicIndex] = idx;
+        saveSessionSnapshot();
         render();
         return;
     }
@@ -11707,6 +11901,7 @@ document.addEventListener('click', function(e) {
     if (action === 'topic-next') {
         if (state.topicIndex < state.topicQuestions.length - 1) {
             state.topicIndex++;
+            saveSessionSnapshot();
             render();
         }
         return;
@@ -11715,6 +11910,7 @@ document.addEventListener('click', function(e) {
     if (action === 'topic-prev') {
         if (state.topicIndex > 0) {
             state.topicIndex--;
+            saveSessionSnapshot();
             render();
         }
         return;
@@ -11755,6 +11951,7 @@ document.addEventListener('click', function(e) {
                 state.topicFinished = true;
                 if (state.topicTimer) { clearInterval(state.topicTimer);
                     state.topicTimer = null; }
+                clearSessionSnapshot();
                 render();
             },
             onCancel: function() {
@@ -11777,6 +11974,7 @@ document.addEventListener('click', function(e) {
         state.topicSubmitted = false;
         state.topicHistorySaved = false;
         state.view = 'home';
+        clearSessionSnapshot();
         render();
         return;
     }
@@ -11791,6 +11989,7 @@ document.addEventListener('click', function(e) {
     if (action === 'lit-answer') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         state.litAnswers[state.litIndex] = idx;
+        saveSessionSnapshot();
         render();
         return;
     }
@@ -11798,6 +11997,7 @@ document.addEventListener('click', function(e) {
     if (action === 'lit-next') {
         if (state.litIndex < state.litQuestions.length - 1) {
             state.litIndex++;
+            saveSessionSnapshot();
             render();
         }
         return;
@@ -11806,6 +12006,7 @@ document.addEventListener('click', function(e) {
     if (action === 'lit-prev') {
         if (state.litIndex > 0) {
             state.litIndex--;
+            saveSessionSnapshot();
             render();
         }
         return;
@@ -11846,6 +12047,7 @@ document.addEventListener('click', function(e) {
                 state.litFinished = true;
                 if (state.litTimer) { clearInterval(state.litTimer);
                     state.litTimer = null; }
+                clearSessionSnapshot();
                 render();
             },
             onCancel: function() {
@@ -11868,6 +12070,7 @@ document.addEventListener('click', function(e) {
         state.litSubmitted = false;
         state.litHistorySaved = false;
         state.view = 'home';
+        clearSessionSnapshot();
         render();
         return;
     }
@@ -11890,11 +12093,6 @@ document.addEventListener('click', function(e) {
     if (action === 'mark-notif-read') {
         const id = el.getAttribute('data-id');
         if (id) markNotificationRead(id);
-        return;
-    }
-
-    if (action === 'mark-all-notifs-read') {
-        markAllNotificationsRead();
         return;
     }
 
@@ -11942,6 +12140,7 @@ document.addEventListener('click', function(e) {
     if (action === 'mock-answer') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         state.mockAnswers[state.mockIndex] = idx;
+        saveSessionSnapshot();
         render();
         return;
     }
@@ -11952,6 +12151,7 @@ document.addEventListener('click', function(e) {
             state.mockIndex = idx;
             const q = state.mockQuestions[idx];
             if (q) state.mockCurrentSubject = q.subject_id;
+            saveSessionSnapshot();
             render();
         }
         return;
@@ -11962,7 +12162,8 @@ document.addEventListener('click', function(e) {
         const qs = getQuestionsForSubject(sid, state.mockSubjectQuestions);
         if (qs.length > 0) {
             state.mockCurrentSubject = sid;
-            state.mockIndex = qs[0];
+            state.mockIndex = firstUnansweredOrFirst(qs, state.mockAnswers);
+            saveSessionSnapshot();
             render();
         }
         return;
@@ -11975,6 +12176,7 @@ document.addEventListener('click', function(e) {
     
     if (action === 'mock-passage-done') {
         state.engMockPassageRead = true;
+        saveSessionSnapshot();
         render();
         return;
     }
@@ -12003,6 +12205,7 @@ document.addEventListener('click', function(e) {
         state.engMockPassageRead = false;
         state.engMockPassageId = null;
         state.view = 'home';
+        clearSessionSnapshot();
         render();
         return;
     }
@@ -12529,10 +12732,9 @@ document.addEventListener('click', function(e) {
         const subjM = parseInt(document.getElementById('admin-subject-minutes')?.value || 0);
         const subjTime = subjH * 60 + subjM;
         
-        const examH = parseInt(document.getElementById('admin-exam-hours')?.value || 0);
-        const examM = parseInt(document.getElementById('admin-exam-minutes')?.value || 0);
-        const examTime = examH * 60 + examM;
+        // Exam time REMOVED
         
+        const novelQs = parseInt(document.getElementById('admin-novel-questions')?.value || 40);
         const novelH = parseInt(document.getElementById('admin-novel-hours')?.value || 0);
         const novelM = parseInt(document.getElementById('admin-novel-minutes')?.value || 0);
         const novelTime = novelH * 60 + novelM;
@@ -12565,16 +12767,16 @@ document.addEventListener('click', function(e) {
         state.admin.calculatorEnabled = calcEnabled;
         state.admin.cbtSubjectCount = cbtSubjectCount;
         state.admin.mockSubjectCount = mockSubjectCount;
-        state.admin.examTimeLimit = Math.max(1, examTime);
+        state.admin.examTimeLimit = 0; // removed
         state.admin.novelTimeLimit = Math.max(1, novelTime);
+        state.admin.novelQuestionsPerSubject = Math.max(1, novelQs);
         state.admin.topicTimeLimit = Math.max(1, topicTime);
         state.admin.reviseTimeLimit = Math.max(1, reviseTime);
 
         const updates = [
             { setting_key: 'cbt_settings', setting_value: { questions_per_subject: cbtQs, time_limit_minutes: Math.max(1, cbtTime), subject_count: cbtSubjectCount } },
             { setting_key: 'subject_settings', setting_value: { questions_per_subject: subjQs, time_limit_minutes: Math.max(1, subjTime) } },
-            { setting_key: 'exam_settings', setting_value: { time_limit_minutes: Math.max(1, examTime) } },
-            { setting_key: 'novel_settings', setting_value: { time_limit_minutes: Math.max(1, novelTime) } },
+            { setting_key: 'novel_settings', setting_value: { questions_per_subject: Math.max(1, novelQs), time_limit_minutes: Math.max(1, novelTime) } },
             { setting_key: 'topic_settings', setting_value: { questions_per_subject: topicQs, time_limit_minutes: Math.max(1, topicTime) } },
             { setting_key: 'revise_settings', setting_value: { time_limit_minutes: Math.max(1, reviseTime) } },
             { setting_key: 'mock_settings', setting_value: { questions_per_subject: mockQs, time_limit_minutes: Math.max(1, mockTime), subject_count: mockSubjectCount } },
@@ -12594,8 +12796,9 @@ document.addEventListener('click', function(e) {
                 mockQuestionsPerSubject: mockQs,
                 mockTimeLimit: Math.max(1, mockTime),
                 calculatorEnabled: calcEnabled,
-                examTimeLimit: Math.max(1, examTime),
+                examTimeLimit: 0,
                 novelTimeLimit: Math.max(1, novelTime),
+                novelQuestionsPerSubject: Math.max(1, novelQs),
                 topicTimeLimit: Math.max(1, topicTime),
                 reviseTimeLimit: Math.max(1, reviseTime),
                 cbtSubjectCount: cbtSubjectCount,
@@ -13029,7 +13232,6 @@ document.addEventListener('click', function(e) {
         const modeLabel = entry.mode === 'cbt-full' ? 'CBT Full' :
                          entry.mode === 'cbt-single' ? 'CBT Single' :
                          entry.mode === 'novel' ? 'Novel CBT' :
-                         entry.mode === 'revise' ? 'Revision' :
                          entry.mode === 'mock' ? 'Mock Exam' :
                          entry.mode === 'exam' ? 'Exam' :
                          entry.mode === 'topic' ? 'Topic Practice' :
@@ -13119,7 +13321,6 @@ document.addEventListener('click', function(e) {
         const modeLabel = entry.mode === 'cbt-full' ? 'CBT Full' :
                          entry.mode === 'cbt-single' ? 'CBT Single' :
                          entry.mode === 'novel' ? 'Novel CBT' :
-                         entry.mode === 'revise' ? 'Revision' :
                          entry.mode === 'mock' ? 'Mock Exam' :
                          entry.mode === 'exam' ? 'Exam' :
                          entry.mode === 'topic' ? 'Topic Practice' :
@@ -13152,16 +13353,18 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // REVISE WEAK QUESTIONS
+    // REVISE WEAK QUESTIONS - Rebuilt
     if (action === 'revise-select-mode') {
         state.reviseMode = el.getAttribute('data-mode');
         state.reviseView = 'subjects';
+        state.reviseIndex = 0;
         render();
         return;
     }
     if (action === 'revise-select-subject') {
         state.reviseSubject = el.getAttribute('data-subject');
         state.reviseView = 'questions';
+        state.reviseIndex = 0;
         render();
         return;
     }
@@ -13169,12 +13372,54 @@ document.addEventListener('click', function(e) {
         state.reviseView = 'modes';
         state.reviseMode = null;
         state.reviseSubject = null;
+        state.reviseIndex = 0;
         render();
         return;
     }
     if (action === 'revise-back-to-subjects') {
         state.reviseView = 'subjects';
         state.reviseSubject = null;
+        state.reviseIndex = 0;
+        render();
+        return;
+    }
+    
+    if (action === 'revise-next') {
+        const mode = state.reviseMode;
+        const subjectId = state.reviseSubject;
+        let list = state.weakQuestions.filter(function(wq) {
+            return (wq.mode || 'unknown') === mode && wq.subject_id === subjectId;
+        });
+        if (state.reviseIndex < list.length - 1) {
+            state.reviseIndex++;
+            // Clear state for new question
+            const wq = list[state.reviseIndex];
+            state.weakQuestionStates['answer_' + wq.id] = undefined;
+            delete state.weakQuestionStates['result_' + wq.id];
+            render();
+        }
+        return;
+    }
+    
+    if (action === 'revise-prev') {
+        if (state.reviseIndex > 0) {
+            state.reviseIndex--;
+            const mode = state.reviseMode;
+            const subjectId = state.reviseSubject;
+            let list = state.weakQuestions.filter(function(wq) {
+                return (wq.mode || 'unknown') === mode && wq.subject_id === subjectId;
+            });
+            const wq = list[state.reviseIndex];
+            state.weakQuestionStates['answer_' + wq.id] = undefined;
+            delete state.weakQuestionStates['result_' + wq.id];
+            render();
+        }
+        return;
+    }
+    
+    if (action === 'revise-done') {
+        state.reviseView = 'subjects';
+        state.reviseIndex = 0;
         render();
         return;
     }
@@ -13182,17 +13427,6 @@ document.addEventListener('click', function(e) {
     if (action === 'weak-toggle-view') {
         const wid = el.getAttribute('data-wid');
         state.weakQuestionStates['view_' + wid] = !state.weakQuestionStates['view_' + wid];
-        render();
-        return;
-    }
-
-    if (action === 'weak-toggle-reattempt') {
-        const wid = el.getAttribute('data-wid');
-        const opening = !state.weakQuestionStates['reattempt_' + wid];
-        state.weakQuestionStates['reattempt_' + wid] = opening;
-        state.weakQuestionStates['answer_' + wid] = null;
-        delete state.weakQuestionStates['result_' + wid];
-        if (opening) state.weakQuestionStates['view_' + wid] = false;
         render();
         return;
     }
@@ -13212,51 +13446,17 @@ document.addEventListener('click', function(e) {
 
         if (isCorrect) {
             removeWeakQuestion(state.authUser.id, wq.question_id).then(function() {
-                saveHistoryEntry({
-                    mode: 'revise',
-                    subjects: [q.subject_name || 'Unknown'],
-                    subject_scores: {},
-                    total_score: 1,
-                    max_score: 1,
-                    total_questions: 1,
-                    answered_count: 1,
-                    submitted_at: new Date().toISOString(),
-                    exam_title: 'Revise: ' + (q.subject_name || 'Question'),
-                });
+                // Do NOT write to history — revise attempts are not stored in exam_history
+                // Reload weak questions after removal
+                state.weakQuestionsLoaded = false;
+                loadWeakQuestions();
             });
         } else {
             saveWeakQuestion(state.authUser.id, wq.question_id, wq.subject_id, wq.mode, idx, q.correct_answer);
+            // Reload to update attempts count
+            state.weakQuestionsLoaded = false;
+            loadWeakQuestions();
         }
-        return;
-    }
-
-    if (action === 'weak-next-question') {
-        const wid = el.getAttribute('data-wid');
-        const mode = state.reviseMode;
-        const subjectId = state.reviseSubject;
-
-        let list = state.weakQuestions.filter(function(w) {
-            return (w.mode || 'unknown') === mode && w.subject_id === subjectId;
-        });
-        list.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
-        const currentIdx = list.findIndex(function(w) { return w.id === wid; });
-
-        state.weakQuestionStates['reattempt_' + wid] = false;
-        state.weakQuestionStates['answer_' + wid] = null;
-        delete state.weakQuestionStates['result_' + wid];
-
-        state.weakQuestionsLoaded = false;
-        loadWeakQuestions().then(function() {
-            const refreshedList = state.weakQuestions.filter(function(w) {
-                return (w.mode || 'unknown') === mode && w.subject_id === subjectId;
-            });
-            refreshedList.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
-            const nextWq = refreshedList[currentIdx] || refreshedList[0];
-            if (nextWq) {
-                state.weakQuestionStates['reattempt_' + nextWq.id] = true;
-            }
-            render();
-        });
         return;
     }
 
@@ -13280,10 +13480,10 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    if (action === 'flag-weak-question') {
+    if (action === 'flag-review-question') {
         const qid = el.getAttribute('data-qid');
         const subject = el.getAttribute('data-subject');
-        const mode = el.getAttribute('data-mode') || 'revise';
+        const mode = el.getAttribute('data-mode') || 'unknown';
         
         if (!state.authUser) { showToast('Please login first.', 'error'); return; }
         
@@ -13292,23 +13492,6 @@ document.addEventListener('click', function(e) {
             questionId: qid,
             subjectId: subject || '',
             mode: mode,
-        };
-        render();
-        return;
-    }
-
-    if (action === 'flag-review-question') {
-        const qid = el.getAttribute('data-qid');
-        const subject = el.getAttribute('data-subject');
-        const mode = el.getAttribute('data-mode');
-        
-        if (!state.authUser) { showToast('Please login first.', 'error'); return; }
-        
-        state.showFlagModal = true;
-        state.flagModalData = {
-            questionId: qid,
-            subjectId: subject || '',
-            mode: mode || 'unknown',
         };
         render();
         return;
@@ -13560,6 +13743,99 @@ async function init() {
 
     await loadSettings();
     await checkAuthSession();
+    // Restore session snapshot after auth is ready
+    const restored = restoreSessionSnapshot();
+    if (restored) {
+        // Re-route to the restored view
+        const examViews = ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'];
+        if (examViews.indexOf(state.view) !== -1) {
+            // Resume timers if needed
+            if (state.view === 'cbt-exam' && state.cbtTimer === null && state.cbtTimeLeft > 0 && !state.cbtSubmitted) {
+                state.cbtTimer = setInterval(function() {
+                    state.cbtTimeLeft--;
+                    if (state.cbtTimeLeft <= 0) {
+                        clearInterval(state.cbtTimer);
+                        state.cbtTimer = null;
+                        if (!state.cbtSubmitted) {
+                            const hasAnswers = state.cbtAnswers.some(function(a) { return a !== null && a !== undefined; });
+                            if (hasAnswers) {
+                                state.cbtSubmitted = true;
+                                state.cbtFinished = true;
+                                showToast('⏰ Time\'s up! Your answers have been submitted.', '');
+                            } else {
+                                state.cbtSubmitted = false;
+                                state.cbtFinished = true;
+                                showToast('⏰ Time\'s up! No answers recorded.', '');
+                            }
+                        }
+                        render();
+                    } else {
+                        render();
+                    }
+                }, 1000);
+            }
+            if (state.view === 'mock-exam' && state.mockTimer === null && state.mockTimeLeft > 0 && !state.mockSubmitted) {
+                state.mockTimer = setInterval(function() {
+                    state.mockTimeLeft--;
+                    if (state.mockTimeLeft <= 0) {
+                        clearInterval(state.mockTimer);
+                        state.mockTimer = null;
+                        submitMockExam(true);
+                    } else {
+                        render();
+                    }
+                }, 1000);
+            }
+            if (state.view === 'topic-exam' && state.topicTimer === null && state.topicTimeLeft > 0 && !state.topicSubmitted) {
+                state.topicTimer = setInterval(function() {
+                    state.topicTimeLeft--;
+                    if (state.topicTimeLeft <= 0) {
+                        clearInterval(state.topicTimer);
+                        state.topicTimer = null;
+                        if (!state.topicSubmitted) {
+                            const hasAnswers = state.topicAnswers.some(function(a) { return a !== null && a !== undefined; });
+                            if (hasAnswers) {
+                                state.topicSubmitted = true;
+                                state.topicFinished = true;
+                                showToast('⏰ Time\'s up! Your answers have been submitted.', '');
+                            } else {
+                                state.topicSubmitted = false;
+                                state.topicFinished = true;
+                                showToast('⏰ Time\'s up! No answers recorded.', '');
+                            }
+                        }
+                        render();
+                    } else {
+                        render();
+                    }
+                }, 1000);
+            }
+            if (state.view === 'lit-exam' && state.litTimer === null && state.litTimeLeft > 0 && !state.litSubmitted) {
+                state.litTimer = setInterval(function() {
+                    state.litTimeLeft--;
+                    if (state.litTimeLeft <= 0) {
+                        clearInterval(state.litTimer);
+                        state.litTimer = null;
+                        if (!state.litSubmitted) {
+                            const hasAnswers = state.litAnswers.some(function(a) { return a !== null && a !== undefined; });
+                            if (hasAnswers) {
+                                state.litSubmitted = true;
+                                state.litFinished = true;
+                                showToast('⏰ Time\'s up! Your answers have been submitted.', '');
+                            } else {
+                                state.litSubmitted = false;
+                                state.litFinished = true;
+                                showToast('⏰ Time\'s up! No answers recorded.', '');
+                            }
+                        }
+                        render();
+                    } else {
+                        render();
+                    }
+                }, 1000);
+            }
+        }
+    }
     if (typeof seedOfflineDataIfNeeded === 'function') {
         await seedOfflineDataIfNeeded();
     } else {
@@ -13689,6 +13965,100 @@ if ("serviceWorker" in navigator) {
         });
     }
 })();
+
+// Placeholder for offline-db functions (moved to offline-db.js)
+// These are here to prevent reference errors if offline-db.js hasn't loaded yet
+async function loadTopics(subjectId) {
+    try {
+        const topics = await window.OfflineDB.getTopicsOffline(subjectId);
+        state.topicsList = topics || [];
+        state.topicsLoaded = true;
+        state.topicsSubjectId = subjectId;
+        render();
+    } catch (e) {
+        console.warn('Load topics error:', e);
+        state.topicsList = [];
+        state.topicsLoaded = true;
+        state.topicsSubjectId = subjectId;
+        render();
+    }
+}
+
+async function loadAdminTopics(subjectId) {
+    try {
+        const topics = await window.OfflineDB.getTopicsOffline(subjectId);
+        state.admin.adminTopicsList = topics || [];
+        state.admin.adminTopicsLoaded = true;
+        render();
+    } catch (e) {
+        console.warn('Load admin topics error:', e);
+        state.admin.adminTopicsList = [];
+        state.admin.adminTopicsLoaded = true;
+        render();
+    }
+}
+
+async function loadAdminTopicQuestions(topicId) {
+    try {
+        const questions = await window.OfflineDB.getTopicQuestionsOffline(topicId);
+        state.admin.adminTopicQuestions = questions || [];
+        state.admin.adminTopicQuestionsLoaded = true;
+        render();
+    } catch (e) {
+        console.warn('Load admin topic questions error:', e);
+        state.admin.adminTopicQuestions = [];
+        state.admin.adminTopicQuestionsLoaded = true;
+        render();
+    }
+}
+
+function addTopicOffline(subjectId, name) {
+    return window.OfflineDB.addTopicOffline(subjectId, name);
+}
+
+function deleteTopicOffline(topicId) {
+    return window.OfflineDB.deleteTopicOffline(topicId);
+}
+
+function addTopicQuestionOffline(topicId, questionData) {
+    return window.OfflineDB.addTopicQuestionOffline(topicId, questionData);
+}
+
+function deleteTopicQuestionOffline(questionId) {
+    return window.OfflineDB.deleteTopicQuestionOffline(questionId);
+}
+
+function updateTopicQuestionOffline(questionId, data) {
+    return window.OfflineDB.updateTopicQuestionOffline(questionId, data);
+}
+
+function addQuestionOffline(data) {
+    return window.OfflineDB.addQuestionOffline(data);
+}
+
+function updateQuestionOffline(questionId, data) {
+    return window.OfflineDB.updateQuestionOffline(questionId, data);
+}
+
+function deleteQuestionOffline(questionId) {
+    return window.OfflineDB.deleteQuestionOffline(questionId);
+}
+
+function dbGet(store, id) {
+    return window.OfflineDB.dbGet(store, id);
+}
+
+function dbGetAll(store) {
+    return window.OfflineDB.dbGetAll(store);
+}
+
+function exportOfflineData() {
+    return window.OfflineDB.exportOfflineData();
+}
+
+function importOfflineData(data, strategy) {
+    return window.OfflineDB.importOfflineData(data, strategy);
+}
 </script>
 </body>
 </html>
