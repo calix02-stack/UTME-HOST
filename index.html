@@ -6136,7 +6136,7 @@ async function startLiteratureCbt() {
     
     const settings = await loadSettings();
     const perBatch = settings.novelQuestionsPerSubject || 40;
-    const questions = await window.OfflineDB.getQuestionsOffline('NOVEL (CBT)', 'lhm', perBatch);
+    const questions = await window.OfflineDB.loadQuestionsOffline('NOVEL (CBT)', 'lhm', null, perBatch);
     state.isLoading = false;
     
     if (questions.length === 0) {
@@ -6613,11 +6613,22 @@ function render() {
         return;
     }
 
-    const prevScrollEl = document.querySelector('.view-content');
-    const prevScrollTop = prevScrollEl ? prevScrollEl.scrollTop : 0;
-
-    const prevListEl = document.querySelector('.admin-question-list');
-    const prevListScrollTop = prevListEl ? prevListEl.scrollTop : 0;
+    const SCROLL_PRESERVE_SELECTORS = [
+        '.view-content',
+        '.admin-question-list',
+        '.admin-tabs',
+        '.admin-sub-tabs',
+        '.subject-tabs',
+        '.leaderboard-tabs',
+        '.notif-tabs',
+        '.result-mode-tabs',
+        '.chat-window',
+    ];
+    const prevScrollPositions = {};
+    SCROLL_PRESERVE_SELECTORS.forEach(function(sel) {
+        const elx = document.querySelector(sel);
+        if (elx) prevScrollPositions[sel] = { top: elx.scrollTop, left: elx.scrollLeft };
+    });
 
     const activeEl = document.activeElement;
     const activeId = activeEl && activeEl.id ? activeEl.id : null;
@@ -6680,12 +6691,14 @@ function render() {
         root.appendChild(overlay.firstElementChild);
     }
 
-    const newScrollEl = document.querySelector('.view-content');
-    if (newScrollEl) newScrollEl.scrollTop = prevScrollTop;
-
-    const newListEl = document.querySelector('.admin-question-list');
-    if (newListEl) newListEl.scrollTop = prevListScrollTop;
-
+    SCROLL_PRESERVE_SELECTORS.forEach(function(sel) {
+        const elx = document.querySelector(sel);
+        const prev = prevScrollPositions[sel];
+        if (elx && prev) {
+            elx.scrollTop = prev.top;
+            elx.scrollLeft = prev.left;
+        }
+    });
     if (activeId) {
         const newActiveEl = document.getElementById(activeId);
         if (newActiveEl) {
