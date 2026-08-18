@@ -2509,6 +2509,15 @@
         #app-inner { border-radius: 16px; margin: 12px 0; max-height: 95vh; }
         .view { padding: 16px 20px 20px; }
     }
+    
+    @media (min-width: 900px) {
+        #app-inner {
+            max-width: 700px;
+        }
+        .home-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
 
     #pwa-install-btn {
         position: fixed;
@@ -3565,6 +3574,7 @@ let state = {
     adminLoading: false,
     questionCounts: {},
     allQuestions: [],
+    allQuestionsLoaded: false,
     notifTab: "public",
 
     docsLoaded: false,
@@ -3654,9 +3664,11 @@ let state = {
     constructionReopenTime: null,
 
     analyticsLoaded: false,
-    analyticsLoading: false,
-    analyticsData: null,
-    analyticsRange: 14,
+analyticsLoading: false,
+analyticsData: null,
+analyticsRange: 14,
+analyticsUserFilter: null,
+analyticsSubTab: 'overview',
 };
 
 // ============================================================
@@ -3894,10 +3906,28 @@ async function loadAllQuestionsForAdmin() {
     try {
         const all = await dbGetAll('questions');
         state.allQuestions = all || [];
+        state.allQuestionsLoaded = true;
+
+        // If IndexedDB came back empty, force a resync from the subject files
+        // before giving up and showing 0 — this is what was going stale.
+        if (state.allQuestions.length === 0) {
+            const subjectIds = SUBJECTS.map(function(s) { return s.id; });
+            if (window.OfflineDB && typeof window.OfflineDB.syncAllSubjectFiles === 'function') {
+                const results = await window.OfflineDB.syncAllSubjectFiles(subjectIds);
+                const foundAny = Object.keys(results).some(function(k) { return !!results[k]; });
+                if (foundAny) {
+                    storage.set('lastSubjectFileSync', String(Date.now()));
+                    const resynced = await dbGetAll('questions');
+                    state.allQuestions = resynced || [];
+                }
+            }
+        }
         render();
     } catch (e) {
         console.warn('Load all questions for admin error:', e);
         state.allQuestions = [];
+        state.allQuestionsLoaded = true;
+        render();
     }
 }
 const OFFLINE_CACHE_PREFIX = 'myutme_cache_';
@@ -9640,6 +9670,7 @@ function shortDay(dateStr) {
 }
 
 async function loadAnalyticsData() {
+    if (state.analyticsLoading) return; // prevent overlapping fetches
     state.analyticsLoading = true;
     render();
 
@@ -9649,17 +9680,17 @@ async function loadAnalyticsData() {
     const sinceISO = sinceDate.toISOString();
 
     try {
-        const [profilesRes, historyRes, keysRes, logsRes, cbtRes, mockRes, subjRes] = await Promise.all([
-            supabase.from('profiles').select('id, username, email, is_active, activation_expiry, last_seen, created_at'),
-            supabase.from('exam_history').select('id, user_id, mode, total_score, max_score, submitted_at').gte('submitted_at', sinceISO),
-            supabase.from('activation_keys').select('*').eq('is_used', true),
-            supabase.from('activity_logs').select('action, created_at, username').gte('created_at', sinceISO),
-            supabase.from('cbt_scores').select('score, username'),
-            supabase.from('mock_scores').select('score, username'),
-            supabase.from('subject_scores').select('score, subject_id, username'),
-        ]);
+        // Use the working loadAllUsers function
+        await loadAllUsers();
+        const profiles = state.allUsers || [];
+        
+        const historyRes = await supabase.from('exam_history').select('id, user_id, mode, total_score, max_score, submitted_at').gte('submitted_at', sinceISO);
+        const keysRes = await supabase.from('activation_keys').select('*').eq('is_used', true);
+        const logsRes = await supabase.from('activity_logs').select('action, created_at, username').gte('created_at', sinceISO);
+        const cbtRes = await supabase.from('cbt_scores').select('score, username');
+        const mockRes = await supabase.from('mock_scores').select('score, username');
+        const subjRes = await supabase.from('subject_scores').select('score, subject_id, username');
 
-        const profiles = profilesRes.data || [];
         const history = historyRes.data || [];
         const paidKeys = keysRes.data || [];
         const logs = logsRes.data || [];
@@ -9679,8 +9710,8 @@ async function loadAnalyticsData() {
         const days = lastNDays(rangeDays);
         const signupsByDay = {};
         const viewsByDay = {};
-        const modeAttemptsByDay = {}; // day -> {mode: count}
-        const modeUsers = {}; // mode -> Set of user_id -> list for display
+        const modeAttemptsByDay = {};
+        const modeUsers = {};
         const paymentsByDay = {};
 
         days.forEach(function(d) { signupsByDay[d] = 0; viewsByDay[d] = 0; paymentsByDay[d] = 0; modeAttemptsByDay[d] = {}; });
@@ -9698,7 +9729,7 @@ async function loadAnalyticsData() {
         });
 
         const modeLabels = { 'cbt-full': 'CBT Full', 'cbt-single': 'CBT Single', 'exam': 'Exam', 'mock': 'Mock', 'novel': 'Novel', 'topic': 'Topic' };
-        const modeAttemptsList = {}; // mode -> array of {username, score, max, date}
+        const modeAttemptsList = {};
 
         history.forEach(function(h) {
             const k = dayKey(h.submitted_at);
@@ -9722,7 +9753,6 @@ async function loadAnalyticsData() {
         });
         paidKeys.sort(function(a, b) { return new Date(b.used_at) - new Date(a.used_at); });
 
-        // Score averages per mode
         function avg(arr) { return arr.length ? Math.round(arr.reduce(function(a, b) { return a + b; }, 0) / arr.length) : 0; }
         const cbtScores = (cbtRes.data || []).map(function(r) { return r.score || 0; });
         const mockScores = (mockRes.data || []).map(function(r) { return r.score || 0; });
@@ -9754,17 +9784,39 @@ async function loadAnalyticsData() {
             cbtAvg: avg(cbtScores),
             mockAvg: avg(mockScores),
             subjAvg: avg(subjScores),
+            _profiles: profiles,
+            _logs: logs,
         };
+        
         state.analyticsLoaded = true;
         state.analyticsLoading = false;
         render();
+
     } catch (e) {
-        console.warn('Analytics load error:', e);
+        console.error('Analytics load error:', e);
         showToast('Error loading analytics: ' + (e.message || 'unknown'), 'error');
         state.analyticsLoaded = true;
         state.analyticsLoading = false;
         render();
     }
+}
+function trendOf(dataArr) {
+    if (!dataArr || dataArr.length < 4) return null;
+    const mid = Math.floor(dataArr.length / 2);
+    const first = dataArr.slice(0, mid).reduce(function(a, b) { return a + b.value; }, 0);
+    const second = dataArr.slice(mid).reduce(function(a, b) { return a + b.value; }, 0);
+    if (first === 0 && second === 0) return null;
+    if (first === 0) return { pct: 100, up: true };
+    const pct = Math.round(((second - first) / first) * 100);
+    return { pct: Math.abs(pct), up: pct >= 0 };
+}
+
+function renderTrendBadge(trend) {
+    if (!trend) return '';
+    const color = trend.up ? '#0F6B3F' : '#C0392B';
+    const bg = trend.up ? '#e8f5e9' : '#fce4ec';
+    const arrow = trend.up ? '↑' : '↓';
+    return '<span style="display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:' + color + ';background:' + bg + ';padding:1px 6px;border-radius:999px;margin-top:4px">' + arrow + ' ' + trend.pct + '%</span>';
 }
 
 function renderStatCard(icon, value, label, color) {
@@ -9775,6 +9827,25 @@ function renderStatCard(icon, value, label, color) {
         '<div style="font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.04em">' + esc(label) + '</div>' +
         '</div>'
     );
+}
+
+function renderKpiCard(opts) {
+    const trendHtml = opts.trend ? renderTrendBadge(opts.trend) : '';
+    const clickAttr = opts.filterKey ? ' data-action="analytics-filter-users" data-filter="' + opts.filterKey + '" style="cursor:pointer"' : '';
+    return (
+        '<div class="card"' + clickAttr + ' style="padding:14px;margin:0">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+        '<span style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;font-weight:600">' + esc(opts.label) + '</span>' +
+        '<span style="font-size:16px">' + opts.icon + '</span>' +
+        '</div>' +
+        '<div style="font-size:22px;font-weight:800;color:' + (opts.color || 'var(--ink)') + ';line-height:1">' + opts.value + '</div>' +
+        (trendHtml ? '<div style="margin-top:6px">' + trendHtml + '</div>' : '') +
+        '</div>'
+    );
+}
+
+function renderStatCardClickable(icon, value, label, color, filterKey) {
+    return renderKpiCard({ icon: icon, value: value, label: label, color: color, filterKey: filterKey });
 }
 
 function renderBarChart(data, opts) {
@@ -9788,16 +9859,15 @@ function renderBarChart(data, opts) {
         bars += (
             '<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:22px">' +
             '<div style="font-size:9px;font-weight:700;color:var(--ink);margin-bottom:3px;white-space:nowrap">' + prefix + d.value + '</div>' +
-            '<div style="width:100%;max-width:24px;height:80px;display:flex;align-items:flex-end;background:var(--bg);border-radius:4px;overflow:hidden">' +
-            '<div style="width:100%;height:' + pct + '%;background:' + color + ';border-radius:3px 3px 0 0;transition:height 0.3s"></div>' +
+            '<div style="width:100%;max-width:26px;height:90px;display:flex;align-items:flex-end;background:var(--bg);border-radius:5px;overflow:hidden">' +
+            '<div style="width:100%;height:' + pct + '%;background:linear-gradient(180deg,' + color + ' 0%,' + color + 'cc 100%);border-radius:4px 4px 0 0;transition:height 0.3s"></div>' +
             '</div>' +
             '<div style="font-size:8px;color:var(--muted);margin-top:4px;text-align:center;white-space:nowrap">' + esc(d.label) + '</div>' +
             '</div>'
         );
     });
     return '<div style="display:flex;gap:5px;align-items:flex-end;overflow-x:auto;padding:4px 2px 0">' + bars + '</div>';
-}
-
+}8
 function renderDashboardCard(title, icon, contentHtml) {
     return (
         '<div class="card" style="margin-bottom:10px">' +
@@ -9807,48 +9877,121 @@ function renderDashboardCard(title, icon, contentHtml) {
     );
 }
 
+const ANALYTICS_SUBTABS = [
+    { key: 'overview', label: '📊 Overview' },
+    { key: 'growth', label: '📈 Growth' },
+    { key: 'revenue', label: '💰 Revenue' },
+    { key: 'engagement', label: '🎯 Engagement' },
+];
+
+function renderAnalyticsSubTabs() {
+    let html = '<div class="admin-sub-tabs">';
+    ANALYTICS_SUBTABS.forEach(function(t) {
+        html += '<button class="admin-sub-tab' + (state.analyticsSubTab === t.key ? ' active' : '') +
+            '" data-action="analytics-subtab" data-subtab="' + t.key + '">' + t.label + '</button>';
+    });
+    html += '</div>';
+    return html;
+}
+
 function renderAdminAnalytics() {
+    if (state.analyticsUserFilter) {
+        return renderAnalyticsUserList(state.analyticsUserFilter);
+    }
+
     if (!state.analyticsLoaded && !state.analyticsLoading) {
         loadAnalyticsData();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading analytics data...</p></div>';
     }
-    if (state.analyticsLoading || !state.analyticsData) {
+    if (state.analyticsLoading) {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Crunching numbers...</p></div>';
     }
+    if (!state.analyticsData) {
+        return '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No data available.</p></div>';
+    }
     const d = state.analyticsData;
-    if (!d) return '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No data yet.</p></div>';
 
     let html = '';
 
-    // Range selector
+    // Header: range selector + refresh
     html += (
-        '<div style="display:flex;gap:4px;margin-bottom:12px">' +
+        '<div style="display:flex;gap:4px;margin-bottom:10px">' +
         [7, 14, 30].map(function(n) {
-            return '<button class="btn btn-sm ' + (state.analyticsRange === n ? 'btn-green' : 'btn-outline') + '" data-action="analytics-range" data-range="' + n + '" style="flex:1">' + n + ' days</button>';
+            return '<button class="btn btn-sm ' + (state.analyticsRange === n ? 'btn-green' : 'btn-outline') + '" data-action="analytics-range" data-range="' + n + '" style="flex:1">' + n + 'd</button>';
         }).join('') +
         '<button class="btn btn-outline btn-sm" data-action="analytics-refresh" style="flex:0 0 auto;padding:6px 10px">🔄</button>' +
         '</div>'
     );
 
-    // KEY METRIC CARDS
-    html += '<p class="section-label">👥 User Overview</p>';
+    html += renderAnalyticsSubTabs();
+
+    if (state.analyticsSubTab === 'overview') html += renderAnalyticsOverviewTab(d);
+    else if (state.analyticsSubTab === 'growth') html += renderAnalyticsGrowthTab(d);
+    else if (state.analyticsSubTab === 'revenue') html += renderAnalyticsRevenueTab(d);
+    else if (state.analyticsSubTab === 'engagement') html += renderAnalyticsEngagementTab(d);
+
+    return html;
+}
+
+function renderAnalyticsOverviewTab(d) {
+    let html = '';
+
+    // Top-line snapshot: 4 hero KPIs
     html += (
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
-        renderStatCard('👤', d.totalUsers, 'Total Users', GREEN) +
-        renderStatCard('✅', d.activatedUsers, 'Activated', GREEN) +
-        renderStatCard('⛔', d.inactiveUsers, 'Inactive', '#e2543a') +
-        renderStatCard('🟢', d.onlineNow.length, 'Online Now', GOLD) +
-        renderStatCard('📅', d.activeToday, 'Active Today', GREEN) +
-        renderStatCard('👁️', d.totalViews, 'App Views', '#2E6FF2') +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' +
+        renderKpiCard({ icon: '👤', label: 'Total Users', value: d.totalUsers, trend: trendOf(d.signupsByDay), color: GREEN, filterKey: 'all-users' }) +
+        renderKpiCard({ icon: '✅', label: 'Activated', value: d.activatedUsers + ' / ' + d.totalUsers, color: GREEN, filterKey: 'activated-users' }) +
+        renderKpiCard({ icon: '🟢', label: 'Online Now', value: d.onlineNow.length, color: GOLD, filterKey: 'online-now' }) +
+        renderKpiCard({ icon: '💵', label: 'Revenue', value: '₦' + (d.totalRevenue >= 1000 ? Math.round(d.totalRevenue / 1000) + 'k' : d.totalRevenue), trend: trendOf(d.paymentsByDay), color: GOLD }) +
         '</div>'
     );
 
-    // Signups chart
-    html += renderDashboardCard('New Signups', '📈', renderBarChart(d.signupsByDay, { color: GREEN }));
+    // Conversion rate bar
+    const conversionPct = d.totalUsers > 0 ? Math.round((d.activatedUsers / d.totalUsers) * 100) : 0;
+    html += (
+        '<div class="card" style="margin-bottom:10px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<span style="font-size:11px;font-weight:700;color:var(--ink)">Activation Rate</span>' +
+        '<span style="font-size:13px;font-weight:800;color:' + (conversionPct >= 50 ? GREEN : conversionPct >= 25 ? GOLD : '#e2543a') + '">' + conversionPct + '%</span>' +
+        '</div>' +
+        '<div style="width:100%;height:8px;background:var(--bg);border-radius:99px;overflow:hidden">' +
+        '<div style="width:' + conversionPct + '%;height:100%;background:linear-gradient(90deg,' + GREEN + ',' + GOLD + ');border-radius:99px"></div>' +
+        '</div>' +
+        '<p style="font-size:9px;color:var(--faint);margin-top:5px">' + d.activatedUsers + ' of ' + d.totalUsers + ' registered users have an active plan</p>' +
+        '</div>'
+    );
 
-    // App views chart
-    html += renderDashboardCard('App Views (opens)', '👁️', renderBarChart(d.viewsByDay, { color: '#2E6FF2' }));
+    html += renderDashboardCard('New Signups (' + state.analyticsRange + 'd)', '📈', renderBarChart(d.signupsByDay, { color: GREEN }));
+    html += renderDashboardCard('App Opens (' + state.analyticsRange + 'd)', '👁️', renderBarChart(d.viewsByDay, { color: '#2E6FF2' }));
 
-    // ONLINE NOW LIST
+    // Quick health strip
+    html += (
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">' +
+        renderStatCard('📅', d.activeToday, 'Active Today', GREEN) +
+        renderStatCard('👁️', d.totalViews, 'App Views', '#2E6FF2') +
+        renderStatCard('⛔', d.inactiveUsers, 'Inactive', '#e2543a') +
+        '</div>'
+    );
+
+    return html;
+}
+
+function renderAnalyticsGrowthTab(d) {
+    let html = '';
+    const signupTrend = trendOf(d.signupsByDay);
+    const viewTrend = trendOf(d.viewsByDay);
+
+    html += (
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' +
+        renderKpiCard({ icon: '📝', label: 'New Signups', value: d.signupsByDay.reduce(function(a, b) { return a + b.value; }, 0), trend: signupTrend, color: GREEN }) +
+        renderKpiCard({ icon: '👁️', label: 'Total App Opens', value: d.totalViews, trend: viewTrend, color: '#2E6FF2' }) +
+        '</div>'
+    );
+
+    html += renderDashboardCard('Signups Over Time', '📈', renderBarChart(d.signupsByDay, { color: GREEN }));
+    html += renderDashboardCard('App Opens Over Time', '👁️', renderBarChart(d.viewsByDay, { color: '#2E6FF2' }));
+
+    // Online now list
     let onlineList = '';
     if (d.onlineNow.length === 0) {
         onlineList = '<p style="font-size:12px;color:var(--faint);text-align:center;padding:10px 0">No one online right now.</p>';
@@ -9865,47 +10008,28 @@ function renderAdminAnalytics() {
     }
     html += renderDashboardCard('Currently Online (' + d.onlineNow.length + ')', '🟢', onlineList);
 
-    // MODE USAGE
-    html += '<p class="section-label" style="margin-top:6px">🎯 Mode Usage (' + state.analyticsRange + ' days)</p>';
+    return html;
+}
+
+function renderAnalyticsRevenueTab(d) {
+    let html = '';
+    const revTrend = trendOf(d.paymentsByDay);
+
     html += (
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
-        renderStatCard('📝', d.totalAttempts, 'Total Attempts', GOLD) +
-        renderStatCard('📚', (d.modeUsers['cbt-full'] ? d.modeUsers['cbt-full'].size : 0) + (d.modeUsers['cbt-single'] ? d.modeUsers['cbt-single'].size : 0), 'CBT Users', '#2E6FF2') +
-        renderStatCard('🎯', d.modeUsers['mock'] ? d.modeUsers['mock'].size : 0, 'Mock Users', '#8E44AD') +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' +
+        renderKpiCard({ icon: '💵', label: 'Total Revenue', value: '₦' + d.totalRevenue.toLocaleString(), trend: revTrend, color: GOLD }) +
+        renderKpiCard({ icon: '🧾', label: 'Confirmed Payments', value: d.paidKeys.length, color: GREEN }) +
         '</div>'
     );
 
-    Object.keys(d.modeLabels).forEach(function(m) {
-        const perDay = d.days.map(function(day) {
-            return { label: shortDay(day), value: (d.modeAttemptsByDay[day] && d.modeAttemptsByDay[day][m]) || 0 };
-        });
-        const totalForMode = perDay.reduce(function(a, b) { return a + b.value; }, 0);
-        if (totalForMode === 0) return;
-        html += renderDashboardCard(
-            d.modeLabels[m] + ' — ' + totalForMode + ' attempts, avg ' + (d.historyByModeAvg[m] || 0) + '%',
-            '📊',
-            renderBarChart(perDay, { color: SUBJECT_PALETTE[Object.keys(d.modeLabels).indexOf(m) % SUBJECT_PALETTE.length] })
-        );
-    });
-
-    // SCORE ANALYTICS
-    html += '<p class="section-label" style="margin-top:6px">🏆 Score Analytics</p>';
+    const avgOrder = d.paidKeys.length > 0 ? Math.round(d.totalRevenue / d.paidKeys.length) : 0;
     html += (
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
-        renderStatCard('📚', d.cbtAvg + '%', 'Avg CBT Score', GREEN) +
-        renderStatCard('🎯', d.mockAvg + '%', 'Avg Mock Score', '#8E44AD') +
-        renderStatCard('📋', d.subjAvg + '%', 'Avg Subject Score', '#7C5CFC') +
+        '<div class="card" style="margin-bottom:10px;text-align:center;padding:16px">' +
+        '<p style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin:0 0 4px">Average Order Value</p>' +
+        '<p style="font-size:24px;font-weight:800;color:' + GOLD + ';margin:0">₦' + avgOrder.toLocaleString() + '</p>' +
         '</div>'
     );
 
-    // PAYMENTS / REVENUE
-    html += '<p class="section-label" style="margin-top:6px">💰 Payments &amp; Revenue</p>';
-    html += (
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">' +
-        renderStatCard('💵', '₦' + d.totalRevenue.toLocaleString(), 'Total Revenue', GOLD) +
-        renderStatCard('🧾', d.paidKeys.length, 'Confirmed Payments', GREEN) +
-        '</div>'
-    );
     html += renderDashboardCard('Revenue by Day (₦)', '📈', renderBarChart(d.paymentsByDay, { color: GOLD }));
 
     let paymentRows = '';
@@ -9925,15 +10049,175 @@ function renderAdminAnalytics() {
             );
         });
     }
-    html += renderDashboardCard('Recent Payments (' + d.paidKeys.length + ')', '🧾', '<div style="max-height:300px;overflow-y:auto">' + paymentRows + '</div>');
+    html += renderDashboardCard('Recent Payments (' + d.paidKeys.length + ')', '🧾', '<div style="max-height:320px;overflow-y:auto">' + paymentRows + '</div>');
 
     return html;
+}
+
+function renderAnalyticsEngagementTab(d) {
+    let html = '';
+
+    html += (
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
+        renderStatCard('📝', d.totalAttempts, 'Total Attempts', GOLD) +
+        renderStatCard('📚', (d.modeUsers['cbt-full'] ? d.modeUsers['cbt-full'].size : 0) + (d.modeUsers['cbt-single'] ? d.modeUsers['cbt-single'].size : 0), 'CBT Users', '#2E6FF2') +
+        renderStatCard('🎯', d.modeUsers['mock'] ? d.modeUsers['mock'].size : 0, 'Mock Users', '#8E44AD') +
+        '</div>'
+    );
+
+    html += (
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
+        renderStatCard('📚', d.cbtAvg + '%', 'Avg CBT Score', GREEN) +
+        renderStatCard('🎯', d.mockAvg + '%', 'Avg Mock Score', '#8E44AD') +
+        renderStatCard('📋', d.subjAvg + '%', 'Avg Subject Score', '#7C5CFC') +
+        '</div>'
+    );
+
+    Object.keys(d.modeLabels).forEach(function(m) {
+        const perDay = d.days.map(function(day) {
+            return { label: shortDay(day), value: (d.modeAttemptsByDay[day] && d.modeAttemptsByDay[day][m]) || 0 };
+        });
+        const totalForMode = perDay.reduce(function(a, b) { return a + b.value; }, 0);
+        if (totalForMode === 0) return;
+        html += renderDashboardCard(
+            d.modeLabels[m] + ' — ' + totalForMode + ' attempts, avg ' + (d.historyByModeAvg[m] || 0) + '%',
+            '📊',
+            renderBarChart(perDay, { color: SUBJECT_PALETTE[Object.keys(d.modeLabels).indexOf(m) % SUBJECT_PALETTE.length] })
+        );
+    });
+
+    return html;
+}
+
+function renderAnalyticsUserList(filterKey) {
+    if (!state.analyticsData) return '<div class="loading-spinner"><div class="spinner"></div><p>Loading users...</p></div>';
+    
+    const d = state.analyticsData;
+    let users = [];
+    let title = '';
+    let icon = '';
+    
+    // Get all profiles from the analytics data
+    const allProfiles = d._profiles || [];
+    
+    switch(filterKey) {
+        case 'all-users':
+            users = allProfiles;
+            title = 'All Registered Users';
+            icon = '👤';
+            break;
+        case 'activated-users':
+            users = allProfiles.filter(function(p) {
+                return p.is_active && (!p.activation_expiry || new Date(p.activation_expiry).getTime() > Date.now());
+            });
+            title = 'Activated Users';
+            icon = '✅';
+            break;
+        case 'inactive-users':
+            users = allProfiles.filter(function(p) {
+                return !p.is_active || (p.activation_expiry && new Date(p.activation_expiry).getTime() <= Date.now());
+            });
+            title = 'Inactive Users';
+            icon = '⛔';
+            break;
+        case 'online-now':
+            users = allProfiles.filter(function(p) {
+                return p.last_seen && (Date.now() - new Date(p.last_seen).getTime()) < 5 * 60 * 1000;
+            });
+            title = 'Online Now';
+            icon = '🟢';
+            break;
+        case 'active-today':
+            users = allProfiles.filter(function(p) {
+                return p.last_seen && (Date.now() - new Date(p.last_seen).getTime()) < 24 * 60 * 60 * 1000;
+            });
+            title = 'Active Today';
+            icon = '📅';
+            break;
+        case 'app-views':
+            // Show app view logs instead of users
+            const logs = d._logs || [];
+            const viewLogs = logs.filter(function(l) { return l.action === 'page_view'; });
+            return renderAnalyticsViewLogs(viewLogs);
+        default:
+            return '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No data for this filter.</p></div>';
+    }
+    
+    if (users.length === 0) {
+        return (
+            '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No users found for this filter.</p></div>'
+        );
+    }
+    
+    let rows = '';
+    users.forEach(function(user) {
+        const isActive = user.is_active !== false;
+        const expiry = user.activation_expiry ? new Date(user.activation_expiry) : null;
+        const daysLeft = expiry ? Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24)) : null;
+        let statusLabel = isActive ? '✅ Active' : '⛔ Inactive';
+        if (isActive && daysLeft !== null && daysLeft < 3) statusLabel = '⚠️ ' + daysLeft + 'd left';
+        const lastSeen = user.last_seen ? formatTimeAgo(user.last_seen) : 'Never';
+        
+        rows += (
+            '<div class="admin-user-row" style="cursor:default">' +
+            '<div class="user-info">' +
+            '<span class="user-name">' + esc(user.username || 'Unknown') + '</span>' +
+            '<span class="user-email">' + esc(user.email || '') + (expiry ? ' · Expires: ' + expiry.toLocaleDateString() : '') + ' · Last seen: ' + lastSeen + '</span>' +
+            '</div>' +
+            '<span class="user-status ' + (isActive ? 'active' : 'inactive') + '">' + statusLabel + '</span>' +
+            '</div>'
+        );
+    });
+    
+    return (
+        '<div class="admin-view-mode-header">' +
+        '<span class="mode-title" style="font-size:14px">' + icon + ' ' + title + ' (' + users.length + ')</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="analytics-close-user-list">← Back to Analytics</button>' +
+        '</div>' +
+        '<div style="max-height:400px;overflow-y:auto">' + rows + '</div>'
+    );
+}
+
+function renderAnalyticsViewLogs(logs) {
+    if (!logs || logs.length === 0) {
+        return (
+            '<div class="admin-view-mode-header">' +
+            '<span class="mode-title" style="font-size:14px">👁️ App Views</span>' +
+            '<button class="btn btn-outline btn-sm" data-action="analytics-close-user-list">← Back to Analytics</button>' +
+            '</div>' +
+            '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No app view logs yet.</p></div>'
+        );
+    }
+    
+    let rows = '';
+    logs.slice(0, 100).forEach(function(log) {
+        rows += (
+            '<div class="log-entry">' +
+            '<span class="log-time">' + formatTimeAgo(log.created_at) + '</span>' +
+            '<span class="log-user">' + esc(log.username || 'Guest') + '</span>' +
+            '<span class="log-action">Opened app</span>' +
+            '</div>'
+        );
+    });
+    
+    return (
+        '<div class="admin-view-mode-header">' +
+        '<span class="mode-title" style="font-size:14px">👁️ App Views (' + logs.length + ')</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="analytics-close-user-list">← Back to Analytics</button>' +
+        '</div>' +
+        '<div style="max-height:400px;overflow-y:auto">' + rows + '</div>' +
+        (logs.length > 100 ? '<p style="font-size:10px;color:var(--faint);margin-top:4px">Showing last 100 views</p>' : '')
+    );
 }
 
 // ============================================================
 //  ADMIN OVERVIEW
 // ============================================================
 function renderAdminOverview() {
+    if (!state.allQuestionsLoaded) {
+        loadAllQuestionsForAdmin();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading question counts...</p></div>';
+    }
     const userCount = state.allUsers.length || 0;
 
     const modeCounts = {
@@ -12618,16 +12902,19 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
-
+    
     // ADMIN
     if (action === 'admin-tab') {
         state.adminTab = el.getAttribute('data-tab');
+        if (state.adminTab === 'overview' || state.adminTab === 'questions') {
+            state.allQuestionsLoaded = false;
+        }
         state.adminQuestionsLoaded = false;
         state.adminQuestionsList = [];
         state.adminQuestionsKey = null;
         state.admin.viewModeQuestions = false;
         state.admin.viewingMockAttempts = null;
-        if (state.adminTab === 'analytics') { state.analyticsLoaded = false; loadAnalyticsData(); }
+        if (state.adminTab === 'analytics' && !state.analyticsLoading) { state.analyticsLoaded = false; loadAnalyticsData(); }
         if (state.adminTab === 'documents') state.docsLoaded = false;
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
         else if (state.adminTab === 'mock') { state.mockLoaded = false;
@@ -12672,17 +12959,37 @@ document.addEventListener('click', function(e) {
         return;
     }
     
+    if (action === 'analytics-subtab') {
+        state.analyticsSubTab = el.getAttribute('data-subtab');
+        render();
+        return;
+    }
+
     if (action === 'analytics-range') {
         state.analyticsRange = parseInt(el.getAttribute('data-range'), 10);
         state.analyticsLoaded = false;
         loadAnalyticsData();
         return;
     }
+    
     if (action === 'analytics-refresh') {
         state.analyticsLoaded = false;
         loadAnalyticsData();
         return;
     }
+    
+    if (action === 'analytics-filter-users') {
+    const filter = el.getAttribute('data-filter');
+    state.analyticsUserFilter = filter;
+    render();
+    return;
+}
+
+if (action === 'analytics-close-user-list') {
+    state.analyticsUserFilter = null;
+    render();
+        return;
+}
 
     if (action === 'admin-flagged-filter') {
         const filter = el.getAttribute('data-filter');
