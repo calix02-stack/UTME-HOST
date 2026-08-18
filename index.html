@@ -518,6 +518,10 @@
         color: var(--ink);
     }
     .mini-btn.flag:hover { opacity: 0.8; }
+    .mini-btn.flag.flagged {
+        background: var(--danger);
+        color: #fff;
+    }
     .mini-btn.goto-btn {
         background: var(--green);
         color: #fff;
@@ -1892,20 +1896,33 @@
         position: absolute;
         top: 8px;
         right: 8px;
-        font-size: 14px;
-        padding: 2px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        font-size: 8px;
+        font-weight: 600;
+        padding: 4px 6px;
         background: var(--card-bg);
         border: 1px solid var(--line);
         border-radius: 6px;
         cursor: pointer;
         transition: all 0.2s;
+        color: var(--muted);
     }
+    .exam-question-card .flag-inline svg { width: 14px; height: 14px; stroke: var(--muted); }
     .exam-question-card .flag-inline:hover { border-color: var(--flag-color); }
+    .exam-question-card .flag-inline.flagged {
+        background: var(--danger);
+        border-color: var(--danger);
+        color: #fff;
+    }
+    .exam-question-card .flag-inline.flagged svg { stroke: #fff; }
     .exam-question-card p {
         font-size: 17px !important;
         line-height: 1.5;
         padding-right: 36px;
-    }
+    }   
     .exam-options-wrap {
         display: flex;
         flex-direction: column;
@@ -3152,6 +3169,7 @@ const ICONS = {
     chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
     home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/>',
     chart: '<path d="M4 20h16"/><path d="M6 16v-4"/><path d="M12 16v-8"/><path d="M18 16v-6"/>',
+    flag: '<path d="M5 3v18"/><path d="M5 4h13l-2.5 4.5L18 13H5"/>',
 };
 
 function svg(name, size) {
@@ -3172,6 +3190,16 @@ function logoSvg(size) {
 function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return ({ '&': '&amp;', '<': '&lt;',
             '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; });
+}
+
+function renderFlagButton(qid, subjectId, mode) {
+    const isFlagged = qid && state.myFlaggedIds.indexOf(qid) !== -1;
+    return (
+        '<button class="flag-inline' + (isFlagged ? ' flagged' : '') + '" data-action="flag-review-question" data-qid="' +
+        (qid || '') + '" data-subject="' + (subjectId || '') + '" data-mode="' + mode + '" title="Flag Question">' +
+        svg('flag', 14) + '<span>Flag</span>' +
+        '</button>'
+    );
 }
 
 function subjectBadge(s) {
@@ -3620,6 +3648,7 @@ let state = {
     notifyModalData: null,
     
     flaggedCount: 0,
+    myFlaggedIds: [],
     
     underConstruction: false,
     constructionReopenTime: null,
@@ -4071,9 +4100,11 @@ async function loadLogs() {
             .order('created_at', { ascending: false })
             .limit(500);
         if (error) {
-            console.warn("Load logs error:", error);
+            console.warn("Load logs error:", error.message, error.code, error.details, error.hint);
+            showToast('Logs error: ' + (error.message || error.code || 'unknown'), 'error');
             state.admin.logs = [];
             state.admin.logsLoaded = true;
+            render();
             return;
         }
         state.admin.logs = data || [];
@@ -9102,7 +9133,7 @@ function renderMockExam() {
         '</div>' +
         '<div class="exam-body">' +
         '<div class="card exam-question-card">' +
-        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="mock" title="Flag Question">⚠️</button>' +
+        renderFlagButton(item ? item.id : '', subj ? subj.id : '', 'cbt') +
         '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
         '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
@@ -9777,11 +9808,12 @@ function renderDashboardCard(title, icon, contentHtml) {
 }
 
 function renderAdminAnalytics() {
-    if (state.analyticsLoading || (!state.analyticsLoaded && !state.analyticsData)) {
-        if (!state.analyticsLoaded) loadAnalyticsData();
+    if (!state.analyticsLoaded && !state.analyticsLoading) {
+        loadAnalyticsData();
+    }
+    if (state.analyticsLoading || !state.analyticsData) {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Crunching numbers...</p></div>';
     }
-
     const d = state.analyticsData;
     if (!d) return '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No data yet.</p></div>';
 
@@ -13861,7 +13893,7 @@ document.addEventListener('click', function(e) {
 
     if (action === 'flag-submit') {
         const data = state.flagModalData;
-        if (!data || !data.questionId) { showToast('No question to flag.', 'error'); return; }
+        if (!data || !data.questionId) { showToast('Could not identify this question — please try again from the question screen.', 'error'); return; }
         
         const reason = document.getElementById('flag-reason-input')?.value?.trim() || '';
         const userId = state.authUser?.id;
@@ -13871,6 +13903,7 @@ document.addEventListener('click', function(e) {
         
         saveFlaggedQuestion(userId, username, data.questionId, data.subjectId, data.mode, reason).then(function() {
             showToast('Question flagged. Thank you — our team will review it.', 'success');
+            if (state.myFlaggedIds.indexOf(data.questionId) === -1) state.myFlaggedIds.push(data.questionId);
             state.showFlagModal = false;
             state.flagModalData = null;
             loadFlaggedCount();
