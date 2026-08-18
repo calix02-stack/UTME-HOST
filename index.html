@@ -3623,6 +3623,11 @@ let state = {
     
     underConstruction: false,
     constructionReopenTime: null,
+
+    analyticsLoaded: false,
+    analyticsLoading: false,
+    analyticsData: null,
+    analyticsRange: 14,
 };
 
 // ============================================================
@@ -6613,6 +6618,17 @@ function render() {
         return;
     }
 
+    if (!state.authReady) {
+        root.innerHTML =
+            '<div id="app-shell"><div id="app-inner" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--card-bg)">' +
+            '<div style="text-align:center">' +
+            '<div style="margin-bottom:16px">' + logoSvg(56) + '</div>' +
+            '<div class="spinner" style="width:28px;height:28px;border:3px solid var(--line);border-top:3px solid var(--green);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto"></div>' +
+            '</div>' +
+            '</div></div>';
+        return;
+    }
+
     const SCROLL_PRESERVE_SELECTORS = [
         '.view-content',
         '.admin-question-list',
@@ -9513,6 +9529,7 @@ function renderLicensePlans() {
 //  ADMIN PANEL
 // ============================================================
 const ADMIN_TABS = [
+    { key: "analytics", label: "📈 Analytics" },
     { key: "overview", label: "📊 Overview" },
     { key: "questions", label: "📝 Questions" },
     { key: "settings", label: "⚙️ Settings" },
@@ -9546,7 +9563,8 @@ function renderAdmin() {
     });
 
     let body = "";
-    if (state.adminTab === "overview") body = renderAdminOverview();
+    if (state.adminTab === "analytics") body = renderAdminAnalytics();
+    else if (state.adminTab === "overview") body = renderAdminOverview();
     else if (state.adminTab === "questions") body = renderAdminQuestions();
     else if (state.adminTab === "settings") body = renderAdminSettings();
     else if (state.adminTab === "documents") body = renderAdminDocuments();
@@ -9567,6 +9585,317 @@ function renderAdmin() {
         '<div class="admin-tabs">' + tabBar + '</div>' +
         body
     );
+}
+
+// ============================================================
+//  ADMIN ANALYTICS DASHBOARD
+// ============================================================
+function dayKey(d) {
+    const dt = new Date(d);
+    return dt.toISOString().slice(0, 10);
+}
+function lastNDays(n) {
+    const out = [];
+    for (let i = n - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        out.push(d.toISOString().slice(0, 10));
+    }
+    return out;
+}
+function shortDay(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 3) + ' ' + d.getDate();
+}
+
+async function loadAnalyticsData() {
+    state.analyticsLoading = true;
+    render();
+
+    const rangeDays = state.analyticsRange || 14;
+    const sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - rangeDays);
+    const sinceISO = sinceDate.toISOString();
+
+    try {
+        const [profilesRes, historyRes, keysRes, logsRes, cbtRes, mockRes, subjRes] = await Promise.all([
+            supabase.from('profiles').select('id, username, email, is_active, activation_expiry, last_seen, created_at'),
+            supabase.from('exam_history').select('id, user_id, mode, total_score, max_score, submitted_at').gte('submitted_at', sinceISO),
+            supabase.from('activation_keys').select('*').eq('is_used', true),
+            supabase.from('activity_logs').select('action, created_at, username').gte('created_at', sinceISO),
+            supabase.from('cbt_scores').select('score, username'),
+            supabase.from('mock_scores').select('score, username'),
+            supabase.from('subject_scores').select('score, subject_id, username'),
+        ]);
+
+        const profiles = profilesRes.data || [];
+        const history = historyRes.data || [];
+        const paidKeys = keysRes.data || [];
+        const logs = logsRes.data || [];
+
+        const now = Date.now();
+        const totalUsers = profiles.length;
+        const activatedUsers = profiles.filter(function(p) {
+            return p.is_active && (!p.activation_expiry || new Date(p.activation_expiry).getTime() > now);
+        }).length;
+        const onlineNow = profiles.filter(function(p) {
+            return p.last_seen && (now - new Date(p.last_seen).getTime()) < 5 * 60 * 1000;
+        });
+        const activeToday = profiles.filter(function(p) {
+            return p.last_seen && (now - new Date(p.last_seen).getTime()) < 24 * 60 * 60 * 1000;
+        });
+
+        const days = lastNDays(rangeDays);
+        const signupsByDay = {};
+        const viewsByDay = {};
+        const modeAttemptsByDay = {}; // day -> {mode: count}
+        const modeUsers = {}; // mode -> Set of user_id -> list for display
+        const paymentsByDay = {};
+
+        days.forEach(function(d) { signupsByDay[d] = 0; viewsByDay[d] = 0; paymentsByDay[d] = 0; modeAttemptsByDay[d] = {}; });
+
+        profiles.forEach(function(p) {
+            if (!p.created_at) return;
+            const k = dayKey(p.created_at);
+            if (signupsByDay[k] !== undefined) signupsByDay[k]++;
+        });
+
+        logs.forEach(function(l) {
+            if (l.action !== 'page_view') return;
+            const k = dayKey(l.created_at);
+            if (viewsByDay[k] !== undefined) viewsByDay[k]++;
+        });
+
+        const modeLabels = { 'cbt-full': 'CBT Full', 'cbt-single': 'CBT Single', 'exam': 'Exam', 'mock': 'Mock', 'novel': 'Novel', 'topic': 'Topic' };
+        const modeAttemptsList = {}; // mode -> array of {username, score, max, date}
+
+        history.forEach(function(h) {
+            const k = dayKey(h.submitted_at);
+            if (!modeAttemptsByDay[k]) modeAttemptsByDay[k] = {};
+            modeAttemptsByDay[k][h.mode] = (modeAttemptsByDay[k][h.mode] || 0) + 1;
+
+            if (!modeUsers[h.mode]) modeUsers[h.mode] = new Set();
+            modeUsers[h.mode].add(h.user_id);
+
+            if (!modeAttemptsList[h.mode]) modeAttemptsList[h.mode] = [];
+            modeAttemptsList[h.mode].push(h);
+        });
+
+        let totalRevenue = 0;
+        paidKeys.forEach(function(k) {
+            totalRevenue += (k.price || 0);
+            if (k.used_at) {
+                const dk = dayKey(k.used_at);
+                if (paymentsByDay[dk] !== undefined) paymentsByDay[dk] += (k.price || 0);
+            }
+        });
+        paidKeys.sort(function(a, b) { return new Date(b.used_at) - new Date(a.used_at); });
+
+        // Score averages per mode
+        function avg(arr) { return arr.length ? Math.round(arr.reduce(function(a, b) { return a + b; }, 0) / arr.length) : 0; }
+        const cbtScores = (cbtRes.data || []).map(function(r) { return r.score || 0; });
+        const mockScores = (mockRes.data || []).map(function(r) { return r.score || 0; });
+        const subjScores = (subjRes.data || []).map(function(r) { return r.score || 0; });
+        const historyByModeAvg = {};
+        Object.keys(modeAttemptsList).forEach(function(m) {
+            const pcts = modeAttemptsList[m].map(function(h) { return h.max_score ? Math.round((h.total_score / h.max_score) * 100) : 0; });
+            historyByModeAvg[m] = avg(pcts);
+        });
+
+        state.analyticsData = {
+            totalUsers: totalUsers,
+            activatedUsers: activatedUsers,
+            inactiveUsers: totalUsers - activatedUsers,
+            onlineNow: onlineNow,
+            activeToday: activeToday.length,
+            signupsByDay: days.map(function(d) { return { label: shortDay(d), value: signupsByDay[d] }; }),
+            viewsByDay: days.map(function(d) { return { label: shortDay(d), value: viewsByDay[d] }; }),
+            paymentsByDay: days.map(function(d) { return { label: shortDay(d), value: paymentsByDay[d] }; }),
+            totalViews: Object.values(viewsByDay).reduce(function(a, b) { return a + b; }, 0),
+            totalRevenue: totalRevenue,
+            paidKeys: paidKeys,
+            modeAttemptsByDay: modeAttemptsByDay,
+            modeUsers: modeUsers,
+            modeLabels: modeLabels,
+            days: days,
+            historyByModeAvg: historyByModeAvg,
+            totalAttempts: history.length,
+            cbtAvg: avg(cbtScores),
+            mockAvg: avg(mockScores),
+            subjAvg: avg(subjScores),
+        };
+        state.analyticsLoaded = true;
+        state.analyticsLoading = false;
+        render();
+    } catch (e) {
+        console.warn('Analytics load error:', e);
+        showToast('Error loading analytics: ' + (e.message || 'unknown'), 'error');
+        state.analyticsLoaded = true;
+        state.analyticsLoading = false;
+        render();
+    }
+}
+
+function renderStatCard(icon, value, label, color) {
+    return (
+        '<div class="card" style="text-align:center;padding:14px 6px;margin:0">' +
+        '<div style="font-size:20px;margin-bottom:4px">' + icon + '</div>' +
+        '<div style="font-size:20px;font-weight:800;color:' + (color || 'var(--green)') + ';line-height:1.1">' + value + '</div>' +
+        '<div style="font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.04em">' + esc(label) + '</div>' +
+        '</div>'
+    );
+}
+
+function renderBarChart(data, opts) {
+    opts = opts || {};
+    const color = opts.color || GREEN;
+    const prefix = opts.prefix || '';
+    const max = Math.max(1, ...data.map(function(d) { return d.value; }));
+    let bars = '';
+    data.forEach(function(d) {
+        const pct = Math.max(2, Math.round((d.value / max) * 100));
+        bars += (
+            '<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:22px">' +
+            '<div style="font-size:9px;font-weight:700;color:var(--ink);margin-bottom:3px;white-space:nowrap">' + prefix + d.value + '</div>' +
+            '<div style="width:100%;max-width:24px;height:80px;display:flex;align-items:flex-end;background:var(--bg);border-radius:4px;overflow:hidden">' +
+            '<div style="width:100%;height:' + pct + '%;background:' + color + ';border-radius:3px 3px 0 0;transition:height 0.3s"></div>' +
+            '</div>' +
+            '<div style="font-size:8px;color:var(--muted);margin-top:4px;text-align:center;white-space:nowrap">' + esc(d.label) + '</div>' +
+            '</div>'
+        );
+    });
+    return '<div style="display:flex;gap:5px;align-items:flex-end;overflow-x:auto;padding:4px 2px 0">' + bars + '</div>';
+}
+
+function renderDashboardCard(title, icon, contentHtml) {
+    return (
+        '<div class="card" style="margin-bottom:10px">' +
+        '<p style="font-size:12px;font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:6px">' + icon + ' ' + esc(title) + '</p>' +
+        contentHtml +
+        '</div>'
+    );
+}
+
+function renderAdminAnalytics() {
+    if (state.analyticsLoading || (!state.analyticsLoaded && !state.analyticsData)) {
+        if (!state.analyticsLoaded) loadAnalyticsData();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Crunching numbers...</p></div>';
+    }
+
+    const d = state.analyticsData;
+    if (!d) return '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No data yet.</p></div>';
+
+    let html = '';
+
+    // Range selector
+    html += (
+        '<div style="display:flex;gap:4px;margin-bottom:12px">' +
+        [7, 14, 30].map(function(n) {
+            return '<button class="btn btn-sm ' + (state.analyticsRange === n ? 'btn-green' : 'btn-outline') + '" data-action="analytics-range" data-range="' + n + '" style="flex:1">' + n + ' days</button>';
+        }).join('') +
+        '<button class="btn btn-outline btn-sm" data-action="analytics-refresh" style="flex:0 0 auto;padding:6px 10px">🔄</button>' +
+        '</div>'
+    );
+
+    // KEY METRIC CARDS
+    html += '<p class="section-label">👥 User Overview</p>';
+    html += (
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
+        renderStatCard('👤', d.totalUsers, 'Total Users', GREEN) +
+        renderStatCard('✅', d.activatedUsers, 'Activated', GREEN) +
+        renderStatCard('⛔', d.inactiveUsers, 'Inactive', '#e2543a') +
+        renderStatCard('🟢', d.onlineNow.length, 'Online Now', GOLD) +
+        renderStatCard('📅', d.activeToday, 'Active Today', GREEN) +
+        renderStatCard('👁️', d.totalViews, 'App Views', '#2E6FF2') +
+        '</div>'
+    );
+
+    // Signups chart
+    html += renderDashboardCard('New Signups', '📈', renderBarChart(d.signupsByDay, { color: GREEN }));
+
+    // App views chart
+    html += renderDashboardCard('App Views (opens)', '👁️', renderBarChart(d.viewsByDay, { color: '#2E6FF2' }));
+
+    // ONLINE NOW LIST
+    let onlineList = '';
+    if (d.onlineNow.length === 0) {
+        onlineList = '<p style="font-size:12px;color:var(--faint);text-align:center;padding:10px 0">No one online right now.</p>';
+    } else {
+        d.onlineNow.slice(0, 20).forEach(function(p) {
+            onlineList += (
+                '<div class="lb-row" style="padding:6px 10px">' +
+                '<div class="left"><span style="width:8px;height:8px;border-radius:999px;background:#4CAF50;display:inline-block"></span>' +
+                '<span style="font-size:12px">' + esc(p.username) + '</span></div>' +
+                '<span style="font-size:9px;color:var(--faint)">' + formatTimeAgo(p.last_seen) + '</span>' +
+                '</div>'
+            );
+        });
+    }
+    html += renderDashboardCard('Currently Online (' + d.onlineNow.length + ')', '🟢', onlineList);
+
+    // MODE USAGE
+    html += '<p class="section-label" style="margin-top:6px">🎯 Mode Usage (' + state.analyticsRange + ' days)</p>';
+    html += (
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
+        renderStatCard('📝', d.totalAttempts, 'Total Attempts', GOLD) +
+        renderStatCard('📚', (d.modeUsers['cbt-full'] ? d.modeUsers['cbt-full'].size : 0) + (d.modeUsers['cbt-single'] ? d.modeUsers['cbt-single'].size : 0), 'CBT Users', '#2E6FF2') +
+        renderStatCard('🎯', d.modeUsers['mock'] ? d.modeUsers['mock'].size : 0, 'Mock Users', '#8E44AD') +
+        '</div>'
+    );
+
+    Object.keys(d.modeLabels).forEach(function(m) {
+        const perDay = d.days.map(function(day) {
+            return { label: shortDay(day), value: (d.modeAttemptsByDay[day] && d.modeAttemptsByDay[day][m]) || 0 };
+        });
+        const totalForMode = perDay.reduce(function(a, b) { return a + b.value; }, 0);
+        if (totalForMode === 0) return;
+        html += renderDashboardCard(
+            d.modeLabels[m] + ' — ' + totalForMode + ' attempts, avg ' + (d.historyByModeAvg[m] || 0) + '%',
+            '📊',
+            renderBarChart(perDay, { color: SUBJECT_PALETTE[Object.keys(d.modeLabels).indexOf(m) % SUBJECT_PALETTE.length] })
+        );
+    });
+
+    // SCORE ANALYTICS
+    html += '<p class="section-label" style="margin-top:6px">🏆 Score Analytics</p>';
+    html += (
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
+        renderStatCard('📚', d.cbtAvg + '%', 'Avg CBT Score', GREEN) +
+        renderStatCard('🎯', d.mockAvg + '%', 'Avg Mock Score', '#8E44AD') +
+        renderStatCard('📋', d.subjAvg + '%', 'Avg Subject Score', '#7C5CFC') +
+        '</div>'
+    );
+
+    // PAYMENTS / REVENUE
+    html += '<p class="section-label" style="margin-top:6px">💰 Payments &amp; Revenue</p>';
+    html += (
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">' +
+        renderStatCard('💵', '₦' + d.totalRevenue.toLocaleString(), 'Total Revenue', GOLD) +
+        renderStatCard('🧾', d.paidKeys.length, 'Confirmed Payments', GREEN) +
+        '</div>'
+    );
+    html += renderDashboardCard('Revenue by Day (₦)', '📈', renderBarChart(d.paymentsByDay, { color: GOLD }));
+
+    let paymentRows = '';
+    if (d.paidKeys.length === 0) {
+        paymentRows = '<p style="font-size:12px;color:var(--faint);text-align:center;padding:10px 0">No confirmed payments yet.</p>';
+    } else {
+        d.paidKeys.slice(0, 30).forEach(function(k) {
+            paymentRows += (
+                '<div class="admin-user-row" style="cursor:default">' +
+                '<div class="user-info">' +
+                '<span class="user-name">' + esc(k.used_by_username || 'Unknown') + '</span>' +
+                '<span class="user-email">' + esc(k.plan_name || '') + ' · ' + (k.days || 0) + ' days · ' + esc(k.key_code || '') + '</span>' +
+                '</div>' +
+                '<span style="font-weight:700;color:var(--green);font-size:13px">₦' + (k.price || 0).toLocaleString() + '</span>' +
+                '<span style="font-size:9px;color:var(--faint)">' + formatTimeAgo(k.used_at) + '</span>' +
+                '</div>'
+            );
+        });
+    }
+    html += renderDashboardCard('Recent Payments (' + d.paidKeys.length + ')', '🧾', '<div style="max-height:300px;overflow-y:auto">' + paymentRows + '</div>');
+
+    return html;
 }
 
 // ============================================================
@@ -12266,6 +12595,7 @@ document.addEventListener('click', function(e) {
         state.adminQuestionsKey = null;
         state.admin.viewModeQuestions = false;
         state.admin.viewingMockAttempts = null;
+        if (state.adminTab === 'analytics') { state.analyticsLoaded = false; loadAnalyticsData(); }
         if (state.adminTab === 'documents') state.docsLoaded = false;
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
         else if (state.adminTab === 'mock') { state.mockLoaded = false;
@@ -12307,6 +12637,18 @@ document.addEventListener('click', function(e) {
     if (action === 'admin-refresh-logs') {
         state.admin.logsLoaded = false;
         loadLogs();
+        return;
+    }
+    
+    if (action === 'analytics-range') {
+        state.analyticsRange = parseInt(el.getAttribute('data-range'), 10);
+        state.analyticsLoaded = false;
+        loadAnalyticsData();
+        return;
+    }
+    if (action === 'analytics-refresh') {
+        state.analyticsLoaded = false;
+        loadAnalyticsData();
         return;
     }
 
@@ -13896,6 +14238,15 @@ async function init() {
     loadFlaggedCount();
     if (state.authUser) cacheAllDataForOffline();
 
+    addLog(state.authUser ? state.authUser.id : null, state.profile.name || 'Guest', 'page_view', 'App opened');
+    if (state.authUser) {
+        supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', state.authUser.id).then(function() {});
+        setInterval(function() {
+            if (state.authUser) {
+                supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', state.authUser.id).then(function() {});
+            }
+        }, 2 * 60 * 1000);
+    }
     window.addEventListener('online', function() {
         showToast('Back online — syncing data...', '');
         cacheAllDataForOffline();
