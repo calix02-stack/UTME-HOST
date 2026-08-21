@@ -23,6 +23,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="https://myutme.name.ng/icon-192.png" />
 <link rel="shortcut icon" href="https://myutme.name.ng/icon-192.png" />
 <title>JAMB CBT Practice App – Free UTME Mock Exams & Past Questions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <meta name="description" content="Free JAMB CBT app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions, and drill topics subject by subject. The easiest JAMB CBT practice app to prepare for UTME on your phone." />
 <meta property="og:title" content="MyUTME - JAMB CBT Practice App" />
 <meta property="og:description" content="Practice real JAMB CBT-style questions, take timed mock exams, and drill topics subject by subject." />
@@ -47,7 +49,7 @@
         --line: #E1EBE3;
         --bg: #F4F1EA;
         --font-serif: Georgia, 'Times New Roman', Cambria, serif;
-        --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         --card-bg: #ffffff;
         --shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
@@ -88,9 +90,13 @@
         --flag-color: #f1c40f;
     }
 
-    /* Anti-screenshot */
+    /* Anti-screenshot (scoped to exam content only, not the whole app) */
     * {
         -webkit-touch-callout: none;
+    }
+    .exam-question-card, .exam-options-wrap, .qa-option,
+    .review-item .q-text, .weak-question-item .q-text,
+    .saved-question-item .q-text {
         -webkit-user-select: none;
         user-select: none;
     }
@@ -110,7 +116,10 @@
         font-family: var(--font-sans);
         color: var(--ink);
         line-height: 1.5;
+        font-weight: 600;
     }
+    h1, h2, h3, .title, .hi-name, p.label, .mock-title, .h-title { font-weight: 800 !important; }
+    button, .btn, .mini-btn, .auth-btn { font-weight: 700; }
     button {
         font-family: inherit;
         cursor: pointer;
@@ -348,7 +357,7 @@
         background: var(--bg);
         transition: background 0.3s;
         position: relative;
-        max-height: calc(100vh - 64px);
+        max-height: calc(100vh - 64px - 58px);
     }
     .view:has(.picker-footer) {
         padding-bottom: 110px;
@@ -2498,6 +2507,30 @@
         color: var(--muted);
     }
 
+    .bottom-nav {
+        display: flex;
+        flex-shrink: 0;
+        border-top: 1px solid var(--line);
+        background: var(--card-bg);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .bottom-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 8px 2px 10px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 700;
+        transition: color 0.2s;
+    }
+    .bottom-nav-item svg { width: 20px; height: 20px; }
+    .bottom-nav-item.active { color: var(--green); }
+
     @media (max-width: 400px) {
         .home-grid { grid-template-columns: 1fr 1fr; }
         .auth-btn { font-size: 9px; padding: 3px 6px; }
@@ -2996,6 +3029,446 @@
     #inapp-notif-banner .text .title { font-weight: 600; font-size: 12px; color: var(--ink); margin: 0; }
     #inapp-notif-banner .text .body { font-size: 11px; color: var(--muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #inapp-notif-banner .dismiss { font-size: 16px; color: var(--faint); cursor: pointer; padding: 0 4px; flex-shrink: 0; }
+
+    /* ============================================================
+       NEW ACCOUNT PAGE STYLES (acct-*)
+       ============================================================ */
+    .acct-hero {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+        border-radius: 20px;
+        padding: 22px 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 10px 30px rgba(15, 107, 63, 0.25);
+    }
+    .acct-hero .glow2 {
+        position: absolute;
+        top: -40px;
+        right: -30px;
+        width: 140px;
+        height: 140px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+    }
+    .acct-hero-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        position: relative;
+        z-index: 1;
+    }
+    .acct-avatar-wrap {
+        position: relative;
+        width: 68px;
+        height: 68px;
+        flex-shrink: 0;
+    }
+    .acct-avatar-wrap img,
+    .acct-avatar-wrap .acct-avatar-fallback {
+        width: 68px;
+        height: 68px;
+        border-radius: 999px;
+        object-fit: cover;
+        border: 3px solid rgba(255,255,255,0.35);
+    }
+    .acct-avatar-fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255,255,255,0.15);
+        color: #fff;
+        font-family: var(--font-serif);
+        font-size: 26px;
+    }
+    .acct-avatar-edit {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: var(--gold);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        border: 2px solid var(--green);
+        cursor: pointer;
+        color: #3A2A0A;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .acct-hero-name {
+        color: #fff;
+        font-family: var(--font-serif);
+        font-size: 19px;
+        margin: 0;
+        line-height: 1.2;
+    }
+    .acct-hero-user {
+        color: rgba(255,255,255,0.75);
+        font-size: 12px;
+        margin: 2px 0 0;
+    }
+    .acct-hero-email {
+        color: rgba(255,255,255,0.6);
+        font-size: 11px;
+        margin: 1px 0 0;
+        word-break: break-all;
+    }
+    .acct-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 8px;
+        padding: 3px 11px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+    }
+    .acct-status-pill.on {
+        background: rgba(255,255,255,0.2);
+        color: #fff;
+    }
+    .acct-status-pill.off {
+        background: rgba(226,84,58,0.25);
+        color: #ffd8d0;
+    }
+
+    .wallet-card {
+        background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1f 100%);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 14px;
+        position: relative;
+        overflow: hidden;
+    }
+    .wallet-card .wc-label {
+        color: rgba(255,255,255,0.55);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin: 0;
+    }
+    .wallet-card .wc-amount {
+        color: #fff;
+        font-family: var(--font-mono);
+        font-size: 30px;
+        font-weight: 700;
+        margin: 4px 0 12px;
+    }
+    .wallet-card .wc-amount span {
+        color: var(--gold);
+        font-size: 18px;
+    }
+    .wallet-card .wc-actions {
+        display: flex;
+        gap: 8px;
+    }
+    .wallet-card .wc-btn {
+        flex: 1;
+        padding: 9px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+        cursor: pointer;
+        border: none;
+        font-family: inherit;
+    }
+    .wallet-card .wc-btn.fund {
+        background: var(--gold);
+        color: #3A2A0A;
+    }
+    .wallet-card .wc-btn.fund:hover { background: #d49a2e; }
+    .wallet-card .wc-btn.tx {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.15);
+    }
+    .wallet-card .wc-btn.tx:hover { background: rgba(255,255,255,0.18); }
+
+    .acct-menu-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .acct-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        cursor: pointer;
+        transition: border-color .15s, transform .15s;
+    }
+    .acct-menu-item:active {
+        transform: scale(0.98);
+    }
+    .acct-menu-item .amicon {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 18px;
+    }
+    .acct-menu-item .amii-text {
+        flex: 1;
+        min-width: 0;
+    }
+    .acct-menu-item .amii-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 0;
+    }
+    .acct-menu-item .amii-sub {
+        font-size: 10px;
+        color: var(--muted);
+        margin: 1px 0;
+    }
+    .acct-menu-item .amii-badge {
+        background: var(--gold);
+        color: var(--ink);
+        font-size: 8px;
+        font-weight: 800;
+        padding: 1px 6px;
+        border-radius: 999px;
+        margin-left: 4px;
+        text-transform: uppercase;
+    }
+
+    .field-locked {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: var(--bg);
+        color: var(--muted);
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 400;
+    }
+    .field-locked .lock-icon {
+        font-size: 14px;
+        color: var(--faint);
+        flex-shrink: 0;
+    }
+
+    .reminder-day-chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin: 6px 0 10px;
+    }
+    .reminder-day-chip {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        border: 1.5px solid var(--line);
+        background: var(--card-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .reminder-day-chip.active {
+        background: var(--green);
+        border-color: var(--green);
+        color: #fff;
+    }
+    .reminder-day-chip:active { transform: scale(0.92); }
+
+    .avatar-upload-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.6);
+        padding: 20px;
+    }
+    .avatar-upload-modal {
+        background: var(--modal-bg);
+        border-radius: 16px;
+        padding: 20px;
+        max-width: 320px;
+        width: 100%;
+        text-align: center;
+    }
+    .avatar-upload-modal .preview-circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 999px;
+        object-fit: cover;
+        margin: 0 auto 12px;
+        border: 3px solid var(--line);
+        display: block;
+        background: var(--bg);
+    }
+    .avatar-upload-modal .preview-circle.fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-serif);
+        font-size: 36px;
+        color: var(--muted);
+        background: var(--bg);
+        border: 3px solid var(--line);
+    }
+    .avatar-upload-modal .btn-group {
+        display: flex;
+        gap: 6px;
+        margin-top: 10px;
+    }
+    .avatar-upload-modal .btn-group .btn { flex: 1; }
+
+    .tx-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 6px;
+        transition: background 0.3s, border-color 0.3s;
+    }
+    .tx-row .tx-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+    .tx-row .tx-icon.fund {
+        background: #e8f5e9;
+        color: var(--green);
+    }
+    .tx-row .tx-icon.purchase {
+        background: #fce4ec;
+        color: var(--danger);
+    }
+    .tx-row .tx-icon.refund {
+        background: #fff3e0;
+        color: #e65100;
+    }
+    [data-theme="dark"] .tx-row .tx-icon.fund { background: #1a3d1a; color: #4caf50; }
+    [data-theme="dark"] .tx-row .tx-icon.purchase { background: #3d1a1a; color: #ef5350; }
+    [data-theme="dark"] .tx-row .tx-icon.refund { background: #3d2d1a; color: #ffa726; }
+    .tx-row .tx-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .tx-row .tx-desc {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink);
+        margin: 0;
+    }
+    .tx-row .tx-date {
+        font-size: 9px;
+        color: var(--muted);
+        margin: 1px 0 0;
+    }
+    .tx-row .tx-amount {
+        font-family: var(--font-mono);
+        font-size: 14px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .tx-row .tx-amount.pos { color: var(--green); }
+    .tx-row .tx-amount.neg { color: var(--danger); }
+
+    .fund-quick-btns {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin: 6px 0 10px;
+    }
+    .fund-quick-btns .qbtn {
+        flex: 1;
+        min-width: 60px;
+        padding: 6px 4px;
+        border-radius: 8px;
+        border: 1.5px solid var(--line);
+        background: var(--card-bg);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink);
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+        text-align: center;
+    }
+    .fund-quick-btns .qbtn:hover {
+        border-color: var(--gold);
+        background: #fbf3e3;
+    }
+    [data-theme="dark"] .fund-quick-btns .qbtn:hover {
+        background: #2d2d1a;
+        border-color: var(--gold);
+    }
+
+    .study-time-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin: 6px 0 10px;
+    }
+    .study-time-row .st-group {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .study-time-row .st-group label {
+        font-size: 11px;
+        color: var(--muted);
+    }
+    .study-time-row .st-group input {
+        width: 50px;
+        padding: 4px 6px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        background: var(--card-bg);
+        color: var(--ink);
+    }
+    .study-time-row .st-group input:focus { border-color: var(--green); }
+    .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
+    }
+    .toggle-row .toggle-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+    }
 </style>
 </head>
 <body>
@@ -3095,6 +3568,7 @@ const GOLD = "#E4A93A";
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const PAYSTACK_PUBLIC_KEY = "pk_live_58e6b5b2ecc81730786fb95ec444a77422a4b2b4";
 const PAYSTACK_VERIFY_URL = SUPABASE_URL + "/functions/v1/verify-paystack-payment";
+const ADMIN_WHATSAPP_NUMBER = "2347072853151";
 
 const SUBJECT_PALETTE = ["#2E6FF2", "#E2543A", "#7C5CFC", "#0E9488", "#E4A93A", "#4C5FD5", "#0F6B3F", "#D64EA0",
     "#F2994A", "#5B8DEF", "#EA5455", "#00A896", "#8E44AD", "#16A085", "#C0392B", "#2980B9", "#B08968", "#3F72AF"
@@ -3205,8 +3679,9 @@ function renderFlagButton(qid, subjectId, mode) {
     const isFlagged = qid && state.myFlaggedIds.indexOf(qid) !== -1;
     return (
         '<button class="flag-inline' + (isFlagged ? ' flagged' : '') + '" data-action="flag-review-question" data-qid="' +
-        (qid || '') + '" data-subject="' + (subjectId || '') + '" data-mode="' + mode + '" title="Flag Question">' +
-        svg('flag', 14) + '<span>Flag</span>' +
+        (qid || '') + '" data-subject="' + (subjectId || '') + '" data-mode="' + mode + '" title="' +
+        (isFlagged ? 'Flagged' : 'Flag Question') + '">' +
+        svg('flag', 14) + '<span>' + (isFlagged ? 'Flagged' : 'Flag') + '</span>' +
         '</button>'
     );
 }
@@ -3351,7 +3826,7 @@ function showToast(msg, type) {
 // ============================================================
 let state = {
     phase: "splash",
-    profile: { name: "Guest", email: "", id: null, is_active: true, activation_expiry: null },
+    profile: { name: "Guest", email: "", id: null, is_active: true, activation_expiry: null, fullName: "", avatarUrl: null, walletBalance: 0 },
     drawerOpen: false,
     view: "home",
     darkMode: false,
@@ -3377,6 +3852,7 @@ let state = {
     resetSuccess: false,
     loginEmail: "",
     loginPassword: "",
+    signupFullName: "",
     signupUsername: "",
     signupEmail: "",
     signupPassword: "",
@@ -3669,6 +4145,21 @@ analyticsData: null,
 analyticsRange: 14,
 analyticsUserFilter: null,
 analyticsSubTab: 'overview',
+
+    // NEW: Wallet & Transactions
+    showAvatarUpload: false,
+    avatarUploadFile: null,
+    showFundWallet: false,
+    fundWalletAmount: '',
+    walletTransactions: [],
+    walletTransactionsLoaded: false,
+
+    // NEW: Study Reminder
+    studyReminder: null,
+    studyReminderLoaded: false,
+    studyReminderHour: 19,
+    studyReminderMinute: 0,
+    studyReminderDays: [1,2,3,4,5,6,0],
 };
 
 // ============================================================
@@ -3679,7 +4170,7 @@ async function loadAllUsers() {
     try {
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, email, is_active, activation_expiry')
+            .select('id, username, full_name, email, is_active, activation_expiry, profile_image_url, wallet_balance')
             .order('username');
         if (error) {
             console.warn("Load users error:", error);
@@ -3754,6 +4245,7 @@ async function loadLeaderboard(type) {
             return {
                 user_id: user.id,
                 username: user.username,
+                full_name: user.full_name || user.username,
                 score: score ? score.score : 0,
                 has_attempted: !!score,
                 subject_scores: score ? score.subject_scores || null : null,
@@ -3805,6 +4297,7 @@ async function loadSubjectLeaderboard(subjectId) {
             return {
                 user_id: user.id,
                 username: user.username,
+                full_name: user.full_name || user.username,
                 score: score ? score.score : 0,
                 has_attempted: !!score,
             };
@@ -4416,12 +4909,18 @@ async function checkAuthSession() {
                 state.profile.id = user.id;
                 state.profile.is_active = prof.is_active !== false;
                 state.profile.activation_expiry = prof.activation_expiry || null;
+                state.profile.fullName = prof.full_name || '';
+                state.profile.avatarUrl = prof.profile_image_url || null;
+                state.profile.walletBalance = prof.wallet_balance || 0;
             } else {
                 state.profile.name = user.user_metadata?.username || user.email?.split('@')[0] || "User";
                 state.profile.email = user.email || "";
                 state.profile.id = user.id;
                 state.profile.is_active = true;
                 state.profile.activation_expiry = null;
+                state.profile.fullName = '';
+                state.profile.avatarUrl = null;
+                state.profile.walletBalance = 0;
             }
             state.formName = state.profile.name;
             state.formEmail = state.profile.email;
@@ -4484,7 +4983,7 @@ function dismissInAppBanner() {
     if (inAppBannerTimer) clearTimeout(inAppBannerTimer);
 }
 
-async function signUp(username, email, password) {
+async function signUp(fullName, username, email, password) {
     state.authLoading = true;
     state.authError = null;
     render();
@@ -4507,7 +5006,7 @@ async function signUp(username, email, password) {
         const { data, error } = await supabase.auth.signUp({
             email: email,
             password: password,
-            options: { data: { username: username } }
+            options: { data: { username: username, full_name: fullName } }
         });
 
         if (error) throw error;
@@ -4515,7 +5014,14 @@ async function signUp(username, email, password) {
         if (data.user) {
             await supabase
                 .from('profiles')
-                .insert([{ id: data.user.id, username: username, email: email, is_active: false }]);
+                .insert([{ 
+                    id: data.user.id, 
+                    username: username, 
+                    email: email, 
+                    is_active: false,
+                    full_name: fullName,
+                    wallet_balance: 0,
+                }]);
 
             await supabase.auth.signInWithPassword({ email: email, password: password });
 
@@ -4525,8 +5031,12 @@ async function signUp(username, email, password) {
             state.profile.id = data.user.id;
             state.profile.is_active = false;
             state.profile.activation_expiry = null;
+            state.profile.fullName = fullName;
+            state.profile.avatarUrl = null;
+            state.profile.walletBalance = 0;
 
             state.showSignup = false;
+            state.signupFullName = "";
             state.signupUsername = "";
             state.signupEmail = "";
             state.signupPassword = "";
@@ -4589,12 +5099,18 @@ async function signIn(emailOrUsername, password) {
                 state.profile.id = data.user.id;
                 state.profile.is_active = prof.is_active !== false;
                 state.profile.activation_expiry = prof.activation_expiry || null;
+                state.profile.fullName = prof.full_name || '';
+                state.profile.avatarUrl = prof.profile_image_url || null;
+                state.profile.walletBalance = prof.wallet_balance || 0;
             } else {
                 state.profile.name = data.user.user_metadata?.username || data.user.email?.split('@')[0] || "User";
                 state.profile.email = data.user.email || "";
                 state.profile.id = data.user.id;
                 state.profile.is_active = true;
                 state.profile.activation_expiry = null;
+                state.profile.fullName = '';
+                state.profile.avatarUrl = null;
+                state.profile.walletBalance = 0;
             }
             state.formName = state.profile.name;
             state.formEmail = state.profile.email;
@@ -4627,7 +5143,7 @@ async function signOut() {
         await supabase.auth.signOut();
         state.authUser = null;
         state.authProfile = null;
-        state.profile = { name: "Guest", email: "", id: null, is_active: true, activation_expiry: null };
+        state.profile = { name: "Guest", email: "", id: null, is_active: true, activation_expiry: null, fullName: "", avatarUrl: null, walletBalance: 0 };
         state.formName = "";
         state.formEmail = "";
         storage.set("profile", JSON.stringify(state.profile));
@@ -6664,6 +7180,15 @@ function setView(v) {
         state.weakQuestionStates = {};
         loadWeakQuestions();
     }
+    // NEW: load transactions when view is set
+    if (v === "transactions") {
+        state.walletTransactionsLoaded = false;
+        loadWalletTransactions();
+    }
+    if (v === "study-reminder") {
+        state.studyReminderLoaded = false;
+        loadStudyReminder();
+    }
     saveSessionSnapshot();
     render();
 }
@@ -6748,6 +7273,12 @@ function render() {
     }
     if (state.showGotoModal) {
         html += renderGotoModal();
+    }
+    if (state.showAvatarUpload) {
+        html += renderAvatarUploadModal();
+    }
+    if (state.showFundWallet) {
+        html += renderFundWalletModal();
     }
     
     const urlParams = new URLSearchParams(window.location.search);
@@ -6858,9 +7389,6 @@ function renderApp() {
     const initial = userName.trim().charAt(0).toUpperCase() || "G";
 
     let leftContent = '';
-    leftContent += '<button class="icon-btn" data-action="open-drawer" aria-label="Open menu">' +
-        svg("menu", 20).replace('stroke="currentColor"', 'stroke="white"') +
-        '</button>';
 
     if (!isLoggedIn) {
         leftContent +=
@@ -6909,9 +7437,31 @@ function renderApp() {
         '<div class="topbar-right">' + rightContent + '</div>' +
         '</div>' +
         '<div class="view"><div class="view-content">' + renderView() + '</div></div>' +
+        renderBottomNav() +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
         '</div></div>'
     );
+}
+
+function renderBottomNav() {
+    const items = [
+        { key: 'home', label: 'Home', icon: 'home' },
+        { key: 'documents', label: 'My Learning', icon: 'folder' },
+        { key: 'cbt', label: 'CBT Exams', icon: 'monitor' },
+        { key: 'mockexam', label: 'Mock Exam', icon: 'target' },
+        { key: 'profile', label: 'Account', icon: 'user' },
+    ];
+    let html = '<div class="bottom-nav">';
+    items.forEach(function(it) {
+        const isActive = state.view === it.key;
+        html += '<button class="bottom-nav-item' + (isActive ? ' active' : '') +
+            '" data-action="set-view" data-view="' + it.key + '">' +
+            svg(it.icon, 20) +
+            '<span>' + it.label + '</span>' +
+            '</button>';
+    });
+    html += '</div>';
+    return html;
 }
 
 // ============================================================
@@ -6946,6 +7496,8 @@ function renderView() {
     if (v === "history") return renderHistory();
     if (v === "privacy") return renderPrivacyPolicy();
     if (v === "terms") return renderTermsOfService();
+    if (v === "transactions") return renderTransactionHistory();
+    if (v === "study-reminder") return renderStudyReminderPage();
 
     const tile = HOME_TILES.find(function(t) { return t.key === v; });
     if (tile) return renderFeature(tile);
@@ -7987,7 +8539,7 @@ function renderLitExam() {
         '</div>' +
         '<div class="exam-body">' +
         '<div class="card exam-question-card">' +
-        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (item ? item.subject_id : '') + '" data-mode="novel" title="Flag Question">⚠️</button>' +
+        renderFlagButton(item ? item.id : '', subj ? subj.id : '', 'cbt') +
         '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
         '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
@@ -8660,392 +9212,620 @@ function renderHistory() {
 }
 
 // ============================================================
-//  PROFILE
+//  PROFILE - COMPLETE REWRITE
 // ============================================================
 function renderProfile() {
     const isLoggedIn = !!state.authUser;
     const isActive = isUserActive();
     const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
     const isEditing = state.profileEditing || false;
-    let statusMsg = '';
-    let expiryBadge = '';
-    if (isLoggedIn) {
-        if (isActive) {
-            statusMsg = '<p style="font-size:12px;color:var(--green);margin-top:2px">✓ Account Active</p>';
-            if (expiry) {
-                const daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
-                let badgeClass = 'active';
-                if (daysLeft < 3) badgeClass = 'expiring-soon';
-                expiryBadge = '<span class="expiry-badge ' + badgeClass + '">' + daysLeft + ' days left</span>';
-                statusMsg += '<p style="font-size:10px;color:var(--muted);margin-top:1px">Expires: ' + expiry
-                    .toLocaleDateString() + ' ' + expiryBadge + '</p>';
-            }
-        } else {
-            statusMsg = '<p style="font-size:12px;color:var(--unanswered);margin-top:2px">⚠️ Account Inactive</p>' +
-                '<p style="font-size:10px;color:var(--muted);margin-top:1px">Contact admin for activation</p>';
-        }
+    const fullName = state.profile.fullName || state.profile.name || 'Guest';
+    const username = state.profile.name || 'Guest';
+    const email = state.profile.email || '';
+    const avatarUrl = state.profile.avatarUrl || null;
+    const walletBalance = state.profile.walletBalance || 0;
+    
+    let daysLeft = 0;
+    if (expiry) {
+        daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
     }
-
-    let fieldsHtml = '';
-    if (isEditing && isLoggedIn) {
-        fieldsHtml =
+    
+    // Guest view
+    if (!isLoggedIn) {
+        return (
+            '<h2 class="title" style="margin-bottom:12px;font-size:18px">Account</h2>' +
+            '<div class="acct-hero" style="text-align:center;padding:28px 18px">' +
+            '<div class="glow2"></div>' +
+            '<div class="acct-hero-row" style="justify-content:center">' +
+            '<div class="acct-avatar-wrap">' +
+            '<div class="acct-avatar-fallback" style="font-size:32px">👤</div>' +
+            '</div>' +
+            '</div>' +
+            '<h3 class="acct-hero-name" style="margin-top:10px">Guest</h3>' +
+            '<p class="acct-hero-email">You are not logged in</p>' +
+            '<div style="display:flex;gap:8px;margin-top:14px;justify-content:center">' +
+            '<button class="btn btn-gold" style="flex:0.5;padding:10px;font-size:13px" data-action="show-login">Log in</button>' +
+            '<button class="btn btn-outline" style="flex:0.5;padding:10px;font-size:13px;background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.2);color:#fff" data-action="show-signup">Sign up</button>' +
+            '</div>' +
+            '</div>' +
+            '<div class="card" style="margin-top:10px;text-align:center;padding:16px">' +
+            '<p style="font-size:12px;color:var(--muted);margin:0">Create an account to track your progress and access all features.</p>' +
+            '</div>'
+        );
+    }
+    
+    // Build status pill
+    let statusPill = '';
+    let expiryText = '';
+    if (isAdmin()) {
+        statusPill = '<span class="acct-status-pill on">👑 Admin</span>';
+    } else if (isActive) {
+        if (expiry) {
+            expiryText = daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left';
+            statusPill = '<span class="acct-status-pill on">✓ Active · ' + expiryText + '</span>';
+        } else {
+            statusPill = '<span class="acct-status-pill on">✓ Active</span>';
+        }
+    } else {
+        statusPill = '<span class="acct-status-pill off">Not Activated</span>';
+    }
+    
+    // Avatar fallback letter
+    const avatarLetter = (fullName || username || 'G').trim().charAt(0).toUpperCase();
+    const avatarHtml = avatarUrl 
+        ? '<img src="' + esc(avatarUrl) + '" alt="Profile" />' 
+        : '<div class="acct-avatar-fallback">' + esc(avatarLetter) + '</div>';
+    
+    // Hero card
+    let heroHtml = (
+        '<div class="acct-hero">' +
+        '<div class="glow2"></div>' +
+        '<div class="acct-hero-row">' +
+        '<div class="acct-avatar-wrap">' +
+        avatarHtml +
+        '<button class="acct-avatar-edit" data-action="open-avatar-upload" title="Change profile photo">✎</button>' +
+        '</div>' +
+        '<div style="flex:1;min-width:0">' +
+        '<h3 class="acct-hero-name">' + esc(fullName) + '</h3>' +
+        '<p class="acct-hero-user">@' + esc(username) + '</p>' +
+        '<p class="acct-hero-email">' + esc(email) + '</p>' +
+        statusPill +
+        '</div>' +
+        '</div>' +
+        '</div>'
+    );
+    
+    // Wallet card
+    const walletHtml = (
+        '<div class="wallet-card">' +
+        '<p class="wc-label">Wallet Balance</p>' +
+        '<div class="wc-amount">₦<span>' + walletBalance.toLocaleString() + '</span></div>' +
+        '<div class="wc-actions">' +
+        '<button class="wc-btn fund" data-action="open-fund-wallet">+ Fund Wallet</button>' +
+        '<button class="wc-btn tx" data-action="set-view" data-view="transactions">Transactions</button>' +
+        '</div>' +
+        '</div>'
+    );
+    
+    // Menu items
+    const menuItems = [
+        { key: 'start-profile-edit', icon: '✏️', color: '#2E6FF2', title: 'Profile', sub: 'Edit your name and photo' },
+        { key: 'set-view|history', icon: '📊', color: '#8E44AD', title: 'Result Analysis', sub: 'Your exam results and performance' },
+        { key: 'set-view|transactions', icon: '💳', color: '#0E9488', title: 'Transaction History', sub: 'Wallet funding and purchases' },
+        { key: 'set-view|study-reminder', icon: '⏰', color: '#E4A93A', title: 'Study Reminder', sub: 'Get nudged when it\'s time to read', badge: 'NEW' },
+        { key: 'set-view|leaderboard', icon: '🏆', color: '#7C5CFC', title: 'Leaderboard', sub: 'See where you rank' },
+        { key: 'set-view|activate', icon: '🔑', color: '#d49a2e', title: 'Activate', sub: 'Manage your subscription' },
+        { key: 'set-view|support', icon: '💬', color: '#4C5FD5', title: 'Support', sub: 'Chat with us or WhatsApp' },
+    ];
+    
+    let menuHtml = '<div class="acct-menu-grid">';
+    menuItems.forEach(function(item) {
+        const parts = item.key.split('|');
+        const action = parts[0];
+        const view = parts[1] || '';
+        const badgeHtml = item.badge ? ' <span class="amii-badge">' + esc(item.badge) + '</span>' : '';
+        
+        let dataAttr = 'data-action="' + action + '"';
+        if (view) dataAttr += ' data-view="' + view + '"';
+        
+        menuHtml += (
+            '<button class="acct-menu-item" ' + dataAttr + '>' +
+            '<span class="amicon" style="background:' + item.color + '20;color:' + item.color + '">' + item.icon + '</span>' +
+            '<div class="amii-text">' +
+            '<p class="amii-title">' + esc(item.title) + badgeHtml + '</p>' +
+            '<p class="amii-sub">' + esc(item.sub) + '</p>' +
+            '</div>' +
+            '</button>'
+        );
+    });
+    // Admin row
+    if (isAdmin()) {
+        menuHtml += (
+            '<button class="acct-menu-item" data-action="set-view" data-view="admin">' +
+            '<span class="amicon" style="background:#E4A93A30;color:#E4A93A">🛡️</span>' +
+            '<div class="amii-text">' +
+            '<p class="amii-title">Admin Panel</p>' +
+            '<p class="amii-sub">Manage questions, users & settings</p>' +
+            '</div>' +
+            '</button>'
+        );
+    }
+    menuHtml += '</div>';
+    
+    // Editable profile fields
+    let editHtml = '';
+    if (isEditing) {
+        editHtml = (
+            '<div class="card" style="margin-bottom:10px">' +
+            '<p style="font-size:13px;font-weight:700;margin:0 0 10px;color:var(--ink)">✏️ Edit Profile</p>' +
+            '<label class="field-label">Full Name</label>' +
+            '<input class="field" id="edit-profile-fullname" value="' + esc(fullName) + '" style="margin-bottom:8px;font-size:13px" />' +
             '<label class="field-label">Username</label>' +
-            '<input class="field" id="edit-profile-username" value="' + esc(state.formName) +
-            '" style="margin-bottom:10px;font-size:13px" />' +
+            '<input class="field" id="edit-profile-username" value="' + esc(username) + '" style="margin-bottom:8px;font-size:13px" />' +
             '<label class="field-label">Email</label>' +
-            '<input class="field" id="edit-profile-email" type="email" value="' + esc(state.formEmail) +
-            '" style="margin-bottom:4px;font-size:13px" />' +
-            '<p style="font-size:10px;color:var(--faint);margin:0 0 10px">Changing email sends a confirmation link to your new address.</p>' +
-            (state.profileEditError ? '<p style="color:#C0392B;font-size:12px;margin:0 0 10px">⚠️ ' + esc(state.profileEditError) + '</p>' : '') +
-            '<div style="display:flex;gap:6px">' +
+            '<div class="field-locked">' +
+            '<span>' + esc(email) + '</span>' +
+            '<span class="lock-icon">🔒</span>' +
+            '</div>' +
+            (state.profileEditError ? '<p style="color:#C0392B;font-size:12px;margin:8px 0 0">⚠️ ' + esc(state.profileEditError) + '</p>' : '') +
+            '<div style="display:flex;gap:6px;margin-top:10px">' +
             '<button class="btn btn-green" style="flex:1;padding:10px" data-action="save-profile-edit"' + (state.profileEditLoading ? ' disabled' : '') + '>' +
             (state.profileEditLoading ? 'Saving…' : 'Save Changes') + '</button>' +
             '<button class="btn btn-outline" style="flex:0.6;padding:10px" data-action="cancel-profile-edit">Cancel</button>' +
-            '</div>';
+            '</div>' +
+            '</div>'
+        );
     } else {
-        fieldsHtml =
-            '<label class="field-label">Username</label>' +
-            '<input class="field" value="' + esc(state.formName) +
-            '" disabled style="background:var(--bg);color:var(--muted);margin-bottom:10px;font-size:13px" />' +
-            '<label class="field-label">Email</label>' +
-            '<input class="field" value="' + esc(state.formEmail) +
-            '" disabled style="background:var(--bg);color:var(--muted);margin-bottom:10px;font-size:13px" />' +
-            (isLoggedIn ? '<button class="btn btn-outline" style="padding:10px" data-action="start-profile-edit">Edit Profile</button>' : '');
+        editHtml = (
+            '<button class="acct-menu-item" data-action="start-profile-edit" style="margin-bottom:8px">' +
+            '<span class="amicon" style="background:#2E6FF220;color:#2E6FF2">✏️</span>' +
+            '<div class="amii-text">' +
+            '<p class="amii-title">Edit Profile</p>' +
+            '<p class="amii-sub">Update your name and photo</p>' +
+            '</div>' +
+            '</button>'
+        );
     }
-
-    return (
-        '<h2 class="title" style="margin-bottom:12px;font-size:18px">Profile</h2>' +
-        '<div class="card" style="text-align:center;padding:16px">' +
-        '<div style="margin:0 auto;width:56px;height:56px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:22px;color:#fff;background:' +
-        GREEN + '">' +
-        esc((state.formName || "G").trim().charAt(0).toUpperCase()) +
-        '</div>' +
-        (isLoggedIn ? statusMsg : '<p style="font-size:11px;color:var(--muted);margin-top:2px">Guest mode</p>') +
-        '</div>' +
-        '<div class="card" style="margin-top:10px">' +
-        fieldsHtml +
-        '</div>' +
-        (isLoggedIn && !isEditing ? '<button class="btn btn-outline" style="margin-top:10px;padding:10px" data-action="sign-out">Sign out</button>' : '') +
-        '<div style="display:flex;gap:10px;justify-content:center;margin-top:14px">' +
+    
+    // Bottom actions
+    let bottomHtml = (
+        '<button class="btn btn-outline" style="padding:10px;margin-top:4px" data-action="sign-out">Sign out</button>' +
+        '<div style="display:flex;gap:10px;justify-content:center;margin-top:12px">' +
         '<button data-action="set-view" data-view="privacy" style="font-size:11px;color:var(--faint);text-decoration:underline">Privacy Policy</button>' +
         '<button data-action="set-view" data-view="terms" style="font-size:11px;color:var(--faint);text-decoration:underline">Terms of Service</button>' +
         '</div>'
     );
-}
-
-// ============================================================
-//  MOCK EXAM PICKER
-// ============================================================
-function renderMockExamPicker() {
-    if (!state.mockLoaded) {
-        loadMockExams();
-        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading mock exams...</p></div>';
-    }
-
-    let html = (
-        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<div class="feature-icon" style="background:#8E44AD">' + svg("target", 30) + '</div>' +
-        '<h2 class="title" style="font-size:18px">Mock Exam</h2>' +
-        '<p class="sub" style="font-size:12px">Full JAMB-style mock test</p>'
-    );
-
-    if (state.admin.viewingMockAttempts) {
-        return renderMockAttemptsView();
-    }
-
-    const now = new Date();
-    const activeExams = state.mockExams.filter(function(exam) {
-        const scheduled = new Date(exam.scheduled_date);
-        const end = new Date(exam.end_date);
-        return scheduled <= now && end > now && exam.is_active;
-    });
-
-    const upcomingExams = state.mockExams.filter(function(exam) {
-        const scheduled = new Date(exam.scheduled_date);
-        return scheduled > now && exam.is_active;
-    });
-
-    const pastExams = state.mockExams.filter(function(exam) {
-        const end = new Date(exam.end_date);
-        return end <= now || !exam.is_active;
-    });
-
-    if (state.mockExams.length === 0) {
-        html += '<div class="card"><p style="text-align:center;color:var(--muted);font-size:13px">No mock exams scheduled yet.</p></div>';
-        return html;
-    }
-
-    const userReg = state.mockRegistrations.find(function(r) {
-        const exam = state.mockExams.find(function(e) { return e.id === r.mock_exam_id; });
-        if (!exam) return false;
-        const end = new Date(exam.end_date);
-        return end > now && exam.is_active && r.user_id === state.authUser?.id;
-    });
-
-    if (userReg && state.authUser) {
-        const exam = state.mockExams.find(function(e) { return e.id === userReg.mock_exam_id; });
-        if (exam) {
-            const scheduled = new Date(exam.scheduled_date);
-            const isTime = scheduled <= now;
-
-            const attempt = state.mockAttempts.find(function(a) {
-                return a.mock_exam_id === exam.id && a.user_id === state.authUser.id && a.is_submitted;
-            });
-
-            if (attempt) {
-                if (exam.results_released) {
-                    return renderMockResultForUser(exam, attempt);
-                } else {
-                    html += (
-                        '<div class="mock-card active">' +
-                        '<p class="mock-title">' + esc(exam.title) + '</p>' +
-                        '<p class="mock-date">📅 ' + new Date(exam.scheduled_date).toLocaleString() + '</p>' +
-                        '<span class="mock-status waiting">⏳ Waiting for results</span>' +
-                        '<p style="font-size:12px;color:var(--muted);margin-top:6px">You have submitted this mock. Results will be released by the admin.</p>' +
-                        '</div>'
-                    );
-                }
-            } else if (isTime) {
-                const end = new Date(exam.end_date);
-                if (end > now) {
-                    html += (
-                        '<div class="mock-card active">' +
-                        '<p class="mock-title">' + esc(exam.title) + '</p>' +
-                        '<p class="mock-date">⏱️ Ends: ' + end.toLocaleString() + '</p>' +
-                        '<span class="mock-status ongoing">🟢 Ongoing</span>' +
-                        '<p style="font-size:12px;color:var(--muted);margin-top:6px">Subjects: ' +
-                        userReg.subjects.map(function(s) {
-                            const subj = SUBJECTS.find(function(x) { return x.id === s; });
-                            return subj ? subj.name : s;
-                        }).join(', ') +
-                        '</p>' +
-                        '<button class="btn btn-green" style="margin-top:10px" data-action="start-mock" data-examid="' +
-                        exam.id + '">Start Mock Exam</button>' +
-                        '</div>'
-                    );
-                } else {
-                    html += (
-                        '<div class="mock-card">' +
-                        '<p class="mock-title">' + esc(exam.title) + '</p>' +
-                        '<p class="mock-date">📅 ' + new Date(exam.scheduled_date).toLocaleString() + '</p>' +
-                        '<span class="mock-status ended">⏰ Expired</span>' +
-                        '<p style="font-size:12px;color:var(--muted);margin-top:6px">This mock has ended.</p>' +
-                        '</div>'
-                    );
-                }
-            } else {
-                const timeLeft = scheduled - now;
-                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-                const mins = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-                html += (
-                    '<div class="mock-card active">' +
-                    '<p class="mock-title">' + esc(exam.title) + '</p>' +
-                    '<p class="mock-date">📅 ' + new Date(exam.scheduled_date).toLocaleString() + '</p>' +
-                    '<span class="mock-status registered">✅ Registered</span>' +
-                    '<p style="font-size:12px;color:var(--muted);margin-top:6px">Starts in: <b>' + hours +
-                    'h ' + mins + 'm</b></p>' +
-                    '<p style="font-size:11px;color:var(--muted)">Subjects: ' +
-                    userReg.subjects.map(function(s) {
-                        const subj = SUBJECTS.find(function(x) { return x.id === s; });
-                        return subj ? subj.name : s;
-                    }).join(', ') +
-                    '</p>' +
-                    '</div>'
-                );
-            }
-        }
-    }
-
-    if (upcomingExams.length > 0 || activeExams.length > 0) {
-        const allDisplay = [...activeExams, ...upcomingExams];
-        allDisplay.forEach(function(exam) {
-            const isRegistered = state.mockRegistrations.some(function(r) {
-                return r.mock_exam_id === exam.id && r.user_id === state.authUser?.id;
-            });
-
-            if (isRegistered) return;
-
-            const scheduled = new Date(exam.scheduled_date);
-            const isPastRegistration = scheduled <= now;
-
-            const regDeadline = exam.registration_deadline ? new Date(exam.registration_deadline) : scheduled;
-            const isRegClosed = regDeadline <= now;
-
-            if (isRegClosed || isPastRegistration) {
-                html += (
-                    '<div class="mock-card">' +
-                    '<p class="mock-title">' + esc(exam.title) + '</p>' +
-                    '<p class="mock-date">📅 ' + new Date(exam.scheduled_date).toLocaleString() + '</p>' +
-                    '<span class="mock-status ended">🔒 Registration Closed</span>' +
-                    '</div>'
-                );
-                return;
-            }
-
-            html += renderMockRegistrationForm(exam);
-        });
-    }
-
-    if (pastExams.length > 0) {
-        html += '<p class="section-label" style="margin-top:14px">Past Mocks</p>';
-        pastExams.forEach(function(exam) {
-            const attempt = state.mockAttempts.find(function(a) {
-                return a.mock_exam_id === exam.id && a.user_id === state.authUser?.id && a.is_submitted;
-            });
-
-            let statusText = 'Ended';
-            if (attempt && exam.results_released) statusText = 'Results Available';
-            else if (attempt) statusText = 'Submitted';
-
-            html += (
-                '<div class="mock-card">' +
-                '<p class="mock-title">' + esc(exam.title) + '</p>' +
-                '<p class="mock-date">📅 ' + new Date(exam.scheduled_date).toLocaleString() + '</p>' +
-                '<span class="mock-status ended">' + statusText + '</span>' +
-                (attempt && exam.results_released ?
-                    '<button class="btn btn-outline" style="margin-top:6px;padding:6px" data-action="view-mock-result" data-examid="' +
-                    exam.id + '">View Results</button>' : '') +
-                '</div>'
-            );
-        });
-    }
-
-    return html;
-}
-
-function renderMockRegistrationForm(exam) {
-    const selected = state.mockSelectedSubjects || [];
-    const subjects = SUBJECTS.filter(function(s) { return s.id !== 'eng' && s.id !== 'lhm'; });
-    const settings = state.settingsCache;
-    const requiredSubjects = settings.mockSubjectCount || 4;
-
-    let chips = "";
-    subjects.forEach(function(s) {
-        const sel = selected.indexOf(s.id) !== -1;
-        chips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-mock-subject" data-subject="' +
-            s.id + '">' +
-            subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + '</span>' +
-            '</button>'
-        );
-    });
-
-    const ready = selected.length === 3;
-    const totalSubjects = selected.length + 1;
-
-    const eng = SUBJECTS.find(function(s) { return s.id === 'eng'; });
-
-    return (
-        '<div class="mock-card active">' +
-        '<p class="mock-title">' + esc(exam.title) + '</p>' +
-        '<p class="mock-date">📅 ' + new Date(exam.scheduled_date).toLocaleString() + '</p>' +
-        '<p class="mock-date" style="font-size:10px">⏰ Register by: ' + (exam.registration_deadline ? new Date(exam.registration_deadline)
-            .toLocaleString() : '1 hour before') + '</p>' +
-        '<span class="mock-status upcoming">📝 Register</span>' +
-        '<p style="font-size:12px;color:var(--muted);margin-top:6px">English is compulsory. Select 3 more subjects:</p>' +
-        (eng ? '<div class="compulsory-row" style="margin-top:6px">' +
-            subjectBadge(eng) +
-            '<span style="font-size:12px;font-weight:600">' + esc(eng.name) + '</span>' +
-            '<span class="tag">Compulsory</span></div>' : '') +
-        '<div class="subject-grid" style="margin-top:6px">' + chips + '</div>' +
-        '<div class="picker-footer">' +
-        '<p class="picker-count" style="font-size:11px">' + totalSubjects + ' of ' + requiredSubjects + ' selected (English + ' + selected.length + ' others)</p>' +
-        '<button class="btn ' + (ready ? "btn-green" : "btn-outline") + '" data-action="register-mock" data-examid="' +
-        exam.id + '"' + (ready ? '' :
-            ' disabled style="opacity:0.5;pointer-events:none"') + '>Register for Mock</button>' +
-        '</div>' +
-        '</div>'
-    );
-}
-
-function renderMockResultForUser(exam, attempt) {
-    const score = attempt.score || 0;
-    const subjectScores = attempt.subject_scores || {};
-    const maxScore = (state.settingsCache.mockSubjectCount || 4) * 100;
-    const submittedAt = attempt.submitted_at ? new Date(attempt.submitted_at) : null;
-
-    let subjRows = "";
-    Object.keys(subjectScores).forEach(function(sid) {
-        const subj = SUBJECTS.find(function(s) { return s.id === sid; });
-        const sScore = subjectScores[sid] || 0;
-        subjRows += (
-            '<div class="subj-score">' +
-            '<span>' + (subj ? subj.name : sid) + '</span>' +
-            '<span style="color:var(--green)">' + sScore + '/100</span>' +
-            '</div>'
-        );
-    });
-
-    return (
-        '<div class="result-card">' +
-        '<p style="font-size:14px;font-weight:600;margin:0 0 2px">' + esc(exam.title) + '</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">📅 ' + new Date(exam.scheduled_date)
-        .toLocaleString() + '</p>' +
-        (submittedAt ? '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">⏱️ Submitted: ' + submittedAt
-            .toLocaleString() + '</p>' : '') +
-        '<div class="score-big" style="font-size:36px">' + score + ' / ' + maxScore + '</div>' +
-        '<p style="font-size:12px;color:var(--muted);margin:0 0 10px">' + Math.round((score / maxScore) * 100) +
-        '%</p>' +
-        '<div style="text-align:left;border-top:1px solid var(--line);padding-top:10px">' +
-        subjRows +
-        '</div>' +
-        '<button class="btn btn-green" style="margin-top:10px;padding:10px" data-action="mock-exit">Back to Home</button>' +
-        '</div>'
-    );
-}
-
-// ============================================================
-//  MOCK ATTEMPTS VIEW (ADMIN)
-// ============================================================
-function renderMockAttemptsView() {
-    const examId = state.admin.viewingMockAttempts;
-    const exam = state.mockExams.find(function(e) { return e.id === examId; });
     
-    if (!exam) {
-        state.admin.viewingMockAttempts = null;
-        render();
-        return '';
-    }
+    return (
+        '<h2 class="title" style="margin-bottom:12px;font-size:18px">Account</h2>' +
+        heroHtml +
+        walletHtml +
+        menuHtml +
+        editHtml +
+        bottomHtml
+    );
+}
 
-    let rows = '';
-    const attempts = state.mockAttempts.filter(function(a) { return a.mock_exam_id === examId && a.is_submitted; });
+// ============================================================
+//  AVATAR UPLOAD MODAL
+// ============================================================
+function renderAvatarUploadModal() {
+    if (!state.showAvatarUpload) return '';
     
-    if (attempts.length === 0) {
-        rows = '<p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No submitted attempts for this mock yet.</p>';
+    const currentAvatar = state.profile.avatarUrl || null;
+    const fileData = state.avatarUploadFile || null;
+    const previewUrl = fileData ? fileData.dataUrl : currentAvatar;
+    const fullName = state.profile.fullName || state.profile.name || 'User';
+    const fallbackLetter = fullName.trim().charAt(0).toUpperCase() || 'U';
+    
+    let previewHtml = '';
+    if (previewUrl) {
+        previewHtml = '<img src="' + esc(previewUrl) + '" class="preview-circle" alt="Profile photo" />';
     } else {
-        attempts.forEach(function(attempt) {
-            const user = state.allUsers.find(function(u) { return u.id === attempt.user_id; });
-            const username = user ? user.username : 'Unknown User';
-            const score = attempt.score || 0;
-            const maxScore = (state.settingsCache.mockSubjectCount || 4) * 100;
-            const subjectScores = attempt.subject_scores || {};
-            let subjectStr = Object.keys(subjectScores).map(function(sid) {
-                const subj = SUBJECTS.find(function(s) { return s.id === sid; });
-                return (subj ? subj.code : sid) + ': ' + subjectScores[sid];
-            }).join(' · ');
+        previewHtml = '<div class="preview-circle fallback">' + esc(fallbackLetter) + '</div>';
+    }
+    
+    return (
+        '<div class="avatar-upload-overlay" data-action="cancel-avatar-upload">' +
+        '<div class="avatar-upload-modal" data-action="prevent-close">' +
+        '<h3 style="font-family:var(--font-serif);margin:0 0 4px;font-size:18px;color:var(--ink)">📸 Profile Photo</h3>' +
+        '<p class="sub" style="font-size:12px">Choose a photo to use as your avatar</p>' +
+        previewHtml +
+        '<input type="file" id="avatar-file-input" accept="image/*" style="display:none" />' +
+        '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-bottom:8px" data-action="choose-avatar-photo">Choose Photo</button>' +
+        '<div class="btn-group">' +
+        '<button class="btn btn-green" style="padding:10px;font-size:13px" data-action="save-avatar-upload" ' + (fileData ? '' : 'disabled style="opacity:0.5;pointer-events:none"') + '>Save</button>' +
+        '<button class="btn btn-outline" style="padding:10px;font-size:13px" data-action="cancel-avatar-upload">Cancel</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
+// ============================================================
+//  FUND WALLET MODAL
+// ============================================================
+function renderFundWalletModal() {
+    if (!state.showFundWallet) return '';
+    
+    const amount = state.fundWalletAmount || '';
+    const quickAmounts = [1000, 2000, 5000, 10000];
+    let quickBtns = '';
+    quickAmounts.forEach(function(a) {
+        quickBtns += '<button class="qbtn" data-action="fund-quick-amount" data-amount="' + a + '">₦' + a.toLocaleString() + '</button>';
+    });
+    
+    return (
+        '<div class="flag-overlay" data-action="close-fund-wallet">' +
+        '<div class="flag-modal" data-action="prevent-close">' +
+        '<h3 style="font-family:var(--font-serif);margin:0 0 2px;font-size:18px;color:var(--ink)">💳 Fund Wallet</h3>' +
+        '<p class="sub" style="font-size:12px">Enter amount to add to your wallet</p>' +
+        '<label class="field-label">Amount (₦)</label>' +
+        '<input class="field" id="fund-wallet-amount-input" type="number" placeholder="e.g. 2000" value="' + esc(amount) + '" style="margin-bottom:8px;font-size:16px;font-weight:700" />' +
+        '<div class="fund-quick-btns">' + quickBtns + '</div>' +
+        '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:4px" data-action="fund-wallet-paystack">Pay with Paystack</button>' +
+        '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="close-fund-wallet">Cancel</button>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
+// ============================================================
+//  TRANSACTION HISTORY VIEW
+// ============================================================
+function renderTransactionHistory() {
+    if (!state.authUser) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
+            '<h2 class="title" style="font-size:18px">💳 Transaction History</h2>' +
+            '<p class="sub" style="font-size:12px">View your wallet funding and purchases</p>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view transactions.</p></div>'
+        );
+    }
+    
+    if (!state.walletTransactionsLoaded) {
+        loadWalletTransactions();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading transactions...</p></div>';
+    }
+    
+    const txs = state.walletTransactions || [];
+    const balance = state.profile.walletBalance || 0;
+    
+    let rows = '';
+    if (txs.length === 0) {
+        rows = '<p style="text-align:center;color:var(--faint);padding:24px 0;font-size:13px">No transactions yet.</p>';
+    } else {
+        txs.forEach(function(tx) {
+            const isPositive = tx.amount >= 0;
+            const icon = tx.type === 'fund' ? '+' : tx.type === 'purchase' ? '−' : '↻';
+            const iconClass = tx.type === 'fund' ? 'fund' : tx.type === 'purchase' ? 'purchase' : 'refund';
+            const amountClass = isPositive ? 'pos' : 'neg';
+            const sign = isPositive ? '+' : '';
             
             rows += (
-                '<div class="admin-user-row">' +
-                '<div class="user-info">' +
-                '<span class="user-name">' + esc(username) + '</span>' +
-                '<span class="user-email" style="font-size:9px">' + subjectStr + '</span>' +
+                '<div class="tx-row">' +
+                '<span class="tx-icon ' + iconClass + '">' + icon + '</span>' +
+                '<div class="tx-info">' +
+                '<p class="tx-desc">' + esc(tx.description || tx.type) + '</p>' +
+                '<p class="tx-date">' + formatDate(tx.created_at) + '</p>' +
                 '</div>' +
-                '<span style="font-weight:700;color:var(--green);font-size:13px">' + score + '/' + maxScore + '</span>' +
-                '<span style="font-size:9px;color:var(--faint)">' + formatDate(attempt.submitted_at) + '</span>' +
+                '<span class="tx-amount ' + amountClass + '">' + sign + '₦' + Math.abs(tx.amount).toLocaleString() + '</span>' +
                 '</div>'
             );
         });
     }
-
+    
     return (
-        '<div class="admin-view-mode-header">' +
-        '<span class="mode-title" style="font-size:14px">📋 ' + esc(exam.title) + ' - Attempts</span>' +
-        '<button class="btn btn-outline btn-sm" data-action="admin-mock-attempts-back">← Back</button>' +
-        '</div>' +
-        '<p style="font-size:11px;color:var(--muted);margin-bottom:10px">' + attempts.length + ' submitted attempts</p>' +
+        '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
+        '<h2 class="title" style="font-size:18px">💳 Transaction History</h2>' +
+        '<p class="sub" style="font-size:12px">Wallet balance: <strong style="color:var(--green)">₦' + balance.toLocaleString() + '</strong></p>' +
         rows
     );
+}
+
+// ============================================================
+//  STUDY REMINDER VIEW
+// ============================================================
+function renderStudyReminderPage() {
+    if (!state.authUser) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
+            '<h2 class="title" style="font-size:18px">⏰ Study Reminder</h2>' +
+            '<p class="sub" style="font-size:12px">Get nudged when it\'s time to read</p>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to set study reminders.</p></div>'
+        );
+    }
+    
+    if (!state.studyReminderLoaded) {
+        loadStudyReminder();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading reminder settings...</p></div>';
+    }
+    
+    const reminder = state.studyReminder;
+    const hour = state.studyReminderHour;
+    const minute = state.studyReminderMinute;
+    const days = state.studyReminderDays || [];
+    const enabled = reminder ? reminder.enabled : false;
+    
+    // Day chips
+    const dayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    let dayChips = '';
+    dayLabels.forEach(function(label, idx) {
+        const active = days.indexOf(idx) !== -1;
+        dayChips += '<button class="reminder-day-chip' + (active ? ' active' : '') + '" data-action="toggle-reminder-day" data-day="' + idx + '">' + label + '</button>';
+    });
+    
+    // Toggle switch
+    const toggleHtml = (
+        '<div class="toggle-row">' +
+        '<span class="toggle-label">🔔 Reminder enabled</span>' +
+        '<div class="toggle-switch' + (enabled ? ' active' : '') + '" data-action="toggle-reminder-enabled">' +
+        '<div class="slider"></div>' +
+        '</div>' +
+        '</div>'
+    );
+    
+    return (
+        '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
+        '<h2 class="title" style="font-size:18px">⏰ Study Reminder</h2>' +
+        '<p class="sub" style="font-size:12px">We\'ll show a friendly nudge while the app is open around your chosen time, on the days you pick.</p>' +
+        '<div class="card">' +
+        toggleHtml +
+        '<p class="section-label" style="margin-top:4px">Time</p>' +
+        '<div class="study-time-row">' +
+        '<div class="st-group">' +
+        '<label>Hour</label>' +
+        '<input type="number" id="study-reminder-hour" min="0" max="23" value="' + hour + '" />' +
+        '</div>' +
+        '<div class="st-group">' +
+        '<label>Minute</label>' +
+        '<input type="number" id="study-reminder-minute" min="0" max="59" value="' + minute + '" />' +
+        '</div>' +
+        '</div>' +
+        '<p class="section-label">Days</p>' +
+        '<div class="reminder-day-chips">' + dayChips + '</div>' +
+        '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:4px" data-action="save-study-reminder">Save Reminder</button>' +
+        '</div>' +
+        '<div class="card" style="margin-top:10px;padding:12px;font-size:11px;color:var(--muted)">' +
+        '<p style="margin:0"><b>💡 Note:</b> this only fires while the app/tab is open in the foreground. True background push reminders require a server-side scheduled job.</p>' +
+        '</div>'
+    );
+}
+
+// ============================================================
+//  WALLET FUNCTIONS
+// ============================================================
+async function loadWalletTransactions() {
+    if (!state.authUser) {
+        state.walletTransactionsLoaded = true;
+        state.walletTransactions = [];
+        render();
+        return;
+    }
+    
+    try {
+        const { data, error } = await supabase
+            .from('wallet_transactions')
+            .select('*')
+            .eq('user_id', state.authUser.id)
+            .order('created_at', { ascending: false });
+            
+        if (error) {
+            console.warn("Load wallet transactions error:", error.message, error.code);
+            showToast("Could not load transactions.", "error");
+            state.walletTransactions = [];
+            state.walletTransactionsLoaded = true;
+            render();
+            return;
+        }
+        
+        state.walletTransactions = data || [];
+        state.walletTransactionsLoaded = true;
+        render();
+    } catch (e) {
+        console.warn("Load wallet transactions exception:", e);
+        state.walletTransactions = [];
+        state.walletTransactionsLoaded = true;
+        render();
+    }
+}
+
+// ============================================================
+//  STUDY REMINDER FUNCTIONS
+// ============================================================
+async function loadStudyReminder() {
+    if (!state.authUser) {
+        state.studyReminderLoaded = true;
+        state.studyReminder = null;
+        render();
+        return;
+    }
+    
+    try {
+        const { data, error } = await supabase
+            .from('study_reminders')
+            .select('*')
+            .eq('user_id', state.authUser.id)
+            .maybeSingle();
+            
+        if (error) {
+            console.warn("Load study reminder error:", error.message, error.code);
+            state.studyReminder = null;
+            state.studyReminderLoaded = true;
+            render();
+            return;
+        }
+        
+        if (data) {
+            state.studyReminder = data;
+            state.studyReminderHour = data.hour || 19;
+            state.studyReminderMinute = data.minute || 0;
+            state.studyReminderDays = data.days || [1,2,3,4,5,6,0];
+        } else {
+            state.studyReminder = null;
+            state.studyReminderHour = 19;
+            state.studyReminderMinute = 0;
+            state.studyReminderDays = [1,2,3,4,5,6,0];
+        }
+        state.studyReminderLoaded = true;
+        render();
+    } catch (e) {
+        console.warn("Load study reminder exception:", e);
+        state.studyReminder = null;
+        state.studyReminderLoaded = true;
+        render();
+    }
+}
+
+async function saveStudyReminder(enabled) {
+    if (!state.authUser) {
+        showToast("Please log in first.", "error");
+        return;
+    }
+    
+    const hour = state.studyReminderHour;
+    const minute = state.studyReminderMinute;
+    const days = state.studyReminderDays;
+    const payload = {
+        user_id: state.authUser.id,
+        hour: hour,
+        minute: minute,
+        days: days,
+        enabled: enabled !== undefined ? enabled : (state.studyReminder ? state.studyReminder.enabled : false),
+        updated_at: new Date().toISOString(),
+    };
+    
+    try {
+        await supabase
+            .from('study_reminders')
+            .upsert(payload, { onConflict: 'user_id' });
+            
+        state.studyReminder = payload;
+        showToast(enabled ? 'Reminder set! We\'ll nudge you while the app is open.' : 'Reminder turned off.', 'success');
+        render();
+    } catch (e) {
+        console.warn("Save study reminder error:", e);
+        showToast("Error saving reminder.", "error");
+    }
+}
+
+// ============================================================
+//  STUDY REMINDER TICK (foreground-only)
+//  NOTE: this only fires while the app/tab is open in the foreground.
+//  True background push reminders require a server-side scheduled job.
+// ============================================================
+function checkStudyReminderTick() {
+    if (!state.studyReminder || !state.studyReminder.enabled) return;
+    const now = new Date();
+    const day = now.getDay();
+    
+    if ((state.studyReminder.days || []).indexOf(day) === -1) return;
+    if (now.getHours() !== state.studyReminder.hour || now.getMinutes() !== state.studyReminder.minute) return;
+    
+    const todayKey = 'reminderFired_' + now.toISOString().slice(0,10);
+    if (storage.get(todayKey)) return; // already fired today
+    
+    storage.set(todayKey, 'true');
+    
+    if (Notification.permission === 'granted') {
+        new Notification('📚 Study time!', {
+            body: 'Your scheduled MyUTME practice session is starting now.',
+        });
+    } else {
+        showInAppNotificationBanner({ title: '📚 Study time!', body: 'Time for your scheduled practice session.' });
+    }
+}
+
+// ============================================================
+//  ACTIVATE WITH WALLET
+// ============================================================
+async function activateWithWallet(plan) {
+    if (!state.authUser) {
+        showToast("Please log in first.", "error");
+        return;
+    }
+    
+    const balance = state.profile.walletBalance || 0;
+    if (balance < plan.price) {
+        showToast('Insufficient wallet balance. Please fund your wallet first.', 'error');
+        state.view = 'profile';
+        state.showFundWallet = true;
+        render();
+        return;
+    }
+    
+    const newBalance = balance - plan.price;
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + plan.days);
+    
+    try {
+        await supabase
+            .from('profiles')
+            .update({
+                wallet_balance: newBalance,
+                is_active: true,
+                activation_expiry: expiryDate.toISOString(),
+            })
+            .eq('id', state.authUser.id);
+            
+        await supabase
+            .from('wallet_transactions')
+            .insert([{
+                user_id: state.authUser.id,
+                type: 'purchase',
+                amount: -plan.price,
+                balance_after: newBalance,
+                description: 'Activation: ' + plan.name,
+            }]);
+            
+        state.profile.walletBalance = newBalance;
+        state.profile.is_active = true;
+        state.profile.activation_expiry = expiryDate.toISOString();
+        showToast('🎉 Activated! ' + plan.days + ' days added.', 'success');
+        state.view = 'activate';
+        render();
+    } catch (e) {
+        console.warn("Activate with wallet error:", e);
+        showToast("Error activating with wallet. Please try again.", "error");
+    }
+}
+
+// ============================================================
+//  VERIFY WALLET FUNDING (client-side fallback)
+//  For production, verify server-side to prevent tampering.
+// ============================================================
+async function verifyWalletFunding(reference, amount) {
+    // client-side fallback (see comment above)
+    const newBalance = (state.profile.walletBalance || 0) + amount;
+    
+    try {
+        await supabase
+            .from('profiles')
+            .update({ wallet_balance: newBalance })
+            .eq('id', state.authUser.id);
+            
+        await supabase
+            .from('wallet_transactions')
+            .insert([{
+                user_id: state.authUser.id,
+                type: 'fund',
+                amount: amount,
+                balance_after: newBalance,
+                description: 'Wallet funding via Paystack',
+                reference: reference,
+            }]);
+            
+        state.profile.walletBalance = newBalance;
+        state.showFundWallet = false;
+        state.fundWalletAmount = '';
+        showToast('✅ Wallet funded! New balance: ₦' + newBalance.toLocaleString(), 'success');
+        state.walletTransactionsLoaded = false;
+        loadWalletTransactions();
+        render();
+    } catch (e) {
+        console.warn("Verify wallet funding error:", e);
+        showToast("Error processing funding. Please check your transactions.", "error");
+    }
 }
 
 // ============================================================
@@ -9504,7 +10284,6 @@ const PAYMENT_METHODS = [
     { key: 'paystack', icon: '💚', label: 'Paystack', desc: 'Card · Bank Transfer · USSD' },
     { key: 'manual', icon: '💬', label: 'Manual Payment', desc: 'Chat with us on WhatsApp to pay & activate' },
 ];
-const ADMIN_WHATSAPP_NUMBER = "2348071826114";
 
 function renderLicensePlans() {
     if (!state.activationPlansLoaded) {
@@ -9867,7 +10646,7 @@ function renderBarChart(data, opts) {
         );
     });
     return '<div style="display:flex;gap:5px;align-items:flex-end;overflow-x:auto;padding:4px 2px 0">' + bars + '</div>';
-}8
+}
 function renderDashboardCard(title, icon, contentHtml) {
     return (
         '<div class="card" style="margin-bottom:10px">' +
@@ -10970,7 +11749,7 @@ function renderAdminDocuments() {
 }
 
 // ============================================================
-//  ADMIN USERS
+//  ADMIN USERS - Updated with full_name and avatar
 // ============================================================
 function renderAdminUsers() {
     const users = state.allUsers || [];
@@ -10987,11 +11766,21 @@ function renderAdminUsers() {
         let statusLabel = isActive ? '✅ Active' : '⛔ Inactive';
         if (isActive && daysLeft !== null && daysLeft < 3) statusLabel = '⚠️ ' + daysLeft + 'd left';
         
+        const displayName = user.full_name || user.username || 'User';
+        const avatarLetter = displayName.trim().charAt(0).toUpperCase();
+        const avatarHtml = user.profile_image_url 
+            ? '<img src="' + esc(user.profile_image_url) + '" style="width:32px;height:32px;border-radius:999px;object-fit:cover" />' 
+            : '<div style="width:32px;height:32px;border-radius:999px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + esc(avatarLetter) + '</div>';
+        const wallet = user.wallet_balance || 0;
+        
         rows += (
             '<div class="admin-user-row">' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
+            avatarHtml +
             '<div class="user-info">' +
-            '<span class="user-name">' + esc(user.username) + '</span>' +
-            '<span class="user-email">' + esc(user.email || '') + (expiry ? ' · Expires: ' + expiry.toLocaleDateString() : '') + '</span>' +
+            '<span class="user-name">' + esc(displayName) + '</span>' +
+            '<span class="user-email">@' + esc(user.username) + ' · ' + esc(user.email || '') + ' · ₦' + wallet.toLocaleString() + '</span>' +
+            '</div>' +
             '</div>' +
             '<span class="user-status ' + (isActive ? 'active' : 'inactive') + '">' +
             statusLabel +
@@ -11479,6 +12268,10 @@ function renderSignupModal() {
         '<h2 style="font-size:20px">Create account</h2>' +
         '<p class="sub" style="font-size:12px">Start your JAMB prep journey today.</p>' +
         '<div class="field-group">' +
+        '<label>Full Name</label>' +
+        '<input id="signup-fullname" type="text" placeholder="e.g. Adebayo Habeeb" value="' + esc(state.signupFullName) + '" style="font-size:14px" />' +
+        '</div>' +
+        '<div class="field-group">' +
         '<label>Username <span style="color:var(--muted);font-weight:400">(unique)</span></label>' +
         '<input id="signup-username" type="text" placeholder="e.g. james_2026" value="' + esc(state.signupUsername) +
         '" style="font-size:14px" />' +
@@ -11712,7 +12505,14 @@ document.addEventListener('click', function(e) {
                 state.calcDisplay = "0";
                 state.calcExpression = "";
                 state.calcJustEvaluated = false;
-                if (state.calcPosition.x === null || state.calcPosition.y === null) {
+                const appInner = document.getElementById('app-inner');
+                if (appInner) {
+                    const rect = appInner.getBoundingClientRect();
+                    state.calcPosition = {
+                        x: Math.max(8, rect.right - 296),
+                        y: Math.max(8, rect.bottom - 380)
+                    };
+                } else {
                     state.calcPosition = { x: null, y: null };
                 }
             }
@@ -11888,19 +12688,25 @@ document.addEventListener('click', function(e) {
         return;
     }
     if (action === 'do-signup') {
+        const fullName = document.getElementById('signup-fullname')?.value?.trim() || '';
         const username = document.getElementById('signup-username')?.value?.trim() || '';
         const email = document.getElementById('signup-email')?.value?.trim() || '';
         const password = document.getElementById('signup-password')?.value || '';
         const confirm = document.getElementById('signup-confirm')?.value || '';
+        
+        state.signupFullName = fullName;
         state.signupUsername = username;
         state.signupEmail = email;
         state.signupPassword = password;
         state.signupConfirm = confirm;
+        
+        if (!fullName) { state.authError = 'Please enter your full name.'; render(); return; }
         if (!username) { state.authError = 'Please choose a username.'; render(); return; }
         if (!email) { state.authError = 'Please enter your email address.'; render(); return; }
         if (password.length < 6) { state.authError = 'Password must be at least 6 characters.'; render(); return; }
         if (password !== confirm) { state.authError = 'Passwords do not match.'; render(); return; }
-        signUp(username, email, password);
+        
+        signUp(fullName, username, email, password);
         return;
     }
     if (action === 'do-reset') {
@@ -11978,17 +12784,18 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // SAVE PROFILE EDIT - updated: only full_name and username, email is NOT editable
     if (action === 'save-profile-edit') {
+        const newFullName = document.getElementById('edit-profile-fullname')?.value?.trim() || '';
         const newUsername = document.getElementById('edit-profile-username')?.value?.trim() || '';
-        const newEmail = document.getElementById('edit-profile-email')?.value?.trim() || '';
 
-        if (!newUsername) {
-            state.profileEditError = 'Username cannot be empty.';
+        if (!newFullName) {
+            state.profileEditError = 'Full name cannot be empty.';
             render();
             return;
         }
-        if (!newEmail || !newEmail.includes('@')) {
-            state.profileEditError = 'Enter a valid email.';
+        if (!newUsername) {
+            state.profileEditError = 'Username cannot be empty.';
             render();
             return;
         }
@@ -11999,6 +12806,9 @@ document.addEventListener('click', function(e) {
 
         (async function() {
             try {
+                const updateData = {};
+                let usernameChanged = false;
+
                 if (newUsername !== state.profile.name) {
                     const { data: existing, error: checkErr } = await supabase
                         .from('profiles')
@@ -12021,51 +12831,44 @@ document.addEventListener('click', function(e) {
                         return;
                     }
 
-                    const { error: updateErr } = await supabase
-                        .from('profiles')
-                        .update({ username: newUsername })
-                        .eq('id', state.authUser.id);
-
-                    if (updateErr) {
-                        state.profileEditError = 'Error updating username: ' + updateErr.message;
-                        state.profileEditLoading = false;
-                        render();
-                        return;
-                    }
+                    updateData.username = newUsername;
+                    usernameChanged = true;
                 }
 
-                if (newEmail !== state.profile.email) {
-                    const { error: emailErr } = await supabase.auth.updateUser({ email: newEmail });
-                    if (emailErr) {
-                        state.profileEditError = 'Email update failed: ' + emailErr.message;
-                        state.profileEditLoading = false;
-                        render();
-                        return;
-                    }
-
-                    const { error: updateErr } = await supabase
-                        .from('profiles')
-                        .update({ email: newEmail })
-                        .eq('id', state.authUser.id);
-
-                    if (updateErr) {
-                        state.profileEditError = 'Email saved but profile update failed: ' + updateErr.message;
-                        state.profileEditLoading = false;
-                        render();
-                        return;
-                    }
-
-                    showToast('Username saved! Check your new email to confirm the change.', 'success');
-                } else {
-                    showToast('Profile updated!', 'success');
+                if (newFullName !== state.profile.fullName) {
+                    updateData.full_name = newFullName;
                 }
 
-                state.profile.name = newUsername;
-                state.formName = newUsername;
-                state.profile.email = newEmail;
-                state.formEmail = newEmail;
+                if (Object.keys(updateData).length === 0) {
+                    state.profileEditing = false;
+                    state.profileEditLoading = false;
+                    showToast('No changes made.', '');
+                    render();
+                    return;
+                }
+
+                const { error: updateErr } = await supabase
+                    .from('profiles')
+                    .update(updateData)
+                    .eq('id', state.authUser.id);
+
+                if (updateErr) {
+                    state.profileEditError = 'Error updating profile: ' + updateErr.message;
+                    state.profileEditLoading = false;
+                    render();
+                    return;
+                }
+
+                if (usernameChanged) {
+                    state.profile.name = newUsername;
+                    state.formName = newUsername;
+                }
+                if (updateData.full_name !== undefined) {
+                    state.profile.fullName = updateData.full_name;
+                }
+
                 storage.set('profile', JSON.stringify(state.profile));
-
+                showToast('Profile updated!', 'success');
                 state.profileEditing = false;
                 state.profileEditLoading = false;
                 render();
@@ -12979,17 +13782,17 @@ document.addEventListener('click', function(e) {
     }
     
     if (action === 'analytics-filter-users') {
-    const filter = el.getAttribute('data-filter');
-    state.analyticsUserFilter = filter;
-    render();
-    return;
-}
-
-if (action === 'analytics-close-user-list') {
-    state.analyticsUserFilter = null;
-    render();
+        const filter = el.getAttribute('data-filter');
+        state.analyticsUserFilter = filter;
+        render();
         return;
-}
+    }
+
+    if (action === 'analytics-close-user-list') {
+        state.analyticsUserFilter = null;
+        render();
+        return;
+    }
 
     if (action === 'admin-flagged-filter') {
         const filter = el.getAttribute('data-filter');
@@ -14286,6 +15089,158 @@ if (action === 'analytics-close-user-list') {
         }
         return;
     }
+
+    // ============================================================
+    //  NEW: AVATAR UPLOAD
+    // ============================================================
+    if (action === 'open-avatar-upload') {
+        state.showAvatarUpload = true;
+        state.avatarUploadFile = null;
+        render();
+        return;
+    }
+    if (action === 'cancel-avatar-upload') {
+        state.showAvatarUpload = false;
+        state.avatarUploadFile = null;
+        render();
+        return;
+    }
+    if (action === 'choose-avatar-photo') {
+        const input = document.getElementById('avatar-file-input');
+        if (input) input.click();
+        return;
+    }
+    if (action === 'save-avatar-upload') {
+        if (!state.avatarUploadFile || !state.avatarUploadFile.dataUrl) {
+            showToast('Please choose a photo first.', 'error');
+            return;
+        }
+        
+        const dataUrl = state.avatarUploadFile.dataUrl;
+        
+        supabase.from('profiles')
+            .update({ profile_image_url: dataUrl })
+            .eq('id', state.authUser.id)
+            .then(function() {
+                state.profile.avatarUrl = dataUrl;
+                state.showAvatarUpload = false;
+                state.avatarUploadFile = null;
+                showToast('Profile photo updated!', 'success');
+                render();
+            })
+            .catch(function(err) {
+                console.warn('Avatar upload error:', err);
+                showToast('Error updating profile photo.', 'error');
+            });
+        return;
+    }
+
+    // ============================================================
+    //  NEW: FUND WALLET
+    // ============================================================
+    if (action === 'open-fund-wallet') {
+        state.showFundWallet = true;
+        state.fundWalletAmount = '';
+        render();
+        return;
+    }
+    if (action === 'close-fund-wallet') {
+        state.showFundWallet = false;
+        state.fundWalletAmount = '';
+        render();
+        return;
+    }
+    if (action === 'fund-quick-amount') {
+        const amt = parseInt(el.getAttribute('data-amount'), 10);
+        state.fundWalletAmount = String(amt);
+        const input = document.getElementById('fund-wallet-amount-input');
+        if (input) input.value = String(amt);
+        render();
+        return;
+    }
+    if (action === 'fund-wallet-paystack') {
+        const amt = parseInt(document.getElementById('fund-wallet-amount-input')?.value || 0);
+        if (!amt || amt <= 0) {
+            showToast('Please enter a valid amount.', 'error');
+            return;
+        }
+        state.fundWalletAmount = String(amt);
+        
+        if (typeof PaystackPop === 'undefined') {
+            showToast('Payment system not loaded. Check your connection and try again.', 'error');
+            return;
+        }
+        
+        const handler = PaystackPop.setup({
+            key: PAYSTACK_PUBLIC_KEY,
+            email: state.profile.email || (state.authUser.email || 'noemail@example.com'),
+            amount: amt * 100,
+            currency: 'NGN',
+            ref: 'WALLET-' + Date.now() + '-' + Math.floor(Math.random() * 100000),
+            metadata: {
+                custom_fields: [
+                    { display_name: "Purpose", variable_name: "purpose", value: "Wallet Funding" },
+                    { display_name: "Username", variable_name: "username", value: state.profile.name || 'Guest' },
+                ]
+            },
+            callback: function(response) {
+                showToast('Payment received! Verifying...', '');
+                verifyWalletFunding(response.reference, amt);
+            },
+            onClose: function() {
+                showToast('Payment window closed.', '');
+            }
+        });
+        handler.openIframe();
+        return;
+    }
+
+    // ============================================================
+    //  NEW: ACTIVATE WITH WALLET (from checkout)
+    // ============================================================
+    if (action === 'activate-with-wallet') {
+        const planId = el.getAttribute('data-planid');
+        const plan = state.activationPlans.find(function(p) { return p.id === planId; });
+        if (!plan) { showToast('Plan not found.', 'error'); return; }
+        activateWithWallet(plan);
+        return;
+    }
+
+    // ============================================================
+    //  NEW: STUDY REMINDER
+    // ============================================================
+    if (action === 'toggle-reminder-day') {
+        const day = parseInt(el.getAttribute('data-day'), 10);
+        const idx = state.studyReminderDays.indexOf(day);
+        if (idx !== -1) {
+            state.studyReminderDays.splice(idx, 1);
+        } else {
+            state.studyReminderDays.push(day);
+            state.studyReminderDays.sort(function(a, b) { return a - b; });
+        }
+        render();
+        return;
+    }
+    if (action === 'toggle-reminder-enabled') {
+        if (!state.studyReminder) {
+            state.studyReminder = { enabled: true, hour: state.studyReminderHour, minute: state.studyReminderMinute, days: state.studyReminderDays };
+        } else {
+            state.studyReminder.enabled = !state.studyReminder.enabled;
+        }
+        render();
+        return;
+    }
+    if (action === 'save-study-reminder') {
+        const hour = parseInt(document.getElementById('study-reminder-hour')?.value || 19);
+        const minute = parseInt(document.getElementById('study-reminder-minute')?.value || 0);
+        if (hour < 0 || hour > 23) { showToast('Hour must be between 0 and 23.', 'error'); return; }
+        if (minute < 0 || minute > 59) { showToast('Minute must be between 0 and 59.', 'error'); return; }
+        state.studyReminderHour = hour;
+        state.studyReminderMinute = minute;
+        const enabled = state.studyReminder ? state.studyReminder.enabled : true;
+        saveStudyReminder(enabled);
+        return;
+    }
 });
 
 // ============================================================
@@ -14365,6 +15320,19 @@ document.addEventListener('change', function(e) {
             e.target.value = '';
         };
         reader.readAsText(file);
+    } else if (id === 'avatar-file-input') {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            state.avatarUploadFile = {
+                dataUrl: ev.target.result,
+                name: file.name,
+                type: file.type,
+            };
+            render();
+        };
+        reader.readAsDataURL(file);
     }
 });
 
@@ -14381,6 +15349,7 @@ document.addEventListener('input', function(e) {
     else if (id === 'admin-mock-qs') state.admin.mockQuestionsPerSubject = parseInt(e.target.value) || 25;
     else if (id === 'login-email') state.loginEmail = e.target.value;
     else if (id === 'login-password') state.loginPassword = e.target.value;
+    else if (id === 'signup-fullname') state.signupFullName = e.target.value;
     else if (id === 'signup-username') state.signupUsername = e.target.value;
     else if (id === 'signup-email') state.signupEmail = e.target.value;
     else if (id === 'signup-password') state.signupPassword = e.target.value;
@@ -14400,6 +15369,14 @@ document.addEventListener('input', function(e) {
         state.supportInput = e.target.value;
     } else if (id === 'admin-support-reply-input') {
         // handled on send
+    } else if (id === 'fund-wallet-amount-input') {
+        state.fundWalletAmount = e.target.value;
+    } else if (id === 'study-reminder-hour') {
+        const val = parseInt(e.target.value, 10);
+        if (!isNaN(val) && val >= 0 && val <= 23) state.studyReminderHour = val;
+    } else if (id === 'study-reminder-minute') {
+        const val = parseInt(e.target.value, 10);
+        if (!isNaN(val) && val >= 0 && val <= 59) state.studyReminderMinute = val;
     } else if (action === 'qform-text') state.admin.qText = e.target.value;
     else if (action === 'qform-explanation') state.admin.qExplanation = e.target.value;
     else if (action === 'qform-opt') {
@@ -14601,6 +15578,12 @@ async function init() {
             render();
         });
     }, 60000);
+
+    // Study reminder tick
+    setInterval(checkStudyReminderTick, 60000);
+    if (state.authUser) {
+        loadStudyReminder();
+    }
 }
 
 if (document.readyState === 'loading') {
