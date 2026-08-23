@@ -3609,11 +3609,11 @@ const SUBJECTS = [
 ].map(function(s, i) { s.color = SUBJECT_PALETTE[i % SUBJECT_PALETTE.length]; return s; });
 
 const HOME_TILES = [
-    { key: "cbt", label: "CBT Mode", blurb: "Real JAMB-style practice", icon: "monitor", color: "#2E6FF2",
+    { key: "cbt", label: "JAMB CBT", blurb: "Real JAMB-style practice", icon: "monitor", color: "#2E6FF2",
         colorDark: "#1447B3" },
-    { key: "exam", label: "Exam Mode", blurb: "Timed, no pausing", icon: "clipboard", color: "#E2543A",
+    { key: "exam", label: "JAMB Past Questions", blurb: "2021–2026, one subject at a time", icon: "clipboard", color: "#E2543A",
         colorDark: "#B23420" },
-    { key: "mockexam", label: "Mock Exam", blurb: "Full JAMB-style mock", icon: "target", color: "#8E44AD",
+    { key: "mockexam", label: "Live Exam", blurb: "Create or join a live exam", icon: "target", color: "#8E44AD",
         colorDark: "#5E2D8C" },
     { key: "topics", label: "Topic Practice", blurb: "Drill one topic", icon: "list", color: "#7C5CFC",
         colorDark: "#5A3ADB" },
@@ -3767,7 +3767,25 @@ function getJambCountdown() {
     const diffMs = target - now;
     const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
     return { days: days, year: target.getFullYear() };
+}function enrolledSubjectIds() {
+    if (isAdmin()) return null;
+    const ids = new Set();
+    (state.myEnrollments || []).forEach(function(e) {
+        const course = state.courses.find(function(c) { return c.id === e.course_id; });
+        if (course) (course.subject_ids || []).forEach(function(sid) { ids.add(sid); });
+    });
+    return ids;
 }
+function hasCourseAccess(subjectId) {
+    const ids = enrolledSubjectIds();
+    if (ids === null) return true;
+    return ids.has(subjectId);
+}
+function anyCourseAccess() {
+    if (isAdmin()) return true;
+    return enrolledSubjectIds().size > 0;
+}
+
 function isAdmin() {
     return state.profile.email && state.profile.email.toLowerCase() === ADMIN_EMAIL;
 }
@@ -4040,8 +4058,15 @@ let state = {
         notifyUserId: null,
         notifyModalOpen: false,
         notifyTitle: "",
-        notifyBody: "",
+        notifyBody: "",       
         editingPlanId: null,
+        courseTitle: "",
+        courseExamType: "jamb",
+        courseSubjects: [],
+        coursePrice: "",
+        courseDescription: "",
+        courseImageData: null,
+        editingCourseId: null,
         adminTopicSubject: null,
         adminTopicsList: [],
         adminTopicsLoaded: false,
@@ -4078,9 +4103,28 @@ let state = {
     mockRegistrations: [],
     mockAttempts: [],
     mockLoaded: false,
+    liveExams: [],
+    liveExamsLoaded: false,
+    liveExamRegistrations: [],
+    liveExamAttempts: [],
+    liveExamView: 'browse',
+    liveExamTab: 'ongoing',
+    liveExamCreateStep: 'type',
+    liveExamCreateForm: { title: '', examType: '', subject: '', startTime: '', numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true },
+    liveExamJoinCodeInput: '',
+    mockExamSource: 'admin',
 
     activationPlans: [],
     activationPlansLoaded: false,
+    courses: [],
+coursesLoaded: false,
+coursesLoading: false,
+myEnrollments: [],
+myEnrollmentsLoaded: false,
+myEnrollmentsLoading: false,
+    selectedCourseId: null,
+    selectedSubjectId: null,
+    browseCourseFilter: 'all',
     adminKeys: [],
     adminKeysLoaded: false,
     activateStatusMsg: '',
@@ -5281,6 +5325,150 @@ function firstUnansweredOrFirst(qs, answers) {
 // ============================================================
 //  MOCK FUNCTIONS
 // ============================================================
+function generateJoinCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s = '';
+    for (let i = 0; i < 6; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s;
+}
+
+const LIVE_EXAM_TYPES = [
+    { key: 'jamb', label: 'JAMB', icon: '🎓', enabled: true },
+    { key: 'neco', label: 'NECO', icon: '📗', enabled: true },
+    { key: 'waec', label: 'WAEC', icon: '📘', enabled: true },
+    { key: 'postutme', label: 'Post-UTME', icon: '🏫', enabled: true },
+    { key: 'lhm', label: 'LHM', icon: '📖', enabled: true },
+];
+
+function getLiveExamTimeConstraints() {
+    const now = new Date();
+    const max = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    function toHM(d) { return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+    return { min: toHM(now), max: toHM(max), dateStr: now.toISOString().slice(0, 10) };
+}
+
+async function loadLiveExams() {
+    try {
+        const { data, error } = await supabase.from('live_exams').select('*').order('scheduled_date', { ascending: true });
+        if (error) { console.warn('Load live exams error:', error); state.liveExams = []; }
+        else state.liveExams = data || [];
+        state.liveExamsLoaded = true;
+        render();
+    } catch (e) {
+        state.liveExams = [];
+        state.liveExamsLoaded = true;
+        render();
+    }
+}
+
+async function loadLiveExamRegistrations() {
+    if (!state.authUser) { state.liveExamRegistrations = []; render(); return; }
+    const { data } = await supabase.from('live_exam_registrations').select('*').eq('user_id', state.authUser.id);
+    state.liveExamRegistrations = data || [];
+    render();
+}
+
+async function loadLiveExamAttempts() {
+    if (!state.authUser) { state.liveExamAttempts = []; render(); return; }
+    const { data } = await supabase.from('live_exam_attempts').select('*').eq('user_id', state.authUser.id);
+    state.liveExamAttempts = data || [];
+    render();
+}
+
+async function createLiveExam() {
+    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    const f = state.liveExamCreateForm;
+    const examTypeMeta = LIVE_EXAM_TYPES.find(function(t) { return t.key === f.examType; });
+if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam type.', 'error'); return; }
+    if (!f.subject) { showToast('Select a subject.', 'error'); return; }
+    if (!f.title.trim()) { showToast('Enter a title.', 'error'); return; }
+    if (!f.startTime) { showToast('Pick a start time.', 'error'); return; }
+
+    const tc = getLiveExamTimeConstraints();
+    if (f.startTime < tc.min || f.startTime > tc.max) {
+        showToast('Start time must be within the next 2 hours.', 'error');
+        return;
+    }
+    const scheduledDate = new Date(tc.dateStr + 'T' + f.startTime + ':00');
+    if (isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
+        showToast('Pick a valid future start time.', 'error');
+        return;
+    }
+
+    const numQuestions = Math.max(1, Math.min(100, parseInt(f.numQuestions) || 40));
+    const durationMinutes = Math.max(1, (parseInt(f.durationHours) || 0) * 60 + (parseInt(f.durationMinutes) || 0));
+    const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60000 + 30 * 60000);
+
+    let code = generateJoinCode();
+    const { data, error } = await supabase.from('live_exams').insert([{
+        created_by: state.authUser.id,
+        creator_username: state.profile.name,
+        title: f.title.trim(),
+        join_code: code,
+        exam_type: f.examType,
+        subject_id: f.subject,
+        num_questions: numQuestions,
+        questions_per_subject: numQuestions,
+        time_limit_minutes: durationMinutes,
+        is_public: !!f.isPublic,
+        scheduled_date: scheduledDate.toISOString(),
+        registration_deadline: scheduledDate.toISOString(),
+        end_date: endDate.toISOString(),
+    }]).select().single();
+
+    if (error) { showToast('Error creating exam: ' + error.message, 'error'); return; }
+    showToast('🎉 Live exam created!' + (f.isPublic ? '' : ' Join code: ' + code), 'success');
+    state.liveExamCreateForm = { title: '', examType: '', subject: '', startTime: '', numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true };
+    state.liveExamCreateStep = 'type';
+    state.liveExamView = 'browse';
+    loadLiveExams();
+}
+
+async function joinLiveExamNow(examId) {
+    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    const exam = state.liveExams.find(function(e) { return e.id === examId; });
+    if (!exam) { showToast('Exam not found.', 'error'); return; }
+    const already = state.liveExamRegistrations.find(function(r) { return r.live_exam_id === examId; });
+    if (already) { showToast('You already joined this exam.', ''); return; }
+    const { error } = await supabase.from('live_exam_registrations').insert([{
+        user_id: state.authUser.id,
+        username: state.profile.name,
+        live_exam_id: examId,
+        subjects: [exam.subject_id],
+    }]);
+    if (error) { showToast('Error joining: ' + error.message, 'error'); return; }
+    showToast('Joined! Come back when it starts.', 'success');
+    await loadLiveExamRegistrations();
+}
+async function joinLiveExamByCode(code) {
+    const c = (code || '').trim().toUpperCase();
+    if (!c) { showToast('Enter a join code.', 'error'); return; }
+    const { data: exam, error } = await supabase.from('live_exams').select('*').eq('join_code', c).maybeSingle();
+    if (error || !exam) { showToast('No exam found with that code.', 'error'); return; }
+    if (state.liveExams.every(function(e) { return e.id !== exam.id; })) state.liveExams.unshift(exam);
+    state.liveExamView = 'browse';
+    state.liveExamJoinCodeInput = '';
+    await joinLiveExamNow(exam.id);
+    render();
+}
+async function inviteFriendToLiveExam(examId, username) {
+    const u = (username || '').trim();
+    if (!u) { showToast('Enter a username.', 'error'); return; }
+    const { data: user, error } = await supabase.from('profiles').select('id, username').eq('username', u).maybeSingle();
+    if (error || !user) { showToast('No user found with that username.', 'error'); return; }
+    const exam = state.liveExams.find(function(e) { return e.id === examId; });
+    await supabase.from('notifications').insert([{
+        title: '🎯 You\'re invited to a live exam!',
+        body: (exam ? exam.creator_username : 'A user') + ' invited you to "' + (exam ? exam.title : '') + '". Join with code: ' + (exam ? exam.join_code : ''),
+        target_user_id: user.id,
+        created_at: new Date().toISOString(),
+    }]);
+    showToast('Invite sent to ' + u + '!', 'success');
+    state.liveExamInviteUsername = '';
+    render();
+}
+
+// registerForLiveExam removed — live exams are single-subject and joined via joinLiveExamNow()
 async function loadMockExams() {
     try {
         const { data, error } = await supabase
@@ -5380,7 +5568,14 @@ async function registerForMock(mockExamId, subjects) {
     }
 }
 
-async function startMockExam(mockExamId) {
+async function startMockExam(mockExamId, source) {
+    source = source || 'admin';
+    state.mockExamSource = source;
+    const examsTable = source === 'live' ? 'live_exams' : 'mock_exams';
+    const regTable = source === 'live' ? 'live_exam_registrations' : 'mock_registrations';
+    const attemptsTable = source === 'live' ? 'live_exam_attempts' : 'mock_attempts';
+    const examIdCol = source === 'live' ? 'live_exam_id' : 'mock_exam_id';
+
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
     if (!isUserActive()) {
         showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
@@ -5393,24 +5588,27 @@ async function startMockExam(mockExamId) {
     render();
 
     try {
-        const reg = state.mockRegistrations.find(function(r) {
-            return r.mock_exam_id === mockExamId && r.user_id === state.authUser.id;
+        const regList = source === 'live' ? state.liveExamRegistrations : state.mockRegistrations;
+        const attemptsList = source === 'live' ? state.liveExamAttempts : state.mockAttempts;
+
+        const reg = regList.find(function(r) {
+            return r[examIdCol] === mockExamId && r.user_id === state.authUser.id;
         });
 
         if (!reg) { 
             state.isLoading = false;
-            showToast('You are not registered for this mock.', 'error'); 
+            showToast('You are not registered for this exam.', 'error'); 
             render();
             return; 
         }
 
-        const existing = state.mockAttempts.find(function(a) {
-            return a.mock_exam_id === mockExamId && a.user_id === state.authUser.id;
+        const existing = attemptsList.find(function(a) {
+            return a[examIdCol] === mockExamId && a.user_id === state.authUser.id;
         });
 
         if (existing && existing.is_submitted) {
             state.isLoading = false;
-            showToast('You have already submitted this mock.', 'error');
+            showToast('You have already submitted this exam.', 'error');
             render();
             return;
         }
@@ -5466,7 +5664,8 @@ async function startMockExam(mockExamId) {
                     }
                     
                     const settings = await loadSettings();
-                    const timeLimit = settings.mockTimeLimit || 100;
+                    const liveExamMeta = source === 'live' ? state.liveExams.find(function(e) { return e.id === mockExamId; }) : null;
+                    const timeLimit = (liveExamMeta && liveExamMeta.time_limit_minutes) || settings.mockTimeLimit || 100;
                     state.mockTimeLeft = Math.max(0, (timeLimit * 60) - (existing.time_taken || 0));
                     state.mockQuestions = allQuestions;
                     state.mockIndex = 0;
@@ -5496,7 +5695,8 @@ async function startMockExam(mockExamId) {
         }
 
         const settings = await loadSettings();
-        const perSubject = 40;
+        const liveExamMeta = source === 'live' ? state.liveExams.find(function(e) { return e.id === mockExamId; }) : null;
+        const perSubject = (liveExamMeta && liveExamMeta.num_questions) || 40;
         
         for (const subjectId of subjects) {
             const { data: usedQuestions, error: usedError } = await supabase
@@ -5658,25 +5858,27 @@ async function startMockExam(mockExamId) {
             }
         }
 
+        const insertPayload = {
+            user_id: state.authUser.id,
+            question_ids: allQuestions.map(function(q) { return q.id; }),
+            answers: {},
+            total_questions: allQuestions.length,
+            started_at: new Date().toISOString(),
+            is_submitted: false,
+            time_taken: 0,
+        };
+        insertPayload[examIdCol] = mockExamId;
+
         const { data: attempt, error: attemptError } = await supabase
-            .from('mock_attempts')
-            .insert([{
-                user_id: state.authUser.id,
-                mock_exam_id: mockExamId,
-                question_ids: allQuestions.map(function(q) { return q.id; }),
-                answers: {},
-                total_questions: allQuestions.length,
-                started_at: new Date().toISOString(),
-                is_submitted: false,
-                time_taken: 0,
-            }])
+            .from(attemptsTable)
+            .insert([insertPayload])
             .select()
             .single();
 
         if (attemptError) {
             console.error('Attempt error:', attemptError);
             state.isLoading = false;
-            throw new Error(attemptError.message || 'Failed to start mock exam');
+            throw new Error(attemptError.message || 'Failed to start exam');
         }
 
         state.currentMockAttempt = attempt;
@@ -5685,7 +5887,7 @@ async function startMockExam(mockExamId) {
         state.mockIndex = 0;
         state.mockFinished = false;
         state.mockSubmitted = false;
-        const timeLimit = settings.mockTimeLimit || 100;
+        const timeLimit = (liveExamMeta && liveExamMeta.time_limit_minutes) || settings.mockTimeLimit || 100;
         state.mockTimeLeft = timeLimit * 60;
         state.mockExamId = mockExamId;
         state.isLoading = false;
@@ -5709,9 +5911,9 @@ async function startMockExam(mockExamId) {
 
     
     } catch (e) {
-        console.warn('Start mock error:', e);
+        console.warn('Start exam error:', e);
         state.isLoading = false;
-        showToast('Error starting mock: ' + (e.message || 'unknown'), 'error');
+        showToast('Error starting exam: ' + (e.message || 'unknown'), 'error');
         state.view = 'mockexam';
         render();
     }
@@ -5793,6 +5995,10 @@ function doSubmitMock(autoSubmit) {
         state.mockTimer = null;
     }
 
+    const source = state.mockExamSource || 'admin';
+    const attemptsTable = source === 'live' ? 'live_exam_attempts' : 'mock_attempts';
+    const examsList = source === 'live' ? state.liveExams : state.mockExams;
+
     const rawSubjectCounts = {};
     const weakQuestionsToSave = [];
 
@@ -5837,7 +6043,7 @@ function doSubmitMock(autoSubmit) {
             const subj = SUBJECTS.find(function(s) { return s.id === sid; });
             return subj ? subj.name : sid;
         });
-        const exam = state.mockExams.find(function(e) { return e.id === state.mockExamId; });
+        const exam = examsList.find(function(e) { return e.id === state.mockExamId; });
         saveHistoryEntry({
             mode: 'mock',
             subjects: subjectNames,
@@ -5851,7 +6057,7 @@ function doSubmitMock(autoSubmit) {
         });
     }
     supabase
-        .from('mock_attempts')
+        .from(attemptsTable)
         .update({
             answers: answersObj,
             score: totalScore,
@@ -5887,6 +6093,146 @@ function doSubmitMock(autoSubmit) {
 // ============================================================
 //  ACTIVATION PLANS
 // ============================================================
+async function loadCourses() {
+    if (state.coursesLoading) return;
+    state.coursesLoading = true;
+
+    // Offline-first: show locally cached courses immediately (synchronous,
+    // runs before any network await) so Home never sits empty/spinning
+    // when we already have data on the device.
+    if (!state.coursesLoaded) {
+        try {
+            const cached = storage.get('cached_courses');
+            if (cached) {
+                state.courses = JSON.parse(cached);
+                state.coursesLoaded = true;
+            }
+        } catch (e) {}
+    }
+
+    // Background sync: try the network, but never wait more than 8 seconds.
+    try {
+        const timeout = new Promise(function(_, reject) {
+            setTimeout(function() { reject(new Error('Courses request timed out')); }, 8000);
+        });
+        const result = await Promise.race([
+            supabase.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+            timeout
+        ]);
+        if (result.error) {
+            console.error('Load courses error:', result.error);
+        } else {
+            state.courses = result.data || [];
+            try { storage.set('cached_courses', JSON.stringify(state.courses)); } catch (e) {}
+        }
+    } catch (e) {
+        console.warn('Load courses failed or timed out:', e);
+    } finally {
+        state.coursesLoaded = true;
+        state.coursesLoading = false;
+        render();
+    }
+}
+async function loadMyEnrollments() {
+    if (state.myEnrollmentsLoading) return;
+    state.myEnrollmentsLoading = true;
+    if (!state.authUser) { state.myEnrollments = []; state.myEnrollmentsLoaded = true; state.myEnrollmentsLoading = false; render(); return; }
+    try {
+        const { data, error } = await supabase.from('course_enrollments').select('*').eq('user_id', state.authUser.id);
+        state.myEnrollments = error ? [] : (data || []);
+        state.myEnrollmentsLoaded = true;
+        state.myEnrollmentsLoading = false;
+        render();
+    } catch (e) {
+        state.myEnrollments = [];
+        state.myEnrollmentsLoaded = true;
+        state.myEnrollmentsLoading = false;
+        render();
+    }
+}
+async function adminSaveCourse() {
+    const title = state.admin.courseTitle.trim();
+    const examType = state.admin.courseExamType;
+    const subjects = state.admin.courseSubjects || [];
+    const price = parseInt(state.admin.coursePrice || 0);
+    const description = state.admin.courseDescription.trim();
+    const imageUrl = state.admin.courseImageData || null;
+
+    if (!title) { showToast('Enter a course title.', 'error'); return; }
+    if (subjects.length === 0) { showToast('Select at least one subject.', 'error'); return; }
+
+    try {
+        let result;
+        if (state.admin.editingCourseId) {
+            result = await supabase.from('courses').update({
+                title: title, exam_type: examType, subject_ids: subjects,
+                price: price, description: description, image_url: imageUrl,
+            }).eq('id', state.admin.editingCourseId);
+        } else {
+            result = await supabase.from('courses').insert([{
+                title: title, exam_type: examType, subject_ids: subjects,
+                price: price, description: description, image_url: imageUrl,
+            }]);
+        }
+        if (result.error) {
+            console.error('Course save error:', result.error);
+            showToast('Error: ' + result.error.message, 'error');
+            return;
+        }
+        showToast(state.admin.editingCourseId ? 'Course updated!' : 'Course created!', 'success');
+        state.admin.courseTitle = "";
+        state.admin.courseExamType = "jamb";
+        state.admin.courseSubjects = [];
+        state.admin.coursePrice = "";
+        state.admin.courseDescription = "";
+        state.admin.courseImageData = null;
+        state.admin.editingCourseId = null;
+        state.coursesLoaded = false;
+        loadCourses();
+    } catch (e) {
+        console.warn('Save course error:', e);
+        showToast('Error saving course: ' + (e.message || 'unknown'), 'error');
+    }
+}
+
+async function adminDeleteCourse(courseId) {
+    if (!confirm('Delete this course?')) return;
+    try {
+        await supabase.from('courses').delete().eq('id', courseId);
+        showToast('Course deleted.', 'success');
+        state.coursesLoaded = false;
+        loadCourses();
+    } catch (e) {
+        showToast('Error deleting course.', 'error');
+    }
+}
+
+function payForCourse(course) {
+    if (!state.authUser) { showToast('Please log in first.', 'error'); state.showLogin = true; render(); return; }
+    if (typeof PaystackPop === 'undefined') { showToast('Payment system not loaded.', 'error'); return; }
+
+    const handler = PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: state.profile.email || (state.authUser.email || 'noemail@example.com'),
+        amount: course.price * 100,
+        currency: 'NGN',
+        ref: 'COURSE-' + Date.now() + '-' + Math.floor(Math.random() * 100000),
+        metadata: { custom_fields: [{ display_name: "Course", variable_name: "course", value: course.title }] },
+        callback: function(response) {
+            showToast('Payment received! Enrolling...', '');
+            supabase.from('course_enrollments').insert([{
+                user_id: state.authUser.id, course_id: course.id, amount: course.price,
+            }]).then(function() {
+                showToast('🎉 Enrolled in ' + course.title + '!', 'success');
+                state.myEnrollmentsLoaded = false;
+                loadMyEnrollments();
+            });
+        },
+        onClose: function() { showToast('Payment window closed.', ''); }
+    });
+    handler.openIframe();
+}
+
 async function loadActivationPlans() {
     try {
         const { data, error } = await supabase
@@ -7166,9 +7512,12 @@ function setView(v) {
     if (v === "notifications") loadNotifications();
     if (v === "mockexam") {
         if (!state.mockLoaded) loadMockExams();
+        if (!state.liveExamsLoaded) loadLiveExams();
         if (state.authUser) {
             loadMockRegistrations();
             loadMockAttempts();
+            loadLiveExamRegistrations();
+            loadLiveExamAttempts();
         }
     }
     if (v === "documents" && !state.docsLoaded) loadDocuments();
@@ -7436,11 +7785,16 @@ function renderApp() {
         '<div id="app-shell"><div id="app-inner">' +
         loadingOverlay +
         '<div class="topbar">' +
-        '<div class="topbar-left">' + leftContent + '</div>' +
-        '<div class="topbar-center">' +
-        '<span class="brand">' + logoSvg(22) + '<span>My<b>UTME</b></span></span>' +
-        '</div>' +
-        '<div class="topbar-right">' + rightContent + '</div>' +
+        (state.view === 'home'
+            ? '<div class="topbar-left"></div><div class="topbar-center"></div><div class="topbar-right">' +
+              '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
+              svg('bell', 20).replace('stroke="currentColor"', 'stroke="white"') +
+              (unread > 0 ? '<span style="position:absolute;top:-4px;right:-4px;background:#e2543a;color:#fff;border-radius:999px;font-size:9px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--topbar-bg)">' + badgeLabel + '</span>' : '') +
+              '</button></div>'
+            : '<div class="topbar-left">' + leftContent + '</div>' +
+              '<div class="topbar-center"><span class="brand">' + logoSvg(22) + '<span>My<b>UTME</b></span></span></div>' +
+              '<div class="topbar-right">' + rightContent + '</div>'
+        ) +
         '</div>' +
         '<div class="view"><div class="view-content">' + renderView() + '</div></div>' +
         renderBottomNav() +
@@ -7451,12 +7805,12 @@ function renderApp() {
 
 function renderBottomNav() {
     const items = [
-        { key: 'home', label: 'Home', icon: 'home' },
-        { key: 'documents', label: 'My Learning', icon: 'folder' },
-        { key: 'cbt', label: 'CBT Exams', icon: 'monitor' },
-        { key: 'mockexam', label: 'Mock Exam', icon: 'target' },
-        { key: 'profile', label: 'Account', icon: 'user' },
-    ];
+    { key: 'home', label: 'Home', icon: 'home' },
+    { key: 'learning', label: 'My Learning', icon: 'folder' },
+    { key: 'cbt', label: 'JAMB CBT', icon: 'monitor' },
+    { key: 'mockexam', label: 'Live Exam', icon: 'target' },
+    { key: 'profile', label: 'Account', icon: 'user' },
+];
     let html = '<div class="bottom-nav">';
     items.forEach(function(it) {
         const isActive = state.view === it.key;
@@ -7484,6 +7838,9 @@ function renderView() {
     if (v === "lit-exam") return renderLitExam();
 
     if (v === "home") return renderHome();
+    if (v === "all-courses") return renderAllCourses();
+    if (v === "course-detail") return renderCourseDetail();
+    if (v === "subject-modes") return renderSubjectModes();
     if (v === "notifications") return renderNotifications();
     if (v === "profile") return renderProfile();
     if (v === "profile-edit") return renderProfileEdit();
@@ -7496,7 +7853,7 @@ function renderView() {
     if (v === "exam") return renderExamMode();
     if (v === "mockexam") return renderMockExamPicker();
     if (v === "topics") return renderTopicsPicker();
-    if (v === "documents") return renderDocumentsUser();
+    if (v === "learning") return renderLearningHub();
     if (v === "literature") return renderLiteratureHome();
     if (v === "literature-cbt") return renderLiteratureCbt();
     if (v === "revise") return renderReviseWeak();
@@ -7514,44 +7871,172 @@ function renderView() {
 // ============================================================
 //  HOME
 // ============================================================
-function renderHome() {
-    const firstName = (state.profile.name || "Guest").trim().split(" ")[0];
-    let tiles = "";
-    HOME_TILES.forEach(function(t, i) {
-        const isLast = i === HOME_TILES.length - 1 && HOME_TILES.length % 2 === 1;
-        tiles += (
-            '<button class="tile' + (isLast ? ' wide' : '') + '" data-action="set-view" data-view="' + t.key +
-            '" ' +
-            'style="background-image:linear-gradient(145deg, ' + t.color + ' 0%, ' + t.colorDark + ' 100%)">' +
-            '<div class="glow"></div>' +
-            '<div class="icon-wrap">' + svg(t.icon, 26) + '</div>' +
-            '<div class="txt"><p class="label">' + esc(t.label) + '</p><p class="blurb">' + esc(t.blurb) +
-            '</p></div>' +
+function renderLearningHub() {
+    const tools = [
+        { key: 'topics', label: 'Topic Practice', blurb: 'Drill one topic at a time', icon: 'list', color: '#7C5CFC' },
+        { key: 'literature', label: 'Novel (CBT)', blurb: 'Set texts & comprehension', icon: 'book', color: '#0E9488' },
+        { key: 'revise', label: 'Revise Weak Qs', blurb: 'Retry questions you missed', icon: 'rotate', color: '#0F6B3F' },
+        { key: 'documents', label: 'Document File', blurb: 'Past questions & study files', icon: 'folder', color: '#4C5FD5' },
+        { key: 'history', label: 'Result Analysis', blurb: 'Your exam results & performance', icon: 'clock', color: '#8E44AD' },
+    ];
+    let cards = '';
+    tools.forEach(function(t) {
+        cards += (
+            '<button class="acct-menu-item" data-action="set-view" data-view="' + t.key + '">' +
+            '<span class="amicon" style="background:' + t.color + '20;color:' + t.color + '">' + svg(t.icon, 20) + '</span>' +
+            '<div class="amii-text">' +
+            '<p class="amii-title">' + esc(t.label) + '</p>' +
+            '<p class="amii-sub">' + esc(t.blurb) + '</p>' +
+            '</div>' +
             '</button>'
         );
     });
-    const jamb = getJambCountdown();
-    const countdownBanner = (
-        '<div class="jamb-countdown">' +
-        '<span class="cd-icon">⏳</span>' +
-        '<div>' +
-        '<p class="cd-days">' + jamb.days + ' days</p>' +
-        '<p class="cd-label">to JAMB ' + jamb.year + ' (estimated)</p>' +
-        '</div>' +
-        '</div>'
-    );
-
-    const activateBanner = '';
-
     return (
-        '<p class="hi-small">Welcome back,</p>' +
-        '<h2 class="hi-name">' + esc(firstName) + '</h2>' +
-        activateBanner +
-        countdownBanner +
-        '<div class="home-grid">' + tiles + '</div>'
+        '<h2 class="title" style="margin-bottom:2px;font-size:18px">My Learning</h2>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:12px">Practice tools, study material, and your results</p>' +
+        '<div class="acct-menu-grid">' + cards + '</div>'
     );
 }
 
+function renderHome() {
+    const firstName = (state.profile.name || "Guest").trim().split(" ")[0];
+
+    if (!state.coursesLoaded) loadCourses();
+    if (state.authUser && !state.myEnrollmentsLoaded) loadMyEnrollments();
+
+    let courseCards = '';
+    if (!state.coursesLoaded) {
+        courseCards = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    } else if (state.courses.length === 0) {
+        courseCards = '<p style="font-size:12px;color:var(--faint);padding:12px 0">No courses available yet.</p>';
+    } else {
+        state.courses.forEach(function(c) {
+            const img = c.image_url
+                ? '<img src="' + esc(c.image_url) + '" style="width:100%;height:170px;object-fit:cover;background:#fff" />'
+                : '<div style="width:100%;height:170px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:40px">📚</div>';
+            const subjCount = (c.subject_ids || []).length;
+            courseCards += (
+                '<div style="flex:0 0 82%;background:var(--card-bg);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer" data-action="open-course" data-courseid="' + c.id + '">' +
+                img +
+                '<div style="padding:14px">' +
+                '<p style="font-weight:800;font-size:16px;margin:0;color:var(--ink)">' + esc(c.title) + '</p>' +
+                (c.description ? '<p style="font-size:12px;color:var(--muted);margin:4px 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(c.description) + '</p>' : '<div style="margin-bottom:8px"></div>') +
+                '<div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap">' +
+                '<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)">' + svg('list', 14) + ' ' + subjCount + ' Subject' + (subjCount === 1 ? '' : 's') + '</span>' +
+                '<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)">' + svg('target', 14) + ' ' + esc((c.exam_type || '').toUpperCase()) + '</span>' +
+                '</div>' +
+                '<p style="font-size:18px;font-weight:800;color:var(--green);margin:0">₦' + (c.price || 0).toLocaleString() + '</p>' +
+                '</div></div>'
+            );
+        });
+    }
+    return (
+
+
+        '<p class="hi-small">Hi, ' + esc(firstName) + ' 👋</p>' +
+        '<h2 class="hi-name" style="margin-top:-2px">Continue your learning journey.</h2>' +
+
+        '<div class="activate-banner" style="background:linear-gradient(120deg,#2E6FF2 0%,#1447B3 100%)" data-action="set-view" data-view="all-courses">' +
+        '<div class="shine"></div>' +
+        '<div class="icon-circle">' + svg('bookopen', 22).replace('stroke="currentColor"', 'stroke="white"') + '</div>' +
+        '<div class="txt"><p class="h" style="color:#fff">Explore Courses</p><p class="s" style="color:rgba(255,255,255,0.85)">Browse every course and start learning</p></div>' +
+        '<span class="arrow" style="color:#fff">→</span>' +
+        '</div>' +
+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+        '<p class="section-label" style="margin:0">📖 Our Courses</p>' +
+        '<button data-action="set-view" data-view="all-courses" style="font-size:11px;color:var(--green);font-weight:700;background:none;border:none">See All →</button>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:16px;-webkit-overflow-scrolling:touch">' + courseCards + '</div>' +
+
+        '<p class="section-label">Practice & Exams</p>' +
+        '<div class="home-grid" style="margin-bottom:16px">' +
+        '<button class="tile" data-action="set-view" data-view="cbt" style="background-image:linear-gradient(145deg,#2E6FF2,#1447B3)"><div class="glow"></div><div class="icon-wrap">' + svg('monitor', 22) + '</div><div class="txt"><p class="label" style="font-size:13px">JAMB CBT</p></div></button>' +
+        '<button class="tile" data-action="set-view" data-view="exam" style="background-image:linear-gradient(145deg,#E2543A,#B23420)"><div class="glow"></div><div class="icon-wrap">' + svg('clipboard', 22) + '</div><div class="txt"><p class="label" style="font-size:13px">Past Questions</p></div></button>' +
+        '<button class="tile" data-action="set-view" data-view="mockexam" style="background-image:linear-gradient(145deg,#8E44AD,#5E2D8C)"><div class="glow"></div><div class="icon-wrap">' + svg('target', 22) + '</div><div class="txt"><p class="label" style="font-size:13px">Live Exam</p></div></button>' +
+        '<button class="tile" data-action="set-view" data-view="topics" style="background-image:linear-gradient(145deg,#7C5CFC,#5A3ADB)"><div class="glow"></div><div class="icon-wrap">' + svg('list', 22) + '</div><div class="txt"><p class="label" style="font-size:13px">Topics</p></div></button>' +
+        '</div>' +
+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+        '<p class="section-label" style="margin:0">My Learning</p>' +
+        '<button data-action="set-view" data-view="learning" style="font-size:11px;color:var(--green);font-weight:700;background:none;border:none">See all →</button>' +
+        '</div>' +
+        '<div class="home-grid">' +
+        '<button class="tile" data-action="set-view" data-view="literature" style="background-image:linear-gradient(145deg,#0E9488,#0B6E64)"><div class="glow"></div><div class="icon-wrap">' + svg('book', 22) + '</div><div class="txt"><p class="label" style="font-size:13px">Novel (CBT)</p></div></button>' +
+        '<button class="tile" data-action="set-view" data-view="revise" style="background-image:linear-gradient(145deg,#0F6B3F,#0A4A2B)"><div class="glow"></div><div class="icon-wrap">' + svg('rotate', 22) + '</div><div class="txt"><p class="label" style="font-size:13px">Revise Weak Qs</p></div></button>' +
+        '<button class="tile" data-action="set-view" data-view="documents" style="background-image:linear-gradient(145deg,#4C5FD5,#2F3FAE)"><div class="glow"></div><div class="icon-wrap">' + svg('folder', 22) + '</div><div class="txt"><p class="label" style="font-size:13px">Documents</p></div></button>' +
+        '<button class="tile" data-action="set-view" data-view="history" style="background-image:linear-gradient(145deg,#8E44AD,#5E2D8C)"><div class="glow"></div><div class="icon-wrap">' + svg('clock', 22) + '</div><div class="txt"><p class="label" style="font-size:13px">Results</p></div></button>' +
+        '</div>'
+    );
+}
+
+function renderAllCourses() {
+    if (!state.coursesLoaded) { loadCourses(); return '<div class="loading-spinner"><div class="spinner"></div></div>'; }
+
+    const filter = state.browseCourseFilter || 'all';
+    const examTypes = [...new Set(state.courses.map(function(c) { return c.exam_type; }).filter(Boolean))];
+
+    let pills = '<button class="notif-tab' + (filter === 'all' ? ' active' : '') + '" data-action="browse-filter" data-filter="all">All</button>';
+    examTypes.forEach(function(t) {
+        pills += '<button class="notif-tab' + (filter === t ? ' active' : '') + '" data-action="browse-filter" data-filter="' + t + '">' + esc(t.toUpperCase()) + '</button>';
+    });
+
+    const list = state.courses.filter(function(c) { return filter === 'all' || c.exam_type === filter; });
+
+    let rows = '';
+    list.forEach(function(c) {
+        const img = c.image_url
+            ? '<img src="' + esc(c.image_url) + '" style="width:110px;height:110px;object-fit:cover;border-radius:12px;flex-shrink:0" />'
+            : '<div style="width:110px;height:110px;border-radius:12px;background:linear-gradient(135deg,var(--green),var(--green-dark));display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;flex-shrink:0">📚</div>';
+        const subjCount = (c.subject_ids || []).length;
+        rows += (
+            '<div class="card" data-action="open-course" data-courseid="' + c.id + '" style="cursor:pointer;display:flex;gap:12px;padding:12px">' +
+            img +
+            '<div style="flex:1;min-width:0">' +
+            '<p style="font-weight:700;font-size:14px;margin:0">' + esc(c.title) + '</p>' +
+            (c.description ? '<p style="font-size:11px;color:var(--muted);margin:3px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(c.description) + '</p>' : '') +
+            '<div style="display:flex;gap:10px;margin:4px 0;flex-wrap:wrap">' +
+            '<span style="font-size:10px;color:var(--muted)">' + subjCount + ' subject' + (subjCount === 1 ? '' : 's') + '</span>' +
+            '<span style="font-size:10px;color:var(--muted)">' + esc((c.exam_type || '').toUpperCase()) + '</span>' +
+            '</div>' +
+            '<p style="font-weight:800;color:var(--green);margin:0;font-size:14px">₦' + (c.price || 0).toLocaleString() + '</p>' +
+            '</div></div>'
+        );
+    });
+
+    return (
+        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
+        '<h2 class="title">Browse Courses</h2>' +
+        '<div class="notif-tabs">' + pills + '</div>' +
+        (rows || '<p style="color:var(--faint);font-size:13px;text-align:center;padding:20px 0">No courses in this category yet.</p>')
+    );
+}
+function renderCourseDetail() {
+    const course = state.courses.find(function(c) { return c.id === state.selectedCourseId; });
+    if (!course) return renderHome();
+    const enrolled = state.myEnrollments.some(function(e) { return e.course_id === course.id; });
+    const subjChips = (course.subject_ids || []).map(function(sid) {
+        const s = SUBJECTS.find(function(x) { return x.id === sid; });
+        return '<span class="subj-tag" style="padding:4px 10px;font-size:11px">' + esc(s ? s.name : sid) + '</span>';
+    }).join(' ');
+
+    return (
+        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
+        (course.image_url ? '<img src="' + esc(course.image_url) + '" style="width:100%;height:160px;object-fit:cover;border-radius:14px;margin-bottom:12px" />' : '') +
+        '<h2 class="title">' + esc(course.title) + '</h2>' +
+        '<p class="sub">' + esc((course.exam_type||'').toUpperCase()) + '</p>' +
+        (course.description ? '<div class="card"><p style="font-size:13px;margin:0">' + esc(course.description) + '</p></div>' : '') +
+        '<p class="section-label">Subjects covered</p>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">' + subjChips + '</div>' +
+        '<div class="card" style="text-align:center;padding:16px">' +
+        '<p style="font-size:28px;font-weight:800;color:var(--green);margin:0">₦' + (course.price||0).toLocaleString() + '</p>' +
+        (enrolled
+            ? '<p style="color:var(--green);font-weight:700;font-size:13px;margin-top:8px">✅ You are enrolled</p>'
+            : '<button class="btn btn-green" style="margin-top:10px" data-action="enroll-course" data-courseid="' + course.id + '">Enroll Now</button>') +
+        '</div>'
+    );
+}
+    
 function renderFeature(tile) {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
@@ -7621,14 +8106,18 @@ function renderCbtMode() {
     let chips = "";
     others.forEach(function(s) {
         const sel = state.cbtSelected.indexOf(s.id) !== -1;
+        const locked = !hasCourseAccess(s.id);
         chips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-cbt-subject" data-subject="' +
-            s.id + '">' +
+            '<button class="subject-chip' + (sel ? ' selected' : '') + '"' +
+            (locked ? ' style="opacity:0.4"' : ' data-action="toggle-cbt-subject" data-subject="' + s.id + '"') + '>' +
             subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + '</span>' +
+            '<span class="sname">' + esc(s.name) + (locked ? ' 🔒' : '') + '</span>' +
             '</button>'
         );
     });
+    if (!anyCourseAccess()) {
+        chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Enroll in a course to unlock subjects.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="all-courses">Browse Courses</button></div>';
+    }
 
     const count = state.cbtSelected.length;
     const isFull = state.cbtMode === "full";
@@ -7660,7 +8149,7 @@ function renderCbtMode() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
         '<div class="feature-icon" style="background:#2E6FF2">' + svg("monitor", 30) + '</div>' +
-        '<h2 class="title">CBT Mode</h2>' +
+        '<h2 class="title">JAMB CBT</h2>' +
         '<p class="sub">Real JAMB-style practice screen</p>' +
         modeHtml +
         '<div class="mode-note">' + (isFull ?
@@ -7981,14 +8470,18 @@ function renderExamMode() {
     let chips = "";
     SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
         const sel = state.examSubject === s.id;
+        const locked = !hasCourseAccess(s.id);
         chips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-exam-subject" data-subject="' +
-            s.id + '">' +
+            '<button class="subject-chip' + (sel ? ' selected' : '') + '"' +
+            (locked ? ' style="opacity:0.4"' : ' data-action="select-exam-subject" data-subject="' + s.id + '"') + '>' +
             subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + '</span>' +
+            '<span class="sname">' + esc(s.name) + (locked ? ' 🔒' : '') + '</span>' +
             '</button>'
         );
     });
+    if (!anyCourseAccess()) {
+        chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Enroll in a course to unlock subjects.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="all-courses">Browse Courses</button></div>';
+    }
     let yearOptions = "";
     for (let y = 2026; y >= 2021; y--) {
         yearOptions += '<option value="' + y + '"' + (state.examYear === y ? ' selected' : '') + '>' + y + '</option>';
@@ -8018,8 +8511,8 @@ function renderExamMode() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
         '<div class="feature-icon" style="background:#E2543A">' + svg("clipboard", 30) + '</div>' +
-        '<h2 class="title">Exam Mode</h2>' +
-        '<p class="sub">One subject at a time</p>' +
+        '<h2 class="title">JAMB Past Questions</h2>' +
+'<p class="sub">2021–2026 · one subject at a time</p>' +
         modeHtml +
         '<div class="mode-note">Pick <b>one subject</b> and a <b>past year</b> (2021–2026) to sit an exam.' + 
         (isInstant ? ' <b>Instant Check</b> shows feedback right after each answer.' : '') +
@@ -8207,14 +8700,18 @@ function renderTopicsPicker() {
     let subjChips = "";
     SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
         const sel = state.topicSubject === s.id;
+        const locked = !hasCourseAccess(s.id);
         subjChips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-topic-subject" data-subject="' +
-            s.id + '">' +
+            '<button class="subject-chip' + (sel ? ' selected' : '') + '"' +
+            (locked ? ' style="opacity:0.4"' : ' data-action="select-topic-subject" data-subject="' + s.id + '"') + '>' +
             subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + '</span>' +
+            '<span class="sname">' + esc(s.name) + (locked ? ' 🔒' : '') + '</span>' +
             '</button>'
         );
     });
+    if (!anyCourseAccess()) {
+        subjChips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Enroll in a course to unlock subjects.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="all-courses">Browse Courses</button></div>';
+    }
 
     let topicsHtml = "";
     if (state.topicSubject) {
@@ -9322,6 +9819,7 @@ function renderProfile() {
         { key: 'set-view|transactions', icon: '💳', color: '#0E9488', title: 'Transaction History', sub: 'Wallet funding and purchases' },
         { key: 'set-view|study-reminder', icon: '⏰', color: '#E4A93A', title: 'Study Reminder', sub: 'Get nudged when it\'s time to read', badge: 'NEW' },
         { key: 'set-view|leaderboard', icon: '🏆', color: '#7C5CFC', title: 'Leaderboard', sub: 'See where you rank' },
+        { key: 'set-view|my-courses', icon: '🎓', color: '#0F6B3F', title: 'My Courses', sub: 'Courses you\'ve enrolled in' },
         { key: 'set-view|activate', icon: '🔑', color: '#d49a2e', title: 'Activate', sub: 'Manage your subscription' },
         { key: 'set-view|support', icon: '💬', color: '#4C5FD5', title: 'Support', sub: 'Chat with us or WhatsApp' },
     ];
@@ -9996,6 +10494,192 @@ function renderMockPassagePage() {
     );
 }
 
+function renderMockExamPicker() {
+    if (!state.mockLoaded || !state.liveExamsLoaded) {
+        if (!state.mockLoaded) loadMockExams();
+        if (!state.liveExamsLoaded) loadLiveExams();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading exams...</p></div>';
+    }
+    if (!state.authUser) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
+            '<h2 class="title">Live Exam</h2><p class="sub">Create or join a live exam</p>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in first.</p></div>'
+        );
+    }
+
+    if (state.liveExamView === 'create') return renderLiveExamCreateWizard();
+    if (state.liveExamView === 'join-code') return renderLiveExamJoinCode();
+
+    const now = new Date();
+    const allExams = state.mockExams.map(function(e) { return Object.assign({}, e, { source: 'admin' }); })
+        .concat(state.liveExams.filter(function(e) { return e.is_public !== false || e.created_by === state.authUser.id; })
+            .map(function(e) { return Object.assign({}, e, { source: 'live' }); }));
+
+    function status(e) {
+        const sch = new Date(e.scheduled_date), end = new Date(e.end_date);
+        if (now > end) return 'completed';
+        if (now >= sch && now <= end) return 'ongoing';
+        return 'upcoming';
+    }
+
+    const tab = state.liveExamTab || 'ongoing';
+    const filtered = allExams.filter(function(e) { return status(e) === tab; })
+        .sort(function(a, b) { return new Date(a.scheduled_date) - new Date(b.scheduled_date); });
+
+    let tabsHtml = '<div class="leaderboard-tabs">';
+    [['upcoming', '📅 Upcoming'], ['ongoing', '🟢 Ongoing'], ['completed', '🔒 Completed']].forEach(function(t) {
+        tabsHtml += '<button class="leaderboard-tab' + (tab === t[0] ? ' active' : '') + '" data-action="live-exam-tab" data-tab="' + t[0] + '">' + t[1] + '</button>';
+    });
+    tabsHtml += '</div>';
+
+    let cards = "";
+    if (filtered.length === 0) {
+        cards = '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No ' + tab + ' exams.</p></div>';
+    } else {
+        filtered.forEach(function(exam) {
+            const scheduled = new Date(exam.scheduled_date);
+            const endDate = new Date(exam.end_date);
+            const st = status(exam);
+            const subj = exam.source === 'live' ? SUBJECTS.find(function(s) { return s.id === exam.subject_id; }) : null;
+            const regList = exam.source === 'live' ? state.liveExamRegistrations : state.mockRegistrations;
+            const attemptsList = exam.source === 'live' ? state.liveExamAttempts : state.mockAttempts;
+            const reg = regList.find(function(r) { return r.live_exam_id === exam.id || r.mock_exam_id === exam.id; });
+            const attempt = attemptsList.find(function(a) { return a.live_exam_id === exam.id || a.mock_exam_id === exam.id; });
+
+            let statusText = st === 'upcoming' ? '📅 Upcoming' : st === 'ongoing' ? '🟢 Ongoing' : '🔒 Ended';
+
+            let actionHtml = "";
+            if (reg) {
+                if (attempt && attempt.is_submitted) {
+                    actionHtml = (exam.source === 'admin' ? exam.results_released : true)
+                        ? '<button class="btn btn-outline" data-action="view-mock-result" data-examid="' + exam.id + '" data-source="' + exam.source + '" style="padding:8px">View Result</button>'
+                        : '<p style="font-size:11px;color:var(--muted);text-align:center">✅ Submitted — waiting for results</p>';
+                } else if (st === 'ongoing') {
+                    actionHtml = '<button class="btn btn-green" data-action="start-mock" data-examid="' + exam.id + '" data-source="' + exam.source + '" style="padding:8px">' + (attempt ? 'Continue' : 'Start Exam') + '</button>';
+                } else {
+                    actionHtml = '<p style="font-size:11px;color:var(--muted);text-align:center">✅ Joined — starts ' + scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</p>';
+                }
+            } else if (st !== 'completed') {
+                actionHtml = exam.source === 'live'
+                    ? '<button class="btn btn-gold" data-action="join-live-exam" data-examid="' + exam.id + '" style="padding:8px">Join Exam</button>'
+                    : '<button class="btn btn-gold" data-action="register-mock" data-examid="' + exam.id + '" data-source="admin" style="padding:8px">Register</button>';
+            } else {
+                actionHtml = '<p style="font-size:11px;color:var(--faint);text-align:center">Ended</p>';
+            }
+
+            let liveMeta = '';
+            if (exam.source === 'live') {
+                liveMeta = '<p style="font-size:11px;color:var(--muted);margin:2px 0">📘 ' + (subj ? esc(subj.name) : esc(exam.subject_id)) + ' · ' + (exam.num_questions || '-') + ' questions · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>';
+                if (st === 'ongoing') {
+                    liveMeta += '<p style="font-size:11px;color:var(--danger);margin:2px 0">⏰ Ends ' + endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</p>';
+                }
+            }
+
+            cards += (
+                '<div class="mock-card' + (st === 'ongoing' ? ' active' : '') + '">' +
+                '<p class="mock-title">' + esc(exam.title) + (exam.source === 'live' ? ' 👤' : ' 🛡️') + '</p>' +
+                '<p class="mock-date">📅 ' + scheduled.toLocaleString() + (exam.source === 'live' ? ' · by ' + esc(exam.creator_username || 'user') : '') + '</p>' +
+                liveMeta +
+                '<span class="mock-status ' + st + '">' + statusText + '</span>' +
+                (reg ? '<span class="mock-status registered" style="margin-left:4px">✅ Joined</span>' : '') +
+                (exam.source === 'live' && exam.is_public === false ? '<span class="mock-status waiting" style="margin-left:4px">🔒 Private</span>' : '') +
+                '<div style="margin-top:8px">' + actionHtml + '</div>' +
+                '</div>'
+            );
+        });
+    }
+
+    return (
+        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
+        '<h2 class="title">Live Exam</h2>' +
+        '<p class="sub">Create your own, or join anyone\'s exam</p>' +
+        '<div style="display:flex;gap:6px;margin-bottom:12px">' +
+        '<button class="btn btn-green" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="create">➕ Create</button>' +
+        '<button class="btn btn-outline" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="join-code">🔑 Join by Code</button>' +
+        '</div>' +
+        tabsHtml +
+        cards
+    );
+}
+
+function renderLiveExamCreateWizard() {
+    const step = state.liveExamCreateStep || 'type';
+    const f = state.liveExamCreateForm;
+
+    if (step === 'type') {
+        let cards = "";
+        LIVE_EXAM_TYPES.forEach(function(t) {
+            cards += (
+                '<button class="lit-tile" style="' + (t.enabled ? '' : 'opacity:0.45;pointer-events:none') + '" data-action="live-select-type" data-type="' + t.key + '">' +
+                '<span class="big-icon">' + t.icon + '</span>' +
+                '<p class="label">' + t.label + '</p>' +
+                '<p class="sub">' + (t.enabled ? 'Available' : 'Coming soon') + '</p>' +
+                '</button>'
+            );
+        });
+        return (
+            '<button class="back-link" data-action="live-exam-view" data-view="browse">' + svg("chevleft", 14) + ' Back</button>' +
+            '<h2 class="title">Create Live Exam</h2>' +
+            '<p class="sub">Choose the exam type</p>' +
+            '<div class="home-grid">' + cards + '</div>'
+        );
+    }
+
+    if (step === 'subject') {
+        let chips = "";
+        SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
+            const sel = f.subject === s.id;
+            chips += '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="live-select-subject" data-subject="' + s.id + '">' + subjectBadge(s) + '<span class="sname">' + esc(s.name) + '</span></button>';
+        });
+        return (
+            '<button class="back-link" data-action="live-create-step" data-step="type">' + svg("chevleft", 14) + ' Back</button>' +
+            '<h2 class="title">Choose Subject</h2>' +
+            '<p class="sub">Live exam covers one subject only</p>' +
+            '<div class="subject-grid">' + chips + '</div>' +
+            '<button class="btn btn-green" style="margin-top:10px" data-action="live-create-step" data-step="details"' + (f.subject ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Next</button>'
+        );
+    }
+
+    const tc = getLiveExamTimeConstraints();
+    return (
+        '<button class="back-link" data-action="live-create-step" data-step="subject">' + svg("chevleft", 14) + ' Back</button>' +
+        '<h2 class="title">Exam Details</h2>' +
+        '<div class="card">' +
+        '<label class="field-label">Title</label>' +
+        '<input class="field" id="live-title" value="' + esc(f.title) + '" placeholder="e.g. Friday Physics Sprint" style="margin-bottom:10px" />' +
+        '<label class="field-label">Date</label>' +
+        '<div class="field-locked" style="margin-bottom:10px"><span>' + new Date().toLocaleDateString() + ' (today only)</span></div>' +
+        '<label class="field-label">Start time (within the next 2 hours)</label>' +
+        '<input class="field" id="live-start-time" type="time" min="' + tc.min + '" max="' + tc.max + '" value="' + esc(f.startTime || '') + '" style="margin-bottom:10px" />' +
+        '<label class="field-label">Number of questions (1–100)</label>' +
+        '<input class="field" id="live-num-questions" type="number" min="1" max="100" value="' + (f.numQuestions || 40) + '" style="margin-bottom:10px" />' +
+        '<label class="field-label">Duration</label>' +
+        '<div class="time-selector" style="margin:2px 0 10px">' +
+        '<div class="time-input-group"><input type="number" id="live-duration-hours" min="0" max="3" value="' + (f.durationHours || 0) + '" style="width:50px" /><label>h</label></div>' +
+        '<div class="time-input-group"><input type="number" id="live-duration-minutes" min="0" max="59" value="' + (f.durationMinutes || 30) + '" style="width:50px" /><label>m</label></div>' +
+        '</div>' +
+        '<label class="field-label">Who can join?</label>' +
+        '<div style="display:flex;gap:6px;margin-bottom:10px">' +
+        '<button class="cbt-mode-btn' + (f.isPublic ? ' active' : '') + '" style="flex:1" data-action="live-set-public" data-public="true"><span class="icon">🌍</span><span class="label">Anyone</span><span class="desc">Shows in public list</span></button>' +
+        '<button class="cbt-mode-btn' + (!f.isPublic ? ' active' : '') + '" style="flex:1" data-action="live-set-public" data-public="false"><span class="icon">🔒</span><span class="label">Code only</span><span class="desc">Private, join code needed</span></button>' +
+        '</div>' +
+        '<button class="btn btn-green" data-action="submit-create-live-exam" style="padding:10px">Create & Get Join Code</button>' +
+        '</div>'
+    );
+}
+
+function renderLiveExamJoinCode() {
+    return (
+        '<button class="back-link" data-action="live-exam-view" data-view="browse">' + svg("chevleft", 14) + ' Back</button>' +
+        '<h2 class="title">Join with Code</h2>' +
+        '<div class="card">' +
+        '<label class="field-label">Join code</label>' +
+        '<input class="field" id="live-join-code" placeholder="e.g. A1B2C3" style="text-transform:uppercase;margin-bottom:10px" value="' + esc(state.liveExamJoinCodeInput) + '" />' +
+        '<button class="btn btn-gold" data-action="submit-join-code" style="padding:10px">Find & Join</button>' +
+        '</div>'
+    );
+}
 function renderMockResult() {
     if (state.mockWaitingForResults) {
         return (
@@ -10015,8 +10699,8 @@ function renderMockResult() {
         const answers = state.mockAnswers || [];
         const subjectScores = state.mockSubjectScores || {};
         const submittedAt = state.mockSubmittedAt ? new Date(state.mockSubmittedAt) : null;
-        const exam = state.mockExams.find(function(e) { return e.id === state.mockExamId; });
-
+        const examsList = state.mockExamSource === 'live' ? state.liveExams : state.mockExams;
+        const exam = examsList.find(function(e) { return e.id === state.mockExamId; });
         let subjRows = "";
         Object.keys(subjectScores).forEach(function(sid) {
             const subj = SUBJECTS.find(function(s) { return s.id === sid; });
@@ -10397,6 +11081,7 @@ const ADMIN_TABS = [
     { key: "notifications", label: "🔔 Notify" },
     { key: "mock", label: "🎯 Mock" },
     { key: "activation", label: "🔑 Activation" },
+    { key: "courses", label: "🎓 Courses" },
     { key: "flagged", label: "🚩 Flagged" },
     { key: "support", label: "💬 Support" },
     { key: "logs", label: "📋 Logs" },
@@ -10431,6 +11116,7 @@ function renderAdmin() {
     else if (state.adminTab === "notifications") body = renderAdminNotifications();
     else if (state.adminTab === "mock") body = renderAdminMock();
     else if (state.adminTab === "activation") body = renderAdminActivation();
+    else if (state.adminTab === "courses") body = renderAdminCourses();
     else if (state.adminTab === "flagged") body = renderAdminFlagged();
     else if (state.adminTab === "support") body = renderAdminSupport();
     else if (state.adminTab === "logs") body = renderAdminLogs();
@@ -11957,9 +12643,29 @@ function renderAdminMock() {
         });
     }
 
+    html += '<p class="section-label" style="margin-top:14px">Live Exams (User-Created)</p>';
+    if (!state.liveExamsLoaded) {
+        loadLiveExams();
+        html += '<p style="font-size:12px;color:var(--faint)">Loading...</p>';
+    } else if (state.liveExams.length === 0) {
+        html += '<p style="font-size:12px;color:var(--faint);text-align:center;font-size:13px">No live exams created yet.</p>';
+    } else {
+        state.liveExams.forEach(function(exam) {
+            const subj = SUBJECTS.find(function(s) { return s.id === exam.subject_id; });
+            html += (
+                '<div class="card" style="margin-bottom:6px;padding:10px">' +
+                '<p style="font-weight:600;margin:0;font-size:13px">' + esc(exam.title) + '</p>' +
+                '<p style="font-size:10px;color:var(--muted);margin:2px 0">👤 ' + esc(exam.creator_username || '') + ' · 📘 ' + (subj ? esc(subj.name) : esc(exam.subject_id || '')) + '</p>' +
+                '<p style="font-size:10px;color:var(--muted);margin:0">📅 ' + new Date(exam.scheduled_date).toLocaleString() + ' · ' + (exam.num_questions || '-') + ' Qs · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>' +
+                '<p style="font-size:10px;color:var(--muted);margin:0">' + (exam.is_public === false ? '🔒 Private · code ' + esc(exam.join_code) : '🌍 Public') + '</p>' +
+                '<button class="mini-btn danger" style="margin-top:6px" data-action="admin-delete-live-exam" data-examid="' + exam.id + '">Delete</button>' +
+                '</div>'
+            );
+        });
+    }
+
     return html;
 }
-
 // ============================================================
 //  ADMIN FLAGGED
 // ============================================================
@@ -12062,6 +12768,66 @@ function renderAdminFlagged() {
 // ============================================================
 //  ADMIN ACTIVATION
 // ============================================================
+function renderAdminCourses() {
+    if (!state.coursesLoaded) loadCourses();
+    const isEditing = !!state.admin.editingCourseId;
+    const examTypes = ['jamb', 'waec', 'neco', 'post-utme'];
+    const typeOpts = examTypes.map(function(t) {
+        return '<option value="' + t + '"' + (state.admin.courseExamType === t ? ' selected' : '') + '>' + t.toUpperCase() + '</option>';
+    }).join('');
+
+    let subjChecks = '';
+    SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
+        const checked = (state.admin.courseSubjects || []).indexOf(s.id) !== -1;
+        subjChecks += (
+            '<label style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px">' +
+            '<input type="checkbox" data-action="toggle-course-subject" data-subject="' + s.id + '"' + (checked ? ' checked' : '') + ' style="accent-color:var(--green)" />' +
+            esc(s.name) + '</label>'
+        );
+    });
+
+    let preview = '';
+    if (state.admin.courseImageData) {
+        preview = '<img src="' + state.admin.courseImageData + '" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;margin-top:6px" />';
+    }
+
+    let list = '';
+    state.courses.forEach(function(c) {
+        list += (
+            '<div class="admin-mode-card">' +
+            '<div class="mode-info"><span class="mode-name" style="font-size:12px">' + esc(c.title) + '</span>' +
+            '<span class="mode-count" style="font-size:10px">' + (c.exam_type||'').toUpperCase() + ' · ₦' + (c.price||0).toLocaleString() + '</span></div>' +
+            '<div class="mode-actions">' +
+            '<span class="edit-icon" data-action="admin-edit-course" data-courseid="' + c.id + '">✏️</span>' +
+            '<span class="edit-icon" style="background:var(--danger)" data-action="admin-delete-course" data-courseid="' + c.id + '">🗑️</span>' +
+            '</div></div>'
+        );
+    });
+
+    return (
+        '<div class="card" style="margin-bottom:12px">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 10px">' + (isEditing ? '✏️ Edit Course' : '🎓 Create Course') + '</p>' +
+        '<label class="field-label">Exam Type</label>' +
+        '<select class="field" id="course-exam-type" style="margin-bottom:8px">' + typeOpts + '</select>' +
+        '<label class="field-label">Course Name</label>' +
+        '<input class="field" id="course-title-input" placeholder="e.g. JAMB 2027" value="' + esc(state.admin.courseTitle) + '" style="margin-bottom:8px" />' +
+        '<label class="field-label">Price (₦)</label>' +
+        '<input class="field" id="course-price-input" type="number" placeholder="5000" value="' + esc(state.admin.coursePrice) + '" style="margin-bottom:8px" />' +
+        '<label class="field-label">Description</label>' +
+        '<textarea class="field" id="course-desc-input" rows="2" placeholder="What this course covers..." style="margin-bottom:8px">' + esc(state.admin.courseDescription) + '</textarea>' +
+        '<label class="field-label">Course Image</label>' +
+        '<input type="file" id="course-image-input" accept="image/*" style="margin-bottom:4px" />' +
+        preview +
+        '<label class="field-label" style="margin-top:8px">Subjects included</label>' +
+        '<div style="max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:10px">' + subjChecks + '</div>' +
+        '<button class="btn btn-green" data-action="admin-save-course" style="padding:10px">' + (isEditing ? 'Update Course' : 'Create Course') + '</button>' +
+        (isEditing ? '<button class="btn btn-outline" style="margin-top:6px;padding:8px" data-action="admin-cancel-course-edit">Cancel Edit</button>' : '') +
+        '</div>' +
+        '<p class="section-label">Existing Courses</p>' +
+        (list || '<p style="font-size:12px;color:var(--faint)">No courses yet.</p>')
+    );
+}
+
 function renderAdminActivation() {
     let plansHtml = "";
     state.activationPlans.forEach(function(plan) {
@@ -13621,8 +14387,88 @@ document.addEventListener('click', function(e) {
 
     if (action === 'register-mock') {
         const examId = el.getAttribute('data-examid');
+        const source = el.getAttribute('data-source') || 'admin';
         if (!state.authUser) { showToast('Please login first.', 'error'); return; }
-        registerForMock(examId, state.mockSelectedSubjects);
+        if (source === 'live') registerForLiveExam(examId, state.mockSelectedSubjects);
+        else registerForMock(examId, state.mockSelectedSubjects);
+        return;
+    }
+
+    if (action === 'start-mock') {
+        const examId = el.getAttribute('data-examid');
+        const source = el.getAttribute('data-source') || 'admin';
+        if (!state.authUser) { showToast('Please login first.', 'error'); return; }
+        startMockExam(examId, source);
+        return;
+    }
+
+    if (action === 'live-exam-view') {
+        state.liveExamView = el.getAttribute('data-view');
+        if (state.liveExamView === 'create') state.liveExamCreateStep = 'type';
+        render();
+        return;
+    }
+    if (action === 'live-exam-tab') {
+        state.liveExamTab = el.getAttribute('data-tab');
+        render();
+        return;
+    }
+    if (action === 'live-select-type') {
+    const type = el.getAttribute('data-type');
+    const typeMeta = LIVE_EXAM_TYPES.find(function(t) { return t.key === type; });
+    if (!typeMeta || !typeMeta.enabled) { showToast('This exam type is coming soon.', ''); return; }
+    state.liveExamCreateForm.examType = type;
+    state.liveExamCreateStep = 'subject';
+    render();
+    return;
+}
+    if (action === 'live-select-subject') {
+        state.liveExamCreateForm.subject = el.getAttribute('data-subject');
+        render();
+        return;
+    }
+    if (action === 'live-create-step') {
+        const step = el.getAttribute('data-step');
+        if (step === 'details' && !state.liveExamCreateForm.subject) { showToast('Select a subject first.', 'error'); return; }
+        state.liveExamCreateStep = step;
+        render();
+        return;
+    }
+    if (action === 'live-set-public') {
+        state.liveExamCreateForm.isPublic = el.getAttribute('data-public') === 'true';
+        render();
+        return;
+    }
+    if (action === 'submit-create-live-exam') {
+        state.liveExamCreateForm.title = document.getElementById('live-title')?.value || '';
+        state.liveExamCreateForm.startTime = document.getElementById('live-start-time')?.value || '';
+        state.liveExamCreateForm.numQuestions = parseInt(document.getElementById('live-num-questions')?.value || 40);
+        state.liveExamCreateForm.durationHours = parseInt(document.getElementById('live-duration-hours')?.value || 0);
+        state.liveExamCreateForm.durationMinutes = parseInt(document.getElementById('live-duration-minutes')?.value || 30);
+        createLiveExam();
+        return;
+    }
+    if (action === 'submit-join-code') {
+        joinLiveExamByCode(document.getElementById('live-join-code')?.value || '');
+        return;
+    }
+    if (action === 'join-live-exam') {
+        const examId = el.getAttribute('data-examid');
+        joinLiveExamNow(examId);
+        return;
+    }
+    if (action === 'admin-delete-live-exam') {
+        const examId = el.getAttribute('data-examid');
+        if (!confirm('Delete this live exam?')) return;
+        supabase.from('live_exam_registrations').delete().eq('live_exam_id', examId).then(function() {
+            return supabase.from('live_exam_attempts').delete().eq('live_exam_id', examId);
+        }).then(function() {
+            return supabase.from('live_exams').delete().eq('id', examId);
+        }).then(function() {
+            showToast('Live exam deleted.', 'success');
+            loadLiveExams();
+            render();
+        }).catch(function() { showToast('Error deleting.', 'error'); });
         return;
     }
 
@@ -13714,15 +14560,21 @@ document.addEventListener('click', function(e) {
 
     if (action === 'view-mock-result') {
         const examId = el.getAttribute('data-examid');
-        const attempt = state.mockAttempts.find(function(a) {
-            return a.mock_exam_id === examId && a.user_id === state.authUser?.id;
+        const source = el.getAttribute('data-source') || 'admin';
+        state.mockExamSource = source;
+        const attemptsList = source === 'live' ? state.liveExamAttempts : state.mockAttempts;
+        const examsList = source === 'live' ? state.liveExams : state.mockExams;
+        const examIdCol = source === 'live' ? 'live_exam_id' : 'mock_exam_id';
+        const attempt = attemptsList.find(function(a) {
+            return a[examIdCol] === examId && a.user_id === state.authUser?.id;
         });
         if (attempt) {
-            const exam = state.mockExams.find(function(e) { return e.id === examId; });
+            const exam = examsList.find(function(e) { return e.id === examId; });
             if (exam && exam.results_released) {
                 state.mockScore = attempt.score || 0;
                 state.mockSubjectScores = attempt.subject_scores || {};
                 state.mockTotal = (state.settingsCache.mockSubjectCount || 4) * 100;
+                state.mockExamId = examId;
                 state.mockQuestions = [];
                 state.mockAnswers = [];
                 state.mockResultReleased = true;
@@ -13733,7 +14585,6 @@ document.addEventListener('click', function(e) {
         }
         return;
     }
-
     // HISTORY FILTER
     if (action === 'history-filter') {
         state.historyFilter = el.getAttribute('data-filter');
@@ -13755,9 +14606,9 @@ document.addEventListener('click', function(e) {
         if (state.adminTab === 'analytics' && !state.analyticsLoading) { state.analyticsLoaded = false; loadAnalyticsData(); }
         if (state.adminTab === 'documents') state.docsLoaded = false;
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
-        else if (state.adminTab === 'mock') { state.mockLoaded = false;
-            loadMockExams(); if (state.authUser) { loadMockRegistrations();
-                loadMockAttempts(); } }
+        else if (state.adminTab === 'mock') { state.mockLoaded = false; state.liveExamsLoaded = false;
+        loadMockExams(); loadLiveExams(); if (state.authUser) { loadMockRegistrations();
+            loadMockAttempts(); } }
         else if (state.adminTab === 'settings') {
             loadSettings().then(function(s) {
                 state.admin.questionsPerSubject = s.cbtQuestionsPerSubject;
@@ -14609,6 +15460,73 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+if (action === 'browse-filter') {
+        state.browseCourseFilter = el.getAttribute('data-filter');
+        render();
+        return;
+    }
+    if (action === 'open-course') {
+        state.selectedCourseId = el.getAttribute('data-courseid');
+        setView('course-detail');
+        return;
+    }
+    if (action === 'open-subject-mode') {
+        state.selectedSubjectId = el.getAttribute('data-subjectid');
+        setView('subject-modes');
+        return;
+    }
+    if (action === 'enroll-course') {
+        const courseId = el.getAttribute('data-courseid');
+        const course = state.courses.find(function(c) { return c.id === courseId; });
+        if (course) payForCourse(course);
+        return;
+    }
+    if (action === 'toggle-course-subject') {
+        const sid = el.getAttribute('data-subject');
+        if (!state.admin.courseSubjects) state.admin.courseSubjects = [];
+        const i = state.admin.courseSubjects.indexOf(sid);
+        if (i !== -1) state.admin.courseSubjects.splice(i, 1);
+        else state.admin.courseSubjects.push(sid);
+        return;
+    }
+    if (action === 'admin-save-course') {
+        state.admin.courseExamType = document.getElementById('course-exam-type')?.value || 'jamb';
+        state.admin.courseTitle = document.getElementById('course-title-input')?.value || '';
+        state.admin.coursePrice = document.getElementById('course-price-input')?.value || '';
+        state.admin.courseDescription = document.getElementById('course-desc-input')?.value || '';
+        adminSaveCourse();
+        return;
+    }
+    if (action === 'admin-edit-course') {
+        const courseId = el.getAttribute('data-courseid');
+        const c = state.courses.find(function(x) { return x.id === courseId; });
+        if (!c) return;
+        state.admin.editingCourseId = c.id;
+        state.admin.courseTitle = c.title;
+        state.admin.courseExamType = c.exam_type;
+        state.admin.courseSubjects = (c.subject_ids || []).slice();
+        state.admin.coursePrice = String(c.price || 0);
+        state.admin.courseDescription = c.description || '';
+        state.admin.courseImageData = c.image_url || null;
+        render();
+        return;
+    }
+    if (action === 'admin-cancel-course-edit') {
+        state.admin.editingCourseId = null;
+        state.admin.courseTitle = "";
+        state.admin.courseExamType = "jamb";
+        state.admin.courseSubjects = [];
+        state.admin.coursePrice = "";
+        state.admin.courseDescription = "";
+        state.admin.courseImageData = null;
+        render();
+        return;
+    }
+    if (action === 'admin-delete-course') {
+        adminDeleteCourse(el.getAttribute('data-courseid'));
+        return;
+    }
+
     // Activation
     if (action === 'admin-add-plan') {
         adminAddPlan();
@@ -15313,6 +16231,15 @@ document.addEventListener('change', function(e) {
         render();
     } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'qform-correct') {
         state.admin.qCorrect = parseInt(e.target.value, 10);
+    } else if (id === 'course-image-input') {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            state.admin.courseImageData = ev.target.result;
+            render();
+        };
+        reader.readAsDataURL(file);
     } else if (id === 'admin-notif-image') {
         const file = e.target.files[0];
         if (!file) return;
@@ -15769,4 +16696,3 @@ function deleteQuestionOffline(questionId) {
 </script>
 </body>
 </html>
-q
