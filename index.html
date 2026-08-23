@@ -3607,7 +3607,28 @@ const SUBJECTS = [
     { id: "ins", code: "INS", name: "Insurance" },
     { id: "ofp", code: "OFP", name: "Office Practice" },
 ].map(function(s, i) { s.color = SUBJECT_PALETTE[i % SUBJECT_PALETTE.length]; return s; });
+const COURSE_EXAM_TYPES = [
+    { key: "jamb", label: "JAMB" },
+    { key: "waec", label: "WAEC" },
+    { key: "neco", label: "NECO" },
+    { key: "post-utme", label: "Post-UTME" }
+];
 
+const DEFAULT_COURSES = COURSE_EXAM_TYPES.reduce(function(list, examType) {
+    SUBJECTS.filter(function(s) { return s.id !== "lhm"; }).forEach(function(s) {
+        list.push({
+            id: "course-" + examType.key + "-" + s.id,
+            title: examType.label + " " + s.name,
+            exam_type: examType.key,
+            price: 0,
+            description: examType.label + " " + s.name + " practice course.",
+            image_url: "",
+            is_active: true,
+            subject_ids: [s.id]
+        });
+    });
+    return list;
+}, []);
 const HOME_TILES = [
     { key: "cbt", label: "JAMB CBT", blurb: "Real JAMB-style practice", icon: "monitor", color: "#2E6FF2",
         colorDark: "#1447B3" },
@@ -6093,24 +6114,58 @@ function doSubmitMock(autoSubmit) {
 // ============================================================
 //  ACTIVATION PLANS
 // ============================================================
+async function adminSaveCourse() {
+    const title = state.admin.courseTitle.trim();
+    const examType = state.admin.courseExamType;
+    const subjects = state.admin.courseSubjects || [];
+    const price = parseInt(state.admin.coursePrice || 0);
+    const description = state.admin.courseDescription.trim();
+    const imageUrl = state.admin.courseImageData || null;
+
+    if (!title) { showToast('Enter a course title.', 'error'); return; }
+    if (subjects.length === 0) { showToast('Select at least one subject.', 'error'); return; }
+
+    const courseId = (state.admin.editingCourseId && state.admin.editingCourseId.indexOf('custom-') === 0)
+    ? state.admin.editingCourseId
+    : ('custom-' + Date.now());
+
+    try {
+        const result = await supabase.from('courses').upsert([{
+            id: courseId, title: title, exam_type: examType, subject_ids: subjects,
+            price: price, description: description, image_url: imageUrl,
+        }]);
+        if (result.error) {
+            console.error('Course save error: ' + (result.error.message || 'no message') +
+    ' | details: ' + (result.error.details || 'none') +
+    ' | hint: ' + (result.error.hint || 'none') +
+    ' | code: ' + (result.error.code || 'none'));
+showToast('Error: ' + (result.error.message || JSON.stringify(result.error)), 'error');
+            return;
+        }
+        showToast('Course saved!', 'success');
+        state.admin.courseTitle = "";
+        state.admin.courseExamType = "jamb";
+        state.admin.courseSubjects = [];
+        state.admin.coursePrice = "";
+        state.admin.courseDescription = "";
+        state.admin.courseImageData = null;
+        state.admin.editingCourseId = null;
+        state.coursesLoaded = false;
+        loadCourses();
+    } catch (e) {
+        console.warn('Save course error:', e);
+        showToast('Error saving course: ' + (e.message || 'unknown'), 'error');
+    }
+}
 async function loadCourses() {
     if (state.coursesLoading) return;
     state.coursesLoading = true;
 
-    // Offline-first: show locally cached courses immediately (synchronous,
-    // runs before any network await) so Home never sits empty/spinning
-    // when we already have data on the device.
     if (!state.coursesLoaded) {
-        try {
-            const cached = storage.get('cached_courses');
-            if (cached) {
-                state.courses = JSON.parse(cached);
-                state.coursesLoaded = true;
-            }
-        } catch (e) {}
+        state.courses = DEFAULT_COURSES;
+        state.coursesLoaded = true;
     }
 
-    // Background sync: try the network, but never wait more than 8 seconds.
     try {
         const timeout = new Promise(function(_, reject) {
             setTimeout(function() { reject(new Error('Courses request timed out')); }, 8000);
@@ -6119,16 +6174,20 @@ async function loadCourses() {
             supabase.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: false }),
             timeout
         ]);
-        if (result.error) {
-            console.error('Load courses error:', result.error);
-        } else {
-            state.courses = result.data || [];
-            try { storage.set('cached_courses', JSON.stringify(state.courses)); } catch (e) {}
+        if (!result.error && result.data && result.data.length > 0) {
+            const overrides = {};
+            result.data.forEach(function(c) { overrides[c.id] = c; });
+            const merged = DEFAULT_COURSES.map(function(d) {
+                return overrides[d.id] ? Object.assign({}, d, overrides[d.id]) : d;
+            });
+            const extra = result.data.filter(function(c) {
+                return !DEFAULT_COURSES.some(function(d) { return d.id === c.id; });
+            });
+            state.courses = merged.concat(extra);
         }
     } catch (e) {
         console.warn('Load courses failed or timed out:', e);
     } finally {
-        state.coursesLoaded = true;
         state.coursesLoading = false;
         render();
     }
@@ -6150,51 +6209,6 @@ async function loadMyEnrollments() {
         render();
     }
 }
-async function adminSaveCourse() {
-    const title = state.admin.courseTitle.trim();
-    const examType = state.admin.courseExamType;
-    const subjects = state.admin.courseSubjects || [];
-    const price = parseInt(state.admin.coursePrice || 0);
-    const description = state.admin.courseDescription.trim();
-    const imageUrl = state.admin.courseImageData || null;
-
-    if (!title) { showToast('Enter a course title.', 'error'); return; }
-    if (subjects.length === 0) { showToast('Select at least one subject.', 'error'); return; }
-
-    try {
-        let result;
-        if (state.admin.editingCourseId) {
-            result = await supabase.from('courses').update({
-                title: title, exam_type: examType, subject_ids: subjects,
-                price: price, description: description, image_url: imageUrl,
-            }).eq('id', state.admin.editingCourseId);
-        } else {
-            result = await supabase.from('courses').insert([{
-                title: title, exam_type: examType, subject_ids: subjects,
-                price: price, description: description, image_url: imageUrl,
-            }]);
-        }
-        if (result.error) {
-            console.error('Course save error:', result.error);
-            showToast('Error: ' + result.error.message, 'error');
-            return;
-        }
-        showToast(state.admin.editingCourseId ? 'Course updated!' : 'Course created!', 'success');
-        state.admin.courseTitle = "";
-        state.admin.courseExamType = "jamb";
-        state.admin.courseSubjects = [];
-        state.admin.coursePrice = "";
-        state.admin.courseDescription = "";
-        state.admin.courseImageData = null;
-        state.admin.editingCourseId = null;
-        state.coursesLoaded = false;
-        loadCourses();
-    } catch (e) {
-        console.warn('Save course error:', e);
-        showToast('Error saving course: ' + (e.message || 'unknown'), 'error');
-    }
-}
-
 async function adminDeleteCourse(courseId) {
     if (!confirm('Delete this course?')) return;
     try {
@@ -7905,9 +7919,7 @@ function renderHome() {
     if (state.authUser && !state.myEnrollmentsLoaded) loadMyEnrollments();
 
     let courseCards = '';
-    if (!state.coursesLoaded) {
-        courseCards = '<div class="loading-spinner"><div class="spinner"></div></div>';
-    } else if (state.courses.length === 0) {
+    if (state.courses.length === 0) {
         courseCards = '<p style="font-size:12px;color:var(--faint);padding:12px 0">No courses available yet.</p>';
     } else {
         state.courses.forEach(function(c) {
@@ -7971,8 +7983,7 @@ function renderHome() {
 }
 
 function renderAllCourses() {
-    if (!state.coursesLoaded) { loadCourses(); return '<div class="loading-spinner"><div class="spinner"></div></div>'; }
-
+    if (!state.coursesLoaded) loadCourses();
     const filter = state.browseCourseFilter || 'all';
     const examTypes = [...new Set(state.courses.map(function(c) { return c.exam_type; }).filter(Boolean))];
 
