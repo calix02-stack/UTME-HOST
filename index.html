@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
 <link rel="manifest" href="manifest.json" />            
 <meta name="theme-color" content="#0F6B3F" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -389,6 +389,8 @@
         -ms-overflow-style: none;
     }
     .view-content::-webkit-scrollbar { display: none; }
+    .view-chat { padding-bottom: 0; }
+    .view-chat .view-content { height: 100%; padding-bottom: 0; overflow: hidden; }
     .back-link {
         display: inline-flex;
         align-items: center;
@@ -1683,6 +1685,74 @@
         to { opacity: 1; transform: scale(1); }
     }
 
+    /* Post-login Activation Banner */
+    .actban-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 110;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 20px;
+        animation: fadeIn 0.2s ease;
+    }
+    .actban-modal {
+        background: var(--modal-bg);
+        border-radius: 22px;
+        max-width: 360px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+        position: relative;
+    }
+    .actban-hero {
+        background: linear-gradient(160deg, var(--gold) 0%, #b9821f 100%);
+        border-radius: 22px 22px 0 0;
+        padding: 26px 20px 18px;
+        text-align: center;
+        color: #fff;
+        position: relative;
+    }
+    .actban-hero .close-x {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        color: #fff;
+        background: rgba(255,255,255,0.18);
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+    }
+    .actban-body { padding: 16px 20px 20px; }
+    .actban-feature {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .actban-feature .fi {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        background: rgba(228,169,58,0.15);
+    }
+    .actban-feature .ft { font-size: 13px; color: var(--ink); font-weight: 600; margin: 0 0 2px; }
+    .actban-feature .fs { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.4; }
+
     /* SUBMIT MODAL - Full screen review */
     .submit-overlay {
         position: fixed;
@@ -2429,6 +2499,9 @@
     }
     .toast-msg.error { background: #B23420; }
     .toast-msg.success { background: var(--green); }
+    /* Neutral (non-alarming) style for "you're offline" style messages — poor
+       connectivity is not a red-flag error, so it gets its own calmer color. */
+    .toast-msg.offline { background: #4A5568; }
 
     .notif-image-upload {
         border: 1px dashed var(--line);
@@ -2812,15 +2885,22 @@
     .payment-method-row .pmr-label { font-size: 12px; font-weight: 600; color: var(--ink); margin: 0; }
     .payment-method-row .pmr-desc { font-size: 10px; color: var(--muted); margin: 1px 0 0; }
 
+    .ai-chat-page {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+    }
     .chat-window {
         display: flex;
         flex-direction: column;
         gap: 3px;
-        min-height: 150px;
-        max-height: 45vh;
+        flex: 1 1 auto;
+        min-height: 0;
         overflow-y: auto;
         padding: 6px 2px 12px;
         margin-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
     }
     .chat-empty {
         text-align: center;
@@ -2883,6 +2963,32 @@
         margin-top: 3px;
         text-align: right;
     }
+    .chat-bubble .chat-list {
+        margin: 4px 0;
+        padding-left: 18px;
+    }
+    .chat-bubble .chat-list li { margin-bottom: 3px; }
+    .chat-bubble .chat-code {
+        background: rgba(0,0,0,0.06);
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin: 6px 0;
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        line-height: 1.5;
+        white-space: pre;
+    }
+    [data-theme="dark"] .chat-bubble .chat-code { background: rgba(255,255,255,0.08); }
+    .chat-bubble code {
+        font-family: var(--font-mono);
+        background: rgba(0,0,0,0.06);
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-size: 11px;
+    }
+    [data-theme="dark"] .chat-bubble code { background: rgba(255,255,255,0.1); }
+    .chat-bubble sup, .chat-bubble sub { font-size: 0.75em; }
     .chat-avatar {
         width: 20px;
         height: 20px;
@@ -2900,15 +3006,18 @@
     .chat-avatar.admin { background: var(--gold); color: #3A2A0A; }
     .chat-avatar.agent { background: var(--green); color: #fff; }
     .chat-input-row {
-        display: flex;
-        gap: 6px;
-        position: sticky;
-        bottom: 0;
-        background: var(--bg);
-        padding-top: 6px;
-        border-top: 1px solid var(--line);
-        box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
-    }
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    padding-top: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+    z-index: 5;
+}
     .chat-input-row textarea.field {
         flex: 1;
         margin-bottom: 0;
@@ -2917,8 +3026,178 @@
         min-height: 38px;
         padding: 8px 10px;
     }
+    .chat-input-row textarea.ai-chat-textarea {
+        min-height: 52px;
+        max-height: 160px;
+        padding: 14px 14px;
+        font-size: 15px;
+        line-height: 1.4;
+        border-radius: 20px;
+    }
     .chat-send-btn { width: auto; padding: 8px 14px; flex-shrink: 0; }
     .chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .chat-tool-btn {
+        background: var(--bg);
+        color: var(--muted);
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s, color 0.15s;
+    }
+    .chat-tool-btn.active { background: var(--green); color: #fff; }
+    .chat-tool-btn.recording { background: #e2543a; color: #fff; }
+
+    /* Compact "+" attach menu (Claude-style) replacing separate camera/doc icons */
+    .chat-attach-wrap { position: relative; flex-shrink: 0; }
+    .chat-attach-overlay { position: fixed; inset: 0; z-index: 6; background: transparent; }
+    .chat-attach-menu {
+        position: fixed;
+        bottom: 64px;
+        left: 12px;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow-md);
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 160px;
+        z-index: 7;
+    }
+    .chat-attach-menu button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: 9px;
+        background: transparent;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 600;
+        text-align: left;
+        width: 100%;
+    }
+    .chat-attach-menu button:active { background: var(--bg); }
+    .chat-attach-menu button svg { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; }
+
+    /* Per-message copy/edit action row (Claude-style, shown under the bubble) */
+    .chat-msg-actions {
+        display: flex;
+        gap: 2px;
+        margin-top: 2px;
+        opacity: 0.55;
+    }
+    .chat-row.me .chat-msg-actions { justify-content: flex-end; }
+    .cma-btn {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        color: var(--muted);
+        background: transparent;
+    }
+    .cma-btn:active { background: var(--line); }
+    .cma-btn svg { width: 13px; height: 13px; }
+
+    .ai-editing-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        background: var(--explanation-bg);
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-size: 11.5px;
+        color: var(--ink);
+        margin-bottom: 4px;
+    }
+    .ai-editing-banner button { color: var(--muted); font-weight: 700; }
+    .chat-send-fab {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        background: var(--green);
+        color: #fff;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .chat-send-fab svg { transform: translateX(1px); }
+    .chat-send-fab:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+    .chat-img {
+        display: block;
+        max-width: 220px;
+        width: 100%;
+        border-radius: 10px;
+        cursor: pointer;
+    }
+    .chat-doc-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: rgba(0,0,0,0.06);
+        color: inherit;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 600;
+        max-width: 100%;
+    }
+    .chat-doc-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-attach-preview { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
+    .cap-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 8px 4px 4px;
+        font-size: 10px;
+        color: var(--muted);
+        max-width: 200px;
+    }
+    .cap-chip img { width: 28px; height: 28px; object-fit: cover; border-radius: 999px; }
+    .cap-chip .cap-doc-ic { width: 28px; height: 28px; border-radius: 999px; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cap-chip span:not(.cap-doc-ic) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cap-chip button { background: none; border: none; color: var(--faint); cursor: pointer; display: flex; flex-shrink: 0; }
+    .ai-listening-banner {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 6px 10px;
+        border-radius: 8px;
+        margin-bottom: 4px;
+    }
+    .ai-listening-banner { background: rgba(226,84,58,0.1); color: #e2543a; }
+    .ai-listening-dot {
+        width: 7px; height: 7px; border-radius: 999px; background: #e2543a;
+        animation: pulseDot 1s infinite ease-in-out;
+    }
+    @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .ahp-daylabel {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--faint);
+        margin: 12px 0 4px 4px;
+    }
+    .ahp-daylabel:first-child { margin-top: 2px; }
 
     /* Expiry badge in profile */
     .expiry-badge {
@@ -2990,6 +3269,19 @@
         flex-shrink: 0;
     }
     .support-header .avatar-icon svg { width: 24px; height: 24px; color: #fff; }
+    .support-header .info { flex: 1; min-width: 0; }
+    .support-header .support-wa-btn {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10.5px;
+        color: #fff;
+        background: #25D366;
+        border-color: #25D366;
+        padding: 6px 10px;
+    }
+    .support-header .support-wa-btn svg { width: 13px; height: 13px; }
     .support-header .info .name {
         font-weight: 700;
         font-size: 14px;
@@ -3595,6 +3887,61 @@
 .cch-body{padding:10px 11px}
 .cch-title{font-weight:800;font-size:12.5px;margin:0;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}
 .cch-meta{font-size:9.5px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:3px}
+/* Keyboard-safe height override — keeps chat input glued to bottom */
+#app-inner { max-height: var(--app-vh, 100vh) !important; }
+.view { max-height: calc(var(--app-vh, 100vh) - 64px - 58px) !important; }
+.ai-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ai-header .ai-icon-btn{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--card-bg);border:1px solid var(--line);color:var(--ink);cursor:pointer;flex-shrink:0}
+.ai-header .ai-title-wrap{flex:1;min-width:0}
+.ai-header .ai-title{font-weight:800;font-size:15px;margin:0;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ai-header .ai-sub{font-size:10px;color:var(--green);display:flex;align-items:center;gap:4px;margin:1px 0 0}
+.ai-header .ai-sub .dot{width:6px;height:6px;border-radius:999px;background:var(--green);display:inline-block}
+.ai-history-overlay{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,0.5);display:flex}
+.ai-history-panel{width:82%;max-width:300px;height:100%;background:var(--card-bg);display:flex;flex-direction:column;box-shadow:8px 0 30px rgba(0,0,0,0.2)}
+.ai-history-panel .ahp-head{padding:16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.ai-history-panel .ahp-head h3{font-family:var(--font-serif);font-size:17px;margin:0;color:var(--ink)}
+.ai-history-list{flex:1;overflow-y:auto;padding:8px}
+.ai-session-item{display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;cursor:pointer;margin-bottom:2px}
+.ai-session-item:hover{background:var(--bg)}
+.ai-session-item.active{background:var(--green-light)}
+[data-theme="dark"] .ai-session-item.active{background:#1a2d1a}
+.ai-session-item .asi-text{flex:1;min-width:0}
+.ai-session-item .asi-title{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ai-session-item .asi-time{font-size:9px;color:var(--faint);margin-top:1px}
+.ai-session-item .asi-del{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--faint);flex-shrink:0}
+.ai-session-item .asi-del:hover{background:#fce4ec;color:var(--danger)}
+.ai-new-chat-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;margin:10px;border-radius:10px;background:var(--green);color:#fff;font-weight:700;font-size:12.5px;cursor:pointer}
+.ai-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;gap:10px}
+.ai-empty-state .aie-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(145deg,#7C5CFC,#5A3ADB);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(124,92,252,0.3)}
+.ai-empty-state .aie-icon svg{color:#fff}
+.ai-empty-state h3{font-family:var(--font-serif);font-size:16px;margin:0;color:var(--ink)}
+.ai-empty-state p{font-size:12px;color:var(--muted);margin:0;max-width:240px}
+.ai-suggestion-chip{background:var(--card-bg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:11.5px;font-weight:600;color:var(--ink);cursor:pointer}
+.ai-suggestions-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
+/* ============================================================
+   ICON ALIGNMENT NORMALIZATION
+   ============================================================ */
+.admin-mode-card .mode-info,
+.acct-menu-item .amii-text,
+.mode-card-v2 .mcv2-text,
+.myc-picker-opt {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+.admin-mode-card, .mode-card-v2, .acct-menu-item, .qa-pill, .subject-chip, .lb-row {
+    line-height: 1.3;
+}
+.admin-mode-card svg, .mode-card-v2 svg, .acct-menu-item svg, .qa-pill svg, .drawer-item svg, .bottom-nav-item svg {
+    flex-shrink: 0;
+    display: block;
+}
+.admin-mode-card .mode-name, .acct-menu-item .amii-title, .mode-card-v2 .mcv2-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
 </style>
 </head>
 <body>
@@ -3614,23 +3961,102 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
 <script src="offline-db.js"></script>
 <script>
 // ============================================================
 //  SUPABASE SETUP
+
 // ============================================================
 const SUPABASE_URL = "https://msivcbkvuwawbkczpwix.supabase.co";
 const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zaXZjYmt2dXdhd2JrY3pwd2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4ODg0MDcsImV4cCI6MjA5OTQ2NDQwN30.pEOeuet0fOQhA9YNlaxV2L0KJumt9P3LTyD2bIOzXmI";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        storage: window.localStorage,
-    },
-});
+// The app must be able to open even with no internet connection (e.g. the
+// Supabase CDN script above failed to load). If we blindly call
+// window.supabase.createClient() and window.supabase is undefined, the whole
+// script throws and the app never renders. So: create the real client when
+// possible, otherwise fall back to a harmless "offline stub" client that
+// resolves every call with an offline error instead of throwing — the app
+// boots normally and can still show cached/local content. Once the person
+// comes back online we swap the stub out for the real client automatically.
+let usingOfflineSupabaseStub = false;
+
+function createOfflineSupabaseStub() {
+    const offlineError = { message: "You're offline. Connect to the internet and try again.", offline: true };
+    const offlineResult = { data: null, error: offlineError, count: null };
+    function makeChain() {
+        const p = Promise.resolve(offlineResult);
+        return new Proxy(function() {}, {
+            get: function(target, prop) {
+                if (prop === "then") return p.then.bind(p);
+                if (prop === "catch") return p.catch.bind(p);
+                if (prop === "finally") return p.finally.bind(p);
+                if (typeof prop === "symbol") return undefined;
+                return function() { return makeChain(); };
+            },
+            apply: function() { return makeChain(); },
+        });
+    }
+    return {
+        auth: {
+            getSession: function() { return Promise.resolve({ data: { session: null }, error: null }); },
+            signInWithPassword: function() { return Promise.resolve({ data: null, error: offlineError }); },
+            signUp: function() { return Promise.resolve({ data: null, error: offlineError }); },
+            signOut: function() { return Promise.resolve({ error: null }); },
+            resetPasswordForEmail: function() { return Promise.resolve({ data: null, error: offlineError }); },
+            updateUser: function() { return Promise.resolve({ data: null, error: offlineError }); },
+            onAuthStateChange: function() { return { data: { subscription: { unsubscribe: function() {} } } }; },
+        },
+        from: function() { return makeChain(); },
+        channel: function() { return { on: function() { return this; }, subscribe: function() { return this; }, unsubscribe: function() {} }; },
+        removeChannel: function() {},
+        storage: { from: function() { return { upload: function() { return Promise.resolve({ data: null, error: offlineError }); }, getPublicUrl: function() { return { data: { publicUrl: "" } }; } }; } },
+        functions: { invoke: function() { return Promise.resolve({ data: null, error: offlineError }); } },
+    };
+}
+
+function createRealSupabaseClient() {
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storage: window.localStorage,
+        },
+    });
+}
+
+let supabase;
+if (window.supabase && typeof window.supabase.createClient === "function") {
+    supabase = createRealSupabaseClient();
+} else {
+    console.warn("Supabase JS did not load (likely offline) — starting with an offline stub so the app can still open.");
+    usingOfflineSupabaseStub = true;
+    supabase = createOfflineSupabaseStub();
+}
+
+// Called when connectivity returns, to swap the offline stub for a real client.
+function upgradeSupabaseClientIfNeeded() {
+    if (!usingOfflineSupabaseStub) return;
+    if (window.supabase && typeof window.supabase.createClient === "function") {
+        supabase = createRealSupabaseClient();
+        usingOfflineSupabaseStub = false;
+        checkAuthSession().then(function() { render(); cacheAllDataForOffline(); });
+        return;
+    }
+    // The script tag itself never loaded (no internet at page load) — try loading it now.
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js";
+    s.onload = function() {
+        if (window.supabase && typeof window.supabase.createClient === "function") {
+            supabase = createRealSupabaseClient();
+            usingOfflineSupabaseStub = false;
+            checkAuthSession().then(function() { render(); cacheAllDataForOffline(); });
+        }
+    };
+    document.head.appendChild(s);
+}
 
 // ===== PUSH NOTIFICATIONS =====
 const VAPID_PUBLIC_KEY = "BGJrYWOxcZHHoOWRKDq04O60_LCHxQhc5izRGIYgzwGCOXQO0xdZ2qT-wsPlWVyy6z24MKcFEQGkdehjSoiPuog";
@@ -3682,8 +4108,8 @@ function updateAppBadge() {
 const storage = {
     get(key) { try { const v = localStorage.getItem(key); return v !== null ? v : null; } catch (e) { return null; } },
     set(key, value) { try { localStorage.setItem(key, value); } catch (e) {} },
-    remove(key) { try { localStorage.removeItem(key); } catch (e) {} },
-};
+    remove(key) { try { localStorage.removeItem(key); } catch (e) {} },    
+}    
 
 // ============================================================
 //  CONSTANTS
@@ -3696,6 +4122,8 @@ const PAYSTACK_PUBLIC_KEY = "pk_live_58e6b5b2ecc81730786fb95ec444a77422a4b2b4";
 const PAYSTACK_VERIFY_URL = SUPABASE_URL + "/functions/v1/verify-paystack-payment";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const ADMIN_WHATSAPP_NUMBER = "2347072853151";
+const SUPPORT_WHATSAPP_NUMBER = "2348071826114"; // displayed as 08071826114, wa.me needs country code without leading 0
+const SUPPORT_WHATSAPP_DISPLAY = "08071826114";
 
 const SUBJECT_PALETTE = ["#2E6FF2", "#E2543A", "#7C5CFC", "#0E9488", "#E4A93A", "#4C5FD5", "#0F6B3F", "#D64EA0",
     "#F2994A", "#5B8DEF", "#EA5455", "#00A896", "#8E44AD", "#16A085", "#C0392B", "#2980B9", "#B08968", "#3F72AF"
@@ -3722,6 +4150,9 @@ const SUBJECTS = [
 const COURSE_EXAM_TYPES = [
     { key: "jamb", label: "JAMB" },
 ];
+// Number of course cards shown in the "Courses" preview row on the home screen.
+// The full list is always available via the "See all" link (renderAllCourses).
+const HOME_COURSE_PREVIEW_COUNT = 4;
 
 const DEFAULT_COURSES = COURSE_EXAM_TYPES.reduce(function(list, examType) {
     SUBJECTS.filter(function(s) { return s.id !== "lhm"; }).forEach(function(s) {
@@ -3789,8 +4220,23 @@ const ICONS = {
     home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/>',
     chart: '<path d="M4 20h16"/><path d="M6 16v-4"/><path d="M12 16v-8"/><path d="M18 16v-6"/>',
     flag: '<path d="M5 3v18"/><path d="M5 4h13l-2.5 4.5L18 13H5"/>',
+    sparkles: '<path d="M12 3l1.4 4.2L18 9l-4.6 1.8L12 15l-1.4-4.2L6 9l4.6-1.8L12 3Z"/><path d="M19 13.5l.8 2.3L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.7L19 13.5Z"/>',
+    plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    history: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 3"/>',
+    trash: '<path d="M4 7h16"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>',
+    camera: '<path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13.5" r="3.5"/>',
+    mic: '<rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 10.5a6.5 6.5 0 0 0 13 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8.5" y1="21" x2="15.5" y2="21"/>',
+    micoff: '<line x1="2" y1="2" x2="22" y2="22"/><path d="M9 9v3.5a3 3 0 0 0 4.6 2.5"/><path d="M15 6.5V5a3 3 0 0 0-5.9-.7"/><path d="M5.5 10.5A6.5 6.5 0 0 0 12 17"/><path d="M18.5 10.5c0 .9-.16 1.75-.46 2.53"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8.5" y1="21" x2="15.5" y2="21"/>',
+    stop: '<rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" stroke="none"/>',
+    send: '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/>',
+    paperclip: '<path d="M14.5 5.5 7 13a3 3 0 0 0 4.24 4.24l7.07-7.07a5 5 0 1 0-7.07-7.07L4.5 9.83"/>',
+    filetext: '<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>',
+    image: '<rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15.5 16 10.5 5 21.5"/>',
+    edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4.5 1.5L5 15Z"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    whatsapp: '<path d="M20.5 3.5A10.9 10.9 0 0 0 12.1 0C6 0 1.1 4.9 1.1 11c0 1.9.5 3.8 1.5 5.4L1 22l5.7-1.5A10.9 10.9 0 0 0 12.1 22c6.1 0 11-4.9 11-11 0-2.9-1.1-5.7-3.1-7.7zM12.1 20.1c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.4.9.9-3.3-.2-.4a9 9 0 0 1-1.4-4.8c0-5 4.1-9.1 9.1-9.1 2.4 0 4.7.9 6.4 2.7a9 9 0 0 1 2.7 6.5c0 5-4.1 9-9.1 9zm4.9-6.8c-.3-.1-1.6-.8-1.8-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.6l.4-.5c.1-.1.2-.3.2-.4.1-.2 0-.3 0-.5s-.6-1.6-.9-2.1c-.2-.5-.5-.5-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.6-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"/>',
 };
-
 function svg(name, size) {
     const s = size || 24;
     return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[
@@ -3897,8 +4343,8 @@ function getJambCountdown() {
     const diffMs = target - now;
     const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
     return { days: days, year: target.getFullYear() };
-}function enrolledSubjectIds() {
-    if (isAdmin()) return null;
+}
+function enrolledSubjectIds() {
     const ids = new Set();
     (state.myEnrollments || []).forEach(function(e) {
         const course = state.courses.find(function(c) { return c.id === e.course_id; });
@@ -3907,6 +4353,7 @@ function getJambCountdown() {
     return ids;
 }
 function hasCourseAccess(subjectId) {
+    if (isAdmin()) return true;
     const ids = enrolledSubjectIds();
     if (ids === null) return true;
     return ids.has(subjectId);
@@ -3915,7 +4362,6 @@ function anyCourseAccess() {
     if (isAdmin()) return true;
     return enrolledSubjectIds().size > 0;
 }
-
 function isAdmin() {
     return state.profile.email && state.profile.email.toLowerCase() === ADMIN_EMAIL;
 }
@@ -3967,13 +4413,75 @@ function showToast(msg, type) {
     if (old) old.remove();
     if (toastTimer) clearTimeout(toastTimer);
     const el = document.createElement('div');
-    el.className = 'toast-msg' + (type === 'error' ? ' error' : type === 'success' ? ' success' : '');
+    el.className = 'toast-msg' + (type === 'error' ? ' error' : type === 'success' ? ' success' : type === 'offline' ? ' offline' : '');
     el.textContent = msg;
     document.body.appendChild(el);
     toastTimer = setTimeout(function() {
         if (el.parentNode) el.remove();
     }, 3000);
 }
+
+// ============================================================
+//  APP ERROR LOG
+//  Regular users never see raw/technical error text (it makes the app
+//  feel broken/like they're staring at a database error). Instead every
+//  error is logged here so an admin can review it from Admin Panel →
+//  Errors. Admins still see the real error message when it happens to
+//  them, since they're the ones who need to act on it.
+// ============================================================
+let appErrorLogBuffer = []; // in-memory fallback, always populated even if the DB write fails
+
+function extractErrorMessage(err) {
+    if (!err) return 'Unknown error';
+    if (typeof err === 'string') return err;
+    return err.message || err.details || err.error_description || err.hint || 'Unknown error';
+}
+
+async function logAppError(context, err) {
+    try {
+        const record = {
+            context: context || 'unknown',
+            message: extractErrorMessage(err),
+            user_id: (state.authUser && state.authUser.id) || null,
+            username: (state.profile && state.profile.name) || 'Guest',
+            page: state.view || null,
+            created_at: new Date().toISOString(),
+        };
+        appErrorLogBuffer.unshift(record);
+        if (appErrorLogBuffer.length > 300) appErrorLogBuffer.pop();
+        if (typeof supabase !== 'undefined' && supabase) {
+            supabase.from('app_errors').insert([record]).then(function() {}, function() {});
+        }
+    } catch (e) {
+        // Error logging must never itself throw or interrupt the user's flow.
+        console.warn('logAppError failed', e);
+    }
+}
+
+// Drop-in replacement for showToast(msg, 'error') at any call site where
+// the message comes from a caught exception / Supabase error. Normal users
+// only ever see a calm, generic message — the real error is logged for the
+// admin's Errors tab. If the person hitting the error IS the admin, they
+// see the real message immediately (no need to dig through logs).
+function showUserError(context, err, friendlyMsg) {
+    logAppError(context, err);
+    if (isAdmin()) {
+        showToast((friendlyMsg ? friendlyMsg + ' — ' : '') + extractErrorMessage(err), 'error');
+    } else {
+        showToast(friendlyMsg || 'Something went wrong. Please try again.', 'error');
+    }
+}
+
+// Catch unexpected JS crashes app-wide and log them quietly instead of
+// letting a red/technical error surface (or the app silently breaking with
+// no record of why). Regular users never see these; they land in Admin
+// Panel → Errors.
+window.addEventListener('error', function(event) {
+    logAppError('window.onerror: ' + (event.filename || 'app.js') + ':' + (event.lineno || '?'), event.error || event.message);
+});
+window.addEventListener('unhandledrejection', function(event) {
+    logAppError('unhandledrejection', event.reason);
+});
 
 // ============================================================
 //  APP STATE
@@ -4132,6 +4640,7 @@ let state = {
     subjectLeaderboardData: [],
     subjectLeaderboardSubject: null,
     allUsers: [],
+    allUsersError: null,
     loadingLeaderboard: false,
 
     // Admin
@@ -4206,6 +4715,8 @@ let state = {
         newTopicName: "",
         logs: [],
         logsLoaded: false,
+        errors: [],
+        errorsLoaded: false,
         userActivity: {},
     },
     adminLoading: false,
@@ -4255,6 +4766,9 @@ myEnrollmentsLoading: false,
     selectedCourseId: null,
     selectedSubjectId: null,
     mycAdding: false,
+    mycSaving: false,
+    mycSwappingSubjectId: null,
+    mycSaving: false,
     browseCourseFilter: 'all',
     adminKeys: [],
     adminKeysLoaded: false,
@@ -4267,6 +4781,16 @@ myEnrollmentsLoading: false,
     aiInput: '',
     aiSending: false,
     aiQuestionContext: null,
+    aiPendingImage: null,
+    aiPendingDocument: null,
+    aiShowAttachMenu: false,
+    aiEditingMessageId: null,
+    aiRecording: false,
+    viewingImage: null,
+    aiSessions: [],
+    aiSessionsLoaded: false,
+    aiCurrentSessionId: null,
+    showAiHistoryPanel: false,
     supportMessagesLoaded: false,
     supportInput: '',
     adminSupportConversations: [],
@@ -4274,6 +4798,11 @@ myEnrollmentsLoading: false,
     adminSelectedSupportUser: null,
     adminSelectedSupportUsername: null,
     adminSupportMessages: [],
+    adminSelectedUserId: null,
+    adminUserDetailLoaded: false,
+    adminUserDetailLoading: false,
+    adminUserEnrollments: [],
+    adminUserAiMessages: [],
     settingsCache: {
         cbtQuestionsPerSubject: 40,
         cbtTimeLimit: 100,
@@ -4304,6 +4833,7 @@ myEnrollmentsLoading: false,
     calcPosition: { x: null, y: null },
     showPassword: {},
     activateIconDismissed: false,
+    showActivationBanner: false,
     
     showFlagModal: false,
     flagModalData: null,
@@ -4356,18 +4886,21 @@ async function loadAllUsers() {
     try {
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, full_name, email, is_active, activation_expiry, profile_image_url, wallet_balance')
+            .select('id, username, full_name, email, is_active, activation_expiry, profile_image_url, last_seen')
             .order('username');
         if (error) {
             console.warn("Load users error:", error);
             state.allUsers = [];
+            state.allUsersError = error.message || 'Unknown error loading users.';
             return [];
         }
         state.allUsers = data || [];
+        state.allUsersError = null;
         return state.allUsers;
     } catch (e) {
         console.warn("Load users exception:", e);
         state.allUsers = [];
+        state.allUsersError = (e && e.message) || 'Network or connection error.';
         return [];
     }
 }
@@ -4411,7 +4944,7 @@ async function loadLeaderboard(type) {
 
         if (error) {
             console.warn("Load leaderboard error:", error);
-            showToast("Error loading leaderboard: " + error.message, "error");
+            showUserError("Load leaderboard", error, "Couldn't load the leaderboard right now.");
             state.leaderboardData = [];
             state.loadingLeaderboard = false;
             render();
@@ -4442,7 +4975,7 @@ async function loadLeaderboard(type) {
         state.leaderboardData = leaderboard;
     } catch (e) {
         console.warn("Load leaderboard exception:", e);
-        showToast("Error loading leaderboard: " + (e.message || "unknown"), "error");
+        showUserError("Load leaderboard", e, "Couldn't load the leaderboard right now.");
         state.leaderboardData = [];
     }
 
@@ -4465,7 +4998,7 @@ async function loadSubjectLeaderboard(subjectId) {
 
         if (error) {
             console.warn("Load subject leaderboard error:", error);
-            showToast("Error loading subject leaderboard: " + error.message, "error");
+            showUserError("Load subject leaderboard", error, "Couldn't load the leaderboard right now.");
             state.subjectLeaderboardData = [];
             return;
         }
@@ -4493,7 +5026,7 @@ async function loadSubjectLeaderboard(subjectId) {
         state.subjectLeaderboardData = leaderboard;
     } catch (e) {
         console.warn("Load subject leaderboard exception:", e);
-        showToast("Error loading subject leaderboard: " + (e.message || "unknown"), "error");
+        showUserError("Load subject leaderboard", e, "Couldn't load the leaderboard right now.");
         state.subjectLeaderboardData = [];
     }
 }
@@ -4511,7 +5044,7 @@ async function saveScore(type, data) {
 
         if (checkError) {
             console.warn("Check score error:", checkError);
-            showToast("Error checking existing score: " + checkError.message, "error");
+            showUserError("Check existing score", checkError, "Couldn't save your score right now.");
             return;
         }
 
@@ -4528,7 +5061,7 @@ async function saveScore(type, data) {
             const { error: updateError } = await supabase.from(table).update(updateData).eq('id', existing.id);
             if (updateError) {
                 console.warn("Update score error:", updateError);
-                showToast("Error updating score: " + updateError.message, "error");
+                showUserError("Update score", updateError, "Couldn't save your score right now.");
                 return;
             }
         } else {
@@ -4546,7 +5079,7 @@ async function saveScore(type, data) {
             const { error: insertError } = await supabase.from(table).insert([insertData]);
             if (insertError) {
                 console.warn("Insert score error:", insertError);
-                showToast("Error saving score: " + insertError.message, "error");
+                showUserError("Save score", insertError, "Couldn't save your score right now.");
                 return;
             }
         }
@@ -4554,7 +5087,7 @@ async function saveScore(type, data) {
         await loadLeaderboard(state.leaderboardTab);
     } catch (e) {
         console.warn("Save score error:", e);
-        showToast("Error saving score: " + (e.message || "unknown"), "error");
+        showUserError("Save score", e, "Couldn't save your score right now.");
     }
 }
  
@@ -4622,6 +5155,60 @@ function loadOfflineCache(key) {
     } catch (e) { return null; }
 }
 function isOnline() { return navigator.onLine !== false; }
+
+// Recognizes a real database course ID vs a local DEFAULT_COURSES placeholder
+// like "course-jamb-math" (used only as a fallback before the courses table
+// has loaded/been seeded). Placeholder IDs can't be inserted into uuid
+// columns, so any enrollment flow must check this before writing to the DB.
+function isValidUuid(id) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '');
+}
+
+// Recognizes common "the network failed" error shapes (fetch rejections,
+// Supabase/PostgREST network errors, timeouts) so a poor/glitchy connection
+// never surfaces as a scary raw error message to the user.
+function isNetworkError(err) {
+    if (!isOnline()) return true;
+    if (!err) return false;
+    const msg = (typeof err === 'string' ? err : (err.message || err.error_description || '')).toLowerCase();
+    return msg.includes('failed to fetch') ||
+        msg.includes('networkerror') ||
+        msg.includes('network request failed') ||
+        msg.includes('load failed') ||
+        msg.includes('timed out') ||
+        msg.includes('timeout') ||
+        msg.includes('err_internet') ||
+        msg.includes('err_network') ||
+        msg.includes('err_connection') ||
+        msg.includes('fetch failed');
+}
+
+// Use this instead of showToast(msg, 'error') at any call site that follows
+// a network request (Supabase call, fetch, third-party script load, etc).
+// On poor/no connectivity it shows a calm "you're offline" message instead
+// of a raw, alarming error — otherwise it falls back to the given message.
+function showNetworkAwareError(fallbackMsg, err) {
+    logAppError(fallbackMsg, err);
+    if (isNetworkError(err)) {
+        showToast("You're offline — this needs an internet connection.", 'offline');
+    } else if (isAdmin()) {
+        showToast(fallbackMsg + ' — ' + extractErrorMessage(err), 'error');
+    } else {
+        showToast(fallbackMsg, 'error');
+    }
+}
+
+// Call at the top of any user-triggered action that requires the network
+// (sending a message, starting a purchase, saving admin data, etc.) to
+// short-circuit before attempting the request. Returns true if the app is
+// offline (and has already shown the toast), so the caller should return.
+function blockIfOffline(customMsg) {
+    if (!isOnline()) {
+        showToast(customMsg || "You're offline — this needs an internet connection.", 'offline');
+        return true;
+    }
+    return false;
+}
 
 async function cacheAllDataForOffline() {
     if (!state.authUser || !isOnline()) return;
@@ -4711,14 +5298,14 @@ async function loadSingleDocumentFile(docId) {
             .eq('id', docId)
             .single();
         if (error || !data) {
-            showToast('Could not load file.', 'error');
+            showNetworkAwareError('Could not load file.', error);
             return;
         }
         if (!state.docFileUrls) state.docFileUrls = {};
         state.docFileUrls[docId] = data.file_url;
         render();
     } catch (e) {
-        showToast('Could not load file.', 'error');
+        showNetworkAwareError('Could not load file.', e);
     }
 }
 
@@ -4742,7 +5329,7 @@ async function loadHistory() {
             
         if (error) {
             console.warn("Load history error:", error.message, error.details, error.hint, error.code);
-            showToast("History error: " + (error.message || error.details || "unknown"), "error");
+            showUserError("Load history", error, "Couldn't load your history right now.");
             state.historyEntries = [];
             state.historyLoaded = true;
             render();
@@ -4753,7 +5340,6 @@ async function loadHistory() {
         render();
     } catch (e) {
         console.warn("Load history exception:", e.message || e);
-        showToast("History error: " + (e.message || "unknown"), "error");
         state.historyEntries = [];
         state.historyLoaded = true;
         render();
@@ -4810,7 +5396,6 @@ async function loadLogs() {
             .limit(500);
         if (error) {
             console.warn("Load logs error:", error.message, error.code, error.details, error.hint);
-            showToast('Logs error: ' + (error.message || error.code || 'unknown'), 'error');
             state.admin.logs = [];
             state.admin.logsLoaded = true;
             render();
@@ -4823,6 +5408,33 @@ async function loadLogs() {
         console.warn("Load logs exception:", e);
         state.admin.logs = [];
         state.admin.logsLoaded = true;
+    }
+}
+
+async function loadAppErrors() {
+    try {
+        const { data, error } = await supabase
+            .from('app_errors')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(300);
+        if (error) {
+            console.warn("Load app errors error:", error.message);
+            // Fall back to whatever we've captured client-side this session
+            // (e.g. if the app_errors table hasn't been created yet).
+            state.admin.errors = appErrorLogBuffer;
+            state.admin.errorsLoaded = true;
+            render();
+            return;
+        }
+        state.admin.errors = data && data.length ? data : appErrorLogBuffer;
+        state.admin.errorsLoaded = true;
+        render();
+    } catch (e) {
+        console.warn("Load app errors exception:", e);
+        state.admin.errors = appErrorLogBuffer;
+        state.admin.errorsLoaded = true;
+        render();
     }
 }
 
@@ -5076,12 +5688,48 @@ function markAllNotificationsRead() {
 // ============================================================
 //  AUTH FUNCTIONS
 // ============================================================
+// AI Tutor and Support Chat cache their data in memory (state.aiMessages,
+// state.aiSessions, state.supportMessages, etc.) and only reload from the
+// server when their "*Loaded" flag is false. That flag was never reset on
+// login/logout, so on a shared device — or any time one account signs out
+// and a different account signs in during the same page session — the new
+// user could still see the previous user's cached AI Tutor / Support Chat
+// conversation until a hard refresh. This resets all of that per-user chat
+// state so each sign-in/sign-out starts clean and reloads fresh data.
+function resetUserScopedChatState() {
+    state.aiMessages = [];
+    state.aiMessagesLoaded = false;
+    state.aiSessions = [];
+    state.aiSessionsLoaded = false;
+    state.aiCurrentSessionId = null;
+    state.aiInput = '';
+    state.aiSending = false;
+    state.aiQuestionContext = null;
+    state.aiPendingImage = null;
+    state.aiPendingDocument = null;
+    state.aiShowAttachMenu = false;
+    state.aiEditingMessageId = null;
+    state.aiRecording = false;
+    state.showAiHistoryPanel = false;
+
+    state.supportMessages = [];
+    state.supportMessagesLoaded = false;
+    state.supportInput = '';
+
+    state.adminSupportConversations = [];
+    state.adminSupportConversationsLoaded = false;
+    state.adminSelectedSupportUser = null;
+    state.adminSelectedSupportUsername = null;
+    state.adminSupportMessages = [];
+}
+
 async function checkAuthSession() {
     try {
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
         if (data && data.session) {
             const user = data.session.user;
+            resetUserScopedChatState();
             state.authUser = user;
             const { data: prof, error: pErr } = await supabase
                 .from('profiles')
@@ -5211,6 +5859,7 @@ async function signUp(fullName, username, email, password) {
 
             await supabase.auth.signInWithPassword({ email: email, password: password });
 
+            resetUserScopedChatState();
             state.authUser = data.user;
             state.profile.name = username;
             state.profile.email = email;
@@ -5229,10 +5878,13 @@ async function signUp(fullName, username, email, password) {
             state.signupConfirm = "";
             showToast("Account created! You need to be activated by admin.", "success");
             setupRealtimeNotifications();
+            state.showActivationBanner = true;
             render();
         }
     } catch (err) {
-        state.authError = err.message || "Signup failed. Please try again.";
+        logAppError("Signup", err);
+        const isAdminAttempt = email && email.toLowerCase() === ADMIN_EMAIL;
+        state.authError = isAdminAttempt ? (err.message || "Signup failed. Please try again.") : "Signup failed. Please try again.";
         render();
     }
     state.authLoading = false;
@@ -5272,6 +5924,7 @@ async function signIn(emailOrUsername, password) {
         if (error) throw error;
 
         if (data.user) {
+            resetUserScopedChatState();
             state.authUser = data.user;
             const { data: prof, error: pErr } = await supabase
                 .from('profiles')
@@ -5308,12 +5961,17 @@ async function signIn(emailOrUsername, password) {
             state.loginEmail = "";
             state.loginPassword = "";
             showToast("Welcome back, " + state.profile.name + " 👋", "success");
+            if (!isUserActive() && !isAdmin()) {
+                state.showActivationBanner = true;
+            }
             render();
             cacheAllDataForOffline();
             restoreSessionSnapshot();
         }
     } catch (err) {
-        state.authError = err.message || "Login failed. Check your email/username and password.";
+        logAppError("Login", err);
+        const isAdminAttempt = emailOrUsername && emailOrUsername.toLowerCase() === ADMIN_EMAIL;
+        state.authError = isAdminAttempt ? (err.message || "Login failed. Check your email/username and password.") : "Login failed. Check your email/username and password.";
         render();
     }
     state.authLoading = false;
@@ -5332,6 +5990,7 @@ async function signOut() {
         state.profile = { name: "Guest", email: "", id: null, is_active: true, activation_expiry: null, fullName: "", avatarUrl: null, walletBalance: 0 };
         state.formName = "";
         state.formEmail = "";
+        resetUserScopedChatState();
         storage.set("profile", JSON.stringify(state.profile));
         state.view = "home";
         state.drawerOpen = false;
@@ -5549,8 +6208,11 @@ if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam typ
         end_date: endDate.toISOString(),
     }]).select().single();
 
-    if (error) { showToast('Error creating exam: ' + error.message, 'error'); return; }
-    showToast('🎉 Live exam created!' + (f.isPublic ? '' : ' Join code: ' + code), 'success');
+    if (error) { showNetworkAwareError('Error creating exam: ' + error.message, error); return; }
+    if (!f.isPublic) {
+        state.lastCreatedJoinCode = code;
+    }
+    showToast('🎉 Live exam created!', 'success');
     state.liveExamCreateForm = { title: '', examType: '', subject: '', startTime: '', numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true };
     state.liveExamCreateStep = 'type';
     state.liveExamView = 'browse';
@@ -5569,7 +6231,7 @@ async function joinLiveExamNow(examId) {
         live_exam_id: examId,
         subjects: [exam.subject_id],
     }]);
-    if (error) { showToast('Error joining: ' + error.message, 'error'); return; }
+    if (error) { showNetworkAwareError('Error joining: ' + error.message, error); return; }
     showToast('Joined! Come back when it starts.', 'success');
     await loadLiveExamRegistrations();
 }
@@ -5697,7 +6359,7 @@ async function registerForMock(mockExamId, subjects) {
         render();
     } catch (e) {
         console.warn('Register for mock error:', e);
-        showToast('Error registering: ' + (e.message || 'unknown'), 'error');
+        showNetworkAwareError('Error registering: ' + (e.message || 'unknown'), e);
     }
 }
 
@@ -6046,7 +6708,7 @@ async function startMockExam(mockExamId, source) {
     } catch (e) {
         console.warn('Start exam error:', e);
         state.isLoading = false;
-        showToast('Error starting exam: ' + (e.message || 'unknown'), 'error');
+        showNetworkAwareError('Error starting exam: ' + (e.message || 'unknown'), e);
         state.view = 'mockexam';
         render();
     }
@@ -6256,16 +6918,14 @@ async function adminSaveCourse() {
 
     if (!title) { showToast('Enter a course title.', 'error'); return; }
     if (subjects.length === 0) { showToast('Select at least one subject.', 'error'); return; }
+    if (blockIfOffline()) return;
 
-    function isValidUuid(id) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '');
-}
-const courseId = isValidUuid(state.admin.editingCourseId)
-    ? state.admin.editingCourseId
-    : (crypto.randomUUID ? crypto.randomUUID() : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      })));
+    const courseId = isValidUuid(state.admin.editingCourseId)
+        ? state.admin.editingCourseId
+        : (crypto.randomUUID ? crypto.randomUUID() : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        })));
 
     try {
         const result = await supabase.from('courses').upsert([{
@@ -6274,10 +6934,10 @@ const courseId = isValidUuid(state.admin.editingCourseId)
         }]);
         if (result.error) {
             console.error('Course save error: ' + (result.error.message || 'no message') +
-    ' | details: ' + (result.error.details || 'none') +
-    ' | hint: ' + (result.error.hint || 'none') +
-    ' | code: ' + (result.error.code || 'none'));
-showToast('Error: ' + (result.error.message || JSON.stringify(result.error)), 'error');
+                ' | details: ' + (result.error.details || 'none') +
+                ' | hint: ' + (result.error.hint || 'none') +
+                ' | code: ' + (result.error.code || 'none'));
+            showNetworkAwareError('Error saving course: ' + (result.error.message || 'unknown'), result.error);
             return;
         }
         showToast('Course saved!', 'success');
@@ -6292,31 +6952,43 @@ showToast('Error: ' + (result.error.message || JSON.stringify(result.error)), 'e
         loadCourses();
     } catch (e) {
         console.warn('Save course error:', e);
-        showToast('Error saving course: ' + (e.message || 'unknown'), 'error');
+        showNetworkAwareError('Error saving course: ' + (e.message || 'unknown'), e);
     }
 }
+let coursesRetryAt = 0;
 async function loadCourses() {
     if (state.coursesLoading) return;
+    // If a recent attempt failed/timed out, wait a bit before hammering the
+    // network again (renderHome/renderAllCourses call this on every render).
+    if (!state.coursesLoaded && Date.now() < coursesRetryAt) return;
     state.coursesLoading = true;
 
-    if (!state.coursesLoaded) {
+    if (!state.coursesLoaded && state.courses.length === 0) {
+        // Show a placeholder list immediately so the screen isn't empty
+        // while the real courses (with images) load in the background.
         state.courses = DEFAULT_COURSES;
-        state.coursesLoaded = true;
     }
 
     try {
         const timeout = new Promise(function(_, reject) {
-            setTimeout(function() { reject(new Error('Courses request timed out')); }, 8000);
+            setTimeout(function() { reject(new Error('Courses request timed out')); }, 20000);
         });
         const result = await Promise.race([
             supabase.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: false }),
             timeout
         ]);
         if (!result.error && result.data) {
-    state.courses = result.data;
-}
+            state.courses = result.data;
+            state.coursesLoaded = true;
+        } else {
+            coursesRetryAt = Date.now() + 15000;
+        }
     } catch (e) {
         console.warn('Load courses failed or timed out:', e);
+        // Don't mark coursesLoaded = true here - leaving it false lets the
+        // next render() retry the real fetch (so images eventually show)
+        // instead of getting stuck on the imageless placeholder forever.
+        coursesRetryAt = Date.now() + 15000;
     } finally {
         state.coursesLoading = false;
         render();
@@ -6341,19 +7013,26 @@ async function loadMyEnrollments() {
 }
 async function adminDeleteCourse(courseId) {
     if (!confirm('Delete this course?')) return;
+    if (blockIfOffline()) return;
     try {
         await supabase.from('courses').delete().eq('id', courseId);
         showToast('Course deleted.', 'success');
         state.coursesLoaded = false;
         loadCourses();
     } catch (e) {
-        showToast('Error deleting course.', 'error');
+        showNetworkAwareError('Error deleting course.', e);
     }
 }
 
 function payForCourse(course) {
     if (!state.authUser) { showToast('Please log in first.', 'error'); state.showLogin = true; render(); return; }
-    if (typeof PaystackPop === 'undefined') { showToast('Payment system not loaded.', 'error'); return; }
+    if (typeof PaystackPop === 'undefined') { showToast(!isOnline() ? "You're offline — payment needs an internet connection." : 'Payment system not loaded. Please try again.', !isOnline() ? 'offline' : 'error'); return; }
+    if (!isValidUuid(course.id)) {
+        // Never let someone pay for a course that has no real database row —
+        // the enrollment insert would fail after the charge already went through.
+        showToast('This course isn\'t set up for enrollment yet. Please contact support before paying.', 'error');
+        return;
+    }
 
     const handler = PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
@@ -6366,10 +7045,18 @@ function payForCourse(course) {
             showToast('Payment received! Enrolling...', '');
             supabase.from('course_enrollments').insert([{
                 user_id: state.authUser.id, course_id: course.id, amount: course.price,
-            }]).then(function() {
+            }]).then(function(result) {
+                if (result.error) {
+                    console.error('Enrollment after payment failed:', result.error);
+                    showToast('Payment succeeded, but enrolling in ' + course.title + ' failed. Please contact support with your payment reference: ' + response.reference, 'error');
+                    return;
+                }
                 showToast('🎉 Enrolled in ' + course.title + '!', 'success');
                 state.myEnrollmentsLoaded = false;
                 loadMyEnrollments();
+            }).catch(function(e) {
+                console.error('Enrollment after payment exception:', e);
+                showToast('Payment succeeded, but enrolling in ' + course.title + ' failed. Please contact support with your payment reference: ' + response.reference, 'error');
             });
         },
         onClose: function() { showToast('Payment window closed.', ''); }
@@ -6555,7 +7242,7 @@ async function adminGenerateKey(planId) {
             continue;
         }
         console.warn('Generate key error:', error);
-        showToast('Error generating key: ' + error.message, 'error');
+        showNetworkAwareError('Error generating key: ' + error.message, error);
         return;
     }
 
@@ -6570,7 +7257,7 @@ async function adminGenerateKey(planId) {
 function payWithPaystack(plan) {
     if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
     if (typeof PaystackPop === 'undefined') {
-        showToast('Payment system not loaded. Check your connection and try again.', 'error');
+        showToast(!isOnline() ? "You're offline — payment needs an internet connection." : 'Payment system not loaded. Please try again.', !isOnline() ? 'offline' : 'error');
         return;
     }
 
@@ -6724,18 +7411,80 @@ async function redeemActivationKey(rawKey) {
 // ============================================================
 //  SUPPORT CHAT
 // ============================================================
-async function loadAiMessages() {
+async function loadAiSessions() {
     if (!state.authUser) {
-        state.aiMessagesLoaded = true;
-        state.aiMessages = [];
+        state.aiSessionsLoaded = true;
+        state.aiSessions = [];
         render();
         return;
     }
     try {
         const { data, error } = await supabase
+            .from('ai_assistant_sessions')
+            .select('*')
+            .eq('user_id', state.authUser.id)
+            .order('updated_at', { ascending: false });
+        state.aiSessions = error ? [] : (data || []);
+        state.aiSessionsLoaded = true;
+
+        // Note: deliberately NOT auto-resuming the most recent session here.
+        // Every visit to the AI Tutor starts fresh (state.aiCurrentSessionId
+        // is reset to null in setView) — old chats stay one tap away via
+        // the history panel (switchAiSession).
+        if (state.aiCurrentSessionId) {
+            await loadAiMessages(state.aiCurrentSessionId);
+        } else {
+            state.aiMessages = [];
+            state.aiMessagesLoaded = true;
+        }
+        render();
+    } catch (e) {
+        state.aiSessions = [];
+        state.aiSessionsLoaded = true;
+        render();
+    }
+}
+
+async function createNewAiSession(switchToIt) {
+    if (!state.authUser) { showToast('Please log in first.', 'error'); return null; }
+    if (blockIfOffline()) return null;
+    try {
+        const { data, error } = await supabase
+            .from('ai_assistant_sessions')
+            .insert([{ user_id: state.authUser.id, title: 'New chat' }])
+            .select()
+            .single();
+        if (error) { showNetworkAwareError('Could not start a new chat.', error); return null; }
+        state.aiSessions.unshift(data);
+        if (switchToIt !== false) {
+            state.aiCurrentSessionId = data.id;
+            state.aiMessages = [];
+            state.aiMessagesLoaded = true;
+            state.showAiHistoryPanel = false;
+        }
+        render();
+        return data;
+    } catch (e) {
+        showNetworkAwareError('Could not start a new chat.', e);
+        return null;
+    }
+}
+
+async function loadAiMessages(sessionId) {
+    if (!state.authUser || !sessionId) {
+        state.aiMessages = [];
+        state.aiMessagesLoaded = true;
+        render();
+        return;
+    }
+    state.aiMessagesLoaded = false;
+    render();
+    try {
+        const { data, error } = await supabase
             .from('ai_assistant_messages')
             .select('*')
             .eq('user_id', state.authUser.id)
+            .eq('session_id', sessionId)
             .order('created_at', { ascending: true });
         state.aiMessages = error ? [] : (data || []);
         state.aiMessagesLoaded = true;
@@ -6747,20 +7496,171 @@ async function loadAiMessages() {
     }
 }
 
+function switchAiSession(sessionId) {
+    state.aiCurrentSessionId = sessionId;
+    state.showAiHistoryPanel = false;
+    loadAiMessages(sessionId);
+}
+
+async function deleteAiSession(sessionId) {
+    if (!confirm('Delete this chat? This cannot be undone.')) return;
+    if (blockIfOffline()) return;
+    try {
+        await supabase.from('ai_assistant_sessions').delete().eq('id', sessionId);
+        state.aiSessions = state.aiSessions.filter(function(s) { return s.id !== sessionId; });
+        if (state.aiCurrentSessionId === sessionId) {
+            state.aiCurrentSessionId = state.aiSessions.length > 0 ? state.aiSessions[0].id : null;
+            if (state.aiCurrentSessionId) loadAiMessages(state.aiCurrentSessionId);
+            else { state.aiMessages = []; state.aiMessagesLoaded = true; }
+        }
+        render();
+    } catch (e) {
+        showNetworkAwareError('Could not delete chat.', e);
+    }
+}
+
+// Live voice-to-text: transcribes as the student talks and writes it into
+// the message box so they can review/edit before choosing to send it -
+// nothing is sent automatically.
+let aiSpeechRecognition = null;
+
+function toggleAiVoiceRecording() {
+    if (state.aiRecording) {
+        if (aiSpeechRecognition) { try { aiSpeechRecognition.stop(); } catch (e) {} }
+        return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+        showToast('Voice input is not supported on this device/browser.', 'error');
+        return;
+    }
+    const fieldEl = document.getElementById('ai-chat-input');
+    const existing = (fieldEl ? fieldEl.value : (state.aiInput || '')).trim();
+    let finalText = existing ? existing + ' ' : '';
+
+    aiSpeechRecognition = new SR();
+    aiSpeechRecognition.lang = 'en-US';
+    aiSpeechRecognition.continuous = true;
+    aiSpeechRecognition.interimResults = true;
+
+    aiSpeechRecognition.onresult = function(e) {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+            const t = e.results[i][0].transcript;
+            if (e.results[i].isFinal) finalText += t + ' ';
+            else interim += t;
+        }
+        const liveEl = document.getElementById('ai-chat-input');
+        if (liveEl) {
+            liveEl.value = finalText + interim;
+            liveEl.style.height = 'auto';
+            liveEl.style.height = Math.min(liveEl.scrollHeight, 160) + 'px';
+        }
+        state.aiInput = finalText + interim;
+    };
+    aiSpeechRecognition.onerror = function() {
+        state.aiRecording = false;
+        showToast('Could not hear you clearly. Please try again.', 'error');
+        render();
+    };
+    aiSpeechRecognition.onend = function() {
+        state.aiRecording = false;
+        render();
+    };
+    try {
+        aiSpeechRecognition.start();
+        state.aiRecording = true;
+        render();
+    } catch (e) {
+        showToast('Could not start voice input.', 'error');
+    }
+}
+    
+function buildImageMarker(dataUrl) { return '[[img:' + dataUrl + ']]'; }
+function buildDocMarker(name, dataUrl) { return '[[doc:' + name.replace(/[|[\]]/g, '_') + '|' + dataUrl + ']]'; }
+function stripChatMarkers(message) {
+    return (message || '').replace(/\[\[img:[^\]]+\]\]/g, '').replace(/\[\[doc:[^|]*\|[^\]]+\]\]/g, '').trim();
+}
+function copyChatMessage(text) {
+    if (!text) { showToast('Nothing to copy.', 'error'); return; }
+    const done = function() { showToast('Copied to clipboard', 'success'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function() { fallbackCopy(text); done(); });
+    } else {
+        fallbackCopy(text);
+        done();
+    }
+}
+// Editing a previous message: loads its text back into the composer and
+// removes it (and everything sent after it) from the conversation, both
+// locally and in the database, so re-sending regenerates the reply fresh —
+// the same "edit & resend" pattern used by Claude's own chat.
+async function editAiMessage(msgId) {
+    const idx = state.aiMessages.findIndex(function(x) { return String(x.id) === String(msgId); });
+    if (idx === -1) return;
+    const m = state.aiMessages[idx];
+    if (m.sender !== 'user') return;
+    const toRemove = state.aiMessages.slice(idx);
+    state.aiInput = stripChatMarkers(m.message);
+    state.aiMessages = state.aiMessages.slice(0, idx);
+    state.aiEditingMessageId = msgId;
+    render();
+    try {
+        const ids = toRemove.map(function(x) { return x.id; }).filter(function(id) { return typeof id === 'string' || typeof id === 'number'; });
+        if (ids.length) await supabase.from('ai_assistant_messages').delete().in('id', ids);
+    } catch (e) {
+        console.warn('Could not delete edited messages from history:', e);
+    }
+    const box = document.getElementById('ai-chat-input');
+    if (box) { box.focus(); box.value = state.aiInput; }
+}
+
 async function sendAiMessage(text, questionContext) {
     const msg = (text || '').trim();
-    if (!msg || !state.authUser || state.aiSending) return;
-
+    const pendingImage = state.aiPendingImage;
+    const pendingDocument = state.aiPendingDocument;
+    if ((!msg && !pendingImage && !pendingDocument) || !state.authUser || state.aiSending) return;
+    if (blockIfOffline("You're offline — the AI assistant needs an internet connection.")) return;
+    const trialCheck = trialAiRateLimitCheck();
+    if (!trialCheck.allowed) {
+        showToast("You've reached your AI chat limit. Come back in an hour, or activate your account for unlimited access.", 'error');
+        return;
+    }
+    let sessionId = state.aiCurrentSessionId;
+    if (!sessionId) {
+        const session = await createNewAiSession(true);
+        if (!session) return;
+        sessionId = session.id;
+    }
     state.aiInput = '';
+    state.aiPendingImage = null;
+    state.aiPendingDocument = null;
     state.aiSending = true;
     render();
 
+    let storedMsg = '';
+    if (pendingImage) storedMsg += buildImageMarker(pendingImage);
+    if (pendingDocument) storedMsg += buildDocMarker(pendingDocument.name, pendingDocument.data);
+    if (msg) storedMsg += (storedMsg ? '\n' : '') + msg;
+    if (!storedMsg) storedMsg = msg;
+
     const { data: inserted } = await supabase.from('ai_assistant_messages').insert([{
         user_id: state.authUser.id,
+        session_id: sessionId,
         sender: 'user',
-        message: msg,
+        message: storedMsg,
     }]).select().single();
     if (inserted) state.aiMessages.push(inserted);
+
+    const session = state.aiSessions.find(function(s) { return s.id === sessionId; });
+    const titleSource = msg || (pendingImage ? 'Image' : '') || (pendingDocument ? pendingDocument.name : '') || 'New chat';
+    if (session && (!session.title || session.title === 'New chat')) {
+        const newTitle = titleSource.length > 40 ? titleSource.slice(0, 40) + '…' : titleSource;
+        session.title = newTitle;
+        supabase.from('ai_assistant_sessions').update({ title: newTitle, updated_at: new Date().toISOString() }).eq('id', sessionId).then(function() {});
+    } else {
+        supabase.from('ai_assistant_sessions').update({ updated_at: new Date().toISOString() }).eq('id', sessionId).then(function() {});
+    }
     render();
 
     try {
@@ -6774,6 +7674,9 @@ async function sendAiMessage(text, questionContext) {
                 userId: state.authUser.id,
                 message: msg,
                 questionContext: questionContext || null,
+                imageBase64: pendingImage || null,
+                documentBase64: pendingDocument ? pendingDocument.data : null,
+                documentName: pendingDocument ? pendingDocument.name : null,
             }),
         });
         const data = await res.json();
@@ -6785,20 +7688,26 @@ async function sendAiMessage(text, questionContext) {
             return;
         }
         if (!res.ok) {
-            showToast('AI is having trouble right now. Please try again.', 'error');
+            showNetworkAwareError('AI is having trouble right now. Please try again.', new Error('AI request failed: ' + res.status));
             state.aiSending = false;
             render();
             return;
         }
 
+        let aiMessage = data.reply || '';
+        if (data.imageBase64) {
+            aiMessage = buildImageMarker(data.imageBase64) + (aiMessage ? '\n' + aiMessage : '');
+        }
+
         const { data: aiInserted } = await supabase.from('ai_assistant_messages').insert([{
             user_id: state.authUser.id,
+            session_id: sessionId,
             sender: 'ai',
-            message: data.reply,
+            message: aiMessage,
         }]).select().single();
         if (aiInserted) state.aiMessages.push(aiInserted);
     } catch (e) {
-        showToast('Could not reach AI assistant. Check your connection.', 'error');
+        showNetworkAwareError('Could not reach AI assistant. Please try again.', e);
     }
     state.aiSending = false;
     render();
@@ -6924,14 +7833,16 @@ const SUPPORT_QUICK_REPLIES = {
     },
 };
 
+// Fast local matches for well-known issues. Returns null (not a canned
+// "I'm not sure" message) when nothing matches, so the caller can fall
+// back to the real AI backend for a proper, dynamic answer instead of a
+// generic non-answer.
 function generateAiSupportReply(userText, issueKey) {
     if (issueKey && SUPPORT_QUICK_REPLIES[issueKey]) {
         return SUPPORT_QUICK_REPLIES[issueKey]();
     }
 
     const t = (userText || '').toLowerCase();
-    const isActive = isUserActive();
-    const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
 
     if (t.includes('activat')) return SUPPORT_QUICK_REPLIES.not_active();
     if (t.includes('key') && (t.includes('invalid') || t.includes('wrong'))) return SUPPORT_QUICK_REPLIES.key_invalid();
@@ -6946,12 +7857,47 @@ function generateAiSupportReply(userText, issueKey) {
     if (t.includes('offline')) return SUPPORT_QUICK_REPLIES.offline_issue();
     if (t.includes('pay') || t.includes('paid') || t.includes('transfer')) return SUPPORT_QUICK_REPLIES.manual_payment_pending();
 
-    return { text: 'I\'m not fully sure what you mean — could you tap one of the quick options above, or describe it a bit more? If I still can\'t help, our team will step in shortly.', escalate: true };
+    return null;
+}
+
+// For anything the quick-match rules above don't recognize, ask the real
+// AI backend (same engine that powers the AI Tutor) for a proper answer
+// instead of showing a generic "I don't understand" message. The message
+// is wrapped with support context so the model knows this is a support
+// conversation, not a study question.
+async function generateSmartSupportReply(userText) {
+    const context = 'You are MyUTME Support, a friendly help-desk assistant for the JAMB CBT practice app "MyUTME". ' +
+        'Only answer questions about the app itself: account activation, license keys, payments (Paystack or manual transfer), ' +
+        'login/password, mock exams, scores, offline mode, or bugs. Be concise (2-4 sentences), practical, and reassuring. ' +
+        'If the question is outside what you can resolve, or you are not confident, say so plainly and let the user know a ' +
+        'human team member will check in. Do not make up account-specific details you don\'t have.\n\nUser\'s message: ' + userText;
+    try {
+        const res = await fetch(AI_ASSISTANT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+                userId: state.authUser.id,
+                message: context,
+                mode: 'support',
+            }),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data || !data.reply) return null;
+        return { text: data.reply, escalate: true };
+    } catch (e) {
+        console.warn('Smart support reply failed:', e);
+        return null;
+    }
 }
 async function sendSupportMessage(text, issueKey) {
     const msg = (text || '').trim();
     if (!msg) return;
     if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    if (blockIfOffline()) return;
 
     state.supportInput = '';
     render();
@@ -6967,7 +7913,7 @@ async function sendSupportMessage(text, issueKey) {
 
     if (error) {
         console.warn('Send support message error:', error);
-        showToast('Could not send message. Try again.', 'error');
+        showNetworkAwareError('Could not send message. Try again.', error);
         return;
     }
 
@@ -6988,7 +7934,17 @@ async function sendSupportMessage(text, issueKey) {
     setTimeout(async function() {
         // Remove typing indicator
         state.supportMessages = state.supportMessages.filter(function(m) { return !m.isTyping; });
-        const ai = generateAiSupportReply(msg, issueKey);
+
+        let ai = generateAiSupportReply(msg, issueKey);
+        if (!ai) {
+            // Nothing matched our quick rules — ask the real AI backend for a proper answer.
+            ai = await generateSmartSupportReply(msg);
+        }
+        if (!ai) {
+            // Backend unreachable (e.g. offline) — safe generic fallback.
+            ai = { text: 'I\'m not fully sure what you mean — could you tap one of the quick options above, or describe it a bit more?', escalate: true };
+        }
+
         const { data: aiInserted } = await supabase.from('support_messages').insert([{
             user_id: state.authUser.id,
             username: state.profile.name || 'Guest',
@@ -7005,7 +7961,7 @@ async function sendSupportMessage(text, issueKey) {
             const note = {
                 id: 'escalate-' + Date.now(),
                 sender: 'ai',
-                message: '🔔 A team member has been notified and will reply here.',
+                message: '🔔 If this doesn\'t fully sort it out, no worries — our team has been notified and will check your issue soon. You can also reach us directly on WhatsApp (' + SUPPORT_WHATSAPP_DISPLAY + ') for a faster reply.',
                 created_at: new Date().toISOString(),
                 isSystem: true,
             };
@@ -7075,6 +8031,29 @@ async function loadAdminSupportThread(userId) {
     }
 }
 
+async function loadAdminUserDetail(userId) {
+    state.adminUserDetailLoaded = false;
+    state.adminUserDetailLoading = true;
+    state.adminUserEnrollments = [];
+    state.adminUserAiMessages = [];
+    render();
+    try {
+        const [enrollRes, aiRes] = await Promise.all([
+            supabase.from('course_enrollments').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+            supabase.from('ai_assistant_messages').select('sender, message, created_at').eq('user_id', userId).order('created_at', { ascending: true }).limit(50)
+        ]);
+        state.adminUserEnrollments = enrollRes.data || [];
+        state.adminUserAiMessages = aiRes.data || [];
+    } catch (e) {
+        console.warn('Load admin user detail exception:', e);
+    } finally {
+        state.adminUserDetailLoaded = true;
+        state.adminUserDetailLoading = false;
+        render();
+    }
+}
+
+
 async function sendAdminSupportReply(userId, username, text) {
     const msg = (text || '').trim();
     if (!msg) return;
@@ -7088,10 +8067,53 @@ async function sendAdminSupportReply(userId, username, text) {
         read_by_user: false,
     }]).select().single();
 
-    if (error) { showToast('Could not send reply.', 'error'); return; }
+    if (error) { showNetworkAwareError('Could not send reply.', error); return; }
     state.adminSupportMessages.push(inserted);
     render();
     loadAdminSupportConversations();
+}
+
+// ============================================================
+//  FREE TRIAL LIMIT (non-activated users)
+//  Non-activated users get access to every feature, but each attempt is
+//  capped to a small number of questions, and they're told to activate
+//  once they hit the cap instead of being blocked outright.
+// ============================================================
+const TRIAL_QUESTION_CAP = 8;
+
+function applyTrialQuestionCap(questions) {
+    if (isAdmin() || isUserActive()) return questions;
+    return (questions || []).slice(0, TRIAL_QUESTION_CAP);
+}
+
+// Call right after questions are capped and the quiz view is shown, so the
+// person understands why they're only seeing a handful of questions.
+function notifyTrialCapIfNeeded(totalAvailable) {
+    if (isAdmin() || isUserActive()) return;
+    if (totalAvailable > TRIAL_QUESTION_CAP) {
+        showToast('Free trial: ' + TRIAL_QUESTION_CAP + ' questions per attempt. Activate your account for full sets.', '');
+    }
+}
+
+// Non-activated users can message the AI Tutor, but only a handful of
+// times per hour. Activated users and admins are not limited here (the
+// AI backend still enforces its own daily cap separately).
+const TRIAL_AI_MESSAGES_PER_HOUR = 5;
+
+function trialAiRateLimitCheck() {
+    if (isAdmin() || isUserActive()) return { allowed: true };
+    const key = 'trialAiMsgTimes_' + (state.authUser ? state.authUser.id : 'anon');
+    const now = Date.now();
+    const hourAgo = now - 60 * 60 * 1000;
+    let times = [];
+    try { times = JSON.parse(storage.get(key) || '[]'); } catch (e) { times = []; }
+    times = times.filter(function(t) { return t > hourAgo; });
+    if (times.length >= TRIAL_AI_MESSAGES_PER_HOUR) {
+        return { allowed: false };
+    }
+    times.push(now);
+    storage.set(key, JSON.stringify(times));
+    return { allowed: true };
 }
 
 // ============================================================
@@ -7099,13 +8121,7 @@ async function sendAdminSupportReply(userId, username, text) {
 // ============================================================
 async function startCbt() {
     if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
-    if (!isUserActive()) {
-        showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
-        state.view = 'activate';
-        render();
-        return;
-    }
-    
+
     const isFull = state.cbtMode === 'full';
     const selected = state.cbtSelected;
     const settings = await loadSettings();
@@ -7234,7 +8250,8 @@ async function startCbt() {
         return;
     }
 
-    state.cbtQuestions = allQuestions;
+    notifyTrialCapIfNeeded(allQuestions.length);
+    state.cbtQuestions = applyTrialQuestionCap(allQuestions);
     state.cbtIndex = 0;
     state.cbtAnswers = new Array(state.cbtQuestions.length).fill(null);
     state.cbtFinished = false;
@@ -7278,13 +8295,7 @@ async function startCbt() {
 }
 async function startLiteratureCbt() {
     if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
-    if (!isUserActive()) {
-        showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
-        state.view = 'activate';
-        render();
-        return;
-    }
-    
+
     state.isLoading = true;
     render();
     
@@ -7300,9 +8311,11 @@ async function startLiteratureCbt() {
         showToast('No Novel questions available.', 'error');
         return;
     }
-    const qs = shuffleArray(questions).map(function(q) {
+    const qsAll = shuffleArray(questions).map(function(q) {
         return Object.assign({}, q, { subject_name: 'The Lekki Headmaster' });
     });
+    notifyTrialCapIfNeeded(qsAll.length);
+    const qs = applyTrialQuestionCap(qsAll);
     state.litQuestions = qs;
     state.litIndex = 0;
     state.litAnswers = new Array(state.litQuestions.length).fill(null);
@@ -7346,13 +8359,7 @@ async function startLiteratureCbt() {
 
 async function startExam() {
     if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
-    if (!isUserActive()) {
-        showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
-        state.view = 'activate';
-        render();
-        return;
-    }
-    
+
     if (!state.examSubject) {
         showToast("Please select a subject.", "error");
         return;
@@ -7370,9 +8377,11 @@ async function startExam() {
         showToast('No questions uploaded for this subject and year yet.', 'error');
         return;
     }
-    const qs = questions.map(function(q) {
+    const qsAll = questions.map(function(q) {
         return Object.assign({}, q, { subject_name: s.name });
     });
+    notifyTrialCapIfNeeded(qsAll.length);
+    const qs = applyTrialQuestionCap(qsAll);
     state.examQuestions = qs;
     state.examIndex = 0;
     state.examAnswers = new Array(state.examQuestions.length).fill(null);
@@ -7390,13 +8399,7 @@ async function startExam() {
 
 async function startTopicPractice() {
     if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
-    if (!isUserActive()) {
-        showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
-        state.view = 'activate';
-        render();
-        return;
-    }
-    
+
     if (!state.topicSubject || !state.topicId) {
         showToast("Please select a subject and topic.", "error");
         return;
@@ -7416,9 +8419,11 @@ async function startTopicPractice() {
     }
 
     const s = SUBJECTS.find(function(x) { return x.id === state.topicSubject; });
-    const qs = shuffleArray(questions).map(function(q) {
+    const qsAll = shuffleArray(questions).map(function(q) {
         return Object.assign({}, q, { subject_name: s.name, subject_id: state.topicSubject });
     });
+    notifyTrialCapIfNeeded(qsAll.length);
+    const qs = applyTrialQuestionCap(qsAll);
 
     state.topicQuestions = qs;
     state.topicIndex = 0;
@@ -7749,6 +8754,23 @@ function setView(v) {
         state.supportMessagesLoaded = false;
         loadSupportMessages();
     }
+    if (v === "ai-assistant") {
+        // Every fresh visit to the AI Tutor starts a brand-new chat (like
+        // Claude's own app). The old chat isn't lost — it's still in
+        // history, reachable via the history icon. No DB write happens
+        // here; the session is only created once the user actually sends
+        // a message (see sendAiMessage), so idle visits don't clutter history.
+        state.aiCurrentSessionId = null;
+        state.aiMessages = [];
+        state.aiMessagesLoaded = true;
+        state.aiInput = '';
+        state.aiPendingImage = null;
+        state.aiPendingDocument = null;
+        state.aiShowAttachMenu = false;
+        state.aiEditingMessageId = null;
+        state.showAiHistoryPanel = false;
+        if (!state.aiSessionsLoaded) loadAiSessions();
+    }
     if (v === "revise") {
         state.weakQuestionsLoaded = false;
         state.reviseView = 'modes';
@@ -7857,6 +8879,9 @@ function render() {
     }
     if (state.showFundWallet) {
         html += renderFundWalletModal();
+    }
+    if (state.showActivationBanner) {
+        html += renderActivationBanner();
     }
     
     const urlParams = new URLSearchParams(window.location.search);
@@ -7994,7 +9019,10 @@ function renderApp() {
         );
     }
     if (isLoggedIn) {
-        rightContent += '<div class="avatar" title="' + esc(userName) + '">' + initial + '</div>';
+        const topbarAvatarUrl = state.profile.avatarUrl || null;
+        rightContent += topbarAvatarUrl
+            ? '<div class="avatar" title="' + esc(userName) + '"><img src="' + esc(topbarAvatarUrl) + '" alt="' + esc(userName) + '" style="width:100%;height:100%;border-radius:999px;object-fit:cover" /></div>'
+            : '<div class="avatar" title="' + esc(userName) + '">' + initial + '</div>';
     } else {
         rightContent += '<div class="avatar guest">' + initial + '</div>';
     }
@@ -8009,7 +9037,9 @@ function renderApp() {
         loadingOverlay +
         '<div class="topbar">' +
         (state.view === 'home'
-            ? '<div class="topbar-left"></div><div class="topbar-center"></div><div class="topbar-right">' +
+            ? '<div class="topbar-left"></div>' +
+              '<div class="topbar-center"><span class="brand">' + logoSvg(22) + '<span>My<b>UTME</b></span></span></div>' +
+              '<div class="topbar-right">' +
               '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
               svg('bell', 20).replace('stroke="currentColor"', 'stroke="white"') +
               (unread > 0 ? '<span style="position:absolute;top:-4px;right:-4px;background:#e2543a;color:#fff;border-radius:999px;font-size:9px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--topbar-bg)">' + badgeLabel + '</span>' : '') +
@@ -8019,9 +9049,14 @@ function renderApp() {
               '<div class="topbar-right">' + rightContent + '</div>'
         ) +
         '</div>' +
-        '<div class="view"><div class="view-content">' + renderView() + '</div></div>' +
+        '<div class="view' + (state.view === 'ai-assistant' ? ' view-chat' : '') + '"><div class="view-content">' + renderView() + '</div></div>' +
         renderBottomNav() +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
+        (state.viewingImage ? (
+            '<div class="ai-history-overlay" style="z-index:200;align-items:center;justify-content:center;padding:20px" data-action="close-image-viewer">' +
+            '<img src="' + esc(state.viewingImage) + '" style="max-width:100%;max-height:85vh;border-radius:10px;object-fit:contain" />' +
+            '</div>'
+        ) : '') +
         '</div></div>'
     );
 }
@@ -8029,8 +9064,8 @@ function renderApp() {
 function renderBottomNav() {
     const items = [
     { key: 'home', label: 'Home', icon: 'home' },
-    { key: 'mycourses', label: 'My Courses', icon: 'bookopen' },
-    { key: 'cbt', label: 'JAMB CBT', icon: 'monitor' },
+    { key: 'mysubjects', label: 'My Subjects', icon: 'bookopen' },
+    { key: 'ai-assistant', label: 'AI Tutor', icon: 'sparkles' },
     { key: 'mockexam', label: 'Live Exam', icon: 'target' },
     { key: 'profile', label: 'Account', icon: 'user' },
 ];
@@ -8077,7 +9112,7 @@ function renderView() {
     if (v === "exam") return renderExamMode();
     if (v === "mockexam") return renderMockExamPicker();
     if (v === "topics") return renderTopicsPicker();
-    if (v === "mycourses") return renderMyCourses();
+    if (v === "mysubjects") return renderMyCourses();
 if (v === "subject-modes") return renderSubjectModes();
     if (v === "learning") return renderLearningHub();
     if (v === "documents") return renderDocumentsUser();
@@ -8099,7 +9134,7 @@ if (v === "subject-modes") return renderSubjectModes();
 //  HOME
 // ============================================================
 // ============================================================
-//  MY COURSES (new home for subject combo + modes)
+//  MY SUBJECTS (home for subject combo + practice modes)
 // ============================================================
 function renderMyCourses() {
     if (!state.coursesLoaded) loadCourses();
@@ -8109,28 +9144,42 @@ function renderMyCourses() {
     const isAdminUser = isAdmin();
 
     const mySubjectIds = ['eng'];
-    if (isAdminUser) {
-        SUBJECTS.filter(function(s) { return s.id !== 'eng' && s.id !== 'lhm'; })
-            .slice(0, 3).forEach(function(s) { mySubjectIds.push(s.id); });
-    } else if (enrolledIds) {
+    if (enrolledIds) {
+        // Show EVERY real elective you're enrolled in — do not silently cap/hide any.
+        // If there are more than 3, old subjects never got cleaned up properly; showing
+        // them all lets you remove the extras yourself instead of them vanishing.
         enrolledIds.forEach(function(sid) {
-            if (sid !== 'eng' && sid !== 'lhm' && mySubjectIds.length < 4 && mySubjectIds.indexOf(sid) === -1) {
+            if (sid !== 'eng' && sid !== 'lhm' && mySubjectIds.indexOf(sid) === -1) {
                 mySubjectIds.push(sid);
             }
         });
     }
+    const excessCount = Math.max(0, mySubjectIds.length - 4);
+
+const atMax = mySubjectIds.length === 4;
+    const isOverLimit = mySubjectIds.length > 4;
+    const isSwapping = !!state.mycSwappingSubjectId;
 
     let subjectCards = '';
     mySubjectIds.forEach(function(sid) {
         const s = SUBJECTS.find(function(x) { return x.id === sid; });
         if (!s) return;
         const isCompulsory = sid === 'eng';
+        let actionBtn = '';
+        if (!isCompulsory && !isAdminUser) {
+            actionBtn = (atMax && !isOverLimit)
+                ? '<button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px;font-size:11px;padding:6px" data-action="myc-swap-subject" data-subjectid="' + s.id + '">Change Subject</button>'
+                : '<button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px;font-size:11px;padding:6px;color:var(--danger);border-color:var(--danger)" data-action="myc-remove-subject" data-subjectid="' + s.id + '">Remove Subject</button>';
+        }
         subjectCards += (
-            '<div class="myc-subject-card" style="--sc:' + s.color + '" data-action="open-subject-modes" data-subjectid="' + s.id + '">' +
+            '<div class="myc-subject-card" style="--sc:' + s.color + '">' +
+            '<div data-action="open-subject-modes" data-subjectid="' + s.id + '" style="cursor:pointer">' +
             '<div class="myc-sc-badge">' + esc(s.code) + '</div>' +
             '<p class="myc-sc-name">' + esc(s.name) + '</p>' +
             '<p class="myc-sc-tag">' + (isCompulsory ? 'Compulsory' : 'My subject') + '</p>' +
             '<span class="myc-sc-arrow">' + svg('chevleft', 16).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>' +
+            '</div>' +
+            actionBtn +
             '</div>'
         );
     });
@@ -8143,10 +9192,10 @@ function renderMyCourses() {
             '<span class="myc-add-icon">+</span>' +
             '<p class="myc-sc-name">Add Subject</p>' +
             '<p class="myc-sc-tag">' + slotsLeft + ' slot' + (slotsLeft === 1 ? '' : 's') + ' left</p>' +
+            '<button class="btn btn-green btn-sm" style="width:100%;margin-top:8px;font-size:11px;padding:6px">Add Subject</button>' +
             '</div>'
         );
     }
-
     let pickerHtml = '';
     if (state.mycAdding) {
         const available = SUBJECTS.filter(function(s) {
@@ -8155,23 +9204,29 @@ function renderMyCourses() {
         let opts = '';
         available.forEach(function(s) {
             opts += (
-                '<button class="myc-picker-opt" data-action="myc-add-subject" data-subjectid="' + s.id + '">' +
+                '<button class="myc-picker-opt" data-action="myc-add-subject" data-subjectid="' + s.id + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+                '<span style="display:flex;align-items:center;gap:8px">' +
                 '<span class="myc-sc-badge" style="position:static;background:' + s.color + '20;color:' + s.color + '">' + esc(s.code) + '</span>' +
                 '<span>' + esc(s.name) + '</span>' +
+                '</span>' +
+                '<span style="font-size:11px;font-weight:800;color:var(--green)">' + (isSwapping ? 'Swap in' : 'Add') + '</span>' +
                 '</button>'
             );
         });
+        const swappingOut = isSwapping ? SUBJECTS.find(function(s) { return s.id === state.mycSwappingSubjectId; }) : null;
         pickerHtml = (
             '<div class="myc-picker-overlay" data-action="myc-toggle-add">' +
             '<div class="myc-picker-modal" data-action="prevent-close">' +
-            '<h3>Add a subject</h3>' +
-            '<p class="sub">Choose up to ' + slotsLeft + ' more subject' + (slotsLeft === 1 ? '' : 's') + '. English is already included.</p>' +
+            '<h3>' + (isSwapping ? 'Swap ' + (swappingOut ? esc(swappingOut.name) : 'subject') + ' for…' : 'Add a subject') + '</h3>' +
+            '<p class="sub">' + (isSwapping
+                ? 'Pick a replacement — ' + (swappingOut ? esc(swappingOut.name) : 'this subject') + ' will be removed once you choose.'
+                : 'Choose up to ' + slotsLeft + ' more subject' + (slotsLeft === 1 ? '' : 's') + '. English is already included.') + '</p>' +
             '<div class="myc-picker-grid">' + (opts || '<p style="grid-column:1/-1;font-size:12px;color:var(--faint)">No more subjects available.</p>') + '</div>' +
-            '<button class="btn btn-outline" style="margin-top:10px" data-action="myc-toggle-add">Close</button>' +
+            '<button class="btn btn-outline" style="margin-top:10px" data-action="myc-toggle-add">Cancel</button>' +
             '</div></div>'
         );
-    }
-
+    }    
+       
     const modes = [
         { view: 'cbt', label: 'JAMB CBT', sub: 'Full timed practice', icon: 'monitor', grad: 'linear-gradient(145deg,#2E6FF2,#1447B3)' },
         { view: 'exam', label: 'Past Questions', sub: '2021 – 2026', icon: 'clipboard', grad: 'linear-gradient(145deg,#E2543A,#B23420)' },
@@ -8197,8 +9252,12 @@ function renderMyCourses() {
         '<div class="myc-hero">' +
         '<div class="glow3"></div>' +
         '<p class="hi">Your subject combo</p>' +
-        '<p class="name" style="font-size:20px">My Courses</p>' +
-        '<p style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:4px;position:relative;z-index:1">English + up to 3 electives — tap a subject to practice it alone</p>' +
+        '<p class="name" style="font-size:20px">My Subjects</p>' +
+        '<p style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:4px;position:relative;z-index:1">' +
+        (isOverLimit
+            ? '⚠️ You have ' + mySubjectIds.length + ' subjects enrolled — ' + excessCount + ' too many. Tap "Remove Subject" below until you are back to exactly 4.'
+            : 'English + exactly 3 electives. Once you have all 4, tap ⇄ to swap a subject instead of removing it.') +
+        '</p>' +
         '</div>' +
         '<div class="myc-subject-strip">' + subjectCards + addTile + '</div>' +
         pickerHtml +
@@ -8228,7 +9287,7 @@ function renderSubjectModes() {
     grid += '</div>';
 
     return (
-        '<button class="back-link" data-action="set-view" data-view="mycourses">' + svg("chevleft", 14) + ' My Courses</button>' +
+        '<button class="back-link" data-action="set-view" data-view="mysubjects">' + svg("chevleft", 14) + ' My Subjects</button>' +
         '<div class="myc-hero" style="--sc:' + s.color + '">' +
         '<div class="glow3"></div>' +
         '<p class="hi">Practicing</p>' +
@@ -8301,7 +9360,7 @@ function renderHome() {
     } else if (state.courses.length === 0) {
         courseCards = '<div class="card" style="text-align:center;padding:32px 16px;min-width:260px"><p style="font-size:28px;margin:0 0 6px">📚</p><p style="font-size:13px;color:var(--faint);margin:0">No courses available yet. Check back soon!</p></div>';
     } else {
-        state.courses.forEach(function(c) {
+        state.courses.slice(0, HOME_COURSE_PREVIEW_COUNT).forEach(function(c) {
             const primarySubjectId = (c.subject_ids || [])[0];
             const img = c.image_url
                 ? '<img class="cch-img" src="' + esc(c.image_url) + '" />'
@@ -8332,41 +9391,113 @@ function renderHome() {
         '<h2>Courses</h2>' +
         '<button class="see-all" data-action="set-view" data-view="all-courses">See all →</button>' +
         '</div>' +
-        '<div class="course-scroll-row">' + courseCards + '</div>'
+        '<div class="course-scroll-row">' + courseCards + '</div>' +
+        renderHomeExtras()
     );
+}
+
+function renderHomeExtras() {
+    // --- Study tip of the day (rotates daily, no backend needed) ---
+    const tips = [
+        "Practice under exam conditions — time yourself like it's the real UTME.",
+        "Review your wrong answers. Mistakes are where the real learning happens.",
+        "Little and often beats last-minute cramming. Aim for daily practice.",
+        "Read the question twice before picking an option — many errors are careless.",
+        "Focus extra time on your weakest subject this week.",
+        "Sleep well before mock exams — a rested brain recalls faster.",
+        "Use the explanation after each question, even the ones you got right."
+    ];
+    const dayIndex = Math.floor(Date.now() / 86400000) % tips.length;
+    const tipHtml = (
+        '<div class="card" style="display:flex;gap:10px;align-items:flex-start;padding:14px;margin-bottom:16px;border-left:3px solid var(--gold)">' +
+        '<span style="font-size:20px;line-height:1">💡</span>' +
+        '<div><p style="font-size:11px;color:var(--muted);margin:0 0 3px;text-transform:uppercase;letter-spacing:0.03em">Tip of the day</p>' +
+        '<p style="font-size:13px;margin:0">' + esc(tips[dayIndex]) + '</p></div>' +
+        '</div>'
+    );
+
+    // --- Motivational quote carousel (swipeable, rotates by day) ---
+    const quotes = [
+        { text: "Success is the sum of small efforts repeated day in and day out.", author: "Robert Collier" },
+        { text: "The expert in anything was once a beginner.", author: "Helen Hayes" },
+        { text: "Discipline is choosing between what you want now and what you want most.", author: "Abraham Lincoln" },
+        { text: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+        { text: "Every question you solve today is a mark you don't have to chase tomorrow.", author: "MyUTME" },
+        { text: "Consistency beats intensity. Show up for yourself daily.", author: "MyUTME" }
+    ];
+    const qIndex = Math.floor(Date.now() / 86400000) % quotes.length;
+    const q = quotes[qIndex];
+    const quoteHtml = (
+        '<div class="card" style="padding:16px;margin-bottom:16px;background:var(--green-light);border:none">' +
+        '<p style="font-size:22px;line-height:1;margin:0 0 6px;color:var(--green)">"</p>' +
+        '<p style="font-size:13px;font-style:italic;margin:0 0 8px;color:var(--ink)">' + esc(q.text) + '</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0;text-align:right">— ' + esc(q.author) + '</p>' +
+        '</div>'
+    );
+
+    // --- Exam readiness score (based on enrolled subjects vs JAMB's required 4) ---
+    const REQUIRED_SUBJECTS = 4;
+    const enrolledCount = isAdmin() ? REQUIRED_SUBJECTS : Math.min(enrolledSubjectIds().size, REQUIRED_SUBJECTS);
+    const readinessPct = Math.round((enrolledCount / REQUIRED_SUBJECTS) * 100);
+    const readinessMsg = readinessPct >= 100
+        ? "You're fully set up across all 4 subjects!"
+        : "Enroll in " + (REQUIRED_SUBJECTS - enrolledCount) + " more subject" + (REQUIRED_SUBJECTS - enrolledCount === 1 ? '' : 's') + " to complete your JAMB combo.";
+    const readinessHtml = (
+        '<div class="card" style="padding:16px;margin-bottom:16px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">' +
+        '<p style="font-size:13px;font-weight:800;margin:0">🎯 Exam Readiness</p>' +
+        '<p style="font-size:15px;font-weight:800;margin:0;color:var(--green)">' + readinessPct + '%</p>' +
+        '</div>' +
+        '<div style="height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-bottom:8px">' +
+        '<div style="height:100%;width:' + readinessPct + '%;background:linear-gradient(90deg,var(--green),var(--gold));border-radius:999px"></div>' +
+        '</div>' +
+        '<p style="font-size:12px;color:var(--muted);margin:0">' + esc(readinessMsg) + '</p>' +
+        (readinessPct < 100
+            ? '<button class="btn btn-gold btn-sm" style="margin-top:10px" data-action="set-view" data-view="all-courses">Browse Courses</button>'
+            : '') +
+        '</div>'
+    );
+
+    return tipHtml + quoteHtml + readinessHtml;
 }
 function renderAllCourses() {
     if (!state.coursesLoaded) loadCourses();
     const list = state.courses;
 
     let rows = '';
-    list.forEach(function(c) {
-        const primarySubjectId = (c.subject_ids || [])[0];
-        const img = c.image_url
-            ? '<img src="' + esc(c.image_url) + '" style="width:72px;height:72px;object-fit:cover;border-radius:12px;flex-shrink:0" />'
-            : '<div style="width:72px;height:72px;border-radius:12px;background:linear-gradient(135deg,var(--green),var(--green-dark));display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0">📚</div>';
-        const subjCount = (c.subject_ids || []).length;
-        rows += (
-            '<div class="card" data-action="open-subject-modes" data-subjectid="' + primarySubjectId + '" style="cursor:pointer;display:flex;gap:12px;padding:12px;align-items:center">' +
-            img +
-            '<div style="flex:1;min-width:0">' +
-            '<p style="font-weight:700;font-size:14px;margin:0">' + esc(c.title) + '</p>' +
-            (c.description ? '<p style="font-size:11px;color:var(--muted);margin:3px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(c.description) + '</p>' : '') +
-            '<span style="font-size:10px;color:var(--muted)">' + subjCount + ' subject' + (subjCount === 1 ? '' : 's') + '</span>' +
-            '</div>' +
-            '<span style="flex-shrink:0;color:var(--green)">' + svg('chevleft', 18).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>' +
-            '</div>'
-        );
-    });
+    if (!state.coursesLoaded && list.length === 0) {
+        for (let i = 0; i < 4; i++) {
+            rows += '<div class="card skeleton-card" style="display:flex;gap:12px;padding:12px;align-items:center;margin-bottom:10px"><div class="skeleton-shimmer img" style="width:60px;height:60px;border-radius:10px;flex-shrink:0"></div><div style="flex:1"><div class="skeleton-shimmer line" style="width:70%"></div><div class="skeleton-shimmer line" style="width:40%;margin-top:6px"></div></div></div>';
+        }
+    } else if (list.length === 0) {
+        rows = '<div class="card" style="text-align:center;padding:32px 16px"><p style="font-size:28px;margin:0 0 6px">📚</p><p style="font-size:13px;color:var(--faint);margin:0">No courses available yet. Check back soon!</p></div>';
+    } else {
+        list.forEach(function(c) {
+            const primarySubjectId = (c.subject_ids || [])[0];
+            const img = c.image_url
+                ? '<img src="' + esc(c.image_url) + '" style="width:60px;height:60px;border-radius:10px;object-fit:cover;flex-shrink:0" />'
+                : '<div style="width:60px;height:60px;border-radius:10px;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">📚</div>';
+            const subjCount = (c.subject_ids || []).length;
+            rows += (
+                '<div class="card" data-action="open-subject-modes" data-subjectid="' + primarySubjectId + '" style="cursor:pointer;display:flex;gap:12px;padding:12px;align-items:center;margin-bottom:10px">' +
+                img +
+                '<div style="flex:1;min-width:0">' +
+                '<p style="font-size:14px;font-weight:800;margin:0 0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.title) + '</p>' +
+                '<p style="font-size:11px;color:var(--muted);margin:0;display:flex;align-items:center;gap:4px">' + svg('list', 11) + subjCount + ' subject' + (subjCount === 1 ? '' : 's') + '</p>' +
+                '</div>' +
+                svg('chevright', 16) +
+                '</div>'
+            );
+        });
+    }
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<h2 class="title">All Courses</h2>' +
-        '<p class="sub">Every subject available — tap to start practicing</p>' +
-        (rows || '<p style="color:var(--faint);font-size:13px;text-align:center;padding:20px 0">No courses available yet.</p>')
+        '<h2 class="title" style="margin-bottom:2px;font-size:18px">All Courses</h2>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:14px">Browse every subject course available</p>' +
+        rows
     );
 }
-    
 function renderFeature(tile) {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
@@ -8434,14 +9565,12 @@ function renderCbtMode() {
     const eng = SUBJECTS.find(function(s) { return s.compulsory; });
 
     let chips = "";
-    others.forEach(function(s) {
+    others.filter(function(s) { return hasCourseAccess(s.id); }).forEach(function(s) {
         const sel = state.cbtSelected.indexOf(s.id) !== -1;
-        const locked = !hasCourseAccess(s.id);
         chips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '"' +
-            (locked ? ' style="opacity:0.4"' : ' data-action="toggle-cbt-subject" data-subject="' + s.id + '"') + '>' +
+            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-cbt-subject" data-subject="' + s.id + '">' +
             subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + (locked ? ' 🔒' : '') + '</span>' +
+            '<span class="sname">' + esc(s.name) + '</span>' +
             '</button>'
         );
     });
@@ -8798,14 +9927,12 @@ function renderCbtExam() {
 // ============================================================
 function renderExamMode() {
     let chips = "";
-    SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
+    SUBJECTS.filter(function(s) { return s.id !== 'lhm' && hasCourseAccess(s.id); }).forEach(function(s) {
         const sel = state.examSubject === s.id;
-        const locked = !hasCourseAccess(s.id);
         chips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '"' +
-            (locked ? ' style="opacity:0.4"' : ' data-action="select-exam-subject" data-subject="' + s.id + '"') + '>' +
+            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-exam-subject" data-subject="' + s.id + '">' +
             subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + (locked ? ' 🔒' : '') + '</span>' +
+            '<span class="sname">' + esc(s.name) + '</span>' +
             '</button>'
         );
     });
@@ -9028,14 +10155,12 @@ function renderExamExam() {
 // ============================================================
 function renderTopicsPicker() {
     let subjChips = "";
-    SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
+    SUBJECTS.filter(function(s) { return s.id !== 'lhm' && hasCourseAccess(s.id); }).forEach(function(s) {
         const sel = state.topicSubject === s.id;
-        const locked = !hasCourseAccess(s.id);
         subjChips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '"' +
-            (locked ? ' style="opacity:0.4"' : ' data-action="select-topic-subject" data-subject="' + s.id + '"') + '>' +
+            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-topic-subject" data-subject="' + s.id + '">' +
             subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + (locked ? ' 🔒' : '') + '</span>' +
+            '<span class="sname">' + esc(s.name) + '</span>' +
             '</button>'
         );
     });
@@ -9511,7 +10636,7 @@ async function loadWeakQuestions() {
             
         if (error) {
             console.warn("Load weak questions error:", error.message, error.code);
-            showToast("Weak questions error: " + (error.message || "unknown"), "error");
+            showUserError("Load weak questions", error, "Couldn't load your weak questions right now.");
             state.weakQuestions = [];
             state.weakQuestionsLoaded = true;
             render();
@@ -9534,7 +10659,7 @@ async function loadWeakQuestions() {
         render();
     } catch (e) {
         console.warn("Load weak questions exception:", e.message || e);
-        showToast("Weak questions error: " + (e.message || "unknown"), "error");
+        showUserError("Load weak questions", e, "Couldn't load your weak questions right now.");
         state.weakQuestions = [];
         state.weakQuestionsLoaded = true;
         render();
@@ -9562,16 +10687,6 @@ function renderReviseWeak() {
         );
     }
     
-    if (!isUserActive()) {
-        return (
-            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 30) + '</div>' +
-            '<h2 class="title">Revise Weak Questions</h2>' +
-            '<p class="sub">Retry questions you\'ve missed</p>' +
-            '<div class="card"><p style="text-align:center;color:var(--unanswered);padding:16px 0;font-size:13px">Your account needs to be activated to access weak question revision. Contact admin or visit the Activate page.</p></div>'
-        );
-    }
-
     if (!state.weakQuestionsLoaded) {
         loadWeakQuestions();
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading weak questions...</p></div>';
@@ -9755,58 +10870,326 @@ function renderReviseModeQuestions() {
 // ============================================================
 //  SUPPORT CHAT
 // ============================================================
+// Turns AI Tutor text into properly displayed content instead of raw
+// markdown/LaTeX/code-style syntax: "3 * 4" becomes "3 × 4", "x^2" becomes
+// x with a real superscript, \frac{1}{2} becomes a readable fraction,
+// **bold** becomes actual bold text, ```code``` becomes a real code block,
+// and so on — so math and formatting look natural instead of looking like
+// programming syntax.
+function formatAiChatText(raw) {
+    if (!raw) return '';
+
+    // 1) Pull out fenced code blocks and inline code first so their content
+    // is left completely alone by the math/markdown transforms below.
+    // AI models often wrap worked calculations/equations in backticks or
+    // triple-backtick fences out of habit - that content is NOT real code,
+    // so we only treat something as a code block if it actually looks like
+    // programming code. Anything else gets unwrapped and flows through the
+    // normal math/markdown formatting below like regular text.
+    const KNOWN_CODE_LANGS = /^(js|javascript|jsx|ts|typescript|tsx|py|python|java|c|cpp|c\+\+|cs|csharp|html|css|json|sql|bash|sh|shell|php|go|golang|rust|rb|ruby|swift|kotlin|xml|yaml|yml)$/i;
+    function looksLikeCode(code, lang) {
+        if (lang && KNOWN_CODE_LANGS.test(lang.trim())) return true;
+        return /[;{}]|=>|\b(function|def|class|import|const|let|var|return|console\.|print\()\b/.test(code);
+    }
+    const codeBlocks = [];
+    let text = raw.replace(/```([a-zA-Z0-9+#]*)\n?([\s\S]*?)```/g, function(_, lang, code) {
+        const trimmed = code.replace(/\n$/, '');
+        if (looksLikeCode(trimmed, lang)) {
+            codeBlocks.push(trimmed);
+            return '\u0000CB' + (codeBlocks.length - 1) + '\u0000';
+        }
+        return trimmed;
+    });
+    const codeSpans = [];
+    text = text.replace(/`([^`\n]+)`/g, function(_, code) {
+        if (looksLikeCode(code, '')) {
+            codeSpans.push(code);
+            return '\u0000CS' + (codeSpans.length - 1) + '\u0000';
+        }
+        return code;
+    });
+
+    // 2) Strip LaTeX math delimiters, keeping their inner content.
+    text = text
+        .replace(/\$\$([\s\S]+?)\$\$/g, '$1')
+        .replace(/\\\[([\s\S]+?)\\\]/g, '$1')
+        .replace(/\\\(([\s\S]+?)\\\)/g, '$1')
+        .replace(/\$([^\n$]+?)\$/g, '$1');
+
+    // 3) Common LaTeX math commands -> real symbols/words.
+    text = text
+        .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1 ÷ $2)')
+        .replace(/\\sqrt\{([^{}]+)\}/g, '√($1)')
+        .replace(/\\sqrt/g, '√')
+        .replace(/\\times/g, '×')
+        .replace(/\\div/g, '÷')
+        .replace(/\\pm/g, '±')
+        .replace(/\\cdot/g, '·')
+        .replace(/\\leq/g, '≤')
+        .replace(/\\geq/g, '≥')
+        .replace(/\\neq/g, '≠')
+        .replace(/\\approx/g, '≈')
+        .replace(/\\pi\b/g, 'π')
+        .replace(/\\infty/g, '∞')
+        .replace(/\\(?:rightarrow|to)\b/g, '→')
+        .replace(/\\%/g, '%')
+        .replace(/\\text\{([^{}]*)\}/g, '$1')
+        .replace(/\\(?:left|right)([()\[\]{}|])/g, '$1')
+        .replace(/\\begin\{[^{}]*\}|\\end\{[^{}]*\}/g, '');
+
+    // 4) Plain "3 * 4" style multiplication -> "3 × 4" (only between digits,
+    // so markdown bold/italic elsewhere is untouched).
+    text = text.replace(/(\d)\s*\*\s*(\d)/g, '$1 × $2');
+
+    // 5) Exponents and subscripts written as x^2 / x_1 -> real sup/sub
+    // markers (placeholder tags applied after HTML-escaping below).
+    text = text
+        .replace(/([A-Za-z0-9\)\]])\^\{([^{}]+)\}/g, '$1\u0001SUP$2\u0001')
+        .replace(/([A-Za-z0-9\)\]])\^(-?[A-Za-z0-9]+)/g, '$1\u0001SUP$2\u0001')
+        .replace(/([A-Za-z0-9\)\]])_\{([^{}]+)\}/g, '$1\u0001SUB$2\u0001')
+        .replace(/([A-Za-z0-9\)\]])_(-?[A-Za-z0-9])/g, '$1\u0001SUB$2\u0001');
+
+    // 6) Now escape any real HTML in the message so nothing can inject markup.
+    text = esc(text);
+
+    // 7) Turn the sup/sub placeholders into real tags.
+    text = text
+        .replace(/\u0001SUP([^\u0001]+)\u0001/g, '<sup>$1</sup>')
+        .replace(/\u0001SUB([^\u0001]+)\u0001/g, '<sub>$1</sub>');
+
+    // 8) Lightweight markdown -> real formatting.
+    text = text.replace(/^\s*#{1,6}\s+(.+)$/gm, '<strong>$1</strong>');
+    text = text.replace(/\*\*([^\n*]+)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\*([^\s*][^*]*?)\*/g, '<em>$1</em>');
+    text = text.replace(/(^|[^A-Za-z0-9])_([^\s_][^_]*?)_(?![A-Za-z0-9])/g, '$1<em>$2</em>');
+    text = text.replace(/(?:^|\n)((?:[-*]\s+.+(?:\n|$))+)/g, function(block) {
+        const items = block.trim().split(/\n/).map(function(line) {
+            return '<li>' + line.replace(/^[-*]\s+/, '') + '</li>';
+        }).join('');
+        return '\n<ul class="chat-list">' + items + '</ul>\n';
+    });
+
+    // 9) Restore code spans/blocks, escaping their content for safety.
+    text = text.replace(/\u0000CS(\d+)\u0000/g, function(_, i) {
+        return '<code>' + esc(codeSpans[i]) + '</code>';
+    });
+    text = text.replace(/\u0000CB(\d+)\u0000/g, function(_, i) {
+        return '<pre class="chat-code"><code>' + esc(codeBlocks[i]) + '</code></pre>';
+    });
+
+    // 10) Remaining newlines -> line breaks.
+    text = text.replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
+
+    return text;
+}
+
+function renderChatBubbleContent(message) {
+    if (!message) return '';
+    let rest = message;
+    let out = '';
+    const imgMatch = /\[\[img:([^\]]+)\]\]/.exec(rest);
+    if (imgMatch) {
+        out += '<img src="' + esc(imgMatch[1]) + '" class="chat-img" data-action="view-chat-image" data-src="' + esc(imgMatch[1]) + '" />';
+        rest = rest.replace(imgMatch[0], '').trim();
+    }
+    const docMatch = /\[\[doc:([^|]*)\|([^\]]+)\]\]/.exec(rest);
+    if (docMatch) {
+        out += (
+            '<a class="chat-doc-chip" href="' + esc(docMatch[2]) + '" download="' + esc(docMatch[1]) + '">' +
+            svg('filetext', 16) + '<span>' + esc(docMatch[1] || 'Document') + '</span></a>'
+        );
+        rest = rest.replace(docMatch[0], '').trim();
+    }
+    if (rest) {
+        out += '<div' + (out ? ' style="margin-top:6px"' : '') + '>' + formatAiChatText(rest) + '</div>';
+    }
+    return out || formatAiChatText(message);
+}
+
+function groupAiSessionsByDay(sessions) {
+    const groups = [];
+    const labelFor = function(dateStr) {
+        const d = new Date(dateStr);
+        const now = new Date();
+        const startOfDay = function(x) { return new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(); };
+        const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+        if (diffDays <= 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return 'This week';
+        return 'Earlier';
+    };
+    sessions.forEach(function(s) {
+        const label = labelFor(s.updated_at || s.created_at);
+        let group = groups.find(function(g) { return g.label === label; });
+        if (!group) { group = { label: label, items: [] }; groups.push(group); }
+        group.items.push(s);
+    });
+    return groups;
+}
+
 function renderAiAssistant() {
     if (!state.authUser) {
         return (
-            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<h2 class="title" style="font-size:18px">🤖 AI Study Assistant</h2>' +
-            '<p class="sub" style="font-size:12px">Ask questions, get explanations</p>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to use the AI assistant.</p></div>'
+            '<h2 class="title" style="font-size:18px">✨ AI Tutor</h2>' +
+            '<p class="sub" style="font-size:12px">Ask questions, get real explanations</p>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to use the AI Tutor.</p></div>'
         );
     }
-    if (!isUserActive()) {
-        return (
-            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<h2 class="title" style="font-size:18px">🤖 AI Study Assistant</h2>' +
-            '<div class="card"><p style="text-align:center;color:var(--unanswered);padding:16px 0;font-size:13px">Your account needs to be activated to use the AI assistant.</p></div>'
-        );
-    }
-    if (!state.aiMessagesLoaded) {
-        loadAiMessages();
-        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading...</p></div>';
+    if (!state.aiSessionsLoaded) {
+        loadAiSessions();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading your chats...</p></div>';
     }
 
+    let headerHtml = (
+        '<div class="ai-header">' +
+        '<button class="ai-icon-btn" data-action="ai-toggle-history" aria-label="Chat history">' + svg('history', 17) + '</button>' +
+        '<div class="ai-title-wrap">' +
+        '<p class="ai-title">AI Tutor</p>' +
+        '<p class="ai-sub"><span class="dot"></span> Always ready</p>' +
+        '</div>' +
+        '<button class="ai-icon-btn" data-action="ai-new-chat" aria-label="New chat" style="background:var(--green);color:#fff;border-color:var(--green)">' + svg('plus', 18) + '</button>' +
+        '</div>'
+    );
+
     let bubbles = '';
-    if (state.aiMessages.length === 0) {
-        bubbles = '<div class="chat-empty">👋 Hi! I\'m your AI study assistant. Ask me to explain any topic, or a question you got wrong!</div>';
+    if (!state.aiMessagesLoaded) {
+        bubbles = '<div class="loading-spinner" style="padding:30px 0"><div class="spinner"></div></div>';
+    } else if (state.aiMessages.length === 0) {
+        const suggestions = ['Explain photosynthesis simply', 'Why is my Chemistry score low?', 'Give me a Maths shortcut', 'Quiz me on English idioms'];
+        let chips = '';
+        suggestions.forEach(function(s) {
+            chips += '<button class="ai-suggestion-chip" data-action="ai-suggestion" data-text="' + esc(s) + '">' + esc(s) + '</button>';
+        });
+        bubbles = (
+            '<div class="ai-empty-state">' +
+            '<div class="aie-icon">' + svg('sparkles', 26) + '</div>' +
+            '<h3>Hey, I\'m your AI Tutor 👋</h3>' +
+            '<p>Ask me to explain a topic, break down a question you got wrong, or talk through your revision plan.</p>' +
+            '<div class="ai-suggestions-row">' + chips + '</div>' +
+            '</div>'
+        );
     } else {
         state.aiMessages.forEach(function(m) {
             const isUser = m.sender === 'user';
+            const actions = (
+                '<div class="chat-msg-actions">' +
+                '<button class="cma-btn" data-action="ai-copy-message" data-msgid="' + esc(m.id) + '" title="Copy" aria-label="Copy message">' + svg('copy', 13) + '</button>' +
+                (isUser ? '<button class="cma-btn" data-action="ai-edit-message" data-msgid="' + esc(m.id) + '" title="Edit" aria-label="Edit message">' + svg('edit', 13) + '</button>' : '') +
+                '</div>'
+            );
             bubbles += (
                 '<div class="chat-row ' + (isUser ? 'me' : 'them') + '">' +
-                (!isUser ? '<span class="chat-sender"><span class="chat-avatar ai">AI</span>🤖 Assistant</span>' : '') +
+                (!isUser ? '<span class="chat-sender"><span class="chat-avatar ai">✨</span>AI Tutor</span>' : '') +
                 '<div class="chat-bubble ' + (isUser ? 'me' : 'ai') + '">' +
-                esc(m.message) +
+                renderChatBubbleContent(m.message) +
                 '<span class="chat-time">' + formatTimeAgo(m.created_at) + '</span>' +
-                '</div></div>'
+                '</div>' +
+                actions +
+                '</div>'
             );
         });
     }
     if (state.aiSending) {
-        bubbles += '<div class="typing-indicator"><span>🤖</span><span class="dots"><span></span><span></span><span></span></span></div>';
+        bubbles += '<div class="typing-indicator"><span>✨</span><span class="dots"><span></span><span></span><span></span></span></div>';
     }
 
+    let historyPanel = '';
+    if (state.showAiHistoryPanel) {
+        let sessionRows = '';
+        if (state.aiSessions.length === 0) {
+            sessionRows = '<p style="text-align:center;color:var(--faint);font-size:12px;padding:20px 10px">No chats yet. Start one!</p>';
+        } else {
+            groupAiSessionsByDay(state.aiSessions).forEach(function(group) {
+                sessionRows += '<p class="ahp-daylabel">' + esc(group.label) + '</p>';
+                group.items.forEach(function(s) {
+                    const isActive = s.id === state.aiCurrentSessionId;
+                    sessionRows += (
+                        '<div class="ai-session-item' + (isActive ? ' active' : '') + '" data-action="ai-switch-session" data-sessionid="' + s.id + '">' +
+                        '<span style="opacity:0.7">' + svg('chat', 15) + '</span>' +
+                        '<div class="asi-text">' +
+                        '<p class="asi-title">' + esc(s.title || 'New chat') + '</p>' +
+                        '<p class="asi-time">' + formatTimeAgo(s.updated_at || s.created_at) + '</p>' +
+                        '</div>' +
+                        '<span class="asi-del" data-action="ai-delete-session" data-sessionid="' + s.id + '">' + svg('trash', 13) + '</span>' +
+                        '</div>'
+                    );
+                });
+            });
+        }
+        historyPanel = (
+            '<div class="ai-history-overlay" data-action="ai-toggle-history">' +
+            '<div class="ai-history-panel" data-action="prevent-close">' +
+            '<div class="ahp-head"><h3>Chat History</h3><button class="icon-btn" style="color:var(--muted)" data-action="ai-toggle-history">' + svg('x', 16) + '</button></div>' +
+            '<button class="ai-new-chat-btn" data-action="ai-new-chat">' + svg('plus', 15) + ' New chat</button>' +
+            '<div class="ai-history-list">' + sessionRows + '</div>' +
+            '</div>' +
+            '</div>'
+        );
+    }
+
+    let attachPreview = '';
+    if (state.aiPendingImage || state.aiPendingDocument) {
+        attachPreview = '<div class="chat-attach-preview">';
+        if (state.aiPendingImage) {
+            attachPreview += (
+                '<div class="cap-chip">' +
+                '<img src="' + esc(state.aiPendingImage) + '" />' +
+                '<span>Image attached</span>' +
+                '<button data-action="ai-remove-image" aria-label="Remove image">' + svg('x', 12) + '</button>' +
+                '</div>'
+            );
+        }
+        if (state.aiPendingDocument) {
+            attachPreview += (
+                '<div class="cap-chip">' +
+                '<span class="cap-doc-ic">' + svg('filetext', 16) + '</span>' +
+                '<span>' + esc(state.aiPendingDocument.name) + '</span>' +
+                '<button data-action="ai-remove-document" aria-label="Remove document">' + svg('x', 12) + '</button>' +
+                '</div>'
+            );
+        }
+        attachPreview += '</div>';
+    }
+
+    const listeningBanner = state.aiRecording
+        ? '<div class="ai-listening-banner"><span class="ai-listening-dot"></span>Listening… speak now, then edit and send</div>'
+        : '';
+
+    const editingBanner = state.aiEditingMessageId
+        ? '<div class="ai-editing-banner"><span>' + svg('edit', 12) + ' Editing message — send to replace it</span><button data-action="ai-cancel-edit">Cancel</button></div>'
+        : '';
+
+    const attachMenu = state.aiShowAttachMenu
+        ? (
+            '<div class="chat-attach-overlay" data-action="ai-toggle-attach-menu">' +
+            '<div class="chat-attach-menu" data-action="prevent-close">' +
+            '<button data-action="ai-attach-image">' + svg('camera', 16) + ' Photo</button>' +
+            '<button data-action="ai-attach-document">' + svg('filetext', 16) + ' Document</button>' +
+            '</div>' +
+            '</div>'
+        )
+        : '';
+
     return (
-        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<div class="support-header">' +
-        '<div class="avatar-icon" style="background:#7C5CFC">🤖</div>' +
-        '<div class="info"><p class="name">AI Study Assistant</p><p class="status"><span class="dot"></span> Ready to help</p></div>' +
-        '</div>' +
+        '<div class="ai-chat-page">' +
+        headerHtml +
         '<div class="chat-window">' + bubbles + '</div>' +
+        listeningBanner +
+        editingBanner +
+        attachPreview +
         '<div class="chat-input-row">' +
-        '<textarea class="field" id="ai-chat-input" placeholder="Ask me anything..." rows="1" style="font-size:13px;padding:6px 10px"></textarea>' +
-        '<button class="btn btn-green chat-send-btn" data-action="send-ai-message" style="padding:6px 12px;font-size:12px"' + (state.aiSending ? ' disabled' : '') + '>Send</button>' +
-        '</div>'
+        '<input type="file" id="ai-image-input" accept="image/*" style="display:none" />' +
+        '<input type="file" id="ai-document-input" accept=".pdf,.doc,.docx,.txt" style="display:none" />' +
+        '<div class="chat-attach-wrap">' +
+        '<button class="icon-btn chat-tool-btn' + (state.aiShowAttachMenu ? ' active' : '') + '" data-action="ai-toggle-attach-menu" title="Attach" aria-label="Attach">' + svg('plus', 19) + '</button>' +
+        attachMenu +
+        '</div>' +
+        '<button class="icon-btn chat-tool-btn' + (state.aiRecording ? ' recording' : '') + '" data-action="ai-toggle-voice" title="Voice input" aria-label="Voice input">' + svg(state.aiRecording ? 'stop' : 'mic', 18) + '</button>' +
+        '<textarea class="field ai-chat-textarea" id="ai-chat-input" placeholder="Ask your AI Tutor anything..." rows="1">' + esc(state.aiInput || '') + '</textarea>' +
+        '<button class="chat-send-fab" data-action="send-ai-message" aria-label="Send"' + (state.aiSending ? ' disabled' : '') + '>' + svg('send', 16) + '</button>' +
+        '</div>' +
+        '</div>' +
+        historyPanel
     );
 }
 function renderSupportChat() {
@@ -9830,14 +11213,15 @@ function renderSupportChat() {
         '<div class="avatar-icon">' + logoSvg(36) + '</div>' +
         '<div class="info">' +
         '<p class="name">MyUTME Support</p>' +
-        '<p class="status"><span class="dot"></span> Online</p>' +
+        '<p class="status"><span class="dot"></span> AI-powered · Online</p>' +
         '</div>' +
+        '<button class="mini-btn support-wa-btn" data-action="open-support-whatsapp" title="Chat on WhatsApp" aria-label="Chat on WhatsApp">' + svg('whatsapp', 15) + ' WhatsApp</button>' +
         '</div>'
     );
 
     let bubbles = '';
     if (state.supportMessages.length === 0) {
-        bubbles = '<div class="chat-empty">👋 Hi! Ask me anything about payments or activation. If I can\'t help, our team will jump in.</div>';
+        bubbles = '<div class="chat-empty">👋 Hi! I\'m an AI assistant — ask me anything about payments, activation, or the app. If I can\'t fully help, our team will jump in, or you can reach us on WhatsApp (' + SUPPORT_WHATSAPP_DISPLAY + ') anytime.</div>';
     } else {
         let lastSender = '';
         let lastTime = 0;
@@ -10186,13 +11570,16 @@ function renderProfile() {
     
     // Wallet row
     const walletHtml = (
-        '<div class="wallet-row" data-action="set-view" data-view="transactions" style="cursor:pointer">' +
+        '<div class="wallet-row">' +
         '<span class="wr-icon">' + svg('zap', 20).replace('stroke="currentColor"', 'stroke="#fff"') + '</span>' +
         '<div class="wr-info">' +
         '<p class="wr-amount">₦' + walletBalance.toLocaleString() + '</p>' +
         '<p class="wr-label">My Balance</p>' +
         '</div>' +
-        '<button class="wr-topup" data-action="open-fund-wallet" onclick="event.stopPropagation()">Top Up</button>' +
+        '</div>' +
+        '<div class="toggle-row" data-action="toggle-dark-mode" style="cursor:pointer">' +
+        '<span class="toggle-label">' + (state.darkMode ? '🌙' : '☀️') + ' ' + (state.darkMode ? 'Dark' : 'Light') + ' mode</span>' +
+        '<div class="toggle-switch' + (state.darkMode ? ' active' : '') + '"><div class="slider"></div></div>' +
         '</div>'
     );
     
@@ -10200,13 +11587,10 @@ function renderProfile() {
     const menuItems = [
         { key: 'start-profile-edit', icon: '✏️', color: '#2E6FF2', title: 'Profile', sub: 'Edit your name and photo' },
         { key: 'set-view|history', icon: '📊', color: '#8E44AD', title: 'Result Analysis', sub: 'Your exam results and performance' },
-        { key: 'set-view|transactions', icon: '💳', color: '#0E9488', title: 'Transaction History', sub: 'Wallet funding and purchases' },
         { key: 'set-view|study-reminder', icon: '⏰', color: '#E4A93A', title: 'Study Reminder', sub: 'Get nudged when it\'s time to read', badge: 'NEW' },
         { key: 'set-view|leaderboard', icon: '🏆', color: '#7C5CFC', title: 'Leaderboard', sub: 'See where you rank' },
-        { key: 'set-view|my-courses', icon: '🎓', color: '#0F6B3F', title: 'My Courses', sub: 'Courses you\'ve enrolled in' },
         { key: 'set-view|activate', icon: '🔑', color: '#d49a2e', title: 'Activate', sub: 'Manage your subscription' },
         { key: 'set-view|support', icon: '💬', color: '#4C5FD5', title: 'Support', sub: 'Chat with us or WhatsApp' },
-        { key: 'set-view|ai-assistant', icon: '🤖', color: '#7C5CFC', title: 'AI Study Assistant', sub: 'Ask questions, get real explanations', badge: 'NEW' },
     ];
     
     let menuHtml = '<div class="acct-menu-grid">';
@@ -10347,6 +11731,59 @@ function renderProfileEdit() {
 // ============================================================
 //  FUND WALLET MODAL
 // ============================================================
+// ============================================================
+//  POST-LOGIN ACTIVATION BANNER
+// ============================================================
+function renderActivationBanner() {
+    if (!state.showActivationBanner) return '';
+    return (
+        '<div class="actban-overlay" data-action="dismiss-activation-banner">' +
+        '<div class="actban-modal" data-action="prevent-close">' +
+        '<div class="actban-hero">' +
+        '<button class="close-x" data-action="dismiss-activation-banner" aria-label="Dismiss">×</button>' +
+        '<div style="font-size:34px;margin-bottom:6px">🔓</div>' +
+        '<h2 style="font-family:var(--font-serif);font-size:19px;margin:0 0 4px;color:#fff">Unlock Full Access</h2>' +
+        '<p style="font-size:12.5px;margin:0;opacity:0.95">Your account isn\'t activated yet — here\'s what you\'re missing out on</p>' +
+        '</div>' +
+        '<div class="actban-body">' +
+
+        '<div class="actban-feature">' +
+        '<span class="fi">📚</span>' +
+        '<div><p class="ft">Unlimited CBT &amp; Past Questions</p>' +
+        '<p class="fs">Practice every JAMB subject and past question year — not just samples.</p></div>' +
+        '</div>' +
+
+        '<div class="actban-feature">' +
+        '<span class="fi">✨</span>' +
+        '<div><p class="ft">AI Tutor</p>' +
+        '<p class="fs">Ask questions and get instant explanations from your personal AI study assistant, any time.</p></div>' +
+        '</div>' +
+
+        '<div class="actban-feature">' +
+        '<span class="fi">🎯</span>' +
+        '<div><p class="ft">Live Exam</p>' +
+        '<p class="fs">Create or join live timed exams, compete with other candidates, and track your rank on the leaderboard.</p></div>' +
+        '</div>' +
+
+        '<div class="actban-feature">' +
+        '<span class="fi">📊</span>' +
+        '<div><p class="ft">Full Result Analysis</p>' +
+        '<p class="fs">See a detailed breakdown of your strengths and weak topics after every exam.</p></div>' +
+        '</div>' +
+
+        '<div class="actban-feature">' +
+        '<span class="fi">💬</span>' +
+        '<div><p class="ft">Priority Support</p>' +
+        '<p class="fs">Get fast help from our support team on chat or WhatsApp whenever you get stuck.</p></div>' +
+        '</div>' +
+
+        '<button class="btn btn-gold" style="width:100%;padding:12px;margin-top:4px;font-size:14px" data-action="activation-banner-activate">Activate My Account</button>' +
+        '<button class="btn btn-outline" style="width:100%;padding:10px;margin-top:8px;font-size:13px" data-action="dismiss-activation-banner">Maybe later</button>' +
+        '</div>' +
+        '</div></div>'
+    );
+}
+
 function renderFundWalletModal() {
     if (!state.showFundWallet) return '';
     
@@ -10983,6 +12420,13 @@ function renderMockExamPicker() {
         '<button class="btn btn-green" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="create">➕ Create</button>' +
         '<button class="btn btn-outline" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="join-code">🔑 Join by Code</button>' +
         '</div>' +
+        (state.lastCreatedJoinCode ?
+            '<div class="card" style="border-color:var(--gold);text-align:center;padding:12px;margin-bottom:12px">' +
+            '<p style="font-size:10px;color:var(--muted);margin:0 0 4px">🔒 Your private exam\'s join code</p>' +
+            '<p style="font-family:var(--font-mono);font-size:20px;font-weight:700;letter-spacing:0.1em;color:var(--ink);margin:0 0 8px">' + esc(state.lastCreatedJoinCode) + '</p>' +
+            '<button class="mini-btn primary" data-action="copy-text" data-copy="' + esc(state.lastCreatedJoinCode) + '">📋 Copy Code</button>' +
+            '<button class="mini-btn" style="margin-left:6px" data-action="dismiss-join-code-banner">Dismiss</button>' +
+            '</div>' : '') +
         tabsHtml +
         cards
     );
@@ -11013,7 +12457,7 @@ function renderLiveExamCreateWizard() {
 
     if (step === 'subject') {
         let chips = "";
-        SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
+        SUBJECTS.filter(function(s) { return s.id !== 'lhm' && hasCourseAccess(s.id); }).forEach(function(s) {
             const sel = f.subject === s.id;
             chips += '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="live-select-subject" data-subject="' + s.id + '">' + subjectBadge(s) + '<span class="sname">' + esc(s.name) + '</span></button>';
         });
@@ -11470,6 +12914,7 @@ const ADMIN_TABS = [
     { key: "flagged", label: "🚩 Flagged" },
     { key: "support", label: "💬 Support" },
     { key: "logs", label: "📋 Logs" },
+    { key: "errors", label: "🐞 Errors" },
 ];
 
 function renderAdmin() {
@@ -11505,6 +12950,7 @@ function renderAdmin() {
     else if (state.adminTab === "flagged") body = renderAdminFlagged();
     else if (state.adminTab === "support") body = renderAdminSupport();
     else if (state.adminTab === "logs") body = renderAdminLogs();
+    else if (state.adminTab === "errors") body = renderAdminErrors();
     else body = renderAdminOverview();
 
     return (
@@ -11663,7 +13109,7 @@ async function loadAnalyticsData() {
 
     } catch (e) {
         console.error('Analytics load error:', e);
-        showToast('Error loading analytics: ' + (e.message || 'unknown'), 'error');
+        showNetworkAwareError('Error loading analytics: ' + (e.message || 'unknown'), e);
         state.analyticsLoaded = true;
         state.analyticsLoading = false;
         render();
@@ -12237,6 +13683,40 @@ function renderAdminLogs() {
         '<button class="btn btn-outline btn-sm" data-action="admin-refresh-logs">🔄 Refresh</button>' +
         '</div>' +
         '<p style="font-size:11px;color:var(--muted);margin-bottom:10px">Showing last ' + Math.min(state.admin.logs.length, 200) + ' events</p>' +
+        '<div style="max-height:350px;overflow-y:auto">' + rows + '</div>'
+    );
+}
+
+function renderAdminErrors() {
+    if (!state.admin.errorsLoaded) {
+        loadAppErrors();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading errors...</p></div>';
+    }
+
+    if (state.admin.errors.length === 0) {
+        return '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No errors recorded. 🎉</p></div>';
+    }
+
+    let rows = '';
+    state.admin.errors.slice(0, 200).forEach(function(err) {
+        const username = err.username || 'Unknown';
+        rows += (
+            '<div class="log-entry">' +
+            '<span class="log-time">' + formatTimeAgo(err.created_at) + '</span>' +
+            '<span class="log-user">' + esc(username) + '</span>' +
+            '<span class="log-action" style="color:#B23420">' + esc(err.context || 'Error') + ' — ' + esc(err.message || '') +
+            (err.page ? ' <span style="color:var(--faint)">(' + esc(err.page) + ')</span>' : '') +
+            '</span>' +
+            '</div>'
+        );
+    });
+
+    return (
+        '<div class="admin-view-mode-header">' +
+        '<span class="mode-title">🐞 Error Log</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-refresh-errors">🔄 Refresh</button>' +
+        '</div>' +
+        '<p style="font-size:11px;color:var(--muted);margin-bottom:10px">Errors users encountered, kept out of their view. Showing last ' + Math.min(state.admin.errors.length, 200) + '.</p>' +
         '<div style="max-height:350px;overflow-y:auto">' + rows + '</div>'
     );
 }
@@ -12842,9 +14322,20 @@ function renderAdminDocuments() {
 //  ADMIN USERS - Updated with full_name and avatar
 // ============================================================
 function renderAdminUsers() {
+    if (state.adminSelectedUserId) return renderAdminUserDetail();
+
     const users = state.allUsers || [];
 
     if (users.length === 0) {
+        if (state.allUsersError) {
+            return (
+                '<div class="card" style="text-align:center;padding:20px 16px">' +
+                '<p style="color:var(--danger);font-weight:700;font-size:13px;margin:0 0 6px">⚠️ Couldn\'t load users</p>' +
+                '<p style="color:var(--faint);font-size:11px;margin:0 0 12px;word-break:break-word">' + esc(state.allUsersError) + '</p>' +
+                '<button class="btn btn-outline" style="font-size:12px;padding:8px 14px" data-action="admin-tab" data-tab="users">Try again</button>' +
+                '</div>'
+            );
+        }
         return '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No registered users yet.</p></div>';
     }
 
@@ -12861,15 +14352,19 @@ function renderAdminUsers() {
         const avatarHtml = user.profile_image_url 
             ? '<img src="' + esc(user.profile_image_url) + '" style="width:32px;height:32px;border-radius:999px;object-fit:cover" />' 
             : '<div style="width:32px;height:32px;border-radius:999px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + esc(avatarLetter) + '</div>';
-        const wallet = user.wallet_balance || 0;
+        const isOnlineNow = user.last_seen && (Date.now() - new Date(user.last_seen).getTime()) < 5 * 60 * 1000;
         
         rows += (
-            '<div class="admin-user-row">' +
+            '<div class="admin-user-row" data-action="admin-view-user" data-userid="' + user.id + '" style="cursor:pointer">' +
             '<div style="display:flex;align-items:center;gap:8px">' +
+            '<div style="position:relative">' +
             avatarHtml +
+            (isOnlineNow ? '<span style="position:absolute;bottom:0;right:0;width:9px;height:9px;border-radius:999px;background:#22c55e;border:2px solid var(--card-bg)"></span>' : '') +
+            '</div>' +
             '<div class="user-info">' +
             '<span class="user-name">' + esc(displayName) + '</span>' +
-            '<span class="user-email">@' + esc(user.username) + ' · ' + esc(user.email || '') + ' · ₦' + wallet.toLocaleString() + '</span>' +
+            '<span class="user-email">@' + esc(user.username) + ' · ' + esc(user.email || '') + '</span>' +
+            '<span style="font-size:9px;color:' + (isOnlineNow ? '#22c55e' : 'var(--faint)') + '">' + (isOnlineNow ? '🟢 Online now' : '⚪ Last seen ' + (user.last_seen ? formatTimeAgo(user.last_seen) : 'never')) + '</span>' +
             '</div>' +
             '</div>' +
             '<span class="user-status ' + (isActive ? 'active' : 'inactive') + '">' +
@@ -12890,7 +14385,130 @@ function renderAdminUsers() {
 
     return (
         '<div style="font-weight:700;font-size:14px;margin-bottom:10px;color:var(--ink)">👥 Total registered users: ' + users.length + '</div>' +
+        '<p style="font-size:11px;color:var(--faint);margin:-6px 0 10px">Tap a user to see their full profile, courses, and AI chat history.</p>' +
         rows
+    );
+}
+
+function renderAdminUserDetail() {
+    if (!state.coursesLoaded) loadCourses();
+    const userId = state.adminSelectedUserId;
+    const user = (state.allUsers || []).find(function(u) { return u.id === userId; });
+
+    if (!user) {
+        return (
+            '<button class="back-link" data-action="admin-close-user-detail">' + svg("chevleft", 14) + ' Back to Users</button>' +
+            '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">User not found.</p></div>'
+        );
+    }
+
+    const displayName = user.full_name || user.username || 'User';
+    const avatarLetter = displayName.trim().charAt(0).toUpperCase();
+    const avatarHtml = user.profile_image_url
+        ? '<img src="' + esc(user.profile_image_url) + '" style="width:56px;height:56px;border-radius:999px;object-fit:cover" />'
+        : '<div style="width:56px;height:56px;border-radius:999px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">' + esc(avatarLetter) + '</div>';
+
+    const isActive = user.is_active !== false;
+    const expiry = user.activation_expiry ? new Date(user.activation_expiry) : null;
+    const daysLeft = expiry ? Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24)) : null;
+    let statusLabel = isActive ? '✅ Active' : '⛔ Inactive';
+    if (isActive && daysLeft !== null) statusLabel += ' · ' + (daysLeft >= 0 ? daysLeft + 'd left' : 'expiring');
+
+    const registeredDate = user.created_at ? new Date(user.created_at) : null;
+    const registeredStr = registeredDate ? registeredDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : null;
+
+    const isOnlineNow = user.last_seen && (Date.now() - new Date(user.last_seen).getTime()) < 5 * 60 * 1000;
+    const lastSeenStr = user.last_seen ? formatTimeAgo(user.last_seen) : 'Never';
+
+    let body = '';
+
+    // --- Profile summary card ---
+    body += (
+        '<div class="card" style="display:flex;gap:12px;align-items:center;margin-bottom:12px">' +
+        '<div style="position:relative">' +
+        avatarHtml +
+        (isOnlineNow ? '<span style="position:absolute;bottom:0;right:0;width:12px;height:12px;border-radius:999px;background:#22c55e;border:2px solid var(--card-bg)"></span>' : '') +
+        '</div>' +
+        '<div style="flex:1;min-width:0">' +
+        '<p style="font-weight:800;font-size:16px;margin:0">' + esc(displayName) + '</p>' +
+        '<p style="font-size:12px;color:var(--muted);margin:2px 0 0">@' + esc(user.username || '') + '</p>' +
+        '<p style="font-size:11px;color:var(--faint);margin:2px 0 0">' + esc(user.email || 'No email') + '</p>' +
+        '<p style="font-size:11px;font-weight:700;margin:4px 0 0;color:' + (isOnlineNow ? '#22c55e' : 'var(--faint)') + '">' + (isOnlineNow ? '🟢 Online now' : '⚪ Last seen ' + lastSeenStr) + '</p>' +
+        '</div>' +
+        '</div>'
+    );
+
+    // --- Account status + actions card ---
+    body += (
+        '<div class="card" style="margin-bottom:12px">' +
+        '<p style="font-weight:700;font-size:13px;margin:0 0 8px">Account</p>' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span style="color:var(--muted)">Activation status</span><span style="font-weight:600">' + statusLabel + '</span></div>' +
+        (registeredStr ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span style="color:var(--muted)">Registered</span><span style="font-weight:600">' + registeredStr + '</span></div>' : '') +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span style="color:var(--muted)">Last seen</span><span style="font-weight:600">' + (isOnlineNow ? 'Online now' : lastSeenStr) + '</span></div>' +
+        '<div style="display:flex;gap:6px;margin-top:10px">' +
+        (isActive ?
+            '<button class="btn btn-outline" style="flex:1;font-size:12px" data-action="admin-deactivate-user" data-userid="' + user.id + '">Deactivate</button>' :
+            '<button class="btn btn-green" style="flex:1;font-size:12px" data-action="admin-activate-user" data-userid="' + user.id + '">Activate</button>'
+        ) +
+        '<button class="btn btn-outline" style="flex:1;font-size:12px" data-action="admin-notify-user-btn" data-userid="' + user.id + '" data-username="' + esc(user.username || '') + '">💬 Message</button>' +
+        '</div>' +
+        '</div>'
+    );
+
+    // --- Courses card ---
+    let coursesHtml = '';
+    if (!state.adminUserDetailLoaded) {
+        coursesHtml = '<div class="loading-spinner" style="padding:10px 0"><div class="spinner"></div></div>';
+    } else if (state.adminUserEnrollments.length === 0) {
+        coursesHtml = '<p style="font-size:12px;color:var(--faint);margin:0">Not enrolled in any course yet.</p>';
+    } else {
+        state.adminUserEnrollments.forEach(function(e) {
+            const course = (state.courses || []).find(function(c) { return c.id === e.course_id; });
+            const title = course ? course.title : 'Course (' + e.course_id + ')';
+            const when = e.created_at ? new Date(e.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+            coursesHtml += (
+                '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)">' +
+                '<div><p style="font-size:12.5px;font-weight:600;margin:0">' + esc(title) + '</p><p style="font-size:10px;color:var(--faint);margin:2px 0 0">Enrolled ' + when + '</p></div>' +
+                '<span style="font-size:12px;font-weight:700;color:var(--green)">₦' + (e.amount || 0).toLocaleString() + '</span>' +
+                '</div>'
+            );
+        });
+    }
+    body += (
+        '<div class="card" style="margin-bottom:12px">' +
+        '<p style="font-weight:700;font-size:13px;margin:0 0 8px">📚 Courses (' + (state.adminUserEnrollments.length || 0) + ')</p>' +
+        coursesHtml +
+        '</div>'
+    );
+
+    // --- AI chat history card ---
+    let chatHtml = '';
+    if (!state.adminUserDetailLoaded) {
+        chatHtml = '<div class="loading-spinner" style="padding:10px 0"><div class="spinner"></div></div>';
+    } else if (state.adminUserAiMessages.length === 0) {
+        chatHtml = '<p style="font-size:12px;color:var(--faint);margin:0">No AI Tutor chats yet.</p>';
+    } else {
+        chatHtml += '<div style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">';
+        state.adminUserAiMessages.forEach(function(m) {
+            const isUser = m.sender === 'user';
+            chatHtml += (
+                '<div style="align-self:' + (isUser ? 'flex-end' : 'flex-start') + ';max-width:85%;background:' + (isUser ? 'var(--green)' : 'var(--bg)') + ';color:' + (isUser ? '#fff' : 'var(--ink)') + ';border-radius:12px;padding:7px 10px;font-size:12px">' +
+                renderChatBubbleContent(m.message) +
+                '</div>'
+            );
+        });
+        chatHtml += '</div>';
+    }
+    body += (
+        '<div class="card" style="margin-bottom:12px">' +
+        '<p style="font-weight:700;font-size:13px;margin:0 0 8px">💬 AI Tutor chat history</p>' +
+        chatHtml +
+        '</div>'
+    );
+
+    return (
+        '<button class="back-link" data-action="admin-close-user-detail">' + svg("chevleft", 14) + ' Back to Users</button>' +
+        body
     );
 }
 
@@ -13269,6 +14887,7 @@ function renderAdminActivation() {
                 (k.is_used ? '<span class="user-email" style="font-size:9px">Used by ' + esc(k.used_by_username || 'Unknown') + ' · ' +
                     formatTimeAgo(k.used_at) + '</span>' : '') +
                 '</div>' +
+                '<button class="mini-btn" data-action="copy-text" data-copy="' + esc(k.key_code) + '" style="font-size:9px">📋 Copy</button>' +
                 '<span class="user-status ' + (k.is_used ? 'inactive' : 'active') + '" style="font-size:8px">' +
                 (k.is_used ? '🔒 Used' : '✅ Available') + '</span>' +
                 '</div>'
@@ -13305,13 +14924,7 @@ function renderAdminActivation() {
 //  DRAWER
 // ============================================================
 function renderDrawer(unread, isLoggedIn) {
-    let navItems = (
-        '<button class="drawer-item' + (state.view === "home" ? ' active' : '') +
-        '" data-action="set-view" data-view="home">' +
-        '<span class="left">' + svg("home", 14) + ' Home</span>' +
-        '</button>'
-    );
-
+    let navItems = "";
     const NAV = [
         { key: "profile", label: "Profile", icon: "user" },
         { key: "leaderboard", label: "Leaderboard", icon: "trophy" },
@@ -13517,31 +15130,154 @@ document.addEventListener('click', function(e) {
         return;
     }
     if (action === 'myc-toggle-add') {
+        if (state.mycSaving) return;
         state.mycAdding = !state.mycAdding;
+        state.mycSwappingSubjectId = null;
+        render();
+        return;
+    }
+    if (action === 'myc-swap-subject') {
+        if (state.mycSaving) return;
+        const sid = el.getAttribute('data-subjectid');
+        if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+        state.mycSwappingSubjectId = sid;
+        state.mycAdding = true;
         render();
         return;
     }
     if (action === 'myc-add-subject') {
+        if (state.mycSaving) return;
         const sid = el.getAttribute('data-subjectid');
         if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
         const course = state.courses.find(function(c) {
-            return c.exam_type === 'jamb' && (c.subject_ids || [])[0] === sid;
+            return c.exam_type === 'jamb' && (c.subject_ids || []).length === 1 && c.subject_ids[0] === sid;
         });
         if (!course) { showToast('Course not found for this subject.', 'error'); return; }
+        if (blockIfOffline()) return;
+        if (!isValidUuid(course.id)) {
+            // This subject only has a local placeholder course (no matching
+            // row in the database yet) — enrolling would fail with a raw
+            // database error, so stop here with a clear explanation instead.
+            showToast('This subject isn\'t set up for enrollment yet. Please contact support or try again later.', 'error');
+            return;
+        }
         if ((course.price || 0) > 0) {
             state.mycAdding = false;
             payForCourse(course);
             return;
         }
-        supabase.from('course_enrollments').insert([{
-            user_id: state.authUser.id, course_id: course.id, amount: 0,
-        }]).then(function() {
-            const s = SUBJECTS.find(function(x) { return x.id === sid; });
-            showToast('Added ' + (s ? s.name : 'subject') + '!', 'success');
-            state.mycAdding = false;
+        const swapOutSid = state.mycSwappingSubjectId;
+        const s = SUBJECTS.find(function(x) { return x.id === sid; });
+        const oldSubject = swapOutSid ? SUBJECTS.find(function(x) { return x.id === swapOutSid; }) : null;
+
+        // Lock the UI and close the picker immediately so a second tap can't
+        // start an overlapping change while this one is still talking to the server.
+        state.mycSaving = true;
+        state.mycAdding = false;
+        render();
+
+        (async function() {
+            const insertRes = await supabase.from('course_enrollments').insert([{
+                user_id: state.authUser.id, course_id: course.id, amount: 0,
+            }]);
+            if (insertRes && insertRes.error) {
+                showNetworkAwareError('Could not add ' + (s ? s.name : 'the subject') + ': ' + insertRes.error.message, insertRes.error);
+                state.mycSaving = false;
+                render();
+                return;
+            }
+            if (!swapOutSid) {
+                state.myEnrollmentsLoaded = false;
+                await loadMyEnrollments();
+                showToast('Added ' + (s ? s.name : 'subject') + '!', 'success');
+                state.mycSaving = false;
+                render();
+                return;
+            }
+
+            const oldEnrollments = state.myEnrollments.filter(function(e) {
+                const c = state.courses.find(function(cc) { return cc.id === e.course_id; });
+                return c && (c.subject_ids || []).length === 1 && c.subject_ids[0] === swapOutSid;
+            });
+
+            if (oldEnrollments.length === 0) {
+                state.myEnrollmentsLoaded = false;
+                await loadMyEnrollments();
+                showToast('Added ' + (s ? s.name : 'new subject') + ', but could not find your old ' + (oldSubject ? oldSubject.name : 'subject') + ' enrollment to remove. Please remove it manually.', 'error');
+                state.mycSwappingSubjectId = null;
+                state.mycSaving = false;
+                render();
+                return;
+            }
+
+            const idsToDelete = oldEnrollments.map(function(e) { return e.id; });
+            const delRes = await supabase.from('course_enrollments').delete().in('id', idsToDelete).select();
+
             state.myEnrollmentsLoaded = false;
-            loadMyEnrollments();
-        }).catch(function() { showToast('Error adding subject.', 'error'); });
+            await loadMyEnrollments();
+
+            // Trust nothing — re-check what's ACTUALLY in the database now, since Supabase
+            // can silently delete 0 rows (no error) if a row-level-security policy blocks it.
+            const stillHasOld = state.myEnrollments.some(function(e) { return idsToDelete.indexOf(e.id) !== -1; });
+
+            if (delRes && delRes.error) {
+                showNetworkAwareError('Added ' + (s ? s.name : 'new subject') + ', but removing ' + (oldSubject ? oldSubject.name : 'the old subject') + ' failed: ' + delRes.error.message, delRes.error);
+            } else if (stillHasOld) {
+                showToast((oldSubject ? oldSubject.name : 'Old subject') + ' could not be removed — check database permissions. ' + (s ? s.name : 'The new subject') + ' was still added.', 'error');
+            } else {
+                showToast('Swapped ' + (oldSubject ? oldSubject.name : 'subject') + ' for ' + (s ? s.name : 'new subject') + '!', 'success');
+            }
+            state.mycSwappingSubjectId = null;
+            state.mycSaving = false;
+            render();
+        })().catch(function(err) {
+            showNetworkAwareError('Swap failed: ' + (err && err.message ? err.message : 'unknown error'), err);
+            state.mycSwappingSubjectId = null;
+            state.mycSaving = false;
+            render();
+        });
+        return;
+    }
+    if (action === 'myc-remove-subject') {
+        if (state.mycSaving) return;
+        const sid = el.getAttribute('data-subjectid');
+        if (!state.authUser) return;
+        if (!confirm('Remove this subject from My Subjects?')) return;
+        const s = SUBJECTS.find(function(x) { return x.id === sid; });
+        const singleSubjectEnrollments = state.myEnrollments.filter(function(e) {
+            const c = state.courses.find(function(cc) { return cc.id === e.course_id; });
+            return c && (c.subject_ids || []).length === 1 && c.subject_ids[0] === sid;
+        });
+        if (singleSubjectEnrollments.length === 0) {
+            showToast((s ? s.name : 'This subject') + ' is part of a combined course package and can\'t be removed on its own. Please contact support.', 'error');
+            return;
+        }
+        if (blockIfOffline()) return;
+        state.mycSaving = true;
+        render();
+        const idsToDelete = singleSubjectEnrollments.map(function(e) { return e.id; });
+        supabase.from('course_enrollments').delete().in('id', idsToDelete).select().then(function(res) {
+            if (res && res.error) {
+                showNetworkAwareError('Error removing subject: ' + res.error.message, res.error);
+                state.mycSaving = false;
+                render();
+                return;
+            }
+            state.myEnrollmentsLoaded = false;
+            loadMyEnrollments().then(function() {
+                const stillHas = enrolledSubjectIds().has(sid);
+                showToast(stillHas
+                    ? (s ? s.name : 'Subject') + ' could not be removed — check database permissions.'
+                    : 'Removed ' + (s ? s.name : 'subject') + '.',
+                    stillHas ? 'error' : 'success');
+                state.mycSaving = false;
+                render();
+            });
+        }).catch(function(err) {
+            showNetworkAwareError('Error removing subject: ' + (err && err.message ? err.message : 'unknown error'), err);
+            state.mycSaving = false;
+            render();
+        });
         return;
     }
     if (action === 'subj-start-cbt') {
@@ -13576,6 +15312,17 @@ document.addEventListener('click', function(e) {
     if (action === 'dismiss-activate-icon') {
         state.activateIconDismissed = true;
         render();
+        return;
+    }
+
+    if (action === 'dismiss-activation-banner') {
+        state.showActivationBanner = false;
+        render();
+        return;
+    }
+    if (action === 'activation-banner-activate') {
+        state.showActivationBanner = false;
+        setView('activate');
         return;
     }
 
@@ -14473,7 +16220,7 @@ document.addEventListener('click', function(e) {
             loadAdminTopics(subjectId);
         }).catch(function(err) {
             console.error('Create topic error:', err);
-            showToast('Error creating topic.', 'error');
+            showNetworkAwareError('Error creating topic.', err);
         });
         return;
     }
@@ -14500,7 +16247,7 @@ document.addEventListener('click', function(e) {
             loadAdminTopics(state.admin.adminTopicSubject);
         }).catch(function(err) {
             console.error('Delete topic error:', err);
-            showToast('Error deleting topic.', 'error');
+            showNetworkAwareError('Error deleting topic.', err);
         });
         return;
     }
@@ -14533,7 +16280,7 @@ document.addEventListener('click', function(e) {
             loadAdminTopics(state.admin.adminTopicSubject);
         }).catch(function(err) {
             console.error('Add topic question error:', err);
-            showToast('Error adding question.', 'error');
+            showNetworkAwareError('Error adding question.', err);
         });
         return;
     }
@@ -14549,7 +16296,7 @@ document.addEventListener('click', function(e) {
             loadAdminTopics(state.admin.adminTopicSubject);
         }).catch(function(err) {
             console.error('Delete topic question error:', err);
-            showToast('Error deleting question.', 'error');
+            showNetworkAwareError('Error deleting question.', err);
         });
         return;
     }
@@ -14583,7 +16330,7 @@ document.addEventListener('click', function(e) {
             loadAdminTopicQuestions(state.admin.adminSelectedTopicId);
         }).catch(function(err) {
             console.error('Update topic question error:', err);
-            showToast('Error updating question.', 'error');
+            showNetworkAwareError('Error updating question.', err);
         });
         return;
     }
@@ -14909,7 +16656,7 @@ document.addEventListener('click', function(e) {
             showToast('Live exam deleted.', 'success');
             loadLiveExams();
             render();
-        }).catch(function() { showToast('Error deleting.', 'error'); });
+        }).catch(function(err) { showNetworkAwareError('Error deleting.', err); });
         return;
     }
 
@@ -15078,6 +16825,11 @@ document.addEventListener('click', function(e) {
         } else if (state.adminTab === 'logs') {
             state.admin.logsLoaded = false;
             loadLogs();
+        } else if (state.adminTab === 'errors') {
+            state.admin.errorsLoaded = false;
+            loadAppErrors();
+        } else if (state.adminTab === 'users') {
+            loadAllUsers().then(function() { render(); });
         }
         render();
         return;
@@ -15086,6 +16838,12 @@ document.addEventListener('click', function(e) {
     if (action === 'admin-refresh-logs') {
         state.admin.logsLoaded = false;
         loadLogs();
+        return;
+    }
+
+    if (action === 'admin-refresh-errors') {
+        state.admin.errorsLoaded = false;
+        loadAppErrors();
         return;
     }
     
@@ -15156,7 +16914,7 @@ document.addEventListener('click', function(e) {
             });
         }).catch(function(err) {
             console.warn('Resolve flag error:', err);
-            showToast('Error resolving flag.', 'error');
+            showNetworkAwareError('Error resolving flag.', err);
         });
         return;
     }
@@ -15205,7 +16963,7 @@ document.addEventListener('click', function(e) {
             });
         }).catch(function(err) { 
             console.error('Save edit error:', err);
-            showToast('Error updating question: ' + (err.message || 'unknown'), 'error'); 
+            showNetworkAwareError('Error updating question: ' + (err.message || 'unknown'), err); 
         });
         return;
     }
@@ -15308,7 +17066,7 @@ document.addEventListener('click', function(e) {
             state.allQuestions = state.allQuestions.filter(function(q) { return q.id !== qid; });
             loadAllQuestionsCount();
             render();
-        }).catch(function() { showToast('Error deleting question.', 'error'); });
+        }).catch(function(err) { showNetworkAwareError('Error deleting question.', err); });
         return;
     }
     if (action === 'edit-question') {
@@ -15342,7 +17100,7 @@ document.addEventListener('click', function(e) {
                 state.allQuestions = state.allQuestions.filter(function(q) { return q.id !== qid; });
             }
             render();
-        }).catch(function() { showToast('Error deleting question.', 'error'); });
+        }).catch(function(err) { showNetworkAwareError('Error deleting question.', err); });
         return;
     }
 
@@ -15388,7 +17146,7 @@ document.addEventListener('click', function(e) {
             render();
         }).catch(function(err) { 
             console.error('Save edit error:', err);
-            showToast('Error updating question: ' + (err.message || 'unknown'), 'error'); 
+            showNetworkAwareError('Error updating question: ' + (err.message || 'unknown'), err); 
         });
         return;
     }
@@ -15406,7 +17164,7 @@ document.addEventListener('click', function(e) {
         try {
             parsed = JSON.parse(jsonText);
         } catch (err) {
-            showToast('Invalid JSON: ' + err.message, 'error');
+            showUserError('Import JSON', err, 'That file doesn\'t look like valid JSON.');
             return;
         }
         if (!Array.isArray(parsed)) parsed = [parsed];
@@ -15487,7 +17245,7 @@ document.addEventListener('click', function(e) {
             render();
         }).catch(function(err) { 
             console.error('Add question error:', err);
-            showToast('Error saving question: ' + (err.message || 'unknown'), 'error'); 
+            showNetworkAwareError('Error saving question: ' + (err.message || 'unknown'), err); 
         });
         return;
     }
@@ -15634,7 +17392,7 @@ document.addEventListener('click', function(e) {
             render();
         }).catch(function(err) { 
             console.error('Save settings error:', err);
-            showToast('Error saving settings: ' + (err.message || 'unknown'), 'error'); 
+            showNetworkAwareError('Error saving settings: ' + (err.message || 'unknown'), err); 
         });
         return;
     }
@@ -15657,7 +17415,7 @@ document.addEventListener('click', function(e) {
             loadDocuments().then(function() { render(); });
         }).catch(function(err) { 
             console.error('Upload doc error:', err);
-            showToast('Error uploading document: ' + (err.message || JSON.stringify(err)), 'error'); 
+            showNetworkAwareError('Error uploading document: ' + (err.message || JSON.stringify(err)), err); 
         });
         return;
     }
@@ -15676,7 +17434,7 @@ document.addEventListener('click', function(e) {
             });
         }).catch(function(err) { 
             console.error('Delete doc error:', err);
-            showToast('Error deleting document: ' + (err.message || 'unknown'), 'error'); 
+            showNetworkAwareError('Error deleting document: ' + (err.message || 'unknown'), err); 
         });
         return;
     }
@@ -15723,7 +17481,7 @@ document.addEventListener('click', function(e) {
             render();
         }).catch(function(e) { 
             console.error('Schedule mock error:', e);
-            showToast('Error scheduling mock: ' + (e.message || 'unknown'), 'error'); 
+            showNetworkAwareError('Error scheduling mock: ' + (e.message || 'unknown'), e); 
         });
         return;
     }
@@ -15737,7 +17495,7 @@ document.addEventListener('click', function(e) {
             render();
         }).catch(function(err) { 
             console.error('Release results error:', err);
-            showToast('Error releasing results.', 'error'); 
+            showNetworkAwareError('Error releasing results.', err); 
         });
         return;
     }
@@ -15755,7 +17513,7 @@ document.addEventListener('click', function(e) {
             render();
         }).catch(function(err) { 
             console.error('Delete mock error:', err);
-            showToast('Error deleting mock.', 'error'); 
+            showNetworkAwareError('Error deleting mock.', err); 
         });
         return;
     }
@@ -15812,7 +17570,7 @@ document.addEventListener('click', function(e) {
             
         }).catch(function(err) { 
             console.error('Send notification error:', err);
-            showToast('Error sending notification: ' + (err.message || 'unknown'), 'error'); 
+            showNetworkAwareError('Error sending notification: ' + (err.message || 'unknown'), err); 
         });
         return;
     }
@@ -15866,7 +17624,7 @@ document.addEventListener('click', function(e) {
             }, 1000);
         }).catch(function(err) { 
             console.error('Send user notification error:', err);
-            showToast('Error sending notification.', 'error'); 
+            showNetworkAwareError('Error sending notification.', err); 
         });
         return;
     }
@@ -15880,7 +17638,7 @@ document.addEventListener('click', function(e) {
             .then(function(result) {
                 if (result.error) {
                     console.error('Delete notification error:', result.error);
-                    showToast('Error deleting notification: ' + result.error.message, 'error');
+                    showNetworkAwareError('Error deleting notification: ' + result.error.message, result.error);
                     return;
                 }
                 if (!result.data || result.data.length === 0) {
@@ -15896,7 +17654,7 @@ document.addEventListener('click', function(e) {
             })
             .catch(function(err) {
                 console.error('Delete notification exception:', err);
-                showToast('Error deleting notification.', 'error');
+                showNetworkAwareError('Error deleting notification.', err);
             });
         return;
     }
@@ -15998,7 +17756,7 @@ if (action === 'browse-filter') {
             loadActivationPlans().then(function() { render(); });
         }).catch(function(err) {
             console.error('Update plan error:', err);
-            showToast('Error updating plan.', 'error');
+            showNetworkAwareError('Error updating plan.', err);
         });
         return;
     }
@@ -16060,6 +17818,13 @@ if (action === 'browse-filter') {
 
     if (action === 'open-help-community') {
         window.open(WHATSAPP_CHANNEL_URL, '_blank');
+        return;
+    }
+
+    if (action === 'open-support-whatsapp') {
+        const msg = 'Hello MyUTME Support, I need help.\n\n👤 My username: ' + (state.profile.name || 'Guest') + (state.authUser && state.authUser.email ? '\n✉️ Email: ' + state.authUser.email : '');
+        const waUrl = 'https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
+        window.open(waUrl, '_blank');
         return;
     }
 
@@ -16365,8 +18130,8 @@ if (action === 'browse-filter') {
             delete state.weakQuestionStates['result_' + wid];
             state.weakQuestionsLoaded = false;
             loadWeakQuestions();
-        }).catch(function() {
-            showToast('Error removing question.', 'error');
+        }).catch(function(err) {
+            showNetworkAwareError('Error removing question.', err);
         });
         return;
     }
@@ -16426,16 +18191,109 @@ if (action === 'browse-filter') {
         return;
     }
     
+    if (action === 'ai-toggle-attach-menu') {
+        state.aiShowAttachMenu = !state.aiShowAttachMenu;
+        render();
+        return;
+    }
+    if (action === 'ai-attach-image') {
+        state.aiShowAttachMenu = false;
+        const input = document.getElementById('ai-image-input');
+        if (input) input.click();
+        return;
+    }
+    if (action === 'ai-remove-image') {
+        state.aiPendingImage = null;
+        render();
+        return;
+    }
+    if (action === 'ai-attach-document') {
+        state.aiShowAttachMenu = false;
+        const input = document.getElementById('ai-document-input');
+        if (input) input.click();
+        return;
+    }
+    if (action === 'ai-remove-document') {
+        state.aiPendingDocument = null;
+        render();
+        return;
+    }
+    if (action === 'ai-toggle-voice') {
+        toggleAiVoiceRecording();
+        return;
+    }
+    if (action === 'ai-copy-message') {
+        const msgId = el.getAttribute('data-msgid');
+        const m = state.aiMessages.find(function(x) { return String(x.id) === String(msgId); });
+        if (m) copyChatMessage(stripChatMarkers(m.message));
+        return;
+    }
+    if (action === 'ai-edit-message') {
+        const msgId = el.getAttribute('data-msgid');
+        editAiMessage(msgId);
+        return;
+    }
+    if (action === 'ai-cancel-edit') {
+        state.aiEditingMessageId = null;
+        state.aiInput = '';
+        render();
+        return;
+    }
+    if (action === 'view-chat-image') {
+        state.viewingImage = el.getAttribute('data-src');
+        render();
+        return;
+    }
+    if (action === 'close-image-viewer') {
+        state.viewingImage = null;
+        render();
+        return;
+    }
+    
+    if (action === 'ai-toggle-history') {
+        state.showAiHistoryPanel = !state.showAiHistoryPanel;
+        render();
+        return;
+    }
+    if (action === 'ai-new-chat') {
+        // Lazy: just clear to a blank chat locally. The DB session row is
+        // only created once the user actually sends a message, so tapping
+        // "New chat" repeatedly doesn't clutter history with empty chats.
+        state.aiCurrentSessionId = null;
+        state.aiMessages = [];
+        state.aiMessagesLoaded = true;
+        state.aiInput = '';
+        state.aiPendingImage = null;
+        state.aiPendingDocument = null;
+        state.aiShowAttachMenu = false;
+        state.aiEditingMessageId = null;
+        state.showAiHistoryPanel = false;
+        render();
+        return;
+    }
+    if (action === 'ai-switch-session') {
+        switchAiSession(el.getAttribute('data-sessionid'));
+        return;
+    }
+    if (action === 'ai-delete-session') {
+        deleteAiSession(el.getAttribute('data-sessionid'));
+        return;
+    }
+    if (action === 'ai-suggestion') {
+        sendAiMessage(el.getAttribute('data-text') || '', null);
+        return;
+    }
     if (action === 'send-ai-message') {
         const input = document.getElementById('ai-chat-input');
         if (input) {
             sendAiMessage(input.value, state.aiQuestionContext);
             input.value = '';
             state.aiQuestionContext = null;
+            state.aiEditingMessageId = null;
         }
         return;
     }
-
+    
     if (action === 'send-support-message') {
         const input = document.getElementById('support-chat-input');
         if (input) {
@@ -16449,6 +18307,21 @@ if (action === 'browse-filter') {
         state.adminSelectedSupportUser = el.getAttribute('data-userid');
         state.adminSelectedSupportUsername = el.getAttribute('data-username');
         loadAdminSupportThread(state.adminSelectedSupportUser);
+        return;
+    }
+
+    if (action === 'admin-view-user') {
+        state.adminSelectedUserId = el.getAttribute('data-userid');
+        loadAdminUserDetail(state.adminSelectedUserId);
+        return;
+    }
+
+    if (action === 'admin-close-user-detail') {
+        state.adminSelectedUserId = null;
+        state.adminUserDetailLoaded = false;
+        state.adminUserEnrollments = [];
+        state.adminUserAiMessages = [];
+        render();
         return;
     }
 
@@ -16534,7 +18407,7 @@ if (action === 'browse-filter') {
             })
             .catch(function(err) {
                 console.warn('Avatar upload error:', err);
-                showToast('Error updating profile photo.', 'error');
+                showNetworkAwareError('Error updating profile photo.', err);
             });
         return;
     }
@@ -16571,7 +18444,7 @@ if (action === 'browse-filter') {
         state.fundWalletAmount = String(amt);
         
         if (typeof PaystackPop === 'undefined') {
-            showToast('Payment system not loaded. Check your connection and try again.', 'error');
+            showToast(!isOnline() ? "You're offline — payment needs an internet connection." : 'Payment system not loaded. Please try again.', !isOnline() ? 'offline' : 'error');
             return;
         }
         
@@ -16626,12 +18499,8 @@ if (action === 'browse-filter') {
         return;
     }
     if (action === 'toggle-reminder-enabled') {
-        if (!state.studyReminder) {
-            state.studyReminder = { enabled: true, hour: state.studyReminderHour, minute: state.studyReminderMinute, days: state.studyReminderDays };
-        } else {
-            state.studyReminder.enabled = !state.studyReminder.enabled;
-        }
-        render();
+        const newEnabled = !(state.studyReminder && state.studyReminder.enabled);
+        saveStudyReminder(newEnabled);
         return;
     }
     if (action === 'save-study-reminder') {
@@ -16707,6 +18576,28 @@ document.addEventListener('change', function(e) {
         state.admin.adminSelectedTopicId = null;
         state.admin.adminTopicQuestionsLoaded = false;
         render();
+   } else if (id === 'ai-image-input') {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            state.aiPendingImage = ev.target.result;
+            render();
+        };
+        reader.readAsDataURL(file);
+    } else if (id === 'ai-document-input') {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 8 * 1024 * 1024) {
+            showToast('That document is too large (max 8MB).', 'error');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            state.aiPendingDocument = { name: file.name, data: ev.target.result };
+            render();
+        };
+        reader.readAsDataURL(file);
     } else if (id === 'offline-import-file-input') {
         const file = e.target.files[0];
         if (!file) return;
@@ -16723,7 +18614,7 @@ document.addEventListener('change', function(e) {
                     render();
                 }).catch(function(err) {
                     console.error('Import error:', err);
-                    showToast('Error importing file: ' + (err.message || 'unknown'), 'error');
+                    showNetworkAwareError('Error importing file: ' + (err.message || 'unknown'), err);
                 });
             } catch (parseErr) {
                 showToast('Invalid JSON file — could not parse.', 'error');
@@ -16776,8 +18667,12 @@ document.addEventListener('input', function(e) {
         render();
     } else if (id === 'admin-new-topic-name') {
         state.admin.newTopicName = e.target.value;
-    } else if (id === 'support-chat-input') {
+   } else if (id === 'support-chat-input') {
         state.supportInput = e.target.value;
+    } else if (id === 'ai-chat-input') {
+        state.aiInput = e.target.value;
+        e.target.style.height = 'auto';
+        e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px';
     } else if (id === 'admin-support-reply-input') {
         // handled on send
     } else if (id === 'fund-wallet-amount-input') {
@@ -16822,6 +18717,10 @@ async function init() {
                 render();
             }
         }, 5000);
+    }
+
+    if (usingOfflineSupabaseStub && navigator.onLine) {
+        upgradeSupabaseClientIfNeeded();
     }
 
     await loadSettings();
@@ -16976,9 +18875,14 @@ async function init() {
         }, 2 * 60 * 1000);
     }
     window.addEventListener('online', function() {
-        showToast('Back online — syncing data...', '');
+        showToast('Back online — syncing data...', 'success');
+        upgradeSupabaseClientIfNeeded();
         cacheAllDataForOffline();
         checkAndDeactivateExpiredUsers();
+    });
+    window.addEventListener('offline', function() {
+        showToast("You're offline. Some features won't work until you're back online.", 'offline');
+        render();
     });
 
     setInterval(function() {
