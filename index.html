@@ -120,6 +120,14 @@
     background: var(--bg);
     transition: background 0.3s, color 0.3s;
     scroll-behavior: smooth;
+    /* Stop the browser's native "drag down to reload the page" gesture and
+       rubber-band bounce at the page level. The app already scrolls inside
+       .view (below), not the document, so this only removes the
+       website-in-a-browser-tab feel — it doesn't change how any screen
+       scrolls. */
+    overscroll-behavior-y: none;
+    height: 100%;
+    overflow: hidden;
 }
     body {
         font-family: var(--font-sans);
@@ -277,6 +285,20 @@
         gap: 6px;
         flex-shrink: 0;
     }
+    .offline-badge {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        background: rgba(74, 85, 104, 0.9);
+        border-radius: 999px;
+        padding: 4px 9px 4px 7px;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+    .offline-badge svg { width: 12px; height: 12px; }
 
     .icon-btn {
         width: 36px;
@@ -373,6 +395,10 @@
         scroll-behavior: smooth;
         scrollbar-width: none;
         -ms-overflow-style: none;
+        /* Same reason as html/body above: this is the screen's real scroll
+           area, so this is where a drag-down-at-the-top gesture would
+           otherwise bubble up into the browser's reload/refresh action. */
+        overscroll-behavior-y: contain;
     }
     .view::-webkit-scrollbar { display: none; }
 
@@ -4189,8 +4215,8 @@
     <span class="dismiss" data-action="dismiss-inapp-banner">×</span>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
-<script src="https://js.paystack.co/v1/inline.js"></script>
+<script id="supabase-cdn-script" async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script async src="https://js.paystack.co/v1/inline.js"></script>
 <script src="offline-db.js"></script>
 <script>
 // ============================================================
@@ -4260,9 +4286,19 @@ let supabase;
 if (window.supabase && typeof window.supabase.createClient === "function") {
     supabase = createRealSupabaseClient();
 } else {
-    console.warn("Supabase JS did not load (likely offline) — starting with an offline stub so the app can still open.");
+    // Very likely means the Supabase CDN script (now loaded with `async` so
+    // it can never block the app from opening) simply hasn't finished
+    // downloading yet — on a slow connection that can take a while, but the
+    // app shouldn't sit there waiting on it. Open with the offline stub now;
+    // the listener below promotes it to the real client the instant the
+    // script does arrive, whether that's in 200ms or 20 seconds.
+    console.warn("Supabase JS not ready yet (still loading, or offline) — starting with an offline stub so the app can open immediately.");
     usingOfflineSupabaseStub = true;
     supabase = createOfflineSupabaseStub();
+    const cdnScript = document.getElementById('supabase-cdn-script');
+    if (cdnScript) {
+        cdnScript.addEventListener('load', function() { upgradeSupabaseClientIfNeeded(); });
+    }
 }
 
 // Called when connectivity returns, to swap the offline stub for a real client.
@@ -4457,6 +4493,7 @@ const ICONS = {
     mic: '<rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 10.5a6.5 6.5 0 0 0 13 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8.5" y1="21" x2="15.5" y2="21"/>',
     micoff: '<line x1="2" y1="2" x2="22" y2="22"/><path d="M9 9v3.5a3 3 0 0 0 4.6 2.5"/><path d="M15 6.5V5a3 3 0 0 0-5.9-.7"/><path d="M5.5 10.5A6.5 6.5 0 0 0 12 17"/><path d="M18.5 10.5c0 .9-.16 1.75-.46 2.53"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8.5" y1="21" x2="15.5" y2="21"/>',
     stop: '<rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" stroke="none"/>',
+    wifioff: '<line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>',
     send: '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/>',
     paperclip: '<path d="M14.5 5.5 7 13a3 3 0 0 0 4.24 4.24l7.07-7.07a5 5 0 1 0-7.07-7.07L4.5 9.83"/>',
     filetext: '<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>',
@@ -5159,10 +5196,13 @@ analyticsSubTab: 'overview',
 
 async function loadAllUsers() {
     try {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, email, is_active, activation_expiry, profile_image_url, last_seen')
-            .order('username');
+        const { data, error } = await withNetworkTimeout(
+            supabase
+                .from('profiles')
+                .select('id, username, full_name, email, is_active, activation_expiry, profile_image_url, last_seen')
+                .order('username'),
+            8000, 'Users load'
+        );
         if (error) {
             console.warn("Load users error:", error);
             state.allUsers = [];
@@ -5212,14 +5252,14 @@ async function loadLeaderboard(type) {
         }
 
         let table = type === "cbt" ? 'cbt_scores' : 'mock_scores';
-        const { data, error } = await supabase
-            .from(table)
-            .select('*')
-            .order('score', { ascending: false });
+        const { data, error } = await withNetworkTimeout(
+            supabase.from(table).select('*').order('score', { ascending: false }),
+            8000, 'Leaderboard load'
+        );
 
         if (error) {
             console.warn("Load leaderboard error:", error);
-            showUserError("Load leaderboard", error, "Couldn't load the leaderboard right now.");
+            showNetworkAwareError("Couldn't load the leaderboard right now.", error);
             state.leaderboardData = [];
             state.loadingLeaderboard = false;
             render();
@@ -5250,7 +5290,7 @@ async function loadLeaderboard(type) {
         state.leaderboardData = leaderboard;
     } catch (e) {
         console.warn("Load leaderboard exception:", e);
-        showUserError("Load leaderboard", e, "Couldn't load the leaderboard right now.");
+        showNetworkAwareError("Couldn't load the leaderboard right now.", e);
         state.leaderboardData = [];
     }
 
@@ -5265,15 +5305,18 @@ async function loadSubjectLeaderboard(subjectId) {
     }
 
     try {
-        const { data, error } = await supabase
-            .from('subject_scores')
-            .select('*')
-            .eq('subject_id', subjectId)
-            .order('score', { ascending: false });
+        const { data, error } = await withNetworkTimeout(
+            supabase
+                .from('subject_scores')
+                .select('*')
+                .eq('subject_id', subjectId)
+                .order('score', { ascending: false }),
+            8000, 'Subject leaderboard load'
+        );
 
         if (error) {
             console.warn("Load subject leaderboard error:", error);
-            showUserError("Load subject leaderboard", error, "Couldn't load the leaderboard right now.");
+            showNetworkAwareError("Couldn't load the leaderboard right now.", error);
             state.subjectLeaderboardData = [];
             return;
         }
@@ -5301,7 +5344,7 @@ async function loadSubjectLeaderboard(subjectId) {
         state.subjectLeaderboardData = leaderboard;
     } catch (e) {
         console.warn("Load subject leaderboard exception:", e);
-        showUserError("Load subject leaderboard", e, "Couldn't load the leaderboard right now.");
+        showNetworkAwareError("Couldn't load the leaderboard right now.", e);
         state.subjectLeaderboardData = [];
     }
 }
@@ -5417,6 +5460,20 @@ async function loadAllQuestionsForAdmin() {
         render();
     }
 }
+// A network call can be neither "online" nor cleanly "offline" — bad signal,
+// a flaky tower, captive wifi — and just hang without ever resolving or
+// rejecting. Left unguarded, that stalls whatever screen is waiting on it
+// forever (the "keeps rolling/spinning" bug). Wrap any such call in this so
+// it always settles within `ms`, one way or another.
+function withNetworkTimeout(promise, ms, label) {
+    ms = ms || 10000;
+    return Promise.race([
+        promise,
+        new Promise(function(_, reject) {
+            setTimeout(function() { reject(new Error((label || 'Request') + ' timed out')); }, ms);
+        })
+    ]);
+}
 const OFFLINE_CACHE_PREFIX = 'myutme_cache_';
 
 function saveOfflineCache(key, data) {
@@ -5509,7 +5566,9 @@ async function loadSettings() {
         if (cached) return cached;
     }
     try {
-        const { data, error } = await supabase.from('admin_settings').select('*');
+        const { data, error } = await withNetworkTimeout(
+            supabase.from('admin_settings').select('*'), 8000, 'Settings load'
+        );
         if (error) {
             console.warn("Load settings error:", error);
             return loadOfflineCache('settings') || state.settingsCache;
@@ -6000,17 +6059,23 @@ function resetUserScopedChatState() {
 
 async function checkAuthSession() {
     try {
-        const { data, error } = await supabase.auth.getSession();
+        // getSession() normally resolves instantly from local storage, but on
+        // a bad connection it can be delayed behind a hung network check —
+        // don't let that keep the whole app stuck on the boot spinner.
+        const { data, error } = await withNetworkTimeout(supabase.auth.getSession(), 8000, 'Session check');
         if (error) throw error;
         if (data && data.session) {
             const user = data.session.user;
             resetUserScopedChatState();
             state.authUser = user;
-            const { data: prof, error: pErr } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .maybeSingle();
+            const cachedProfile = loadOfflineCache('profile_' + user.id);
+            const { data: prof, error: pErr } = await withNetworkTimeout(
+                supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+                8000, 'Profile load'
+            ).catch(function(e) {
+                console.warn('Profile load timed out, using cache if available:', e);
+                return { data: cachedProfile, error: cachedProfile ? null : e };
+            });
             if (!pErr && prof) {
                 state.authProfile = prof;
                 state.profile.name = prof.username || "User";
@@ -6021,6 +6086,7 @@ async function checkAuthSession() {
                 state.profile.fullName = prof.full_name || '';
                 state.profile.avatarUrl = prof.profile_image_url || null;
                 state.profile.walletBalance = prof.wallet_balance || 0;
+                saveOfflineCache('profile_' + user.id, prof);
             } else {
                 state.profile.name = user.user_metadata?.username || user.email?.split('@')[0] || "User";
                 state.profile.email = user.email || "";
@@ -6416,12 +6482,16 @@ function getLiveExamTimeConstraints() {
 
 async function loadLiveExams() {
     try {
-        const { data, error } = await supabase.from('live_exams').select('*').order('scheduled_date', { ascending: true });
+        const { data, error } = await withNetworkTimeout(
+            supabase.from('live_exams').select('*').order('scheduled_date', { ascending: true }),
+            8000, 'Live exams load'
+        );
         if (error) { console.warn('Load live exams error:', error); state.liveExams = []; }
         else state.liveExams = data || [];
         state.liveExamsLoaded = true;
         render();
     } catch (e) {
+        console.warn('Load live exams failed or timed out:', e);
         state.liveExams = [];
         state.liveExamsLoaded = true;
         render();
@@ -6430,15 +6500,29 @@ async function loadLiveExams() {
 
 async function loadLiveExamRegistrations() {
     if (!state.authUser) { state.liveExamRegistrations = []; render(); return; }
-    const { data } = await supabase.from('live_exam_registrations').select('*').eq('user_id', state.authUser.id);
-    state.liveExamRegistrations = data || [];
+    try {
+        const { data } = await withNetworkTimeout(
+            supabase.from('live_exam_registrations').select('*').eq('user_id', state.authUser.id),
+            8000, 'Live exam registrations load'
+        );
+        state.liveExamRegistrations = data || [];
+    } catch (e) {
+        console.warn('Load live exam registrations failed or timed out:', e);
+    }
     render();
 }
 
 async function loadLiveExamAttempts() {
     if (!state.authUser) { state.liveExamAttempts = []; render(); return; }
-    const { data } = await supabase.from('live_exam_attempts').select('*').eq('user_id', state.authUser.id);
-    state.liveExamAttempts = data || [];
+    try {
+        const { data } = await withNetworkTimeout(
+            supabase.from('live_exam_attempts').select('*').eq('user_id', state.authUser.id),
+            8000, 'Live exam attempts load'
+        );
+        state.liveExamAttempts = data || [];
+    } catch (e) {
+        console.warn('Load live exam attempts failed or timed out:', e);
+    }
     render();
 }
 
@@ -6541,10 +6625,13 @@ async function inviteFriendToLiveExam(examId, username) {
 // registerForLiveExam removed — live exams are single-subject and joined via joinLiveExamNow()
 async function loadMockExams() {
     try {
-        const { data, error } = await supabase
-            .from('mock_exams')
-            .select('*')
-            .order('scheduled_date', { ascending: true });
+        const { data, error } = await withNetworkTimeout(
+            supabase
+                .from('mock_exams')
+                .select('*')
+                .order('scheduled_date', { ascending: true }),
+            8000, 'Mock exams load'
+        );
 
         if (error) {
             console.warn("Load mock exams error:", error);
@@ -6558,7 +6645,9 @@ async function loadMockExams() {
         render();
     } catch (e) {
         console.warn("Load mock exams exception:", e);
+        state.mockExams = [];
         state.mockLoaded = true;
+        render();
     }
 }
 
@@ -7237,9 +7326,12 @@ async function loadCourses() {
     state.coursesLoading = true;
 
     if (!state.coursesLoaded && state.courses.length === 0) {
-        // Show a placeholder list immediately so the screen isn't empty
-        // while the real courses (with images) load in the background.
-        state.courses = DEFAULT_COURSES;
+        // Show something real immediately instead of an empty screen: the
+        // last successfully-fetched course list (titles, prices, images)
+        // if we have one cached from a previous session, otherwise the
+        // generic placeholder list.
+        const cachedCourses = loadOfflineCache('courses');
+        state.courses = (cachedCourses && cachedCourses.length) ? cachedCourses : DEFAULT_COURSES;
     }
 
     try {
@@ -7253,6 +7345,7 @@ async function loadCourses() {
         if (!result.error && result.data) {
             state.courses = result.data;
             state.coursesLoaded = true;
+            saveOfflineCache('courses', result.data);
         } else {
             coursesRetryAt = Date.now() + 15000;
         }
@@ -7272,13 +7365,23 @@ async function loadMyEnrollments() {
     state.myEnrollmentsLoading = true;
     if (!state.authUser) { state.myEnrollments = []; state.myEnrollmentsLoaded = true; state.myEnrollmentsLoading = false; render(); return; }
     try {
-        const { data, error } = await supabase.from('course_enrollments').select('*').eq('user_id', state.authUser.id);
-        state.myEnrollments = error ? [] : (data || []);
+        const { data, error } = await withNetworkTimeout(
+            supabase.from('course_enrollments').select('*').eq('user_id', state.authUser.id),
+            8000, 'My courses load'
+        );
+        if (error) throw error;
+        state.myEnrollments = data || [];
         state.myEnrollmentsLoaded = true;
         state.myEnrollmentsLoading = false;
+        saveOfflineCache('my_enrollments_' + state.authUser.id, state.myEnrollments);
         render();
     } catch (e) {
-        state.myEnrollments = [];
+        console.warn('Load my enrollments failed or timed out:', e);
+        // Don't wipe out what the user is actually enrolled in just because
+        // the request failed or timed out — show the last known-good list
+        // (from this session or a previous one) instead of an empty screen.
+        const cached = loadOfflineCache('my_enrollments_' + state.authUser.id);
+        state.myEnrollments = (cached && cached.length) ? cached : state.myEnrollments;
         state.myEnrollmentsLoaded = true;
         state.myEnrollmentsLoading = false;
         render();
@@ -9411,6 +9514,7 @@ function renderApp() {
               '<div class="topbar-right">' + rightContent + '</div>'
         ) +
         '</div>' +
+        (!isOnline() ? '<div class="offline-badge" style="position:sticky;top:64px;z-index:19;margin:0 auto;width:fit-content;transform:translateY(6px)">' + svg('wifioff', 12) + ' Offline</div>' : '') +
         (needsActivation ? renderActivationSignboard() : '') +
         '<div class="view' + (state.view === 'ai-assistant' ? ' view-chat' : '') + '"><div class="view-content">' + renderView() + '</div></div>' +
         renderBottomNav() +
@@ -10817,7 +10921,6 @@ function renderLitExam() {
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
                 '<div class="flag-btn">' +
-                askAiButtonHtml(item, 'The Lekki Headmaster', userAns, { style: 'margin-right:6px' }) +
                 '<button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="novel">🚩 Flag Question</button></div>' +
                 '</div>'
             );
@@ -12445,9 +12548,11 @@ async function saveStudyReminder(enabled) {
             // Previously this was swallowed silently, so the toast always said
             // "saved" even when the row never actually reached the database
             // (e.g. missing table, RLS policy blocking the upsert, schema
-            // mismatch). Surface the real problem instead.
+            // mismatch). Surface the real problem — but only the raw,
+            // technical message to admins; regular users get a plain,
+            // friendly message and the details still land in Admin → Errors.
             console.warn("Save study reminder error:", error.message, error.code);
-            showToast("Could not save reminder: " + (error.message || "unknown error"), "error");
+            showNetworkAwareError("Could not save reminder.", error);
             return;
         }
 
@@ -19371,6 +19476,7 @@ async function init() {
         upgradeSupabaseClientIfNeeded();
         cacheAllDataForOffline();
         checkAndDeactivateExpiredUsers();
+        render();
     });
     window.addEventListener('offline', function() {
         showToast("You're offline. Some features won't work until you're back online.", 'offline');
