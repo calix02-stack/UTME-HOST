@@ -375,9 +375,7 @@
         -ms-overflow-style: none;
     }
     .view::-webkit-scrollbar { display: none; }
-    .view:has(.picker-footer) {
-        padding-bottom: 110px;
-    }
+
 
     .view-content {
         max-height: none;
@@ -795,11 +793,12 @@
     .cbt-combo-row .ccr-check svg { width: 13px; height: 13px; stroke: var(--green); }
 
     .picker-footer {
-        position: absolute;
+        position: sticky;
         left: 0;
         right: 0;
         bottom: 0;
         z-index: 15;
+        margin: 12px -16px -20px;
         background: var(--bg);
         padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
         border-top: 1px solid var(--line);
@@ -4027,6 +4026,11 @@
     .home-hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
     .home-hero .glow3{position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:999px;background:radial-gradient(circle,rgba(228,169,58,0.18) 0%,transparent 70%)}
     .home-hero .glow4{position:absolute;bottom:-50px;left:-30px;width:120px;height:120px;border-radius:999px;background:rgba(255,255,255,0.05)}
+    .home-hero .streak-badge{position:absolute;top:16px;right:16px;z-index:2;display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(255,255,255,0.14);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.2);border-radius:14px;padding:7px 12px;cursor:pointer;transition:transform 0.15s}
+    .home-hero .streak-badge:active{transform:scale(0.92)}
+    .home-hero .streak-badge .sb-flame{font-size:18px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))}
+    .home-hero .streak-badge .sb-count{font-family:var(--font-mono);font-weight:800;color:#fff;font-size:12px;line-height:1;margin-top:2px}
+    .home-hero .streak-badge .sb-label{font-size:8px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.03em;margin-top:1px}
     .home-hero .hi{color:rgba(255,255,255,0.7);font-size:12px;margin:0;position:relative;z-index:1;letter-spacing:0.02em}
     .home-hero .name{color:#fff;font-family:var(--font-serif);font-size:24px;margin:2px 0 14px;position:relative;z-index:1;letter-spacing:-0.01em}
     .home-hero .cd-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.12);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.15);border-radius:13px;padding:9px 14px;position:relative;z-index:1;width:fit-content}
@@ -4116,8 +4120,10 @@
 .ai-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .ai-header .ai-icon-btn{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--card-bg);border:1px solid var(--line);color:var(--ink);cursor:pointer;flex-shrink:0}
 .ai-header .ai-title-wrap{flex:1;min-width:0}
-.ai-header .ai-title{font-weight:800;font-size:15px;margin:0;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ai-header .ai-title{font-weight:800;font-size:19px;margin:0;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.ai-header .ai-title .ai-badge{font-size:9px;font-weight:800;letter-spacing:0.04em;color:#fff;background:var(--green);border-radius:999px;padding:2px 7px;text-transform:uppercase;flex-shrink:0}
 .ai-header .ai-sub{font-size:10px;color:var(--green);display:flex;align-items:center;gap:4px;margin:1px 0 0}
+.ai-back-to-q{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--green);background:var(--green-light);border:1px solid var(--green);border-radius:999px;padding:6px 12px;margin-bottom:10px;cursor:pointer;width:100%;justify-content:center}
 .ai-header .ai-sub .dot{width:6px;height:6px;border-radius:999px;background:var(--green);display:inline-block}
 .ai-history-overlay{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,0.5);display:flex}
 .ai-history-panel{width:82%;max-width:300px;height:100%;background:var(--card-bg);display:flex;flex-direction:column;box-shadow:8px 0 30px rgba(0,0,0,0.2)}
@@ -4556,6 +4562,22 @@ function formatDate(dateStr) {
     } catch (e) { return dateStr || ''; }
 }
 
+function updateAndGetStudyStreak() {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const lastDate = storage.get('streakLastDate');
+    let count = parseInt(storage.get('streakCount') || '0', 10) || 0;
+
+    if (lastDate === todayStr) return count || 1; // already counted today
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+    count = (lastDate === yesterdayStr) ? count + 1 : 1;
+    storage.set('streakCount', String(count));
+    storage.set('streakLastDate', todayStr);
+    return count;
+}
 function getJambCountdown() {
     const now = new Date();
     const year = now.getFullYear();
@@ -4744,6 +4766,7 @@ let state = {
     drawerOpen: false,
     view: "home",
     darkMode: false,
+    studyStreak: 1,
     notifs: [],
     readNotifs: [],
     formName: "",
@@ -8025,7 +8048,15 @@ function askAiAboutQuestion(item, subjectName, userAnswerIdx) {
         explanation: item.explanation || null,
     };
 
-    setView('ai-assistant');
+    // Remember exactly where this question lives so the "Back to question"
+    // button in the AI Tutor can return the student to it — the underlying
+    // exam/topic/cbt state (index, questions, answers) is untouched by
+    // setView('ai-assistant'), so jumping back to state.aiReturnView is safe.
+    const returnableViews = ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'];
+    const cameFromQuestion = returnableViews.indexOf(state.view) !== -1 ? state.view : null;
+
+    setView('ai-assistant'); // this clears state.aiReturnView, so set it after
+    state.aiReturnView = cameFromQuestion;
     render();
     sendAiMessage(prompt, questionContext);
 }
@@ -9711,6 +9742,11 @@ function renderHome() {
     return (
         '<div class="home-hero">' +
         '<div class="glow3"></div><div class="glow4"></div>' +
+        '<div class="streak-badge" data-action="tap-streak">' +
+        '<span class="sb-flame">🔥</span>' +
+        '<span class="sb-count">' + (state.studyStreak || 1) + '</span>' +
+        '<span class="sb-label">' + ((state.studyStreak || 1) === 1 ? 'day' : 'days') + '</span>' +
+        '</div>' +
         '<p class="hi">' + greeting + ',</p>' +
         '<p class="name">' + esc(firstName) + ' 👋</p>' +
         '<div class="cd-row">' +
@@ -10265,7 +10301,10 @@ function renderCbtExam() {
 // ============================================================
 function renderExamMode() {
     let chips = "";
-    SUBJECTS.filter(function(s) { return s.id !== 'lhm' && hasCourseAccess(s.id); }).forEach(function(s) {
+    // Past Questions only covers the student's own JAMB combo (English + their
+    // 3 registered electives) — not every course they happen to have access to.
+    const myExamSubjectIds = getMySubjectIds();
+    SUBJECTS.filter(function(s) { return myExamSubjectIds.indexOf(s.id) !== -1; }).forEach(function(s) {
         const sel = state.examSubject === s.id;
         chips += (
             '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-exam-subject" data-subject="' + s.id + '">' +
@@ -10497,7 +10536,10 @@ function renderExamExam() {
 // ============================================================
 function renderTopicsPicker() {
     let subjChips = "";
-    SUBJECTS.filter(function(s) { return s.id !== 'lhm' && hasCourseAccess(s.id); }).forEach(function(s) {
+    // Topic Practice only covers the student's own JAMB combo, same as CBT and
+    // Past Questions — not every course they happen to have access to.
+    const myTopicSubjectIds = getMySubjectIds();
+    SUBJECTS.filter(function(s) { return myTopicSubjectIds.indexOf(s.id) !== -1; }).forEach(function(s) {
         const sel = state.topicSubject === s.id;
         subjChips += (
             '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-topic-subject" data-subject="' + s.id + '">' +
@@ -11391,11 +11433,12 @@ function renderAiAssistant() {
         '<div class="ai-header">' +
         '<button class="ai-icon-btn" data-action="ai-toggle-history" aria-label="Chat history">' + svg('history', 17) + '</button>' +
         '<div class="ai-title-wrap">' +
-        '<p class="ai-title">AI Tutor</p>' +
-        '<p class="ai-sub"><span class="dot"></span> Always ready</p>' +
+        '<p class="ai-title">' + svg('sparkles', 18) + ' AI Tutor <span class="ai-badge">AI</span></p>' +
+        '<p class="ai-sub"><span class="dot"></span> Not a real teacher — always double-check important answers</p>' +
         '</div>' +
         '<button class="ai-icon-btn" data-action="ai-new-chat" aria-label="New chat" style="background:var(--green);color:#fff;border-color:var(--green)">' + svg('plus', 18) + '</button>' +
-        '</div>'
+        '</div>' +
+        (state.aiReturnView ? '<button class="ai-back-to-q" data-action="ai-back-to-question">' + svg('chevleft', 14) + ' Back to your question</button>' : '')
     );
 
     let bubbles = '';
@@ -12394,15 +12437,33 @@ async function saveStudyReminder(enabled) {
     };
     
     try {
-        await supabase
+        const { error } = await supabase
             .from('study_reminders')
             .upsert(payload, { onConflict: 'user_id' });
-            
+
+        if (error) {
+            // Previously this was swallowed silently, so the toast always said
+            // "saved" even when the row never actually reached the database
+            // (e.g. missing table, RLS policy blocking the upsert, schema
+            // mismatch). Surface the real problem instead.
+            console.warn("Save study reminder error:", error.message, error.code);
+            showToast("Could not save reminder: " + (error.message || "unknown error"), "error");
+            return;
+        }
+
+        // Ask for native notification permission the first time a reminder is
+        // turned on, so real OS notifications work when supported — falls
+        // back to the in-app banner automatically if this API isn't available
+        // (e.g. some Android WebView wrappers) or the user declines.
+        if (payload.enabled && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+            try { await Notification.requestPermission(); } catch (permErr) { /* ignore, falls back to in-app banner */ }
+        }
+
         state.studyReminder = payload;
         showToast(enabled ? 'Reminder set! We\'ll nudge you while the app is open.' : 'Reminder turned off.', 'success');
         render();
     } catch (e) {
-        console.warn("Save study reminder error:", e);
+        console.warn("Save study reminder exception:", e);
         showToast("Error saving reminder.", "error");
     }
 }
@@ -12413,24 +12474,34 @@ async function saveStudyReminder(enabled) {
 //  True background push reminders require a server-side scheduled job.
 // ============================================================
 function checkStudyReminderTick() {
-    if (!state.studyReminder || !state.studyReminder.enabled) return;
-    const now = new Date();
-    const day = now.getDay();
-    
-    if ((state.studyReminder.days || []).indexOf(day) === -1) return;
-    if (now.getHours() !== state.studyReminder.hour || now.getMinutes() !== state.studyReminder.minute) return;
-    
-    const todayKey = 'reminderFired_' + now.toISOString().slice(0,10);
-    if (storage.get(todayKey)) return; // already fired today
-    
-    storage.set(todayKey, 'true');
-    
-    if (Notification.permission === 'granted') {
-        new Notification('📚 Study time!', {
-            body: 'Your scheduled MyUTME practice session is starting now.',
-        });
-    } else {
+    try {
+        if (!state.studyReminder || !state.studyReminder.enabled) return;
+        const now = new Date();
+        const day = now.getDay();
+
+        if ((state.studyReminder.days || []).indexOf(day) === -1) return;
+        if (now.getHours() !== state.studyReminder.hour || now.getMinutes() !== state.studyReminder.minute) return;
+
+        const todayKey = 'reminderFired_' + now.toISOString().slice(0,10);
+        if (storage.get(todayKey)) return; // already fired today
+
+        // Always show the in-app banner — it doesn't depend on any browser
+        // permission and works everywhere, including WebViews that don't
+        // implement the Notification API at all (where referencing
+        // `Notification` directly would throw and silently kill this tick).
         showInAppNotificationBanner({ title: '📚 Study time!', body: 'Time for your scheduled practice session.' });
+
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            try {
+                new Notification('📚 Study time!', {
+                    body: 'Your scheduled MyUTME practice session is starting now.',
+                });
+            } catch (notifErr) { console.warn('Notification display error:', notifErr); }
+        }
+
+        storage.set(todayKey, 'true');
+    } catch (e) {
+        console.warn('Study reminder tick error:', e);
     }
 }
 
@@ -12830,9 +12901,11 @@ function renderLiveExamCreateWizard() {
     }
 
     const tc = getLiveExamTimeConstraints();
+    const detailsBackStep = f.examType === 'lhm' ? 'type' : 'subject';
     return (
-        '<button class="back-link" data-action="live-create-step" data-step="subject">' + svg("chevleft", 14) + ' Back</button>' +
+        '<button class="back-link" data-action="live-create-step" data-step="' + detailsBackStep + '">' + svg("chevleft", 14) + ' Back</button>' +
         '<h2 class="title">Exam Details</h2>' +
+        (f.examType === 'lhm' ? '<p class="sub">The Lekki Headmaster</p>' : '') +
         '<div class="card">' +
         '<label class="field-label">Title</label>' +
         '<input class="field" id="live-title" value="' + esc(f.title) + '" placeholder="e.g. Friday Physics Sprint" style="margin-bottom:10px" />' +
@@ -13105,11 +13178,21 @@ function renderActivate() {
     }
 
     if (isActive && !isAdmin()) {
+        // Right after payment/redemption, activateCode still holds the key for
+        // this session — show it clearly instead of hiding it behind the
+        // "already activated" card, so the student can actually see and save it.
+        const justActivatedKey = (state.activateStatus === 'success' && state.activateCode) ? state.activateCode : null;
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
             '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('shield', 30) + '</div>' +
             '<h2 class="title" style="font-size:18px">You\'re Activated! ✅</h2>' +
             '<p class="sub" style="font-size:12px">Your account has full access.</p>' +
+            (justActivatedKey ?
+                '<div class="card" style="text-align:center;padding:16px;border:1.5px solid var(--gold);margin-bottom:10px">' +
+                '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">🔑 Your activation key — save this somewhere safe</p>' +
+                '<p style="font-family:var(--font-mono);font-size:16px;font-weight:800;letter-spacing:0.05em;color:var(--ink);margin:0 0 10px">' + esc(justActivatedKey) + '</p>' +
+                '<button class="btn btn-outline btn-sm" data-action="copy-text" data-copy="' + esc(justActivatedKey) + '">📋 Copy Key</button>' +
+                '</div>' : '') +
             '<div class="card" style="text-align:center;padding:16px">' +
             '<p style="font-size:14px;font-weight:600;color:var(--green);margin:0">Premium Access Active</p>' +
             (expiry ? '<p style="font-size:11px;color:var(--muted);margin:4px 0 0">Expires: ' + expiry.toLocaleDateString() + '</p>' : '') +
@@ -16080,6 +16163,16 @@ document.addEventListener('click', function(e) {
     }
 
     // DARK MODE
+    if (action === 'tap-streak') {
+        const n = state.studyStreak || 1;
+        const messages = [
+            "You're on fire! 🔥 " + n + "-day streak — don't break the chain!",
+            "🎉 " + n + " day" + (n === 1 ? '' : 's') + " strong. JAMB doesn't stand a chance!",
+            "Come back tomorrow to keep your " + n + "-day streak alive 🔥",
+        ];
+        showToast(messages[Math.floor(Math.random() * messages.length)], 'success');
+        return;
+    }
     if (action === 'toggle-dark-mode') {
         state.darkMode = !state.darkMode;
         storage.set('darkMode', state.darkMode ? 'true' : 'false');
@@ -16971,7 +17064,15 @@ document.addEventListener('click', function(e) {
     const typeMeta = LIVE_EXAM_TYPES.find(function(t) { return t.key === type; });
     if (!typeMeta || !typeMeta.enabled) { showToast('This exam type is coming soon.', ''); return; }
     state.liveExamCreateForm.examType = type;
-    state.liveExamCreateStep = 'subject';
+    if (type === 'lhm') {
+        // LHM (The Lekki Headmaster) is a single fixed subject — no need to
+        // make the creator pick a subject, jump straight to the exam details.
+        state.liveExamCreateForm.subject = 'lhm';
+        state.liveExamCreateStep = 'details';
+    } else {
+        state.liveExamCreateForm.subject = '';
+        state.liveExamCreateStep = 'subject';
+    }
     render();
     return;
 }
@@ -18623,6 +18724,12 @@ if (action === 'browse-filter') {
         return;
     }
     
+    if (action === 'ai-back-to-question') {
+        const target = state.aiReturnView;
+        state.aiReturnView = null;
+        setView(target || 'home');
+        return;
+    }
     if (action === 'ai-toggle-history') {
         state.showAiHistoryPanel = !state.showAiHistoryPanel;
         render();
@@ -19070,11 +19177,23 @@ document.addEventListener('input', function(e) {
 //  INIT
 // ============================================================
 async function init() {
+    // Dark mode is now the default look for every new user — light mode is
+    // the opt-out, not the other way round. Anyone who already chose a
+    // preference (light or dark) keeps whatever they picked.
     const darkPref = storage.get('darkMode');
-    if (darkPref === 'true') {
+    if (darkPref === 'false') {
+        state.darkMode = false;
+        document.documentElement.removeAttribute('data-theme');
+    } else {
         state.darkMode = true;
         document.documentElement.setAttribute('data-theme', 'dark');
+        if (darkPref === null) storage.set('darkMode', 'true');
     }
+
+    // Daily streak — the little flame badge on Home. Counts consecutive
+    // calendar days the app has been opened, purely client-side/local
+    // (no backend needed for this small bit of fun).
+    state.studyStreak = updateAndGetStudyStreak();
 
     const hasSeenSplash = storage.get('hasSeenSplash');
     if (hasSeenSplash) {
