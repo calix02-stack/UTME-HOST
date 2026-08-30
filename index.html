@@ -380,15 +380,10 @@
     }
 
     .view-content {
-        max-height: 100%;
-        overflow-y: auto;
+        max-height: none;
+        overflow-y: visible;
         padding-bottom: 20px;
-        -webkit-overflow-scrolling: touch;
-        scroll-behavior: smooth;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
     }
-    .view-content::-webkit-scrollbar { display: none; }
     .view-chat { padding-bottom: 0; }
     .view-chat .view-content { height: 100%; padding-bottom: 0; overflow: hidden; }
     .back-link {
@@ -751,6 +746,53 @@
         border-radius: 999px;
         padding: 2px 6px;
     }
+
+    .cbt-combo-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .cbt-combo-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--card-bg);
+        border: 1.5px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 12px;
+        box-shadow: var(--shadow-sm);
+        transition: background 0.3s, border-color 0.3s;
+    }
+    .cbt-combo-row .ccr-name {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--ink);
+        flex: 1;
+    }
+    .cbt-combo-row .ccr-tag {
+        font-family: var(--font-mono);
+        font-size: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #fff;
+        background: var(--green);
+        border-radius: 999px;
+        padding: 3px 7px;
+        flex-shrink: 0;
+    }
+    .cbt-combo-row .ccr-check {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: var(--green-light);
+        color: var(--green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .cbt-combo-row .ccr-check svg { width: 13px; height: 13px; stroke: var(--green); }
 
     .picker-footer {
         position: absolute;
@@ -1357,14 +1399,33 @@
     }
     .goto-modal {
         background: var(--modal-bg);
-        border-radius: 16px;
-        padding: 20px;
-        max-width: 340px;
+        border-radius: 18px;
+        padding: 18px;
+        max-width: 360px;
         width: 100%;
-        max-height: 80vh;
+        max-height: 82vh;
         overflow-y: auto;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         transition: background 0.3s;
+    }
+    .goto-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .goto-x {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        background: var(--bg);
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
     }
     .goto-modal h3 {
         font-family: var(--font-serif);
@@ -1375,22 +1436,82 @@
     .goto-modal .sub {
         font-size: 12px;
         color: var(--muted);
-        margin: 0 0 12px;
+        margin: 0 0 10px;
+    }
+    .goto-legend {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+    }
+    .goto-legend .gl-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10.5px;
+        color: var(--muted);
+    }
+    .goto-legend .gl-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 4px;
+        display: inline-block;
+    }
+    .goto-legend .gl-swatch.answered { background: var(--green); }
+    .goto-legend .gl-swatch.unanswered { background: var(--bg); border: 1.5px solid var(--line); }
+    .goto-legend .gl-swatch.current { background: #fff; border: 2px solid var(--gold); }
+    .goto-groups {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+    .goto-subject-group {
+        background: var(--bg);
+        border-radius: 12px;
+        padding: 10px 10px 12px;
+        border-left: 4px solid var(--sc, var(--green));
+    }
+    .goto-subject-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+    .goto-subject-head .gsh-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--sc, var(--green));
+        flex-shrink: 0;
+    }
+    .goto-subject-head .gsh-name {
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--ink);
+        flex: 1;
+    }
+    .goto-subject-head .gsh-count {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--muted);
+        background: var(--card-bg);
+        border-radius: 999px;
+        padding: 2px 8px;
     }
     .goto-modal .goto-grid {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
         gap: 6px;
-        margin-bottom: 12px;
     }
     .goto-modal .goto-grid .goto-q {
-        padding: 6px 0;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
+        padding: 8px 0;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 700;
         text-align: center;
-        background: var(--bg);
-        border: 1px solid var(--line);
+        background: var(--card-bg);
+        border: 1.5px solid var(--line);
         color: var(--ink);
         cursor: pointer;
         transition: all 0.15s;
@@ -1402,7 +1523,7 @@
         border-color: var(--green);
     }
     .goto-modal .goto-grid .goto-q.unanswered {
-        background: var(--bg);
+        background: var(--card-bg);
         color: var(--ink);
         border-color: var(--line);
     }
@@ -1410,16 +1531,11 @@
         border-color: var(--gold);
         box-shadow: 0 0 0 2px var(--gold);
     }
-    .goto-modal .goto-grid .goto-q .q-status-dot {
-        display: block;
-        font-size: 8px;
-        margin-top: 1px;
-    }
     .goto-modal .goto-close {
         width: 100%;
-        padding: 8px;
-        border-radius: 8px;
-        font-weight: 600;
+        padding: 10px;
+        border-radius: 10px;
+        font-weight: 700;
         background: var(--line);
         color: var(--muted);
         cursor: pointer;
@@ -1686,6 +1802,83 @@
     }
 
     /* Post-login Activation Banner */
+    /* Persistent "Not Activated" signboard — sits at the top of the app,
+       cannot be dismissed, but doesn't block interaction with the rest of the app. */
+    .act-signboard {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: linear-gradient(90deg, #B9821F 0%, var(--gold) 50%, #B9821F 100%);
+        color: #2b1d05;
+        position: relative;
+        z-index: 5;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+    .act-signboard .as-icons {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.35);
+        position: relative;
+        justify-content: center;
+    }
+    .act-signboard .as-icons svg:first-child {
+        width: 22px;
+        height: 22px;
+    }
+    .act-signboard .as-icons .as-badge {
+        position: absolute;
+        bottom: -4px;
+        right: -4px;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--danger);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #b9821f;
+    }
+    .act-signboard .as-badge svg { width: 10px; height: 10px; stroke: #fff; }
+    .act-signboard .as-text {
+        flex: 1;
+        min-width: 0;
+    }
+    .act-signboard .as-title {
+        font-size: 12.5px;
+        font-weight: 800;
+        margin: 0 0 1px;
+        letter-spacing: 0.01em;
+    }
+    .act-signboard .as-sub {
+        font-size: 10.5px;
+        margin: 0;
+        opacity: 0.85;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .act-signboard .as-btn {
+        flex-shrink: 0;
+        background: var(--ink);
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 11.5px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .act-signboard .as-btn:hover { background: #0a1a10; }
+    @media (max-width: 360px) {
+        .act-signboard .as-sub { display: none; }
+    }
+
     .actban-overlay {
         position: fixed;
         inset: 0;
@@ -2502,6 +2695,36 @@
     /* Neutral (non-alarming) style for "you're offline" style messages — poor
        connectivity is not a red-flag error, so it gets its own calmer color. */
     .toast-msg.offline { background: #4A5568; }
+
+    /* "Ask AI" button — surfaced on questions once an answer/explanation is
+       already visible (review screens, instant-result modes, revise mode).
+       Distinct purple/violet accent so it reads as a helpful shortcut, not
+       an error or a flag action. */
+    .mini-btn.ask-ai, .ask-ai-inline {
+        background: linear-gradient(135deg, #6C4CF0 0%, #8E6CFF 100%);
+        color: #fff;
+        border: none;
+        font-weight: 700;
+    }
+    .mini-btn.ask-ai:hover, .ask-ai-inline:hover { filter: brightness(1.06); }
+    .explanation-box .ask-ai-row { margin-top: 8px; text-align: right; }
+
+    /* Friendly, on-brand notice shown when a non-activated user is routed to
+       the Activate page from a locked feature (e.g. Mock/Live Exam). Uses
+       the app's gold accent, not the red/danger error color, since this is
+       guidance — not an error. */
+    .activate-redirect-note {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        background: #FFF6E5;
+        border: 1px solid #F0D08A;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    .activate-redirect-note .icon { font-size: 18px; line-height: 1; flex-shrink: 0; }
+    .activate-redirect-note p { margin: 0; font-size: 12px; color: #6b5416; line-height: 1.4; }
 
     .notif-image-upload {
         border: 1px dashed var(--line);
@@ -4352,6 +4575,25 @@ function enrolledSubjectIds() {
     });
     return ids;
 }
+// Returns the user's subject combo as an array of subject IDs: English first,
+// then their enrolled electives (excluding Literature, which has its own flow).
+// Admins are treated as having all 4 "slots" filled since they can access everything.
+function getMySubjectIds() {
+    const mySubjectIds = ['eng'];
+    if (isAdmin()) {
+        SUBJECTS.filter(function(s) { return s.id !== 'eng' && s.id !== 'lhm'; })
+            .slice(0, 3)
+            .forEach(function(s) { mySubjectIds.push(s.id); });
+        return mySubjectIds;
+    }
+    const enrolledIds = enrolledSubjectIds();
+    enrolledIds.forEach(function(sid) {
+        if (sid !== 'eng' && sid !== 'lhm' && mySubjectIds.indexOf(sid) === -1) {
+            mySubjectIds.push(sid);
+        }
+    });
+    return mySubjectIds;
+}
 function hasCourseAccess(subjectId) {
     if (isAdmin()) return true;
     const ids = enrolledSubjectIds();
@@ -4375,6 +4617,16 @@ function isUserActive() {
     }
     return true;
 }
+
+// Sends a non-activated user to the Activate page with a friendly, on-brand
+// reason banner instead of a jarring red "error" toast. See renderActivate()
+// / .activate-redirect-note.
+function redirectToActivate(reason) {
+    state.activateRedirectReason = reason || 'Activate your account to unlock this feature.';
+    state.view = 'activate';
+    render();
+}
+
 function unreadCount() {
     return state.notifsUnreadCount || 0;
 }
@@ -6373,9 +6625,7 @@ async function startMockExam(mockExamId, source) {
 
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
     if (!isUserActive()) {
-        showToast('Your account needs to be activated to access this feature. Contact admin or visit the Activate page.', 'error');
-        state.view = 'activate';
-        render();
+        redirectToActivate('Mock & Live Exams are part of full access. Activate your account below to register and take exams.');
         return;
     }
     
@@ -7712,6 +7962,74 @@ async function sendAiMessage(text, questionContext) {
     state.aiSending = false;
     render();
 }
+
+// ============================================================
+//  "ASK AI" ON A QUESTION
+//  Lets the student jump straight from a question (once its answer/
+//  explanation is already visible — review screens, instant-result modes,
+//  revise mode) into the AI Tutor with that question pre-loaded and
+//  auto-sent, so the AI can explain it in depth right away.
+//  Deliberately not offered on live/timed CBT or Mock/Live Exam questions
+//  while they're still being attempted, to avoid enabling cheating during
+//  a real exam simulation. It's fully available in Revise Weak Questions.
+// ============================================================
+let aiQuestionCache = {};
+let aiQuestionCacheSeq = 0;
+
+// Called from render() code to attach an "Ask AI" button to a question.
+// Stores the question data in a small in-memory cache keyed by a short id
+// embedded in the button, since HTML attributes are a clumsy place to carry
+// a full question + options array.
+function askAiButtonHtml(item, subjectName, userAnswerIdx, opts) {
+    if (!item) return '';
+    aiQuestionCacheSeq++;
+    const key = 'q' + aiQuestionCacheSeq;
+    aiQuestionCache[key] = {
+        item: item,
+        subjectName: subjectName || item.subject_name || '',
+        userAnswerIdx: (userAnswerIdx === undefined ? null : userAnswerIdx),
+    };
+    const label = (opts && opts.label) || '✨ Ask AI';
+    const cls = (opts && opts.inline) ? 'ask-ai-inline' : 'mini-btn ask-ai';
+    const style = (opts && opts.style) ? ' style="' + opts.style + '"' : '';
+    return '<button class="' + cls + '" data-action="ask-ai-question" data-aikey="' + key + '"' + style + '>' + label + '</button>';
+}
+
+function askAiAboutQuestion(item, subjectName, userAnswerIdx) {
+    if (!state.authUser) { showToast('Please log in to use the AI Tutor.', 'error'); state.showLogin = true; render(); return; }
+    if (!item) { showToast('Could not load this question for the AI Tutor.', 'error'); return; }
+
+    const letters = 'ABCDEFGH';
+    const options = item.options || [];
+    const optionsText = options.map(function(o, i) { return letters[i] + '. ' + o; }).join('\n');
+    const hasCorrect = item.correct_answer !== undefined && item.correct_answer !== null;
+    const correctLetter = hasCorrect ? letters[item.correct_answer] : null;
+    const hasUserAnswer = userAnswerIdx !== undefined && userAnswerIdx !== null && userAnswerIdx >= 0;
+    const userLetter = hasUserAnswer ? letters[userAnswerIdx] : null;
+
+    let prompt = 'Please explain this question in depth, step by step:\n\n';
+    if (subjectName) prompt += 'Subject: ' + subjectName + '\n';
+    prompt += 'Question: ' + (item.text || '') + '\n';
+    if (optionsText) prompt += optionsText + '\n';
+    if (correctLetter) prompt += 'Correct answer: ' + correctLetter + '\n';
+    if (userLetter) prompt += 'I answered: ' + userLetter + (userLetter === correctLetter ? ' (correct)' : ' (incorrect)') + '\n';
+    prompt += '\nWalk me through why the correct answer is right and why the other options are wrong.';
+
+    const questionContext = {
+        questionId: item.id,
+        subject: subjectName || item.subject_name || null,
+        text: item.text,
+        options: options.length ? options : null,
+        correctAnswer: correctLetter,
+        userAnswer: userLetter,
+        explanation: item.explanation || null,
+    };
+
+    setView('ai-assistant');
+    render();
+    sendAiMessage(prompt, questionContext);
+}
+
 async function loadSupportMessages() {
     if (!state.authUser) { state.supportMessages = []; state.supportMessagesLoaded = true; render(); return; }
     try {
@@ -7823,7 +8141,7 @@ const SUPPORT_QUICK_REPLIES = {
         return { text: 'Registration closes automatically at the deadline shown on the mock card, and each mock also has a fixed subject count. Double check you selected the right number of subjects. Still stuck? Tell me the mock name and I\'ll check for you.', escalate: true };
     },
     wrong_score: function() {
-        return { text: 'Scores are calculated automatically from your submitted answers, scaled to 100 per subject. If a specific question looks miskeyed, please use the "⚠️ Flag Question" button in your review screen — that goes straight to our content team. For anything else, describe the issue here.', escalate: true };
+        return { text: 'Scores are calculated automatically from your submitted answers, scaled to 100 per subject. If a specific question looks miskeyed, please use the "🚩 Flag Question" button in your review screen — that goes straight to our content team. For anything else, describe the issue here.', escalate: true };
     },
     offline_issue: function() {
         return { text: 'CBT Mode works offline once you\'ve logged in at least once while connected (we cache your questions automatically). Other modes like Mock Exams need internet. If CBT still isn\'t working offline, try logging in again once while connected so we can refresh your cache.', escalate: false };
@@ -8519,39 +8837,60 @@ function renderGotoModal() {
     const answers = data.answers || [];
     const mode = data.mode || '';
     
-    // Build subject-grouped grid if available
-    let grid = '';
+    function buildGrid(indices) {
+        let g = '<div class="goto-grid">';
+        indices.forEach(function(globalIdx, localIdx) {
+            const isAnswered = answers[globalIdx] !== null && answers[globalIdx] !== undefined;
+            const isCurrent = globalIdx === current;
+            const cls = 'goto-q' +
+                (isAnswered ? ' answered' : ' unanswered') +
+                (isCurrent ? ' current' : '');
+            g += '<button class="' + cls + '" data-action="goto-q-select" data-idx="' + globalIdx + '" data-mode="' + mode + '">' + (localIdx + 1) + '</button>';
+        });
+        g += '</div>';
+        return g;
+    }
+
+    // Build subject-grouped cards if available; otherwise a single flat group.
+    let groupsHtml = '';
     if (data.bySubject && data.bySubject.length > 0) {
         data.bySubject.forEach(function(subjGroup) {
-            grid += '<div style="font-size:9px;color:var(--muted);margin:6px 0 4px;font-weight:600">' + esc(subjGroup.subjectName) + ' (Q' + (subjGroup.startNum + 1) + '–' + (subjGroup.startNum + subjGroup.indices.length) + ')</div>';
-            grid += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:4px">';
-            subjGroup.indices.forEach(function(globalIdx, localIdx) {
-                const isAnswered = answers[globalIdx] !== null && answers[globalIdx] !== undefined;
-                const isCurrent = globalIdx === current;
-                const cls = 'goto-q' + 
-                    (isAnswered ? ' answered' : ' unanswered') + 
-                    (isCurrent ? ' current' : '');
-                grid += '<button class="' + cls + '" data-action="goto-q-select" data-idx="' + globalIdx + '" data-mode="' + mode + '">' + (localIdx + 1) + (isAnswered ? ' ✓' : '') + '</button>';
-            });
-            grid += '</div>';
+            const subj = SUBJECTS.find(function(s) { return s.code === subjGroup.subjectCode; });
+            const color = subj ? subj.color : 'var(--green)';
+            const answeredInGroup = subjGroup.indices.filter(function(idx) {
+                return answers[idx] !== null && answers[idx] !== undefined;
+            }).length;
+            groupsHtml += (
+                '<div class="goto-subject-group" style="--sc:' + color + '">' +
+                '<div class="goto-subject-head">' +
+                '<span class="gsh-dot"></span>' +
+                '<span class="gsh-name">' + esc(subjGroup.subjectName) + '</span>' +
+                '<span class="gsh-count">' + answeredInGroup + '/' + subjGroup.indices.length + '</span>' +
+                '</div>' +
+                buildGrid(subjGroup.indices) +
+                '</div>'
+            );
         });
     } else {
-        for (let i = 0; i < total; i++) {
-            const isAnswered = answers[i] !== null && answers[i] !== undefined;
-            const isCurrent = i === current;
-            const cls = 'goto-q' + 
-                (isAnswered ? ' answered' : ' unanswered') + 
-                (isCurrent ? ' current' : '');
-            grid += '<button class="' + cls + '" data-action="goto-q-select" data-idx="' + i + '" data-mode="' + mode + '">' + (i + 1) + (isAnswered ? ' ✓' : '') + '</button>';
-        }
+        const allIndices = [];
+        for (let i = 0; i < total; i++) allIndices.push(i);
+        groupsHtml = '<div class="goto-subject-group" style="--sc:var(--green)">' + buildGrid(allIndices) + '</div>';
     }
     
     return (
         '<div class="goto-overlay" data-action="goto-close">' +
         '<div class="goto-modal" data-action="prevent-close">' +
-        '<h3>📋 Questions</h3>' +
-        '<p class="sub">' + data.answered + ' of ' + total + ' answered · <span style="color:var(--green)">✓</span> attempted, <span style="color:var(--muted)">◻</span> unattempted</p>' +
-        '<div>' + grid + '</div>' +
+        '<div class="goto-modal-head">' +
+        '<h3>📋 All Questions</h3>' +
+        '<button class="goto-x" data-action="goto-close" aria-label="Close">×</button>' +
+        '</div>' +
+        '<p class="sub">' + data.answered + ' of ' + total + ' answered</p>' +
+        '<div class="goto-legend">' +
+        '<span class="gl-item"><span class="gl-swatch answered"></span>Answered</span>' +
+        '<span class="gl-item"><span class="gl-swatch unanswered"></span>Unanswered</span>' +
+        '<span class="gl-item"><span class="gl-swatch current"></span>Current</span>' +
+        '</div>' +
+        '<div class="goto-groups">' + groupsHtml + '</div>' +
         '<button class="goto-close" data-action="goto-close">Close</button>' +
         '</div>' +
         '</div>'
@@ -8670,7 +9009,7 @@ function renderFlagModal() {
     return (
         '<div class="flag-overlay" data-action="flag-close">' +
         '<div class="flag-modal" data-action="prevent-close">' +
-        '<h3>⚠️ Flag Question</h3>' +
+        '<h3>🚩 Flag Question</h3>' +
         '<p class="sub">Let us know what\'s wrong with this question so we can fix it.</p>' +
         '<textarea id="flag-reason-input" rows="3" placeholder="What\'s wrong? (optional)"></textarea>' +
         '<div class="btn-group">' +
@@ -8706,6 +9045,7 @@ function renderNotifyModal() {
 
 function setView(v) {
     state.view = v;
+    if (v !== "activate") state.activateRedirectReason = null;
     state.drawerOpen = false;
     state.showSubmitModal = false;
     state.submitModalData = null;
@@ -8816,6 +9156,7 @@ function render() {
     }
 
     const SCROLL_PRESERVE_SELECTORS = [
+        '.view',
         '.view-content',
         '.admin-question-list',
         '.admin-tabs',
@@ -9008,16 +9349,6 @@ function renderApp() {
         (unread > 0 ? '<span style="position:absolute;top:-4px;right:-4px;background:#e2543a;color:#fff;border-radius:999px;font-size:9px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--topbar-bg)">' + badgeLabel + '</span>' : '') +
         '</button>';
     const needsActivation = isLoggedIn && !isUserActive() && !isAdmin();
-    if (needsActivation && !state.activateIconDismissed) {
-        rightContent += (
-            '<div style="position:relative">' +
-            '<button class="icon-btn" data-action="set-view" data-view="activate" title="Activate your account" style="background:rgba(255,255,255,0.12)">' +
-            svg('rocket', 18).replace('stroke="currentColor"', 'stroke="white"') +
-            '</button>' +
-            '<button data-action="dismiss-activate-icon" aria-label="Dismiss" style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:999px;background:var(--card-bg);color:var(--muted);font-size:9px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);cursor:pointer;line-height:1">×</button>' +
-            '</div>'
-        );
-    }
     if (isLoggedIn) {
         const topbarAvatarUrl = state.profile.avatarUrl || null;
         rightContent += topbarAvatarUrl
@@ -9049,6 +9380,7 @@ function renderApp() {
               '<div class="topbar-right">' + rightContent + '</div>'
         ) +
         '</div>' +
+        (needsActivation ? renderActivationSignboard() : '') +
         '<div class="view' + (state.view === 'ai-assistant' ? ' view-chat' : '') + '"><div class="view-content">' + renderView() + '</div></div>' +
         renderBottomNav() +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
@@ -9416,49 +9748,7 @@ function renderHomeExtras() {
         '</div>'
     );
 
-    // --- Motivational quote carousel (swipeable, rotates by day) ---
-    const quotes = [
-        { text: "Success is the sum of small efforts repeated day in and day out.", author: "Robert Collier" },
-        { text: "The expert in anything was once a beginner.", author: "Helen Hayes" },
-        { text: "Discipline is choosing between what you want now and what you want most.", author: "Abraham Lincoln" },
-        { text: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
-        { text: "Every question you solve today is a mark you don't have to chase tomorrow.", author: "MyUTME" },
-        { text: "Consistency beats intensity. Show up for yourself daily.", author: "MyUTME" }
-    ];
-    const qIndex = Math.floor(Date.now() / 86400000) % quotes.length;
-    const q = quotes[qIndex];
-    const quoteHtml = (
-        '<div class="card" style="padding:16px;margin-bottom:16px;background:var(--green-light);border:none">' +
-        '<p style="font-size:22px;line-height:1;margin:0 0 6px;color:var(--green)">"</p>' +
-        '<p style="font-size:13px;font-style:italic;margin:0 0 8px;color:var(--ink)">' + esc(q.text) + '</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0;text-align:right">— ' + esc(q.author) + '</p>' +
-        '</div>'
-    );
-
-    // --- Exam readiness score (based on enrolled subjects vs JAMB's required 4) ---
-    const REQUIRED_SUBJECTS = 4;
-    const enrolledCount = isAdmin() ? REQUIRED_SUBJECTS : Math.min(enrolledSubjectIds().size, REQUIRED_SUBJECTS);
-    const readinessPct = Math.round((enrolledCount / REQUIRED_SUBJECTS) * 100);
-    const readinessMsg = readinessPct >= 100
-        ? "You're fully set up across all 4 subjects!"
-        : "Enroll in " + (REQUIRED_SUBJECTS - enrolledCount) + " more subject" + (REQUIRED_SUBJECTS - enrolledCount === 1 ? '' : 's') + " to complete your JAMB combo.";
-    const readinessHtml = (
-        '<div class="card" style="padding:16px;margin-bottom:16px">' +
-        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">' +
-        '<p style="font-size:13px;font-weight:800;margin:0">🎯 Exam Readiness</p>' +
-        '<p style="font-size:15px;font-weight:800;margin:0;color:var(--green)">' + readinessPct + '%</p>' +
-        '</div>' +
-        '<div style="height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-bottom:8px">' +
-        '<div style="height:100%;width:' + readinessPct + '%;background:linear-gradient(90deg,var(--green),var(--gold));border-radius:999px"></div>' +
-        '</div>' +
-        '<p style="font-size:12px;color:var(--muted);margin:0">' + esc(readinessMsg) + '</p>' +
-        (readinessPct < 100
-            ? '<button class="btn btn-gold btn-sm" style="margin-top:10px" data-action="set-view" data-view="all-courses">Browse Courses</button>'
-            : '') +
-        '</div>'
-    );
-
-    return tipHtml + quoteHtml + readinessHtml;
+    return tipHtml;
 }
 function renderAllCourses() {
     if (!state.coursesLoaded) loadCourses();
@@ -9561,49 +9851,105 @@ function renderLiteratureCbt() {
 //  CBT MODE
 // ============================================================
 function renderCbtMode() {
-    const others = SUBJECTS.filter(function(s) { return !s.compulsory && s.id !== 'lhm'; });
     const eng = SUBJECTS.find(function(s) { return s.compulsory; });
-
-    let chips = "";
-    others.filter(function(s) { return hasCourseAccess(s.id); }).forEach(function(s) {
-        const sel = state.cbtSelected.indexOf(s.id) !== -1;
-        chips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-cbt-subject" data-subject="' + s.id + '">' +
-            subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + '</span>' +
-            '</button>'
-        );
-    });
-    if (!anyCourseAccess()) {
-        chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Enroll in a course to unlock subjects.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="all-courses">Browse Courses</button></div>';
-    }
-
-    const count = state.cbtSelected.length;
+    const settings = state.settingsCache;
     const isFull = state.cbtMode === "full";
     const isSingle = state.cbtMode === "single";
-    const settings = state.settingsCache;
     const requiredSubjects = isFull ? (settings.cbtSubjectCount || 3) : 1;
 
-    let modeHtml = (
+    // The student's actual subject combo (English + their enrolled electives).
+    const myElectiveIds = getMySubjectIds().filter(function(sid) { return sid !== 'eng'; });
+    const comboComplete = myElectiveIds.length === requiredSubjects;
+
+    // Full CBT self-heals: if the combo is complete, make sure cbtSelected always
+    // reflects it — the student never has to tap through a picker they already answered
+    // once (on My Subjects) to get here.
+    if (isFull && comboComplete) {
+        const matches = state.cbtSelected.length === myElectiveIds.length &&
+            myElectiveIds.every(function(sid) { return state.cbtSelected.indexOf(sid) !== -1; });
+        if (!matches) state.cbtSelected = myElectiveIds.slice();
+    }
+
+    const modeHtml = (
         '<div class="cbt-mode-select">' +
         '<button class="cbt-mode-btn' + (isFull ? ' active' : '') + '" data-action="cbt-mode" data-mode="full">' +
         '<span class="icon">📚</span>' +
         '<span class="label">Full CBT</span>' +
-        '<span class="desc">' + (requiredSubjects + 1) + ' subjects (English + ' + requiredSubjects + ')</span>' +
+        '<span class="desc">' + (requiredSubjects + 1) + ' subjects</span>' +
         '</button>' +
         '<button class="cbt-mode-btn' + (isSingle ? ' active' : '') + '" data-action="cbt-mode" data-mode="single">' +
         '<span class="icon">📝</span>' +
         '<span class="label">Single Subject</span>' +
-        '<span class="desc">1 subject of your choice</span>' +
+        '<span class="desc">Practice one at a time</span>' +
         '</button>' +
         '</div>'
     );
 
+    let body = '';
     let ready = false;
-    if (isFull) ready = count === requiredSubjects;
-    else ready = count === 1;
+    let label = '';
 
-    let label = isFull ? 'Start CBT Practice (' + (requiredSubjects + 1) + ' subjects)' : 'Start Subject Practice (1 subject)';
+    if (isFull && comboComplete) {
+        // No picking needed — just show the combo that's about to be practiced.
+        let rows = (
+            '<div class="cbt-combo-row">' +
+            subjectBadge(eng) +
+            '<span class="ccr-name">' + esc(eng.name) + '</span>' +
+            '<span class="ccr-tag">Compulsory</span>' +
+            '</div>'
+        );
+        myElectiveIds.forEach(function(sid) {
+            const s = SUBJECTS.find(function(x) { return x.id === sid; });
+            if (!s) return;
+            rows += (
+                '<div class="cbt-combo-row">' +
+                subjectBadge(s) +
+                '<span class="ccr-name">' + esc(s.name) + '</span>' +
+                '<span class="ccr-check">' + svg('check', 14) + '</span>' +
+                '</div>'
+            );
+        });
+        body = (
+            '<div class="mode-note">Full CBT uses your existing subject combo — no need to pick again.</div>' +
+            '<p class="section-label">Your subjects</p>' +
+            '<div class="cbt-combo-list">' + rows + '</div>'
+        );
+        ready = true;
+        label = 'Start CBT Practice';
+    } else if (isFull && !comboComplete) {
+        // Rare edge case: enrollment doesn't add up to exactly 4 yet.
+        body = (
+            '<div class="mode-note">⚠️ Full CBT needs a complete combo of ' + (requiredSubjects + 1) + ' subjects, but your <b>My Subjects</b> only has ' + (myElectiveIds.length + 1) + ' set up right now.</div>' +
+            '<button class="btn btn-outline" style="width:100%;margin-top:4px" data-action="set-view" data-view="mysubjects">Fix My Subjects</button>'
+        );
+        ready = false;
+        label = 'Start CBT Practice';
+    } else {
+        // Single Subject: choose one from the student's own combo — not the whole catalog.
+        const myAll = getMySubjectIds();
+        let chips = "";
+        myAll.forEach(function(sid) {
+            const s = SUBJECTS.find(function(x) { return x.id === sid; });
+            if (!s) return;
+            const sel = state.cbtSelected.indexOf(s.id) !== -1;
+            chips += (
+                '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-cbt-subject" data-subject="' + s.id + '">' +
+                subjectBadge(s) +
+                '<span class="sname">' + esc(s.name) + '</span>' +
+                '</button>'
+            );
+        });
+        if (!anyCourseAccess() && !isAdmin()) {
+            chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Enroll in a course to unlock subjects.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="all-courses">Browse Courses</button></div>';
+        }
+        body = (
+            '<div class="mode-note">Choose <b>1 subject</b> from your combo to practice.</div>' +
+            '<p class="section-label">Select a subject</p>' +
+            '<div class="subject-grid">' + chips + '</div>'
+        );
+        ready = state.cbtSelected.length === 1;
+        label = 'Start Subject Practice';
+    }
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
@@ -9611,24 +9957,14 @@ function renderCbtMode() {
         '<h2 class="title">JAMB CBT</h2>' +
         '<p class="sub">Real JAMB-style practice screen</p>' +
         modeHtml +
-        '<div class="mode-note">' + (isFull ?
-            'JAMB CBT covers <b>' + (requiredSubjects + 1) + ' subjects</b>: English is compulsory, plus <b>' + requiredSubjects + '</b> more of your choice.' :
-            'Choose <b>1 subject</b> to practice.') +
-        '</div>' +
-        '<p class="section-label">' + (isFull ? 'Compulsory' : 'Select a subject') + '</p>' +
-        (isFull ?
-            '<div class="compulsory-row">' + subjectBadge(eng) + '<span style="font-size:12px;font-weight:600">' +
-            esc(eng.name) + '</span><span class="tag">Compulsory</span></div>' :
-            '') +
-        '<p class="section-label">' + (isFull ? 'Choose ' + requiredSubjects + ' more subjects' : 'Choose 1 subject') + '</p>' +
-        '<div class="subject-grid">' + chips + '</div>' +
+        body +
         '<div class="picker-footer">' +
-        '<p class="picker-count">' + count + (isFull ? ' of ' + requiredSubjects + ' selected' : ' of 1 selected') + '</p>' +
         '<button class="btn ' + (ready ? "btn-green" : "btn-outline") + '" data-action="start-cbt"' + (ready ? '' :
             ' disabled style="opacity:0.5;pointer-events:none"') + '>' + label + '</button>' +
         '</div>'
     );
 }
+
 
 // ============================================================
 //  CBT EXAM
@@ -9774,7 +10110,9 @@ function renderCbtExam() {
                 (item.explanation ?
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
-                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="cbt">⚠️ Flag Question</button></div>' +
+                '<div class="flag-btn">' +
+                askAiButtonHtml(item, (subj ? subj.name : ''), userAns, { style: 'margin-right:6px' }) +
+                '<button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="cbt">🚩 Flag Question</button></div>' +
                 '</div>'
             );
         });
@@ -9910,7 +10248,7 @@ function renderCbtExam() {
         '</div>' +
         '<div class="exam-body">' +
         '<div class="card exam-question-card">' +
-        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="cbt" title="Flag Question">⚠️</button>' +
+        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="cbt" title="Flag Question">🚩</button>' +
         '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
         '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
@@ -10054,7 +10392,9 @@ function renderExamExam() {
                 (item.explanation ?
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
-                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="exam">⚠️ Flag Question</button></div>' +
+                '<div class="flag-btn">' +
+                askAiButtonHtml(item, (subj ? subj.name : ''), userAns, { style: 'margin-right:6px' }) +
+                '<button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="exam">🚩 Flag Question</button></div>' +
                 '</div>'
             );
         });
@@ -10133,12 +10473,14 @@ function renderExamExam() {
         '</div>' +
         '<div class="exam-body">' +
         '<div class="card exam-question-card">' +
-        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="exam" title="Flag Question">⚠️</button>' +
+        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="exam" title="Flag Question">🚩</button>' +
         '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
         '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
         (isInstant && instantResult !== undefined && item ? 
-            '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><p>' + esc(item.explanation || 'No explanation provided.') + '</p></div>' :
+            '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><p>' + esc(item.explanation || 'No explanation provided.') + '</p>' +
+            '<div class="ask-ai-row">' + askAiButtonHtml(item, (subj ? subj.name : ''), state.examAnswers[state.examIndex]) + '</div>' +
+            '</div>' :
             '') +
         '<div class="exam-nav-buttons">' +
         (state.examIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="exam-prev">Previous</button>' :
@@ -10281,7 +10623,9 @@ function renderTopicExam() {
                 (item.explanation ?
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
-                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="topic">⚠️ Flag Question</button></div>' +
+                '<div class="flag-btn">' +
+                askAiButtonHtml(item, (subj ? subj.name : ''), userAns, { style: 'margin-right:6px' }) +
+                '<button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="topic">🚩 Flag Question</button></div>' +
                 '</div>'
             );
         });
@@ -10351,7 +10695,7 @@ function renderTopicExam() {
         '</div>' +
         '<div class="exam-body">' +
         '<div class="card exam-question-card">' +
-        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="topic" title="Flag Question">⚠️</button>' +
+        '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="topic" title="Flag Question">🚩</button>' +
         '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
         '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
@@ -10430,7 +10774,9 @@ function renderLitExam() {
                 (item.explanation ?
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
-                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="novel">⚠️ Flag Question</button></div>' +
+                '<div class="flag-btn">' +
+                askAiButtonHtml(item, 'The Lekki Headmaster', userAns, { style: 'margin-right:6px' }) +
+                '<button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="novel">🚩 Flag Question</button></div>' +
                 '</div>'
             );
         });
@@ -10848,7 +11194,8 @@ function renderReviseModeQuestions() {
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
         '<span style="font-size:13px;font-weight:600">Question ' + (state.reviseIndex + 1) + ' of ' + total + '</span>' +
         '<div style="display:flex;gap:4px">' +
-        '<button class="mini-btn flag" data-action="flag-review-question" data-qid="' + q.id + '" data-subject="' + subjectId + '" data-mode="' + mode + '" style="font-size:9px">⚠️</button>' +
+        askAiButtonHtml(q, subjName, (isAnswered ? userAnswer : wq.user_answer), { label: '✨', style: 'font-size:9px;padding:6px 8px' }) +
+        '<button class="mini-btn flag" data-action="flag-review-question" data-qid="' + q.id + '" data-subject="' + subjectId + '" data-mode="' + mode + '" style="font-size:9px">🚩</button>' +
         '<button class="mini-btn danger" data-action="weak-remove-question" data-wid="' + wq.id + '" data-qid="' + q.id + '" style="font-size:9px">✕</button>' +
         '</div>' +
         '</div>' +
@@ -11568,15 +11915,8 @@ function renderProfile() {
         '</div>'
     );
     
-    // Wallet row
+    // Settings row (balance display removed — not useful to students)
     const walletHtml = (
-        '<div class="wallet-row">' +
-        '<span class="wr-icon">' + svg('zap', 20).replace('stroke="currentColor"', 'stroke="#fff"') + '</span>' +
-        '<div class="wr-info">' +
-        '<p class="wr-amount">₦' + walletBalance.toLocaleString() + '</p>' +
-        '<p class="wr-label">My Balance</p>' +
-        '</div>' +
-        '</div>' +
         '<div class="toggle-row" data-action="toggle-dark-mode" style="cursor:pointer">' +
         '<span class="toggle-label">' + (state.darkMode ? '🌙' : '☀️') + ' ' + (state.darkMode ? 'Dark' : 'Light') + ' mode</span>' +
         '<div class="toggle-switch' + (state.darkMode ? ' active' : '') + '"><div class="slider"></div></div>' +
@@ -11734,6 +12074,25 @@ function renderProfileEdit() {
 // ============================================================
 //  POST-LOGIN ACTIVATION BANNER
 // ============================================================
+function renderActivationSignboard() {
+    // Persistent, non-dismissable "not activated" indicator. Unlike a modal,
+    // this never blocks the screen — it's a slim strip the user can act on
+    // whenever they're ready, and it stays visible until the account is active.
+    return (
+        '<div class="act-signboard" data-action="set-view" data-view="activate" style="cursor:pointer">' +
+        '<div class="as-icons">' +
+        svg('monitor', 20) +
+        '<span class="as-badge">' + svg('shield', 10) + '</span>' +
+        '</div>' +
+        '<div class="as-text">' +
+        '<p class="as-title">Account Not Activated</p>' +
+        '<p class="as-sub">Activate to unlock full CBT access &amp; features</p>' +
+        '</div>' +
+        '<button class="as-btn" data-action="set-view" data-view="activate">Activate</button>' +
+        '</div>'
+    );
+}
+
 function renderActivationBanner() {
     if (!state.showActivationBanner) return '';
     return (
@@ -12561,7 +12920,7 @@ function renderMockResult() {
                 (item.explanation ?
                     '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
                         .explanation) + '</p></div>' : '') +
-                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="mock">⚠️ Flag Question</button></div>' +
+                '<div class="flag-btn"><button class="mini-btn flag" data-action="flag-review-question" data-qid="' + item.id + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="mock">🚩 Flag Question</button></div>' +
                 '</div>'
             );
         });
@@ -12777,6 +13136,9 @@ function renderActivate() {
         '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 30) + '</div>' +
         '<h2 class="title" style="font-size:18px">Activate Your Account</h2>' +
         '<p class="sub" style="font-size:12px">Unlock unlimited mock exams &amp; past questions</p>' +
+
+        (state.activateRedirectReason ?
+            '<div class="activate-redirect-note"><span class="icon">🔑</span><p>' + esc(state.activateRedirectReason) + '</p></div>' : '') +
 
         '<div class="card" style="margin-bottom:10px">' +
         '<p style="font-size:12px;font-weight:600;margin:0 0 6px">Why do you need to activate?</p>' +
@@ -15478,16 +15840,10 @@ document.addEventListener('click', function(e) {
                 state.calcDisplay = "0";
                 state.calcExpression = "";
                 state.calcJustEvaluated = false;
-                const appInner = document.getElementById('app-inner');
-                if (appInner) {
-                    const rect = appInner.getBoundingClientRect();
-                    state.calcPosition = {
-                        x: Math.max(8, rect.right - 296),
-                        y: Math.max(8, rect.bottom - 380)
-                    };
-                } else {
-                    state.calcPosition = { x: null, y: null };
-                }
+                // Always dock to the default bottom-right spot defined in CSS on open.
+                // (Computing a custom position from app-inner's rect was unreliable and
+                // could place the calculator off-screen or over other controls.)
+                state.calcPosition = { x: null, y: null };
             }
             render();
         }
@@ -15874,8 +16230,17 @@ document.addEventListener('click', function(e) {
 
     // CBT MODE SELECTION
     if (action === 'cbt-mode') {
-        state.cbtMode = el.getAttribute('data-mode');
-        state.cbtSelected = [];
+        const mode = el.getAttribute('data-mode');
+        state.cbtMode = mode;
+        if (mode === 'full') {
+            // Full CBT always covers the student's existing subject combo —
+            // no need to ask them to re-pick English + electives they already enrolled in.
+            const myElectives = getMySubjectIds().filter(function(sid) { return sid !== 'eng'; });
+            const requiredSubjects = state.settingsCache.cbtSubjectCount || 3;
+            state.cbtSelected = (myElectives.length === requiredSubjects) ? myElectives.slice() : [];
+        } else {
+            state.cbtSelected = [];
+        }
         render();
         return;
     }
@@ -18150,6 +18515,14 @@ if (action === 'browse-filter') {
             mode: mode,
         };
         render();
+        return;
+    }
+
+    if (action === 'ask-ai-question') {
+        const key = el.getAttribute('data-aikey');
+        const entry = aiQuestionCache[key];
+        if (!entry) { showToast('Could not load this question. Please try again.', 'error'); return; }
+        askAiAboutQuestion(entry.item, entry.subjectName, entry.userAnswerIdx);
         return;
     }
 
