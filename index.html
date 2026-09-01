@@ -3545,31 +3545,6 @@
         }
     }
 
-    #pwa-install-btn {
-        position: fixed;
-        right: 16px;
-        top: max(12px, env(safe-area-inset-top));
-        z-index: 400;
-        display: none;
-        align-items: center;
-        gap: 8px;
-        background: linear-gradient(145deg, var(--green) 0%, var(--green-dark) 100%);
-        color: #fff;
-        border: none;
-        border-radius: 999px;
-        padding: 10px 16px 10px 12px;
-        font-size: 12px;
-        font-weight: 700;
-        box-shadow: 0 8px 24px rgba(15, 107, 63, 0.4);
-        cursor: pointer;
-        animation: pwaPulse 2.4s ease-in-out infinite;
-    }
-    #pwa-install-btn svg {
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-    }
-    #pwa-install-btn.show { display: flex; }
     @keyframes pwaPulse {
         0%, 100% { box-shadow: 0 8px 24px rgba(15, 107, 63, 0.4); }
         50% { box-shadow: 0 8px 28px rgba(228, 169, 58, 0.5); }
@@ -4840,10 +4815,7 @@
 </head>
 <body>
 <div id="root"></div>
-<button id="pwa-install-btn" aria-label="Install app">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
-    Install App
-</button>
+
 <div id="pwa-ios-tip">
     <span>📲 Install: tap <b>Share</b> then <b>"Add to Home Screen"</b></span>
     <button id="pwa-ios-tip-close" aria-label="Dismiss">×</button>
@@ -5831,6 +5803,7 @@ myEnrollmentsLoading: false,
     showPassword: {},
     activateIconDismissed: false,
     showActivationBanner: false,
+    pwaInstallAvailable: false,
     
     showFlagModal: false,
     flagModalData: null,
@@ -9444,11 +9417,37 @@ async function startLiteratureCbt() {
     
     const settings = await loadSettings();
     const perBatch = settings.novelQuestionsPerSubject || 40;
-    const questions = await window.OfflineDB.loadQuestionsOffline('NOVEL (CBT)', 'lhm', null, perBatch);
+
+    let questions = [];
+    try {
+        questions = await withNetworkTimeout(
+            window.OfflineDB.loadQuestionsOffline('NOVEL (CBT)', 'lhm', null, perBatch),
+            15000, 'Novel questions load'
+        );
+    } catch (e) {
+        console.warn('Novel (CBT) load timed out or failed:', e);
+        questions = [];
+    }
+
+    // Nothing found locally — the lhm subject file may simply not have
+    // synced yet (fresh install, cleared cache, etc). Try syncing it once
+    // from the server before giving up, instead of hanging or failing silently.
+    if ((!questions || questions.length === 0) && window.OfflineDB && typeof window.OfflineDB.syncAllSubjectFiles === 'function') {
+        try {
+            await withNetworkTimeout(window.OfflineDB.syncAllSubjectFiles(['lhm']), 15000, 'Novel file sync');
+            questions = await withNetworkTimeout(
+                window.OfflineDB.loadQuestionsOffline('NOVEL (CBT)', 'lhm', null, perBatch),
+                15000, 'Novel questions reload'
+            );
+        } catch (e) {
+            console.warn('Novel (CBT) sync/retry failed:', e);
+        }
+    }
+
     state.isLoading = false;
     
-    if (questions.length === 0) {
-        showToast('No Novel questions available.', 'error');
+    if (!questions || questions.length === 0) {
+        showNetworkAwareError('No Novel questions available yet.', new Error('No Novel (CBT) questions found for lhm'));
         render();
         return;
     }
@@ -10390,9 +10389,9 @@ function renderFaqPage() {
         '<div class="faq-section">' +
         '<h2 class="faq-section-title">Policies</h2>' +
         '<p class="faq-section-sub">Please review our policies before using MyUTME.</p>' +
-        '<a class="faq-policy-row" href="https://myutme.name.ng/privacy.html" target="_blank" rel="noopener noreferrer">' +
+        '<a class="faq-policy-row" href="https://myutme.com.ng/privacy.html" target="_blank" rel="noopener noreferrer">' +
         '<span>Privacy Policy</span>' + svg('chevleft', 15).replace('<path d="M15 18l-6-6 6-6"/>', '<path d="M9 18l6-6-6-6"/>') + '</a>' +
-        '<a class="faq-policy-row" href="https://myutme.name.ng/terms.html" target="_blank" rel="noopener noreferrer">' +
+        '<a class="faq-policy-row" href="https://myutme.com.ng/terms.html" target="_blank" rel="noopener noreferrer">' +
         '<span>Terms of Service</span>' + svg('chevleft', 15).replace('<path d="M15 18l-6-6 6-6"/>', '<path d="M9 18l6-6-6-6"/>') + '</a>' +
         '</div>' +
 
@@ -13067,6 +13066,9 @@ function renderProfile() {
         { key: 'set-view|activate', icon: '🔑', color: '#d49a2e', title: 'Activate', sub: 'Manage your subscription' },
         { key: 'set-view|support', icon: '💬', color: '#4C5FD5', title: 'Support', sub: 'Chat with us or WhatsApp' },
     ];
+    if (state.pwaInstallAvailable && !isStandaloneApp()) {
+        menuItems.push({ key: 'trigger-pwa-install', icon: '⬇️', color: '#0F6B3F', title: 'Install App', sub: 'Add MyUTME to your home screen' });
+    }
     
     let menuHtml = '<div class="acct-menu-grid">';
     menuItems.forEach(function(item) {
@@ -13108,8 +13110,8 @@ function renderProfile() {
     let bottomHtml = (
         '<button class="btn btn-outline" style="padding:10px;margin-top:4px" data-action="sign-out">Sign out</button>' +
         '<div style="display:flex;gap:10px;justify-content:center;margin-top:12px">' +
-        '<a href="https://myutme.name.ng/privacy.html" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--faint);text-decoration:underline">Privacy Policy</a>' +
-        '<a href="https://myutme.name.ng/terms.html" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--faint);text-decoration:underline">Terms of Service</a>' +
+        '<a href="https://myutme.com.ng/privacy.html" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--faint);text-decoration:underline">Privacy Policy</a>' +
+        '<a href="https://myutme.com.ng/terms.html" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--faint);text-decoration:underline">Terms of Service</a>' +
         '</div>'
     );
     
@@ -20707,7 +20709,6 @@ if ("serviceWorker" in navigator) {
 }
 
 (function () {
-    const installBtn = document.getElementById("pwa-install-btn");
     const iosTip = document.getElementById("pwa-ios-tip");
     const iosTipClose = document.getElementById("pwa-ios-tip-close");
     let deferredPrompt = null;
@@ -20724,31 +20725,24 @@ if ("serviceWorker" in navigator) {
     window.addEventListener("beforeinstallprompt", function (e) {
         e.preventDefault();
         deferredPrompt = e;
-        if (installBtn) installBtn.classList.add("show");
+        state.pwaInstallAvailable = true;
+        if (typeof render === "function") render();
     });
 
-    if (installBtn) {
-        installBtn.addEventListener("click", async function () {
-            if (!deferredPrompt) return;
-            installBtn.classList.remove("show");
-            deferredPrompt.prompt();
-            const choice = await deferredPrompt.userChoice;
-            deferredPrompt = null;
-        });
-    }
-
     window.addEventListener("appinstalled", function () {
-        if (installBtn) installBtn.classList.remove("show");
-        if (iosTip) iosTip.classList.remove("show");
         deferredPrompt = null;
+        state.pwaInstallAvailable = false;
+        if (iosTip) iosTip.classList.remove("show");
+        if (typeof render === "function") render();
     });
 
     window.triggerPWAInstall = async function () {
         if (deferredPrompt) {
-            if (installBtn) installBtn.classList.remove("show");
             deferredPrompt.prompt();
             await deferredPrompt.userChoice;
             deferredPrompt = null;
+            state.pwaInstallAvailable = false;
+            if (typeof render === "function") render();
             return;
         }
         const isIOSDevice = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -20762,9 +20756,11 @@ if ("serviceWorker" in navigator) {
 
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const isSafari = /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
-    if (isIOS && isSafari && iosTip) {
+    if (isIOS && isSafari) {
+        state.pwaInstallAvailable = true;
+        if (typeof render === "function") render();
         const dismissed = storage.get("pwaIosTipDismissed");
-        if (!dismissed) {
+        if (!dismissed && iosTip) {
             setTimeout(function () { iosTip.classList.add("show"); }, 2500);
         }
     }
@@ -20775,7 +20771,6 @@ if ("serviceWorker" in navigator) {
         });
     }
 })();
-
 // Placeholder for offline-db functions (moved to offline-db.js)
 // These are here to prevent reference errors if offline-db.js hasn't loaded yet
 async function loadTopics(subjectId) {
