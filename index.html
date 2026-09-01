@@ -177,6 +177,7 @@
 
     #app-shell {
         min-height: 100vh;
+        min-height: 100dvh;
         width: 100%;
         display: flex;
         justify-content: center;
@@ -187,6 +188,7 @@
         width: 100%;
         max-width: 384px;
         min-height: 100vh;
+        min-height: 100dvh;
         background: var(--card-bg);
         position: relative;
         display: flex;
@@ -194,6 +196,7 @@
         box-shadow: var(--shadow);
         transition: background 0.3s, box-shadow 0.3s;
         max-height: 100vh;
+        max-height: 100dvh;
         overflow: hidden;
     }
 
@@ -1695,136 +1698,720 @@
     }
     .toggle-switch.active .slider { transform: translateX(20px); }
 
-    .auth-overlay {
+    /* ============================================================
+       AUTH — full-screen Login / Signup / Forgot / Reset pages
+       ============================================================ */
+    .auth-overlay, .reset-overlay {
         position: fixed;
         inset: 0;
-        z-index: 100;
+        z-index: 200;
+        display: flex;
+        justify-content: center;
+        background: var(--card-bg);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        animation: fadeIn 0.25s ease;
+    }
+    .auth-modal, .reset-modal {
+        width: 100%;
+        max-width: 440px;
+        min-height: 100%;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        background: var(--card-bg);
+        position: relative;
+    }
+    .auth-hero {
+        flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(155deg, var(--green) 0%, var(--green-dark) 100%);
+        padding: max(18px, env(safe-area-inset-top)) 24px 46px;
+        color: #fff;
+    }
+    .auth-hero::before {
+        content: "";
+        position: absolute;
+        top: -60px;
+        right: -50px;
+        width: 190px;
+        height: 190px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(228,169,58,0.30) 0%, rgba(228,169,58,0) 70%);
+    }
+    .auth-hero::after {
+        content: "";
+        position: absolute;
+        bottom: -70px;
+        left: -40px;
+        width: 160px;
+        height: 160px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 70%);
+    }
+    .auth-hero-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        z-index: 1;
+        margin-bottom: 22px;
+    }
+    .auth-back-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.16);
+        border: none;
+        color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 20px;
-        animation: fadeIn 0.2s ease;
-    }
-    .auth-modal {
-        background: var(--modal-bg);
-        border-radius: 20px;
-        padding: 24px 20px 20px;
-        max-width: 340px;
-        width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        position: relative;
-        transition: background 0.3s;
-    }
-    .auth-modal .close-x {
-        position: absolute;
-        top: 10px;
-        right: 14px;
-        font-size: 20px;
-        color: var(--muted);
         cursor: pointer;
-        line-height: 1;
-        padding: 4px 6px;
-        border-radius: 4px;
+        flex-shrink: 0;
+        transition: background 0.15s;
     }
-    .auth-modal .close-x:hover { background: var(--bg); }
-    .auth-modal h2 {
+    .auth-back-btn:hover { background: rgba(255,255,255,0.28); }
+    .auth-hero-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         font-family: var(--font-serif);
-        font-size: 22px;
-        margin: 0 0 2px;
-        color: var(--ink);
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: 0.01em;
     }
-    .auth-modal .sub {
+    .auth-hero-brand .g { color: var(--gold); }
+    .auth-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.14);
+        border: 1px solid rgba(255,255,255,0.22);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        position: relative;
+        z-index: 1;
+    }
+    .auth-hero h1 {
+        font-family: var(--font-serif);
+        font-size: 26px;
+        line-height: 1.15;
+        margin: 0 0 8px;
+        position: relative;
+        z-index: 1;
+    }
+    .auth-hero .sub {
+        font-size: 13.5px;
+        line-height: 1.5;
+        color: rgba(255,255,255,0.82);
+        max-width: 320px;
+        position: relative;
+        z-index: 1;
+        margin: 0;
+    }
+    .auth-sheet {
+        flex: 1;
+        background: var(--card-bg);
+        border-radius: 26px 26px 0 0;
+        margin-top: -22px;
+        position: relative;
+        z-index: 2;
+        padding: 26px 22px calc(24px + env(safe-area-inset-bottom));
+        box-shadow: 0 -12px 30px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+    }
+    .auth-modal .field-group, .reset-modal .field-group { margin-bottom: 15px; }
+    .auth-modal .field-group label, .reset-modal .field-group label {
         font-size: 12px;
-        color: var(--muted);
-        margin: 0 0 14px;
-    }
-    .auth-modal .field-group { margin-bottom: 10px; }
-    .auth-modal .field-group label {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--muted);
+        font-weight: 700;
+        color: var(--ink);
         display: block;
-        margin-bottom: 3px;
+        margin-bottom: 6px;
     }
-    .auth-modal .field-group input {
+    .af-input-wrap { position: relative; display: flex; align-items: center; }
+    .af-input-wrap .af-ic {
+        position: absolute;
+        left: 14px;
+        color: var(--faint);
+        pointer-events: none;
+        display: flex;
+    }
+    .af-input-wrap input {
+        width: 100%;
+        padding: 13px 14px 13px 42px;
+        border-radius: 13px;
+        border: 1.5px solid var(--line);
+        background: var(--bg);
+        font-family: var(--font-sans);
+        font-size: 14.5px;
+        color: var(--ink);
+        outline: none;
+        transition: border 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .af-input-wrap input::placeholder { color: var(--faint); }
+    .af-input-wrap input:focus {
+        border-color: var(--green);
+        background: var(--card-bg);
+        box-shadow: 0 0 0 4px rgba(15, 107, 63, 0.12);
+    }
+    .af-input-wrap.has-toggle input { padding-right: 44px; }
+    .af-input-wrap .password-toggle {
+        position: absolute;
+        right: 12px;
+        background: none;
+        border: none;
+        color: var(--faint);
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        padding: 4px;
+    }
+    .af-input-wrap .password-toggle:hover { color: var(--ink); }
+    .auth-modal .field-group input:not(.af-input-wrap input),
+    .reset-modal .field-group input:not(.af-input-wrap input) {
         width: 100%;
         padding: 8px 12px;
         border-radius: 8px;
         border: 1.5px solid var(--line);
         font-size: 14px;
         outline: none;
-        transition: border 0.15s;
     }
-    .auth-modal .field-group input:focus {
-        border-color: var(--green);
-        box-shadow: 0 0 0 3px rgba(15, 107, 63, 0.12);
+    .af-error {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        background: #FDEDEA;
+        border: 1px solid #F3C8C0;
+        color: #C0392B;
+        padding: 10px 12px;
+        border-radius: 11px;
+        font-size: 12.5px;
+        line-height: 1.4;
+        margin: -3px 0 14px;
     }
-    .auth-modal .btn-submit {
+    [data-theme="dark"] .af-error { background: rgba(194,57,43,0.14); border-color: rgba(194,57,43,0.35); color: #ff8a7a; }
+    .auth-modal .btn-submit, .reset-modal .btn-submit {
         width: 100%;
-        padding: 10px;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 14px;
-        background: var(--green);
+        padding: 15px;
+        border-radius: 14px;
+        font-weight: 800;
+        font-size: 15px;
+        letter-spacing: 0.01em;
+        background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
         color: #fff;
         border: none;
         cursor: pointer;
-        transition: background 0.15s;
-        margin-top: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 10px 22px rgba(15,107,63,0.28);
+        transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+        margin-top: 4px;
     }
-    .auth-modal .btn-submit:hover { background: var(--green-dark); }
-    .auth-modal .btn-submit:disabled {
-        opacity: 0.6;
+    .auth-modal .btn-submit:active, .reset-modal .btn-submit:active { transform: scale(0.98); }
+    .auth-modal .btn-submit:disabled, .reset-modal .btn-submit:disabled {
+        opacity: 0.65;
         cursor: not-allowed;
+        box-shadow: none;
     }
-    .auth-modal .switch-link {
+    .auth-modal .switch-link, .reset-modal .switch-link {
         text-align: center;
-        font-size: 12px;
+        font-size: 13px;
         color: var(--muted);
-        margin-top: 10px;
+        margin-top: 20px;
     }
-    .auth-modal .switch-link button {
+    .auth-modal .switch-link button, .reset-modal .switch-link button {
         color: var(--green);
+        font-weight: 800;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+    .auth-modal .switch-link button:hover, .reset-modal .switch-link button:hover { color: var(--green-dark); }
+    .af-forgot-link {
+        text-align: right;
+        margin: -8px 0 16px;
+    }
+    .af-forgot-link button {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--green);
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+    .af-perks {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 4px 0 22px;
+        padding: 14px 15px;
+        background: var(--green-light);
+        border-radius: 14px;
+    }
+    [data-theme="dark"] .af-perks { background: rgba(15,107,63,0.15); }
+    .af-perk { display: flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 600; color: var(--ink); }
+    .af-perk svg { color: var(--green); flex-shrink: 0; }
+    .af-success {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px 4px;
+    }
+    .af-success-icon {
+        width: 68px;
+        height: 68px;
+        border-radius: 999px;
+        background: var(--green-light);
+        color: var(--green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 18px;
+    }
+    [data-theme="dark"] .af-success-icon { background: rgba(15,107,63,0.18); }
+    .af-success h2 {
+        font-family: var(--font-serif);
+        font-size: 21px;
+        color: var(--ink);
+        margin: 0 0 8px;
+    }
+    .af-success p {
+        font-size: 13.5px;
+        color: var(--muted);
+        line-height: 1.55;
+        max-width: 300px;
+        margin: 0 0 26px;
+    }
+    .af-success p b { color: var(--ink); }
+    .af-success .btn-submit { max-width: 320px; }
+    .af-resend {
+        margin-top: 14px;
+        font-size: 12.5px;
+        color: var(--muted);
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+    .af-resend b { color: var(--green); }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.99); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    /* ============================================================
+       AUTH GATE — replaces "guest browsing"; shown whenever no one
+       is logged in. Only path in (besides Log in / Sign up) is the
+       public Help & FAQs page, and only on the website.
+       ============================================================ */
+    #app-inner.gate-shell { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .gate-hero {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(155deg, var(--green) 0%, var(--green-dark) 100%);
+        padding: max(36px, env(safe-area-inset-top)) 26px 54px;
+        color: #fff;
+        text-align: center;
+    }
+    .gate-hero::before {
+        content: "";
+        position: absolute;
+        top: -70px;
+        right: -60px;
+        width: 220px;
+        height: 220px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(228,169,58,0.32) 0%, rgba(228,169,58,0) 70%);
+    }
+    .gate-hero::after {
+        content: "";
+        position: absolute;
+        bottom: -80px;
+        left: -50px;
+        width: 190px;
+        height: 190px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 70%);
+    }
+    .gate-brand {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-family: var(--font-serif);
+        font-weight: 700;
+        font-size: 17px;
+        margin-bottom: 22px;
+    }
+    .gate-brand .g { color: var(--gold); }
+    .gate-hero h1 {
+        position: relative;
+        z-index: 1;
+        font-family: var(--font-serif);
+        font-size: 27px;
+        line-height: 1.22;
+        margin: 0 0 10px;
+    }
+    .gate-hero .sub {
+        position: relative;
+        z-index: 1;
+        font-size: 13.5px;
+        line-height: 1.55;
+        color: rgba(255,255,255,0.85);
+        max-width: 320px;
+        margin: 0 auto;
+    }
+    .gate-sheet {
+        background: var(--card-bg);
+        border-radius: 26px 26px 0 0;
+        margin-top: -24px;
+        position: relative;
+        z-index: 2;
+        padding: 26px 22px calc(28px + env(safe-area-inset-bottom));
+        box-shadow: 0 -12px 30px rgba(0,0,0,0.05);
+    }
+    .gate-perks {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    .gate-perk {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
         font-weight: 600;
+        color: var(--ink);
+    }
+    .gate-perk .ic {
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
+        background: var(--green-light);
+        color: var(--green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    [data-theme="dark"] .gate-perk .ic { background: rgba(15,107,63,0.18); }
+    .gate-btn-primary {
+        width: 100%;
+        padding: 15px;
+        border-radius: 14px;
+        font-weight: 800;
+        font-size: 15px;
+        background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 10px 22px rgba(15,107,63,0.28);
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .gate-btn-primary:active { transform: scale(0.98); }
+    .gate-btn-outline {
+        width: 100%;
+        padding: 14px;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 14px;
+        background: var(--bg);
+        color: var(--ink);
+        border: 1.5px solid var(--line);
+        cursor: pointer;
+        margin-bottom: 4px;
+    }
+    .gate-link {
+        display: block;
+        width: 100%;
+        text-align: center;
+        margin-top: 18px;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--green);
         background: none;
         border: none;
         cursor: pointer;
         text-decoration: underline;
+        text-underline-offset: 2px;
     }
-    .auth-modal .switch-link button:hover { color: var(--green-dark); }
 
-    /* Reset Password Modal */
-    .reset-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 100;
+    /* ============================================================
+       HELP & FAQs — long scrollable public page (website only).
+       Features, FAQs, policies and support in one place.
+       ============================================================ */
+    #app-inner.faq-shell { overflow: hidden; display: flex; flex-direction: column; }
+    .faq-topbar {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: max(12px, env(safe-area-inset-top)) 14px 12px;
+        background: var(--topbar-bg);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .faq-topbar-brand {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-family: var(--font-serif);
+        font-weight: 700;
+        font-size: 14px;
+        color: #fff;
+    }
+    .faq-topbar-brand b { color: var(--gold); font-weight: 700; }
+    .faq-topbar-auth { display: flex; gap: 6px; }
+    .faq-scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .faq-hero {
+        background: linear-gradient(155deg, var(--green) 0%, var(--green-dark) 100%);
+        color: #fff;
+        text-align: center;
+        padding: 30px 22px 40px;
+        position: relative;
+        overflow: hidden;
+    }
+    .faq-hero::before {
+        content: "";
+        position: absolute;
+        top: -50px;
+        right: -40px;
+        width: 170px;
+        height: 170px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(228,169,58,0.28) 0%, rgba(228,169,58,0) 70%);
+    }
+    .faq-hero h1 {
+        position: relative;
+        z-index: 1;
+        font-family: var(--font-serif);
+        font-size: 23px;
+        margin: 0 0 8px;
+    }
+    .faq-hero p {
+        position: relative;
+        z-index: 1;
+        font-size: 13px;
+        color: rgba(255,255,255,0.85);
+        max-width: 300px;
+        margin: 0 auto;
+        line-height: 1.5;
+    }
+    .faq-section {
+        padding: 26px 18px 6px;
+    }
+    .faq-section-title {
+        font-family: var(--font-serif);
+        font-size: 19px;
+        color: var(--ink);
+        margin: 0 0 4px;
+    }
+    .faq-section-sub {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin: 0 0 18px;
+        line-height: 1.5;
+    }
+    .faq-feature {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 26px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        overflow: hidden;
+    }
+    .faq-feature-img {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        background: var(--green-light);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 20px;
-        animation: fadeIn 0.2s ease;
+        overflow: hidden;
     }
-    .reset-modal {
-        background: var(--modal-bg);
-        border-radius: 20px;
-        padding: 24px 20px 20px;
-        max-width: 340px;
+    [data-theme="dark"] .faq-feature-img { background: rgba(15,107,63,0.14); }
+    .faq-feature-img img {
         width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        position: relative;
-        transition: background 0.3s;
+        height: 100%;
+        object-fit: cover;
+        display: block;
     }
+    .faq-feature-img-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        color: var(--green);
+        opacity: 0.55;
+    }
+    .faq-feature-img-placeholder span {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted);
+        opacity: 1;
+    }
+    .faq-admin-upload-btn {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.6);
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+    }
+    .faq-feature-body { padding: 4px 16px 18px; }
+    .faq-feature-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        background: linear-gradient(145deg, var(--green) 0%, var(--green-dark) 100%);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+    .faq-feature-body h3 {
+        font-size: 15.5px;
+        color: var(--ink);
+        margin: 0 0 6px;
+        font-weight: 700;
+    }
+    .faq-feature-body p {
+        font-size: 12.5px;
+        color: var(--muted);
+        line-height: 1.6;
+        margin: 0;
+    }
+    .faq-qa-item {
+        border-bottom: 1px solid var(--line);
+    }
+    .faq-qa-q {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: none;
+        border: none;
+        text-align: left;
+        padding: 15px 2px;
+        cursor: pointer;
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--ink);
+    }
+    .faq-qa-q svg {
+        flex-shrink: 0;
+        color: var(--muted);
+        transition: transform 0.2s;
+    }
+    .faq-qa-item.open .faq-qa-q svg { transform: rotate(180deg); color: var(--green); }
+    .faq-qa-a {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.25s ease;
+    }
+    .faq-qa-item.open .faq-qa-a { max-height: 400px; }
+    .faq-qa-a p {
+        font-size: 12.5px;
+        color: var(--muted);
+        line-height: 1.6;
+        margin: 0 2px 16px;
+    }
+    .faq-policy-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 4px;
+        border-bottom: 1px solid var(--line);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        text-decoration: none;
+    }
+    .faq-policy-row svg:last-child { color: var(--faint); }
+    .faq-support-box {
+        background: linear-gradient(145deg, var(--green) 0%, var(--green-dark) 100%);
+        border-radius: 18px;
+        padding: 22px 18px;
+        text-align: center;
+        color: #fff;
+        margin: 8px 0 4px;
+    }
+    .faq-support-box h3 { font-family: var(--font-serif); font-size: 17px; margin: 0 0 6px; }
+    .faq-support-box p { font-size: 12.5px; color: rgba(255,255,255,0.85); margin: 0 0 16px; }
+    .faq-support-box .btn-submit { background: #fff; color: var(--green-dark); box-shadow: none; max-width: 260px; margin: 0 auto; }
+    .faq-footer {
+        text-align: center;
+        padding: 28px 18px calc(30px + env(safe-area-inset-bottom));
+        font-size: 11px;
+        color: var(--faint);
+    }
+    .faq-footer .gate-btn-outline { max-width: 260px; margin: 0 auto 14px; }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.96); }
-        to { opacity: 1; transform: scale(1); }
+    /* FAQ image upload modal (admin) */
+    .faq-img-upload-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 260;
+        background: rgba(0,0,0,0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
     }
+    .faq-img-upload-modal {
+        background: var(--modal-bg);
+        border-radius: 18px;
+        padding: 20px;
+        max-width: 320px;
+        width: 100%;
+    }
+    .faq-img-upload-preview {
+        width: 100%;
+        aspect-ratio: 16/10;
+        border-radius: 12px;
+        background: var(--bg);
+        border: 1.5px dashed var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        margin: 12px 0;
+    }
+    .faq-img-upload-preview img { width: 100%; height: 100%; object-fit: cover; }
 
     /* Post-login Activation Banner */
     /* Persistent "Not Activated" signboard — sits at the top of the app,
@@ -2640,6 +3227,23 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+
+    /* Refresh buttons — replaces the old plain 🔄 emoji (rendered
+       inconsistently across devices/fonts) with a proper icon button. */
+    .btn-refresh {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    .btn-refresh svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        transition: transform 0.4s ease;
+    }
+    .btn-refresh:active svg { transform: rotate(180deg); }
+    .btn-refresh.is-spinning svg { animation: spin 0.8s linear infinite; }
 
     .search-box {
         width: 100%;
@@ -4220,6 +4824,35 @@
 <script src="offline-db.js"></script>
 <script>
 // ============================================================
+//  VIEWPORT HEIGHT FIX
+// ============================================================
+// #app-inner and .view are capped with `max-height: var(--app-vh, 100vh)`
+// so that on-screen keyboards don't push content off-screen. But nothing
+// was ever setting --app-vh, so it silently fell back to 100vh — which on
+// a mobile browser tab (not installed as a PWA) is TALLER than the actual
+// visible area once the browser's own address bar / bottom toolbar are
+// accounted for. That's why the bottom nav icons were getting clipped or
+// hidden behind the browser chrome when the app wasn't installed. Once
+// installed as a standalone PWA there's no browser chrome, so it looked
+// fine there — which is exactly the "only broken when not installed"
+// symptom. Fix: measure the real visible height (visualViewport when
+// available, since it accounts for on-screen browser UI) and keep it
+// updated as that UI shows/hides, rotates, or the keyboard opens/closes.
+function setAppVh() {
+    var vh = (window.visualViewport && window.visualViewport.height) ?
+        window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty('--app-vh', vh + 'px');
+}
+setAppVh();
+window.addEventListener('resize', setAppVh);
+window.addEventListener('orientationchange', function() { setTimeout(setAppVh, 120); });
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', setAppVh);
+    window.visualViewport.addEventListener('scroll', setAppVh);
+}
+</script>
+<script>
+// ============================================================
 //  SUPABASE SETUP
 
 // ============================================================
@@ -4502,6 +5135,15 @@ const ICONS = {
     check: '<polyline points="20 6 9 17 4 12"/>',
     copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
     whatsapp: '<path d="M20.5 3.5A10.9 10.9 0 0 0 12.1 0C6 0 1.1 4.9 1.1 11c0 1.9.5 3.8 1.5 5.4L1 22l5.7-1.5A10.9 10.9 0 0 0 12.1 22c6.1 0 11-4.9 11-11 0-2.9-1.1-5.7-3.1-7.7zM12.1 20.1c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.4.9.9-3.3-.2-.4a9 9 0 0 1-1.4-4.8c0-5 4.1-9.1 9.1-9.1 2.4 0 4.7.9 6.4 2.7a9 9 0 0 1 2.7 6.5c0 5-4.1 9-9.1 9zm4.9-6.8c-.3-.1-1.6-.8-1.8-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.6l.4-.5c.1-.1.2-.3.2-.4.1-.2 0-.3 0-.5s-.6-1.6-.9-2.1c-.2-.5-.5-.5-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.6-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5 12 13l8.5-6.5"/>',
+    lock: '<rect x="5" y="10.5" width="14" height="9.5" rx="2.5"/><path d="M7.5 10.5V7.5a4.5 4.5 0 0 1 9 0v3"/>',
+    key: '<circle cx="7.5" cy="15.5" r="4"/><path d="M10.3 12.7 19.5 3.5"/><path d="M15.5 7.5l2.7 2.7"/><path d="M12.7 10.3l2.3 2.3"/>',
+    checkcircle: '<circle cx="12" cy="12" r="9.5"/><path d="M7.5 12.3l3 3 6-6.6"/>',
+    refresh: '<path d="M3 11a9 9 0 0 1 15.3-5.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 13a9 9 0 0 1-15.3 5.7L3 16"/><path d="M3 21v-5h5"/>',
+    arrowright: '<line x1="4" y1="12" x2="20" y2="12"/><polyline points="14 6 20 12 14 18"/>',
+    help: '<circle cx="12" cy="12" r="9.5"/><path d="M9.2 9a2.8 2.8 0 0 1 5.4 1c0 1.6-1.4 2-2.1 2.7-.4.4-.5.7-.5 1.3"/><line x1="12" y1="17" x2="12" y2="17.1"/>',
+    image: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15.5 16 11l-8.5 8.5"/>',
+    chevdown: '<polyline points="6 9 12 15 18 9"/>',
 };
 function svg(name, size) {
     const s = size || 24;
@@ -4824,6 +5466,7 @@ let state = {
     resetConfirm: "",
     resetError: null,
     resetSuccess: false,
+    resetEmailSent: false,
     loginEmail: "",
     loginPassword: "",
     signupFullName: "",
@@ -5132,7 +5775,14 @@ myEnrollmentsLoading: false,
         mockSubjectCount: 4,
         underConstruction: false,
         constructionReopenTime: null,
+        faqImages: {},
     },
+
+    showFaq: false,
+    faqOpen: {},
+    showFaqImageUpload: false,
+    faqImageUploadKey: null,
+    faqImageUploadFile: null,
 
     showSubmitModal: false,
     submitModalData: null,
@@ -5204,7 +5854,7 @@ async function loadAllUsers() {
             8000, 'Users load'
         );
         if (error) {
-            console.warn("Load users error:", error);
+            console.warn("Load users error:", extractErrorMessage(error), error);
             state.allUsers = [];
             state.allUsersError = error.message || 'Unknown error loading users.';
             return [];
@@ -5213,7 +5863,7 @@ async function loadAllUsers() {
         state.allUsersError = null;
         return state.allUsers;
     } catch (e) {
-        console.warn("Load users exception:", e);
+        console.warn("Load users exception:", extractErrorMessage(e), e);
         state.allUsers = [];
         state.allUsersError = (e && e.message) || 'Network or connection error.';
         return [];
@@ -5258,7 +5908,7 @@ async function loadLeaderboard(type) {
         );
 
         if (error) {
-            console.warn("Load leaderboard error:", error);
+            console.warn("Load leaderboard error:", extractErrorMessage(error), error);
             showNetworkAwareError("Couldn't load the leaderboard right now.", error);
             state.leaderboardData = [];
             state.loadingLeaderboard = false;
@@ -5289,7 +5939,7 @@ async function loadLeaderboard(type) {
         leaderboard.sort(function(a, b) { return b.score - a.score; });
         state.leaderboardData = leaderboard;
     } catch (e) {
-        console.warn("Load leaderboard exception:", e);
+        console.warn("Load leaderboard exception:", extractErrorMessage(e), e);
         showNetworkAwareError("Couldn't load the leaderboard right now.", e);
         state.leaderboardData = [];
     }
@@ -5487,6 +6137,10 @@ function loadOfflineCache(key) {
     } catch (e) { return null; }
 }
 function isOnline() { return navigator.onLine !== false; }
+function isStandaloneApp() {
+    return window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true;
+}
 
 // Recognizes a real database course ID vs a local DEFAULT_COURSES placeholder
 // like "course-jamb-math" (used only as a fallback before the courses table
@@ -5570,7 +6224,7 @@ async function loadSettings() {
             supabase.from('admin_settings').select('*'), 8000, 'Settings load'
         );
         if (error) {
-            console.warn("Load settings error:", error);
+            console.warn("Load settings error:", extractErrorMessage(error), error);
             return loadOfflineCache('settings') || state.settingsCache;
         }
         const settings = {};
@@ -5593,6 +6247,7 @@ async function loadSettings() {
             mockSubjectCount: settings.mock_settings?.subject_count || 4,
             underConstruction: settings.under_construction || false,
             constructionReopenTime: settings.construction_reopen_time || null,
+            faqImages: settings.faq_images || {},
         };
         state.settingsCache = result;
         return result;
@@ -6355,9 +7010,7 @@ async function sendPasswordReset(email) {
 
         if (error) throw error;
 
-        state.resetSuccess = true;
-        state.showReset = false;
-        showToast("Password reset email sent! Check your inbox.", "success");
+        state.resetEmailSent = true;
         render();
     } catch (err) {
         state.resetError = err.message || "Failed to send reset email. Please try again.";
@@ -9072,24 +9725,59 @@ function renderCalculator() {
 
 function renderResetModal() {
     if (!state.showReset) return '';
+
+    // Success state — email sent, shown inline instead of dumping back to the app
+    if (state.resetEmailSent) {
+        return (
+            '<div class="reset-overlay" data-action="close-auth">' +
+            '<div class="reset-modal" data-action="prevent-close">' +
+            '<div class="auth-hero" style="padding-bottom:34px">' +
+            '<div class="auth-hero-bar">' +
+            '<button class="auth-back-btn" data-action="switch-to-login">' + svg('chevleft', 18) + '</button>' +
+            '<div class="auth-hero-brand"><span>My</span><span class="g">UTME</span></div>' +
+            '<span style="width:36px"></span>' +
+            '</div>' +
+            '</div>' +
+            '<div class="auth-sheet">' +
+            '<div class="af-success">' +
+            '<div class="af-success-icon">' + svg('checkcircle', 34) + '</div>' +
+            '<h2>Check your inbox</h2>' +
+            '<p>We\'ve sent a secure password reset link to <b>' + esc(state.resetEmail) + '</b>. Open it on this device to set a new password.</p>' +
+            '<button class="btn-submit" data-action="switch-to-login">Back to Log in</button>' +
+            '<button class="af-resend" data-action="do-reset">Didn\'t get it? <b>Resend link</b></button>' +
+            '</div>' +
+            '</div>' +
+            '</div></div>'
+        );
+    }
+
     return (
         '<div class="reset-overlay" data-action="close-auth">' +
         '<div class="reset-modal" data-action="prevent-close">' +
-        '<button class="close-x" data-action="close-auth">×</button>' +
-        '<div style="width:48px;height:48px;border-radius:999px;background:linear-gradient(145deg,var(--green) 0%,var(--green-dark) 100%);display:flex;align-items:center;justify-content:center;margin:2px auto 12px;box-shadow:0 6px 16px rgba(15,107,63,0.25)">' +
-        svg('shield', 24).replace('stroke="currentColor"', 'stroke="white"') +
+        '<div class="auth-hero">' +
+        '<div class="auth-hero-bar">' +
+        '<button class="auth-back-btn" data-action="switch-to-login">' + svg('chevleft', 18) + '</button>' +
+        '<div class="auth-hero-brand"><span>My</span><span class="g">UTME</span></div>' +
+        '<span style="width:36px"></span>' +
         '</div>' +
-        '<h2 style="text-align:center;font-family:var(--font-serif);font-size:20px;margin:0 0 2px;color:var(--ink)">Reset Password</h2>' +
-        '<p class="sub" style="text-align:center">Enter the email linked to your account and we\'ll send a secure link to set a new password.</p>' +
+        '<div class="auth-hero-icon">' + svg('key', 24) + '</div>' +
+        '<h1>Forgot password?</h1>' +
+        '<p class="sub">No worries — enter the email linked to your account and we\'ll send you a secure link to set a new one.</p>' +
+        '</div>' +
+        '<div class="auth-sheet">' +
         '<div class="field-group">' +
         '<label>Email address</label>' +
+        '<div class="af-input-wrap">' +
+        '<span class="af-ic">' + svg('mail', 18) + '</span>' +
         '<input id="reset-email" type="email" placeholder="you@example.com" value="' + esc(state.resetEmail) + '" />' +
         '</div>' +
-        (state.resetError ? '<p style="color:#C0392B;font-size:12px;margin:-4px 0 10px;text-align:center">⚠️ ' + esc(state.resetError) + '</p>' : '') +
+        '</div>' +
+        (state.resetError ? '<div class="af-error">⚠️ ' + esc(state.resetError) + '</div>' : '') +
         '<button class="btn-submit" data-action="do-reset" ' + (state.authLoading ? 'disabled' : '') + '>' +
-        (state.authLoading ? 'Sending…' : '✉️ Send Reset Link') +
+        (state.authLoading ? 'Sending…' : 'Send Reset Link') +
         '</button>' +
         '<div class="switch-link">Remember your password? <button data-action="switch-to-login">Log in</button></div>' +
+        '</div>' +
         '</div></div>'
     );
 }
@@ -9102,11 +9790,20 @@ function renderPasswordResetForm() {
     if (state.resetSuccess) {
         return (
             '<div class="reset-overlay">' +
-            '<div class="reset-modal" style="text-align:center">' +
-            '<div style="width:56px;height:56px;border-radius:999px;background:var(--green);display:flex;align-items:center;justify-content:center;margin:2px auto 12px;font-size:26px">✅</div>' +
-            '<h2 style="font-family:var(--font-serif);font-size:20px;margin:0 0 2px;color:var(--ink)">Password Updated!</h2>' +
-            '<p class="sub">Your password has been changed. You can now log in with your new password.</p>' +
+            '<div class="reset-modal">' +
+            '<div class="auth-hero" style="padding-bottom:34px">' +
+            '<div class="auth-hero-bar">' +
+            '<div class="auth-hero-brand"><span>My</span><span class="g">UTME</span></div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="auth-sheet">' +
+            '<div class="af-success">' +
+            '<div class="af-success-icon">' + svg('checkcircle', 34) + '</div>' +
+            '<h2>Password updated!</h2>' +
+            '<p>Your password has been changed successfully. You can now log in with your new password.</p>' +
             '<button class="btn-submit" data-action="reset-goto-login">Go to Log in</button>' +
+            '</div>' +
+            '</div>' +
             '</div></div>'
         );
     }
@@ -9114,25 +9811,34 @@ function renderPasswordResetForm() {
     return (
         '<div class="reset-overlay">' +
         '<div class="reset-modal" data-action="prevent-close">' +
-        '<div style="width:48px;height:48px;border-radius:999px;background:linear-gradient(145deg,var(--gold) 0%,#d49a2e 100%);display:flex;align-items:center;justify-content:center;margin:2px auto 12px;box-shadow:0 6px 16px rgba(228,169,58,0.3);font-size:22px">🔑</div>' +
-        '<h2 style="text-align:center;font-family:var(--font-serif);font-size:20px;margin:0 0 2px;color:var(--ink)">Create New Password</h2>' +
-        '<p class="sub" style="text-align:center">Choose a strong new password for your account.</p>' +
+        '<div class="auth-hero">' +
+        '<div class="auth-hero-bar">' +
+        '<div class="auth-hero-brand"><span>My</span><span class="g">UTME</span></div>' +
+        '</div>' +
+        '<div class="auth-hero-icon">' + svg('lock', 24) + '</div>' +
+        '<h1>Create new password</h1>' +
+        '<p class="sub">Choose a strong new password for your account. Make it something only you would know.</p>' +
+        '</div>' +
+        '<div class="auth-sheet">' +
         '<div class="field-group">' +
-        '<label>New Password</label>' +
-        '<div class="password-wrapper">' +
+        '<label>New password</label>' +
+        '<div class="af-input-wrap has-toggle">' +
+        '<span class="af-ic">' + svg('lock', 18) + '</span>' +
         '<input id="reset-new-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="At least 6 characters" />' +
-        '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + svg(isShowing ? 'eyeoff' : 'eye', 20) + '</button>' +
+        '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + svg(isShowing ? 'eyeoff' : 'eye', 18) + '</button>' +
         '</div></div>' +
         '<div class="field-group">' +
-        '<label>Confirm Password</label>' +
-        '<div class="password-wrapper">' +
+        '<label>Confirm password</label>' +
+        '<div class="af-input-wrap has-toggle">' +
+        '<span class="af-ic">' + svg('lock', 18) + '</span>' +
         '<input id="reset-confirm-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="Re-enter password" />' +
-        '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + svg(isShowing ? 'eyeoff' : 'eye', 20) + '</button>' +
+        '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + svg(isShowing ? 'eyeoff' : 'eye', 18) + '</button>' +
         '</div></div>' +
-        (state.resetError ? '<p style="color:#C0392B;font-size:12px;margin:-4px 0 10px;text-align:center">⚠️ ' + esc(state.resetError) + '</p>' : '') +
+        (state.resetError ? '<div class="af-error">⚠️ ' + esc(state.resetError) + '</div>' : '') +
         '<button class="btn-submit" data-action="do-password-reset" ' + (state.authLoading ? 'disabled' : '') + '>' +
         (state.authLoading ? 'Updating…' : 'Update Password') +
         '</button>' +
+        '</div>' +
         '</div></div>'
     );
 }
@@ -9326,7 +10032,14 @@ function render() {
         return;
     }
 
-    let html = renderApp();
+    let html;
+    if (state.showFaq) {
+        html = renderFaqPage();
+    } else if (!state.authUser) {
+        html = renderAuthGate();
+    } else {
+        html = renderApp();
+    }
     
     if (state.showSubmitModal && state.submitModalData) {
         html += renderSubmitModal();
@@ -9357,6 +10070,9 @@ function render() {
     }
     if (state.showActivationBanner) {
         html += renderActivationBanner();
+    }
+    if (state.showFaqImageUpload) {
+        html += renderFaqImageUploadModal();
     }
     
     const urlParams = new URLSearchParams(window.location.search);
@@ -9460,6 +10176,226 @@ function renderUnderConstruction() {
 // ============================================================
 //  APP
 // ============================================================
+// ============================================================
+//  AUTH GATE — shown instead of the app whenever nobody is
+//  logged in. There is no more "guest browsing": the only ways
+//  forward are Log in, Sign up, or (website only) Help & FAQs.
+// ============================================================
+function renderAuthGate() {
+    const standalone = isStandaloneApp();
+    return (
+        '<div id="app-shell"><div id="app-inner" class="gate-shell">' +
+        '<div class="gate-hero">' +
+        '<div class="gate-brand">' + logoSvg(26) + '<span>My<span class="g">UTME</span></span></div>' +
+        '<h1>Nigeria&#39;s smartest way to prepare for JAMB</h1>' +
+        '<p class="sub">Real past questions, timed mock exams and an AI tutor in your pocket — everything you need to walk into JAMB ready.</p>' +
+        '</div>' +
+        '<div class="gate-sheet">' +
+        '<div class="gate-perks">' +
+        '<div class="gate-perk"><span class="ic">' + svg('bookopen', 18) + '</span> Practice real JAMB CBT-style questions</div>' +
+        '<div class="gate-perk"><span class="ic">' + svg('target', 18) + '</span> Sit timed mock exams that feel like the real thing</div>' +
+        '<div class="gate-perk"><span class="ic">' + svg('sparkles', 18) + '</span> Ask your AI tutor anything, anytime</div>' +
+        '<div class="gate-perk"><span class="ic">' + svg('chart', 18) + '</span> Track your progress subject by subject</div>' +
+        '</div>' +
+        '<button class="gate-btn-primary" data-action="show-signup">Create free account ' + svg('arrowright', 17) + '</button>' +
+        '<button class="gate-btn-outline" data-action="show-login">I already have an account</button>' +
+        (!standalone ? '<button class="gate-link" data-action="open-faq">Explore features, FAQs &amp; policies</button>' : '') +
+        '</div>' +
+        '</div></div>'
+    );
+}
+
+// ============================================================
+//  HELP & FAQs — long scrollable page explaining every feature,
+//  answering common questions, and linking policies & support.
+//  Website only (hidden in the installed app).
+// ============================================================
+const FAQ_FEATURES = [
+    { key: 'cbt_practice', icon: 'bookopen', title: 'Subject-by-Subject CBT Practice',
+      desc: 'Practice real, past JAMB-style questions one subject at a time, in the exact CBT format you\u2019ll see on exam day — same layout, same pressure, zero surprises.' },
+    { key: 'mock_exam', icon: 'target', title: 'Full Timed Mock Exams',
+      desc: 'Sit a complete 4-subject mock exam under real JAMB time limits. Get your UTME-style score instantly so you always know where you stand.' },
+    { key: 'ai_tutor', icon: 'sparkles', title: 'AI Tutor, 24/7',
+      desc: 'Stuck on a question or a topic? Ask your AI tutor and get a clear, patient explanation any time of day — like having a personal teacher on standby.' },
+    { key: 'topic_practice', icon: 'rotate', title: 'Topic-by-Topic Practice',
+      desc: 'Drill down into a specific topic inside any subject so you can master the areas that give you the most trouble, instead of studying everything at once.' },
+    { key: 'revise_weak', icon: 'rotate', title: 'Revise Weak Questions',
+      desc: 'The app quietly keeps track of every question you got wrong and lets you retry just those — so your revision time goes straight to what actually needs work.' },
+    { key: 'leaderboard', icon: 'trophy', title: 'Leaderboard & Rankings',
+      desc: 'See how you stack up against other students preparing for the same exam. A little friendly competition goes a long way for motivation.' },
+    { key: 'analytics', icon: 'chart', title: 'Performance Analytics',
+      desc: 'Detailed breakdowns of your strengths and weaknesses by subject and topic, so you can study smarter instead of just studying longer.' },
+    { key: 'offline_mode', icon: 'wifioff', title: 'Study Offline, Anytime',
+      desc: 'Low data or no data? No problem. Previously loaded questions and materials stay available so you can keep practicing even without a connection.' },
+    { key: 'notifications', icon: 'bell', title: 'Smart Reminders & Notifications',
+      desc: 'Gentle nudges to keep your study streak alive, plus alerts for new content, results and announcements — never miss anything important.' },
+    { key: 'wallet', icon: 'zap', title: 'Wallet & Easy Activation',
+      desc: 'Fund your wallet and activate your account in a few taps to unlock full access — simple, fast, and secure.' },
+    { key: 'calculator', icon: 'sparkles', title: 'Built-in Calculator',
+      desc: 'A handy on-screen calculator right inside practice and exam sessions for subjects that need quick working — no need to switch apps.' },
+    { key: 'support_chat', icon: 'chat', title: 'Real Human Support',
+      desc: 'Have a question or run into an issue? Reach our support team directly from inside the app and get a real response, not a bot loop.' },
+];
+
+const FAQ_QA = [
+    { q: 'Is MyUTME free to use?', a: 'You can create a free account and explore the app right away. Some features require account activation to unlock full access — see the Wallet & Activation section above for how that works.' },
+    { q: 'How do I activate my account?', a: 'Fund your wallet from the Account tab, then activate from the Activate menu. Activation unlocks full access to practice questions, mock exams and more.' },
+    { q: 'Can I use the app without internet?', a: 'Yes. Once questions and materials have loaded at least once, you can keep practicing offline. You\u2019ll need a connection again to sync new content, submit exams, or update your results.' },
+    { q: 'How accurate are the practice questions?', a: 'Our question bank is built from real past JAMB questions and carefully reviewed CBT-style questions, kept as close as possible to what you\u2019ll actually face on exam day.' },
+    { q: 'What subjects are covered?', a: 'All core JAMB subjects are covered. You can practice any subject individually, by topic, or combine them into a full mock exam just like the real UTME.' },
+    { q: 'How does the AI Tutor work?', a: 'The AI Tutor answers questions in plain language, explains concepts you\u2019re stuck on, and can walk you through why an answer is correct — available any time from the AI Tutor tab.' },
+    { q: 'I forgot my password — what do I do?', a: 'Tap "Log in", then "Forgot password?" and enter your email. We\u2019ll send you a secure link to set a new password.' },
+    { q: 'Is my information safe?', a: 'Yes. We only collect what\u2019s needed to run your account and never sell your data. See our full Privacy Policy for details.' },
+    { q: 'How do I contact support?', a: 'Once logged in, open the menu and tap "Support Chat" to reach our team directly, or use the contact button below.' },
+];
+
+function faqImgHtml(featureKey, altText) {
+    const url = (state.settingsCache.faqImages || {})[featureKey];
+    const adminBtn = isAdmin()
+        ? '<button class="faq-admin-upload-btn" data-action="open-faq-image-upload" data-key="' + esc(featureKey) + '">' +
+          svg('image', 13) + (url ? ' Change image' : ' Add image') + '</button>'
+        : '';
+    if (url) {
+        return '<div class="faq-feature-img"><img src="' + esc(url) + '" alt="' + esc(altText) + '" loading="lazy" />' + adminBtn + '</div>';
+    }
+    return (
+        '<div class="faq-feature-img">' +
+        '<div class="faq-feature-img-placeholder">' + svg('image', 30) + '<span>Screenshot coming soon</span></div>' +
+        adminBtn +
+        '</div>'
+    );
+}
+
+function renderFaqFeatureBlock(f) {
+    return (
+        '<div class="faq-feature">' +
+        faqImgHtml(f.key, f.title) +
+        '<div class="faq-feature-body">' +
+        '<div class="faq-feature-icon">' + svg(f.icon, 19) + '</div>' +
+        '<h3>' + esc(f.title) + '</h3>' +
+        '<p>' + esc(f.desc) + '</p>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
+function renderFaqQaItem(item, idx) {
+    const isOpen = !!state.faqOpen[idx];
+    return (
+        '<div class="faq-qa-item' + (isOpen ? ' open' : '') + '">' +
+        '<button class="faq-qa-q" data-action="toggle-faq-qa" data-idx="' + idx + '">' +
+        '<span>' + esc(item.q) + '</span>' + svg('chevdown', 16) +
+        '</button>' +
+        '<div class="faq-qa-a"><p>' + esc(item.a) + '</p></div>' +
+        '</div>'
+    );
+}
+
+function renderFaqPage() {
+    const loggedIn = !!state.authUser;
+
+    let topbarAuth = '<span style="width:36px"></span>';
+    if (!loggedIn) {
+        topbarAuth = '<div class="faq-topbar-auth">' +
+            '<button class="auth-btn" data-action="show-login">Log in</button>' +
+            '<button class="auth-btn gold" data-action="show-signup">Sign up</button>' +
+            '</div>';
+    }
+
+    let featuresHtml = '';
+    FAQ_FEATURES.forEach(function(f) { featuresHtml += renderFaqFeatureBlock(f); });
+
+    let qaHtml = '';
+    FAQ_QA.forEach(function(item, idx) { qaHtml += renderFaqQaItem(item, idx); });
+
+    return (
+        '<div id="app-shell"><div id="app-inner" class="faq-shell">' +
+        '<div class="faq-topbar">' +
+        '<button class="auth-back-btn" style="background:rgba(255,255,255,0.12);color:#fff" data-action="close-faq">' + svg('chevleft', 18) + '</button>' +
+        '<div class="faq-topbar-brand">' + logoSvg(18) + '<span>My<b>UTME</b></span></div>' +
+        topbarAuth +
+        '</div>' +
+        '<div class="faq-scroll">' +
+
+        '<div class="faq-hero">' +
+        '<h1>Help &amp; FAQs</h1>' +
+        '<p>Everything MyUTME can do for you — features, answers to common questions, and how to reach us.</p>' +
+        '</div>' +
+
+        '<div class="faq-section">' +
+        '<h2 class="faq-section-title">Explore the features</h2>' +
+        '<p class="faq-section-sub">A closer look at what you get with MyUTME.</p>' +
+        featuresHtml +
+        '</div>' +
+
+        '<div class="faq-section">' +
+        '<h2 class="faq-section-title">Frequently asked questions</h2>' +
+        '<p class="faq-section-sub">Can\u2019t find what you\u2019re looking for? Reach out to support below.</p>' +
+        qaHtml +
+        '</div>' +
+
+        '<div class="faq-section">' +
+        '<h2 class="faq-section-title">Policies</h2>' +
+        '<p class="faq-section-sub">Please review our policies before using MyUTME.</p>' +
+        '<a class="faq-policy-row" href="https://myutme.name.ng/privacy.html" target="_blank" rel="noopener noreferrer">' +
+        '<span>Privacy Policy</span>' + svg('chevleft', 15).replace('<path d="M15 18l-6-6 6-6"/>', '<path d="M9 18l6-6-6-6"/>') + '</a>' +
+        '<a class="faq-policy-row" href="https://myutme.name.ng/terms.html" target="_blank" rel="noopener noreferrer">' +
+        '<span>Terms of Service</span>' + svg('chevleft', 15).replace('<path d="M15 18l-6-6 6-6"/>', '<path d="M9 18l6-6-6-6"/>') + '</a>' +
+        '</div>' +
+
+        '<div class="faq-section" style="padding-bottom:6px">' +
+        '<div class="faq-support-box">' +
+        '<h3>Still need help?</h3>' +
+        '<p>Our support team is a message away.</p>' +
+        (loggedIn
+            ? '<button class="btn-submit" data-action="close-faq-to-support">Open Support Chat</button>'
+            : '<button class="btn-submit" data-action="show-signup">Create an account to chat</button>') +
+        '</div>' +
+        '</div>' +
+
+        '<div class="faq-footer">' +
+        (!loggedIn ? '<button class="gate-btn-outline" data-action="show-signup">Create free account</button>' : '') +
+        '<p>&copy; ' + new Date().getFullYear() + ' MyUTME. All rights reserved.</p>' +
+        '</div>' +
+
+        '</div>' +
+        '</div></div>'
+    );
+}
+
+// ============================================================
+//  ADMIN: FAQ FEATURE IMAGE UPLOAD
+// ============================================================
+function renderFaqImageUploadModal() {
+    if (!state.showFaqImageUpload) return '';
+    const key = state.faqImageUploadKey;
+    const feature = FAQ_FEATURES.find(function(f) { return f.key === key; });
+    const existing = (state.settingsCache.faqImages || {})[key];
+    const fileData = state.faqImageUploadFile;
+    const previewUrl = fileData ? fileData.dataUrl : existing;
+
+    return (
+        '<div class="faq-img-upload-overlay" data-action="cancel-faq-image-upload">' +
+        '<div class="faq-img-upload-modal" data-action="prevent-close">' +
+        '<h3 style="font-family:var(--font-serif);margin:0 0 4px;font-size:16px;color:var(--ink)">' + svg('image', 16) + ' ' +
+        esc(feature ? feature.title : 'Feature image') + '</h3>' +
+        '<p class="sub" style="font-size:12px;margin:0 0 4px">Upload a screenshot or image for this feature.</p>' +
+        '<div class="faq-img-upload-preview">' +
+        (previewUrl ? '<img src="' + esc(previewUrl) + '" alt="Preview" />' : svg('image', 34)) +
+        '</div>' +
+        '<input type="file" id="faq-image-file-input" accept="image/*" style="display:none" />' +
+        '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-bottom:8px;width:100%" data-action="choose-faq-image">Choose Image</button>' +
+        '<div class="btn-group">' +
+        '<button class="btn btn-green" style="padding:10px;font-size:13px" data-action="save-faq-image-upload" ' + (fileData ? '' : 'disabled style="opacity:0.5;pointer-events:none"') + '>Save</button>' +
+        '<button class="btn btn-outline" style="padding:10px;font-size:13px" data-action="cancel-faq-image-upload">Cancel</button>' +
+        '</div>' +
+        (existing ? '<button class="btn btn-outline" style="padding:8px;font-size:12px;width:100%;margin-top:8px;color:#C0392B" data-action="remove-faq-image">Remove image</button>' : '') +
+        '</div>' +
+        '</div>'
+    );
+}
+
+
 function renderApp() {
     const unread = unreadCount();
     const isLoggedIn = !!state.authUser;
@@ -12119,8 +13055,8 @@ function renderProfile() {
     let bottomHtml = (
         '<button class="btn btn-outline" style="padding:10px;margin-top:4px" data-action="sign-out">Sign out</button>' +
         '<div style="display:flex;gap:10px;justify-content:center;margin-top:12px">' +
-        '<a href="https://myutme.com.ng/privacy.html" style="font-size:11px;color:var(--faint);text-decoration:underline">Privacy Policy</a>' +
-        '<a href="https://myutme.com.ng/terms.html" style="font-size:11px;color:var(--faint);text-decoration:underline">Terms of Service</a>' +
+        '<a href="https://myutme.name.ng/privacy.html" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--faint);text-decoration:underline">Privacy Policy</a>' +
+        '<a href="https://myutme.name.ng/terms.html" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--faint);text-decoration:underline">Terms of Service</a>' +
         '</div>'
     );
     
@@ -13199,7 +14135,7 @@ function renderLeaderboard() {
         '<span>Rank</span><span>User</span><span>Score</span>' +
         '</div>' +
         rows +
-        '<button class="btn btn-outline" style="margin-top:12px;padding:10px" data-action="refresh-leaderboard">🔄 Refresh</button>'
+        '<button class="btn btn-outline btn-refresh" style="margin-top:12px;padding:10px" data-action="refresh-leaderboard">' + svg('refresh', 15) + ' Refresh</button>'
     );
 }
 
@@ -13784,7 +14720,7 @@ function renderAdminAnalytics() {
         [7, 14, 30].map(function(n) {
             return '<button class="btn btn-sm ' + (state.analyticsRange === n ? 'btn-green' : 'btn-outline') + '" data-action="analytics-range" data-range="' + n + '" style="flex:1">' + n + 'd</button>';
         }).join('') +
-        '<button class="btn btn-outline btn-sm" data-action="analytics-refresh" style="flex:0 0 auto;padding:6px 10px">🔄</button>' +
+        '<button class="btn btn-outline btn-sm btn-refresh" data-action="analytics-refresh" style="flex:0 0 auto;padding:6px 10px">' + svg('refresh', 15) + '</button>' +
         '</div>'
     );
 
@@ -14230,7 +15166,7 @@ function renderAdminLogs() {
     return (
         '<div class="admin-view-mode-header">' +
         '<span class="mode-title">📋 Activity Logs</span>' +
-        '<button class="btn btn-outline btn-sm" data-action="admin-refresh-logs">🔄 Refresh</button>' +
+        '<button class="btn btn-outline btn-sm btn-refresh" data-action="admin-refresh-logs">' + svg('refresh', 15) + ' Refresh</button>' +
         '</div>' +
         '<p style="font-size:11px;color:var(--muted);margin-bottom:10px">Showing last ' + Math.min(state.admin.logs.length, 200) + ' events</p>' +
         '<div style="max-height:350px;overflow-y:auto">' + rows + '</div>'
@@ -14264,7 +15200,7 @@ function renderAdminErrors() {
     return (
         '<div class="admin-view-mode-header">' +
         '<span class="mode-title">🐞 Error Log</span>' +
-        '<button class="btn btn-outline btn-sm" data-action="admin-refresh-errors">🔄 Refresh</button>' +
+        '<button class="btn btn-outline btn-sm btn-refresh" data-action="admin-refresh-errors">' + svg('refresh', 15) + ' Refresh</button>' +
         '</div>' +
         '<p style="font-size:11px;color:var(--muted);margin-bottom:10px">Errors users encountered, kept out of their view. Showing last ' + Math.min(state.admin.errors.length, 200) + '.</p>' +
         '<div style="max-height:350px;overflow-y:auto">' + rows + '</div>'
@@ -14810,7 +15746,7 @@ function renderAdminSettings() {
         '</select>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">' +
         '<button class="btn btn-outline" style="flex:1;padding:8px;font-size:12px" data-action="export-subject-file">⬇️ Export</button>' +
-        '<button class="btn btn-green" style="flex:1;padding:8px;font-size:12px" data-action="sync-subject-files-now">🔄 Sync All</button>' +
+        '<button class="btn btn-green btn-refresh" style="flex:1;padding:8px;font-size:12px" data-action="sync-subject-files-now">' + svg('refresh', 15) + ' Sync All</button>' +
         '</div>' +
         '<button class="btn btn-outline" style="padding:8px;font-size:12px" data-action="force-sync-subject-file">🔁 Force Replace</button>' +
         '</div>' +
@@ -14822,6 +15758,29 @@ function renderAdminSettings() {
         '<button class="btn btn-outline" style="flex:1;padding:8px;font-size:12px" data-action="offline-import-questions-trigger">⬆️ Import</button>' +
         '</div>' +
         '<input type="file" id="offline-import-file-input" accept="application/json" style="display:none" />' +
+        '</div>' +
+
+        '<div class="card" style="margin-top:10px">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 4px">' + svg('image', 15) + ' Help &amp; FAQs Page Images</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 12px">Upload a screenshot or image for each feature shown on the public Help &amp; FAQs page.</p>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+        FAQ_FEATURES.map(function(f) {
+            const url = (s.faqImages || {})[f.key];
+            return (
+                '<button data-action="open-faq-image-upload" data-key="' + esc(f.key) + '" style="border:1.5px solid var(--line);border-radius:10px;overflow:hidden;padding:0;background:var(--bg);cursor:pointer;text-align:left">' +
+                '<div style="width:100%;aspect-ratio:16/10;background:var(--green-light);display:flex;align-items:center;justify-content:center;overflow:hidden">' +
+                (url
+                    ? '<img src="' + esc(url) + '" style="width:100%;height:100%;object-fit:cover" alt="' + esc(f.title) + '" />'
+                    : svg('image', 22).replace('stroke="currentColor"', 'stroke="var(--green)"')) +
+                '</div>' +
+                '<div style="padding:6px 8px">' +
+                '<p style="font-size:10.5px;font-weight:700;color:var(--ink);margin:0 0 1px;line-height:1.3">' + esc(f.title) + '</p>' +
+                '<p style="font-size:9.5px;color:' + (url ? 'var(--green)' : 'var(--faint)') + ';margin:0">' + (url ? 'Uploaded — tap to change' : 'No image yet — tap to add') + '</p>' +
+                '</div>' +
+                '</button>'
+            );
+        }).join('') +
+        '</div>' +
         '</div>'
     );
 }
@@ -15491,6 +16450,14 @@ function renderDrawer(unread, isLoggedIn) {
         );
     });
 
+    if (!isStandaloneApp()) {
+        navItems += (
+            '<button class="drawer-item" data-action="open-faq">' +
+            '<span class="left">' + svg("help", 14) + ' Help &amp; FAQs</span>' +
+            '</button>'
+        );
+    }
+
     if (isAdmin()) {
         navItems += (
             '<button class="drawer-item admin' + (state.view === "admin" ? ' active' : '') +
@@ -15555,35 +16522,44 @@ function renderDrawer(unread, isLoggedIn) {
 // ============================================================
 function renderLoginModal() {
     const isShowing = state.showPassword['login'] || false;
-    
+
     return (
         '<div class="auth-overlay" data-action="close-auth">' +
         '<div class="auth-modal" data-action="prevent-close">' +
-        '<button class="close-x" data-action="close-auth">×</button>' +
-        '<h2 style="font-size:20px">Welcome back</h2>' +
-        '<p class="sub" style="font-size:12px">Log in with your email or username.</p>' +
+        '<div class="auth-hero">' +
+        '<div class="auth-hero-bar">' +
+        '<button class="auth-back-btn" data-action="close-auth">' + svg('chevleft', 18) + '</button>' +
+        '<div class="auth-hero-brand"><span>My</span><span class="g">UTME</span></div>' +
+        '<span style="width:36px"></span>' +
+        '</div>' +
+        '<div class="auth-hero-icon">' + svg('user', 24) + '</div>' +
+        '<h1>Welcome back</h1>' +
+        '<p class="sub">Log in to continue your JAMB prep — pick up your practice, mocks and progress right where you left off.</p>' +
+        '</div>' +
+        '<div class="auth-sheet">' +
         '<div class="field-group">' +
         '<label>Email or username</label>' +
-        '<input id="login-email" type="text" placeholder="you@example.com or username" value="' + esc(state.loginEmail) +
-        '" style="font-size:14px" />' +
+        '<div class="af-input-wrap">' +
+        '<span class="af-ic">' + svg('mail', 18) + '</span>' +
+        '<input id="login-email" type="text" placeholder="you@example.com or username" value="' + esc(state.loginEmail) + '" />' +
+        '</div>' +
         '</div>' +
         '<div class="field-group">' +
         '<label>Password</label>' +
-        '<div class="password-wrapper">' +
-        '<input id="login-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" style="font-size:14px" />' +
-        '<button class="password-toggle" data-action="toggle-password" data-field="login">' + 
-        svg(isShowing ? 'eyeoff' : 'eye', 18) + 
+        '<div class="af-input-wrap has-toggle">' +
+        '<span class="af-ic">' + svg('lock', 18) + '</span>' +
+        '<input id="login-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" />' +
+        '<button class="password-toggle" data-action="toggle-password" data-field="login">' +
+        svg(isShowing ? 'eyeoff' : 'eye', 18) +
         '</button>' +
         '</div>' +
         '</div>' +
-        (state.authError ? '<p style="color:#C0392B;font-size:12px;margin:-4px 0 10px">' + esc(state.authError) +
-            '</p>' : '') +
+        '<div class="af-forgot-link"><button data-action="switch-to-reset">Forgot password?</button></div>' +
+        (state.authError ? '<div class="af-error">⚠️ ' + esc(state.authError) + '</div>' : '') +
         '<button class="btn-submit" data-action="do-login" ' + (state.authLoading ? 'disabled' : '') + '>' +
-        (state.authLoading ? 'Signing in…' : 'Log in') +
+        (state.authLoading ? 'Signing in…' : 'Log in') + (state.authLoading ? '' : svg('arrowright', 18)) +
         '</button>' +
-        '<div class="switch-link" style="font-size:11px">' +
-        '<button data-action="switch-to-reset" style="font-size:11px">Forgot password?</button> &middot; ' +
-        'Don&#39;t have an account? <button data-action="switch-to-signup" style="font-size:11px">Sign up</button>' +
+        '<div class="switch-link">Don&#39;t have an account? <button data-action="switch-to-signup">Sign up</button></div>' +
         '</div>' +
         '</div>' +
         '</div>'
@@ -15592,52 +16568,72 @@ function renderLoginModal() {
 
 function renderSignupModal() {
     const isShowing = state.showPassword['signup'] || false;
-    
+
     return (
         '<div class="auth-overlay" data-action="close-auth">' +
         '<div class="auth-modal" data-action="prevent-close">' +
-        '<button class="close-x" data-action="close-auth">×</button>' +
-        '<h2 style="font-size:20px">Create account</h2>' +
-        '<p class="sub" style="font-size:12px">Start your JAMB prep journey today.</p>' +
+        '<div class="auth-hero">' +
+        '<div class="auth-hero-bar">' +
+        '<button class="auth-back-btn" data-action="close-auth">' + svg('chevleft', 18) + '</button>' +
+        '<div class="auth-hero-brand"><span>My</span><span class="g">UTME</span></div>' +
+        '<span style="width:36px"></span>' +
+        '</div>' +
+        '<div class="auth-hero-icon">' + svg('sparkles', 24) + '</div>' +
+        '<h1>Create your account</h1>' +
+        '<p class="sub">Start your JAMB prep journey today — free CBT practice, real past questions and mock exams.</p>' +
+        '</div>' +
+        '<div class="auth-sheet">' +
+        '<div class="af-perks">' +
+        '<div class="af-perk">' + svg('checkcircle', 16) + ' Practice real JAMB CBT-style questions</div>' +
+        '<div class="af-perk">' + svg('checkcircle', 16) + ' Timed mock exams that feel like the real thing</div>' +
+        '<div class="af-perk">' + svg('checkcircle', 16) + ' Track your progress subject by subject</div>' +
+        '</div>' +
         '<div class="field-group">' +
-        '<label>Full Name</label>' +
-        '<input id="signup-fullname" type="text" placeholder="e.g. Adebayo Habeeb" value="' + esc(state.signupFullName) + '" style="font-size:14px" />' +
+        '<label>Full name</label>' +
+        '<div class="af-input-wrap">' +
+        '<span class="af-ic">' + svg('user', 18) + '</span>' +
+        '<input id="signup-fullname" type="text" placeholder="e.g. Adebayo Habeeb" value="' + esc(state.signupFullName) + '" />' +
+        '</div>' +
         '</div>' +
         '<div class="field-group">' +
         '<label>Username <span style="color:var(--muted);font-weight:400">(unique)</span></label>' +
-        '<input id="signup-username" type="text" placeholder="e.g. james_2026" value="' + esc(state.signupUsername) +
-        '" style="font-size:14px" />' +
+        '<div class="af-input-wrap">' +
+        '<span class="af-ic">' + svg('user', 18) + '</span>' +
+        '<input id="signup-username" type="text" placeholder="e.g. james_2026" value="' + esc(state.signupUsername) + '" />' +
+        '</div>' +
         '</div>' +
         '<div class="field-group">' +
         '<label>Email address</label>' +
-        '<input id="signup-email" type="email" placeholder="you@example.com" value="' + esc(state.signupEmail) +
-        '" style="font-size:14px" />' +
+        '<div class="af-input-wrap">' +
+        '<span class="af-ic">' + svg('mail', 18) + '</span>' +
+        '<input id="signup-email" type="email" placeholder="you@example.com" value="' + esc(state.signupEmail) + '" />' +
+        '</div>' +
         '</div>' +
         '<div class="field-group">' +
         '<label>Password <span style="color:var(--muted);font-weight:400">(min 6 characters)</span></label>' +
-        '<div class="password-wrapper">' +
-        '<input id="signup-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" style="font-size:14px" />' +
-        '<button class="password-toggle" data-action="toggle-password" data-field="signup">' + 
-        svg(isShowing ? 'eyeoff' : 'eye', 18) + 
+        '<div class="af-input-wrap has-toggle">' +
+        '<span class="af-ic">' + svg('lock', 18) + '</span>' +
+        '<input id="signup-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" />' +
+        '<button class="password-toggle" data-action="toggle-password" data-field="signup">' +
+        svg(isShowing ? 'eyeoff' : 'eye', 18) +
         '</button>' +
         '</div>' +
         '</div>' +
         '<div class="field-group">' +
         '<label>Confirm password</label>' +
-        '<div class="password-wrapper">' +
-        '<input id="signup-confirm" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" style="font-size:14px" />' +
-        '<button class="password-toggle" data-action="toggle-password" data-field="signup">' + 
-        svg(isShowing ? 'eyeoff' : 'eye', 18) + 
+        '<div class="af-input-wrap has-toggle">' +
+        '<span class="af-ic">' + svg('lock', 18) + '</span>' +
+        '<input id="signup-confirm" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" />' +
+        '<button class="password-toggle" data-action="toggle-password" data-field="signup">' +
+        svg(isShowing ? 'eyeoff' : 'eye', 18) +
         '</button>' +
         '</div>' +
         '</div>' +
-        (state.authError ? '<p style="color:#C0392B;font-size:12px;margin:-4px 0 10px">' + esc(state.authError) +
-            '</p>' : '') +
+        (state.authError ? '<div class="af-error">⚠️ ' + esc(state.authError) + '</div>' : '') +
         '<button class="btn-submit" data-action="do-signup" ' + (state.authLoading ? 'disabled' : '') + '>' +
-        (state.authLoading ? 'Creating account…' : 'Create account') +
+        (state.authLoading ? 'Creating account…' : 'Create account') + (state.authLoading ? '' : svg('arrowright', 18)) +
         '</button>' +
-        '<div class="switch-link" style="font-size:11px">' +
-        'Already have an account? <button data-action="switch-to-login" style="font-size:11px">Log in</button>' +
+        '<div class="switch-link">Already have an account? <button data-action="switch-to-login">Log in</button></div>' +
         '</div>' +
         '</div>' +
         '</div>'
@@ -16147,6 +17143,7 @@ document.addEventListener('click', function(e) {
         state.showSignup = false;
         state.showReset = false;
         state.authError = null;
+        state.resetEmailSent = false;
         state.drawerOpen = false;
         render();
         return;
@@ -16156,6 +17153,7 @@ document.addEventListener('click', function(e) {
         state.showLogin = false;
         state.showReset = false;
         state.authError = null;
+        state.resetEmailSent = false;
         state.drawerOpen = false;
         render();
         return;
@@ -16166,6 +17164,7 @@ document.addEventListener('click', function(e) {
         state.showReset = true;
         state.authError = null;
         state.resetError = null;
+        state.resetEmailSent = false;
         render();
         return;
     }
@@ -16175,6 +17174,7 @@ document.addEventListener('click', function(e) {
         state.showReset = false;
         state.authError = null;
         state.resetError = null;
+        state.resetEmailSent = false;
         render();
         return;
     }
@@ -16183,6 +17183,7 @@ document.addEventListener('click', function(e) {
         state.showSignup = false;
         state.showReset = false;
         state.authError = null;
+        state.resetEmailSent = false;
         render();
         return;
     }
@@ -16191,6 +17192,7 @@ document.addEventListener('click', function(e) {
         state.showLogin = false;
         state.showReset = false;
         state.authError = null;
+        state.resetEmailSent = false;
         render();
         return;
     }
@@ -18998,6 +20000,103 @@ if (action === 'browse-filter') {
     }
 
     // ============================================================
+    //  NEW: HELP & FAQs PAGE
+    // ============================================================
+    if (action === 'open-faq') {
+        state.showFaq = true;
+        state.drawerOpen = false;
+        render();
+        return;
+    }
+    if (action === 'close-faq') {
+        state.showFaq = false;
+        render();
+        return;
+    }
+    if (action === 'close-faq-to-support') {
+        state.showFaq = false;
+        state.view = 'support';
+        render();
+        return;
+    }
+    if (action === 'toggle-faq-qa') {
+        const idx = el.getAttribute('data-idx');
+        state.faqOpen[idx] = !state.faqOpen[idx];
+        render();
+        return;
+    }
+
+    // ============================================================
+    //  NEW: ADMIN — FAQ FEATURE IMAGE UPLOAD
+    // ============================================================
+    if (action === 'open-faq-image-upload') {
+        state.showFaqImageUpload = true;
+        state.faqImageUploadKey = el.getAttribute('data-key');
+        state.faqImageUploadFile = null;
+        render();
+        return;
+    }
+    if (action === 'cancel-faq-image-upload') {
+        state.showFaqImageUpload = false;
+        state.faqImageUploadKey = null;
+        state.faqImageUploadFile = null;
+        render();
+        return;
+    }
+    if (action === 'choose-faq-image') {
+        const input = document.getElementById('faq-image-file-input');
+        if (input) input.click();
+        return;
+    }
+    if (action === 'save-faq-image-upload') {
+        if (!state.faqImageUploadFile || !state.faqImageUploadFile.dataUrl) {
+            showToast('Please choose an image first.', 'error');
+            return;
+        }
+        const key = state.faqImageUploadKey;
+        const dataUrl = state.faqImageUploadFile.dataUrl;
+        const updatedImages = Object.assign({}, state.settingsCache.faqImages || {});
+        updatedImages[key] = dataUrl;
+
+        supabase.from('admin_settings')
+            .upsert({ setting_key: 'faq_images', setting_value: updatedImages }, { onConflict: 'setting_key' })
+            .then(function() {
+                state.settingsCache.faqImages = updatedImages;
+                state.showFaqImageUpload = false;
+                state.faqImageUploadKey = null;
+                state.faqImageUploadFile = null;
+                showToast('Feature image updated!', 'success');
+                render();
+            })
+            .catch(function(err) {
+                console.warn('FAQ image upload error:', extractErrorMessage(err), err);
+                showNetworkAwareError('Error saving feature image.', err);
+            });
+        return;
+    }
+    if (action === 'remove-faq-image') {
+        const key = state.faqImageUploadKey;
+        const updatedImages = Object.assign({}, state.settingsCache.faqImages || {});
+        delete updatedImages[key];
+
+        supabase.from('admin_settings')
+            .upsert({ setting_key: 'faq_images', setting_value: updatedImages }, { onConflict: 'setting_key' })
+            .then(function() {
+                state.settingsCache.faqImages = updatedImages;
+                state.showFaqImageUpload = false;
+                state.faqImageUploadKey = null;
+                state.faqImageUploadFile = null;
+                showToast('Feature image removed.', 'success');
+                render();
+            })
+            .catch(function(err) {
+                console.warn('FAQ image remove error:', extractErrorMessage(err), err);
+                showNetworkAwareError('Error removing feature image.', err);
+            });
+        return;
+    }
+
+    // ============================================================
     //  NEW: FUND WALLET
     // ============================================================
     if (action === 'open-fund-wallet') {
@@ -19104,6 +20203,34 @@ if (action === 'browse-filter') {
 // ============================================================
 //  INPUT EVENT HANDLING
 // ============================================================
+function compressImageToDataUrl(file, maxWidth, quality, callback) {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+            let w = img.width, h = img.height;
+            if (w > maxWidth) {
+                h = Math.round(h * (maxWidth / w));
+                w = maxWidth;
+            }
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                callback(canvas.toDataURL('image/jpeg', quality || 0.82));
+            } catch (err) {
+                // Fallback: use the original data URL if canvas processing fails
+                callback(ev.target.result);
+            }
+        };
+        img.onerror = function() { callback(ev.target.result); };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 document.addEventListener('change', function(e) {
     const id = e.target.id;
 
@@ -19220,6 +20347,17 @@ document.addEventListener('change', function(e) {
             render();
         };
         reader.readAsDataURL(file);
+    } else if (id === 'faq-image-file-input') {
+        const file = e.target.files[0];
+        if (!file) return;
+        compressImageToDataUrl(file, 1000, 0.82, function(dataUrl) {
+            state.faqImageUploadFile = {
+                dataUrl: dataUrl,
+                name: file.name,
+                type: 'image/jpeg',
+            };
+            render();
+        });
     }
 });
 
