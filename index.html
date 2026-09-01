@@ -2153,6 +2153,41 @@
         text-underline-offset: 2px;
     }
 
+    .install-promo-card {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+        border-radius: 16px;
+        padding: 16px;
+        margin: 0 0 16px;
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(15,107,63,0.25);
+    }
+    .install-promo-card .ipc-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .install-promo-card .ipc-body { flex: 1; min-width: 0; }
+    .install-promo-card h4 { font-size: 14px; margin: 0 0 4px; font-weight: 800; color: #fff; }
+    .install-promo-card p { font-size: 11.5px; margin: 0 0 10px; color: rgba(255,255,255,0.85); line-height: 1.5; }
+    .install-promo-card button {
+        background: #fff;
+        color: var(--green-dark);
+        border: none;
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
     /* ============================================================
        HELP & FAQs — long scrollable public page (website only).
        Features, FAQs, policies and support in one place.
@@ -3513,7 +3548,7 @@
     #pwa-install-btn {
         position: fixed;
         right: 16px;
-        bottom: 16px;
+        top: max(12px, env(safe-area-inset-top));
         z-index: 400;
         display: none;
         align-items: center;
@@ -9414,6 +9449,7 @@ async function startLiteratureCbt() {
     
     if (questions.length === 0) {
         showToast('No Novel questions available.', 'error');
+        render();
         return;
     }
     const qsAll = shuffleArray(questions).map(function(q) {
@@ -9824,14 +9860,14 @@ function renderPasswordResetForm() {
         '<label>New password</label>' +
         '<div class="af-input-wrap has-toggle">' +
         '<span class="af-ic">' + svg('lock', 18) + '</span>' +
-        '<input id="reset-new-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="At least 6 characters" />' +
+        '<input id="reset-new-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="At least 6 characters" value="' + esc(state.resetPassword) + '" />' +
         '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + svg(isShowing ? 'eyeoff' : 'eye', 18) + '</button>' +
         '</div></div>' +
         '<div class="field-group">' +
         '<label>Confirm password</label>' +
         '<div class="af-input-wrap has-toggle">' +
         '<span class="af-ic">' + svg('lock', 18) + '</span>' +
-        '<input id="reset-confirm-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="Re-enter password" />' +
+        '<input id="reset-confirm-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="Re-enter password" value="' + esc(state.resetConfirm) + '" />' +
         '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + svg(isShowing ? 'eyeoff' : 'eye', 18) + '</button>' +
         '</div></div>' +
         (state.resetError ? '<div class="af-error">⚠️ ' + esc(state.resetError) + '</div>' : '') +
@@ -10181,6 +10217,20 @@ function renderUnderConstruction() {
 //  logged in. There is no more "guest browsing": the only ways
 //  forward are Log in, Sign up, or (website only) Help & FAQs.
 // ============================================================
+function renderInstallPromoCard() {
+    if (isStandaloneApp()) return '';
+    return (
+        '<div class="install-promo-card">' +
+        '<div class="ipc-icon">' + svg('rocket', 22).replace('stroke="currentColor"', 'stroke="#fff"') + '</div>' +
+        '<div class="ipc-body">' +
+        '<h4>Install MyUTME</h4>' +
+        '<p>Add MyUTME to your home screen for one-tap access, offline CBT practice, and a faster full-screen experience — no browser bars in the way.</p>' +
+        '<button data-action="trigger-pwa-install">Install App</button>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
 function renderAuthGate() {
     const standalone = isStandaloneApp();
     return (
@@ -10197,6 +10247,7 @@ function renderAuthGate() {
         '<div class="gate-perk"><span class="ic">' + svg('sparkles', 18) + '</span> Ask your AI tutor anything, anytime</div>' +
         '<div class="gate-perk"><span class="ic">' + svg('chart', 18) + '</span> Track your progress subject by subject</div>' +
         '</div>' +
+        renderInstallPromoCard() +
         '<button class="gate-btn-primary" data-action="show-signup">Create free account ' + svg('arrowright', 17) + '</button>' +
         '<button class="gate-btn-outline" data-action="show-login">I already have an account</button>' +
         (!standalone ? '<button class="gate-link" data-action="open-faq">Explore features, FAQs &amp; policies</button>' : '') +
@@ -10321,6 +10372,8 @@ function renderFaqPage() {
         '<h1>Help &amp; FAQs</h1>' +
         '<p>Everything MyUTME can do for you — features, answers to common questions, and how to reach us.</p>' +
         '</div>' +
+
+        (!loggedIn ? '<div class="faq-section" style="padding-bottom:0">' + renderInstallPromoCard() + '</div>' : '') +
 
         '<div class="faq-section">' +
         '<h2 class="faq-section-title">Explore the features</h2>' +
@@ -16544,11 +16597,9 @@ function renderLoginModal() {
         '<input id="login-email" type="text" placeholder="you@example.com or username" value="' + esc(state.loginEmail) + '" />' +
         '</div>' +
         '</div>' +
-        '<div class="field-group">' +
-        '<label>Password</label>' +
         '<div class="af-input-wrap has-toggle">' +
         '<span class="af-ic">' + svg('lock', 18) + '</span>' +
-        '<input id="login-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" />' +
+        '<input id="login-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" value="' + esc(state.loginPassword) + '" />' +
         '<button class="password-toggle" data-action="toggle-password" data-field="login">' +
         svg(isShowing ? 'eyeoff' : 'eye', 18) +
         '</button>' +
@@ -16613,7 +16664,7 @@ function renderSignupModal() {
         '<label>Password <span style="color:var(--muted);font-weight:400">(min 6 characters)</span></label>' +
         '<div class="af-input-wrap has-toggle">' +
         '<span class="af-ic">' + svg('lock', 18) + '</span>' +
-        '<input id="signup-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" />' +
+        '<input id="signup-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" value="' + esc(state.signupPassword) + '" />' +
         '<button class="password-toggle" data-action="toggle-password" data-field="signup">' +
         svg(isShowing ? 'eyeoff' : 'eye', 18) +
         '</button>' +
@@ -16623,7 +16674,7 @@ function renderSignupModal() {
         '<label>Confirm password</label>' +
         '<div class="af-input-wrap has-toggle">' +
         '<span class="af-ic">' + svg('lock', 18) + '</span>' +
-        '<input id="signup-confirm" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" />' +
+        '<input id="signup-confirm" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" value="' + esc(state.signupConfirm) + '" />' +
         '<button class="password-toggle" data-action="toggle-password" data-field="signup">' +
         svg(isShowing ? 'eyeoff' : 'eye', 18) +
         '</button>' +
@@ -16654,6 +16705,10 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'trigger-pwa-install') {
+        if (window.triggerPWAInstall) window.triggerPWAInstall();
+        return;
+    }
     if (action === 'open-drawer') {
         state.drawerOpen = true;
         render();
@@ -20687,6 +20742,23 @@ if ("serviceWorker" in navigator) {
         if (iosTip) iosTip.classList.remove("show");
         deferredPrompt = null;
     });
+
+    window.triggerPWAInstall = async function () {
+        if (deferredPrompt) {
+            if (installBtn) installBtn.classList.remove("show");
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            return;
+        }
+        const isIOSDevice = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isSafariBrowser = /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
+        if (isIOSDevice && isSafariBrowser) {
+            showToast('📲 Tap Share, then "Add to Home Screen" to install.', '');
+        } else {
+            showToast("Install option isn't available yet in this browser — try Chrome or Safari.", '');
+        }
+    };
 
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const isSafari = /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
