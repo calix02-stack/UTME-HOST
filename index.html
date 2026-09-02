@@ -412,6 +412,31 @@
     }
     .view::-webkit-scrollbar { display: none; }
 
+    /* Pull-to-refresh indicator. Lives outside #app-shell (appended
+       directly to <body>) so it survives render()'s innerHTML rebuild of
+       #root — see setupPullToRefresh() at the bottom of the script. */
+    #pull-refresh-indicator {
+        position: fixed;
+        top: 64px;
+        left: 50%;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--card-bg);
+        color: var(--green);
+        box-shadow: var(--shadow-md);
+        opacity: 0;
+        transform: translate(-50%, -40px);
+        transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+        z-index: 40;
+        pointer-events: none;
+    }
+    #pull-refresh-indicator.ready { color: var(--gold); }
+    #pull-refresh-indicator.spinning svg { animation: spin 0.7s linear infinite; }
+
 
     .view-content {
         max-height: none;
@@ -5511,7 +5536,14 @@ async function logAppError(context, err) {
 // see the real message immediately (no need to dig through logs).
 function showUserError(context, err, friendlyMsg) {
     logAppError(context, err);
-    if (isAdmin()) {
+    // A network/connectivity failure (e.g. mobile data switched off) is not
+    // a real app error — admins were still seeing the raw "Failed to fetch"
+    // message here because this check used to run only for non-admins.
+    // Everyone gets the calm offline message for network errors; only
+    // genuine app errors get the raw message shown to admins.
+    if (isNetworkError(err)) {
+        showToast("You're offline — this needs an internet connection.", 'offline');
+    } else if (isAdmin()) {
         showToast((friendlyMsg ? friendlyMsg + ' — ' : '') + extractErrorMessage(err), 'error');
     } else {
         showToast(friendlyMsg || 'Something went wrong. Please try again.', 'error');
@@ -6805,6 +6837,36 @@ function resetUserScopedChatState() {
     state.adminSupportMessages = [];
 }
 
+// The "online"/"last seen" status shown in the admin panel is driven purely
+// by how recently profiles.last_seen was written. That update used to be
+// wired up ONLY inside init() — i.e. only for whichever account happened to
+// already be logged in when the app first loaded. Any account that signed
+// in *during* the session (via the login/signup screens, or after switching
+// accounts) never got its last_seen touched at all, so it kept showing
+// whatever stale timestamp ("yesterday") was last written — even right
+// after that account had just been active. Call startLastSeenHeartbeat()
+// right after authUser is set (login, signup, session restore) and
+// stopLastSeenHeartbeat() on sign-out so the interval always tracks
+// whichever account is actually active, never a stale/previous one.
+let lastSeenInterval = null;
+function startLastSeenHeartbeat() {
+    stopLastSeenHeartbeat();
+    if (!state.authUser) return;
+    const userId = state.authUser.id;
+    function ping() {
+        if (!state.authUser || state.authUser.id !== userId) return;
+        supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', userId).then(function() {}, function() {});
+    }
+    ping(); // update immediately, don't wait up to 2 minutes for the first write
+    lastSeenInterval = setInterval(ping, 2 * 60 * 1000);
+}
+function stopLastSeenHeartbeat() {
+    if (lastSeenInterval) {
+        clearInterval(lastSeenInterval);
+        lastSeenInterval = null;
+    }
+}
+
 async function checkAuthSession() {
     try {
         // getSession() normally resolves instantly from local storage, but on
@@ -6853,6 +6915,7 @@ async function checkAuthSession() {
             
             // Setup Realtime notification listener
             setupRealtimeNotifications();
+            startLastSeenHeartbeat();
         }
         const readNotifs = storage.get("readNotifications");
         if (readNotifs) {
@@ -6969,6 +7032,7 @@ async function signUp(fullName, username, email, password) {
             state.signupConfirm = "";
             showToast("Account created! You need to be activated by admin.", "success");
             setupRealtimeNotifications();
+            startLastSeenHeartbeat();
             state.showActivationBanner = true;
             render();
         }
@@ -7048,6 +7112,7 @@ async function signIn(emailOrUsername, password) {
             storage.set("profile", JSON.stringify(state.profile));
             subscribeToPush();
             setupRealtimeNotifications();
+            startLastSeenHeartbeat();
 
             state.showLogin = false;
             state.loginEmail = "";
@@ -7076,6 +7141,15 @@ async function signOut() {
             notifChannel.unsubscribe();
             notifChannel = null;
         }
+        // Write one last accurate last_seen timestamp before clearing the
+        // session, so the admin panel reflects "just now" rather than
+        // whichever moment the heartbeat happened to last fire.
+        if (state.authUser) {
+            try {
+                await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', state.authUser.id);
+            } catch (e) {}
+        }
+        stopLastSeenHeartbeat();
         await supabase.auth.signOut();
         state.authUser = null;
         state.authProfile = null;
@@ -10608,7 +10682,7 @@ function renderApp() {
 function renderBottomNav() {
     const items = [
     { key: 'home', label: 'Home', icon: 'home' },
-    { key: 'mysubjects', label: 'My Subjects', icon: 'bookopen' },
+    { key: 'mysubjects', label: 'Practice Hub', icon: 'bookopen' },
     { key: 'ai-assistant', label: 'AI Tutor', icon: 'sparkles' },
     { key: 'mockexam', label: 'Live Exam', icon: 'target' },
     { key: 'profile', label: 'Account', icon: 'user' },
@@ -10793,8 +10867,8 @@ const atMax = mySubjectIds.length === 4;
     return (
         '<div class="myc-hero">' +
         '<div class="glow3"></div>' +
-        '<p class="hi">Your subject combo</p>' +
-        '<p class="name" style="font-size:20px">My Subjects</p>' +
+        '<p class="hi">Your subjects & practice modes</p>' +
+        '<p class="name" style="font-size:20px">Practice Hub</p>' +
         '<p style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:4px;position:relative;z-index:1">' +
         (isOverLimit
             ? '⚠️ You have ' + mySubjectIds.length + ' subjects enrolled — ' + excessCount + ' too many. Tap "Remove Subject" below until you are back to exactly 4.'
@@ -10829,7 +10903,7 @@ function renderSubjectModes() {
     grid += '</div>';
 
     return (
-        '<button class="back-link" data-action="set-view" data-view="mysubjects">' + svg("chevleft", 14) + ' My Subjects</button>' +
+        '<button class="back-link" data-action="set-view" data-view="mysubjects">' + svg("chevleft", 14) + ' Practice Hub</button>' +
         '<div class="myc-hero" style="--sc:' + s.color + '">' +
         '<div class="glow3"></div>' +
         '<p class="hi">Practicing</p>' +
@@ -11078,7 +11152,7 @@ function renderCbtMode() {
 
     // Full CBT self-heals: if the combo is complete, make sure cbtSelected always
     // reflects it — the student never has to tap through a picker they already answered
-    // once (on My Subjects) to get here.
+    // once (on Practice Hub) to get here.
     if (isFull && comboComplete) {
         const matches = state.cbtSelected.length === myElectiveIds.length &&
             myElectiveIds.every(function(sid) { return state.cbtSelected.indexOf(sid) !== -1; });
@@ -11134,8 +11208,8 @@ function renderCbtMode() {
     } else if (isFull && !comboComplete) {
         // Rare edge case: enrollment doesn't add up to exactly 4 yet.
         body = (
-            '<div class="mode-note">⚠️ Full CBT needs a complete combo of ' + (requiredSubjects + 1) + ' subjects, but your <b>My Subjects</b> only has ' + (myElectiveIds.length + 1) + ' set up right now.</div>' +
-            '<button class="btn btn-outline" style="width:100%;margin-top:4px" data-action="set-view" data-view="mysubjects">Fix My Subjects</button>'
+            '<div class="mode-note">⚠️ Full CBT needs a complete combo of ' + (requiredSubjects + 1) + ' subjects, but your <b>Practice Hub</b> only has ' + (myElectiveIds.length + 1) + ' set up right now.</div>' +
+            '<button class="btn btn-outline" style="width:100%;margin-top:4px" data-action="set-view" data-view="mysubjects">Fix Practice Hub</button>'
         );
         ready = false;
         label = 'Start CBT Practice';
@@ -11155,7 +11229,7 @@ function renderCbtMode() {
             );
         });
         if (!anyCourseAccess() && !isAdmin()) {
-            chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in My Subjects first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to My Subjects</button></div>';
+            chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in Practice Hub first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to Practice Hub</button></div>';
         }
         body = (
             '<div class="mode-note">Choose <b>1 subject</b> from your combo to practice.</div>' +
@@ -11493,7 +11567,7 @@ function renderExamMode() {
         );
     });
     if (!anyCourseAccess()) {
-        chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in My Subjects first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to My Subjects</button></div>';
+        chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in Practice Hub first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to Practice Hub</button></div>';
     }
     let yearOptions = "";
     for (let y = 2026; y >= 2021; y--) {
@@ -11728,7 +11802,7 @@ function renderTopicsPicker() {
         );
     });
     if (!anyCourseAccess()) {
-        subjChips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in My Subjects first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to My Subjects</button></div>';
+        subjChips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in Practice Hub first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to Practice Hub</button></div>';
     }
 
     let topicsHtml = "";
@@ -12018,6 +12092,7 @@ function renderLitExam() {
 
     const totalQ = state.litQuestions.length;
     const item = state.litQuestions[state.litIndex];
+    const subj = item ? SUBJECTS.find(function(s) { return s.id === item.subject_id; }) : null;
     
     const answeredCount = state.litAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
     const settings = state.settingsCache;
@@ -16879,7 +16954,7 @@ document.addEventListener('click', function(e) {
     if (action === 'myc-remove-subject') {
         const sid = el.getAttribute('data-subjectid');
         if (!state.authUser) return;
-        if (!confirm('Remove this subject from My Subjects?')) return;
+        if (!confirm('Remove this subject from Practice Hub?')) return;
         const s = SUBJECTS.find(function(x) { return x.id === sid; });
 
         if (!Array.isArray(state.myElectives)) state.myElectives = [];
@@ -20666,14 +20741,7 @@ async function init() {
     if (state.authUser) cacheAllDataForOffline();
 
     addLog(state.authUser ? state.authUser.id : null, state.profile.name || 'Guest', 'page_view', 'App opened');
-    if (state.authUser) {
-        supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', state.authUser.id).then(function() {});
-        setInterval(function() {
-            if (state.authUser) {
-                supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', state.authUser.id).then(function() {});
-            }
-        }, 2 * 60 * 1000);
-    }
+    if (state.authUser) startLastSeenHeartbeat();
     window.addEventListener('online', function() {
         showToast('Back online — syncing data...', 'success');
         upgradeSupabaseClientIfNeeded();
