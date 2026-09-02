@@ -2334,8 +2334,8 @@
     }
     .auth-modal .switch-link button:hover, .reset-modal .switch-link button:hover { color: var(--green-dark); }
     .af-forgot-link {
-        text-align: right;
-        margin: -8px 0 16px;
+        text-align: center;
+        margin: 4px 0 18px;
     }
     .af-forgot-link button {
         font-size: 12.5px;
@@ -2345,6 +2345,17 @@
         border: none;
         cursor: pointer;
     }
+    /* Groups the email/password fields into one clear card instead of
+       having them float loosely down the sheet — fixes the "scattered"
+       login layout. */
+    .auth-form-card {
+        background: var(--bg);
+        border: 1.5px solid var(--line);
+        border-radius: 18px;
+        padding: 18px 16px 6px;
+        margin-bottom: 6px;
+    }
+    .auth-form-card .field-group:last-of-type { margin-bottom: 6px; }
     .af-perks {
         display: flex;
         flex-direction: column;
@@ -3367,6 +3378,269 @@
         border-color: var(--green);
     }
 
+    /* ============================================================
+       ADMIN ANALYTICS — REDESIGNED DASHBOARD (scoped to .analytics-dash)
+       ============================================================ */
+    .analytics-dash {
+        --adash-green: #22C773;
+        --adash-gold: #F2B84B;
+        --adash-blue: #4C8DFF;
+        --adash-purple: #A66BFF;
+        --adash-red: #FF6B6B;
+        --adash-teal: #2FE0C6;
+        --adash-text: #F3F8F4;
+        --adash-muted: #93A79B;
+        --adash-faint: #5E7368;
+        --adash-card: rgba(255,255,255,0.045);
+        --adash-card-border: rgba(255,255,255,0.09);
+        /* Re-point the app's base design tokens to dark-appropriate values
+           for the scope of this panel only. Any existing component (.card,
+           .admin-user-row, .log-entry, ul.admin-list, spinners, etc.) that
+           reads var(--ink)/var(--muted)/var(--card-bg)/var(--line)/var(--bg)
+           automatically renders correctly on the dark background without
+           needing a bespoke override for every element. */
+        --ink: #F3F8F4;
+        --muted: #93A79B;
+        --faint: #5E7368;
+        --card-bg: rgba(255,255,255,0.045);
+        --line: rgba(255,255,255,0.09);
+        --bg: rgba(255,255,255,0.03);
+        --shadow-sm: 0 4px 14px rgba(0,0,0,0.3);
+        background: radial-gradient(120% 160% at 100% 0%, #143324 0%, #0A1911 55%, #08150E 100%);
+        border-radius: 20px;
+        padding: 14px 12px 16px;
+        margin-top: 4px;
+        color: var(--adash-text);
+    }
+    .analytics-dash .adash-range-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+    .analytics-dash .adash-range-row .btn {
+        border-radius: 10px;
+        font-size: 11px;
+        padding: 7px 0;
+    }
+    .analytics-dash .adash-range-row .btn-outline {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--adash-card-border);
+        color: var(--adash-muted);
+    }
+    .analytics-dash .adash-range-row .btn-green {
+        background: linear-gradient(135deg, var(--adash-green), #17a35d);
+        border: 1px solid transparent;
+        box-shadow: 0 4px 14px rgba(34,199,115,0.35);
+    }
+    .analytics-dash .btn-refresh {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--adash-card-border);
+        border-radius: 10px;
+        color: var(--adash-muted);
+    }
+    .analytics-dash .admin-sub-tabs {
+        margin-bottom: 12px;
+    }
+    .analytics-dash .admin-sub-tab {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--adash-card-border);
+        color: var(--adash-muted);
+    }
+    .analytics-dash .admin-sub-tab.active {
+        background: linear-gradient(135deg, var(--adash-green), #17a35d);
+        border-color: transparent;
+        color: #06150D;
+        box-shadow: 0 4px 14px rgba(34,199,115,0.3);
+    }
+
+    .analytics-dash .adash-onepage {
+        column-width: 300px;
+        column-gap: 14px;
+        column-fill: auto;
+        height: calc(100vh - 230px);
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding: 2px 2px 10px;
+    }
+    .analytics-dash .adash-section {
+        break-inside: avoid-column;
+        -webkit-column-break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+        width: 100%;
+        display: inline-block;
+    }
+    .analytics-dash .adash-section-label {
+        font-size: 11.5px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--adash-gold);
+        margin: 4px 0 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--adash-card-border);
+    }
+    @media (min-width: 1024px) {
+        .analytics-dash .adash-onepage {
+            column-width: 340px;
+            height: calc(100vh - 250px);
+        }
+    }
+
+    .adash-card {
+        background: var(--adash-card);
+        border: 1px solid var(--adash-card-border);
+        border-radius: 16px;
+        padding: 13px;
+        margin-bottom: 10px;
+        backdrop-filter: blur(6px);
+    }
+    .adash-card-title {
+        font-size: 11px;
+        font-weight: 700;
+        margin: 0 0 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--adash-text);
+    }
+    .adash-card-title .sub {
+        font-weight: 500;
+        color: var(--adash-muted);
+        font-size: 10px;
+    }
+
+    .adash-kpi-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .adash-kpi {
+        background: var(--adash-card);
+        border: 1px solid var(--adash-card-border);
+        border-radius: 16px;
+        padding: 12px;
+        position: relative;
+        overflow: hidden;
+    }
+    .adash-kpi-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+    }
+    .adash-kpi-icon {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        flex: 0 0 auto;
+    }
+    .adash-kpi-label {
+        font-size: 8.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--adash-muted);
+        font-weight: 700;
+    }
+    .adash-kpi-value {
+        font-size: 19px;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--adash-text);
+    }
+    .adash-kpi-spark {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        opacity: 0.9;
+    }
+    .adash-trend {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 999px;
+        margin-top: 5px;
+    }
+    .adash-trend.up { color: #22C773; background: rgba(34,199,115,0.15); }
+    .adash-trend.down { color: #FF6B6B; background: rgba(255,107,107,0.15); }
+
+    .adash-stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    .adash-stat {
+        background: var(--adash-card);
+        border: 1px solid var(--adash-card-border);
+        border-radius: 13px;
+        text-align: center;
+        padding: 10px 4px;
+    }
+    .adash-stat .icon { font-size: 16px; margin-bottom: 3px; }
+    .adash-stat .val { font-size: 15px; font-weight: 800; line-height: 1.1; }
+    .adash-stat .lbl { font-size: 8px; color: var(--adash-muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.03em; }
+
+    .adash-gauge-row {
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-start;
+        text-align: center;
+        gap: 6px;
+    }
+    .adash-gauge-item { flex: 1; min-width: 0; }
+    .adash-gauge-item .lbl {
+        font-size: 9px;
+        color: var(--adash-muted);
+        margin-top: 6px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .analytics-dash .admin-user-row { margin-bottom: 6px; }
+    .analytics-dash .log-entry .log-user { color: var(--adash-teal); }
+    .analytics-dash .loading-spinner .spinner {
+        border-color: rgba(255,255,255,0.15);
+        border-top-color: var(--adash-green);
+    }
+    .analytics-dash .btn-outline {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--adash-card-border);
+        color: var(--adash-muted);
+    }
+
+    .adash-donut-legend-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 10px;
+        padding: 4px 0;
+    }
+    .adash-subj-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--adash-card-border);
+        color: var(--adash-muted);
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 9px;
+        margin: 2px 3px 0 0;
+    }
+    .adash-subj-tag b { color: var(--adash-text); }
+
     .admin-stat-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -4006,6 +4280,28 @@
         }
         .home-grid {
             grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    /* Laptop/desktop — fill the whole browser window, no side gaps */
+    @media (min-width: 1024px) {
+        #app-shell { padding: 0; }
+        #app-inner {
+            max-width: 100% !important;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            max-height: 100vh;
+            max-height: 100dvh;
+            border-radius: 0;
+            margin: 0;
+            box-shadow: none;
+        }
+        .view {
+            max-height: calc(100vh - 64px - 58px) !important;
+        }
+        .home-grid {
+            grid-template-columns: repeat(4, 1fr);
         }
     }
 
@@ -5278,6 +5574,22 @@
 </style>
 </head>
 <body>
+<script>
+// Set the theme attribute as the very first thing that runs, before any
+// CSS paints or the app's own init() gets to it further down the page.
+// Without this, the browser paints the light (:root) colors for a beat
+// first — a visible white flash — because data-theme wasn't applied until
+// init() ran near the bottom of the document. Dark is the default for
+// anyone who hasn't explicitly chosen light.
+(function () {
+    try {
+        var pref = localStorage.getItem('darkMode');
+        if (pref !== 'false') document.documentElement.setAttribute('data-theme', 'dark');
+    } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    }
+})();
+</script>
 <div id="root"></div>
 
 <div id="pwa-ios-tip">
@@ -6030,7 +6342,7 @@ let state = {
     profile: { name: "Guest", email: "", id: null, is_active: true, activation_expiry: null, fullName: "", avatarUrl: null, walletBalance: 0 },
     drawerOpen: false,
     view: "home",
-    darkMode: false,
+    darkMode: true,
     studyStreak: 1,
     notifs: [],
     readNotifs: [],
@@ -6419,7 +6731,7 @@ myEnrollmentsLoading: false,
     analyticsLoaded: false,
 analyticsLoading: false,
 analyticsData: null,
-analyticsRange: 14,
+analyticsRange: 'all', // 'all' is the default view; 7 / 30 are opt-in narrower windows
 analyticsUserFilter: null,
 analyticsSubTab: 'overview',
 
@@ -6807,7 +7119,9 @@ async function cacheAllDataForOffline() {
             if (qs.length > 0) saveOfflineCache('cbt_' + subj.id, qs);
         }
         saveOfflineCache('settings', settings);
-        showToast('Offline data ready — CBT works without internet now.', 'success');
+        // Caching now runs silently in the background — no toast on every
+        // login/app-open. (Previously: "Offline data ready — CBT works
+        // without internet now.")
     } catch (e) {
         console.warn('Offline cache build error:', e);
     }
@@ -10934,11 +11248,13 @@ function renderResetModal() {
         '<p class="sub">No worries — enter the email linked to your account and we\'ll send you a secure link to set a new one.</p>' +
         '</div>' +
         '<div class="auth-sheet">' +
+        '<div class="auth-form-card">' +
         '<div class="field-group">' +
         '<label>Email address</label>' +
         '<div class="af-input-wrap">' +
         '<span class="af-ic">' + svg('mail', 18) + '</span>' +
         '<input id="reset-email" type="email" placeholder="you@example.com" value="' + esc(state.resetEmail) + '" />' +
+        '</div>' +
         '</div>' +
         '</div>' +
         (state.resetError ? '<div class="af-error">⚠️ ' + esc(state.resetError) + '</div>' : '') +
@@ -11626,9 +11942,11 @@ function renderApp() {
         leftContent +=
             '<button class="auth-btn" data-action="show-login">Log in</button>' +
             '<button class="auth-btn gold" data-action="show-signup">Sign up</button>';
-    } else {
-        leftContent += '<span class="guest-badge" style="margin-left:2px;font-size:9px">' + esc(userName) + '</span>';
     }
+    // The tiny name badge used to show here on every screen. It now only
+    // appears on the Home screen (see the topbar-left branch below) —
+    // everywhere else the avatar on the right is enough of a "who am I
+    // logged in as" cue, so we don't repeat the name a second time.
 
     let rightContent = '';
     const badgeLabel = unread > 9 ? '9+' : unread;
@@ -11656,7 +11974,7 @@ function renderApp() {
         loadingOverlay +
         '<div class="topbar">' +
         (state.view === 'home'
-            ? '<div class="topbar-left"></div>' +
+            ? '<div class="topbar-left">' + (isLoggedIn ? '<span class="guest-badge" style="margin-left:2px;font-size:9px">' + esc(userName) + '</span>' : '') + '</div>' +
               '<div class="topbar-center"><span class="brand">' + logoSvg(22) + '<span>My<b>UTME</b></span></span></div>' +
               '<div class="topbar-right">' +
               '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
@@ -11664,7 +11982,7 @@ function renderApp() {
               (unread > 0 ? '<span style="position:absolute;top:-4px;right:-4px;background:#e2543a;color:#fff;border-radius:999px;font-size:9px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--topbar-bg)">' + badgeLabel + '</span>' : '') +
               '</button></div>'
             : '<div class="topbar-left">' + leftContent + '</div>' +
-              '<div class="topbar-center"><span class="brand">' + logoSvg(22) + '<span>My<b>UTME</b></span></span></div>' +
+              '<div class="topbar-center"></div>' +
               '<div class="topbar-right">' + rightContent + '</div>'
         ) +
         '</div>' +
@@ -16116,23 +16434,38 @@ function shortDay(dateStr) {
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 3) + ' ' + d.getDate();
 }
+// Short label for KPI chips, e.g. "(7d)" / "(All)".
+function rangeLabelShort() {
+    return state.analyticsRange === 'all' ? 'All' : (state.analyticsRange + 'd');
+}
+// Longer label for card subtitles, e.g. "last 7 days" / "all time".
+function rangeLabelLong() {
+    return state.analyticsRange === 'all' ? 'all time' : ('last ' + state.analyticsRange + ' days');
+}
 
 async function loadAnalyticsData() {
     if (state.analyticsLoading) return; // prevent overlapping fetches
     state.analyticsLoading = true;
     render();
 
-    const rangeDays = state.analyticsRange || 14;
-    const sinceDate = new Date();
-    sinceDate.setDate(sinceDate.getDate() - rangeDays);
-    const sinceISO = sinceDate.toISOString();
+    const isAllTime = state.analyticsRange === 'all';
+    // For querying, "all" means no lower bound at all (everything since the
+    // app existed). For the day-by-day charts we still need a finite number
+    // of buckets to draw, so we cap those at 90 days even in "all" mode —
+    // the KPI totals themselves stay true all-time figures either way.
+    const rangeDays = isAllTime ? 90 : (state.analyticsRange || 30);
+    const sinceISO = isAllTime ? new Date(0).toISOString() : (function () {
+        const sinceDate = new Date();
+        sinceDate.setDate(sinceDate.getDate() - rangeDays);
+        return sinceDate.toISOString();
+    })();
 
     try {
         // Use the working loadAllUsers function
         await loadAllUsers();
         const profiles = state.allUsers || [];
         
-        const historyRes = await supabase.from('exam_history').select('id, user_id, mode, total_score, max_score, submitted_at').gte('submitted_at', sinceISO);
+        const historyRes = await supabase.from('exam_history').select('id, user_id, mode, total_score, max_score, submitted_at, subject_scores').gte('submitted_at', sinceISO);
         const keysRes = await supabase.from('activation_keys').select('*').eq('is_used', true);
         const logsRes = await supabase.from('activity_logs').select('action, created_at, username').gte('created_at', sinceISO);
         const cbtRes = await supabase.from('cbt_scores').select('score, username');
@@ -16211,6 +16544,59 @@ async function loadAnalyticsData() {
             historyByModeAvg[m] = avg(pcts);
         });
 
+        // ---- Result Analysis (cross-user exam performance) ----------------
+        // Reuses the same subject-accuracy aggregator the Personal Analytics
+        // dashboard uses for a single user, run here over every user's
+        // attempts in the selected range.
+        const resultSubjectAgg = aggregateSubjectAccuracy(history);
+        const resultSubjectStats = Object.keys(resultSubjectAgg).map(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            const agg = resultSubjectAgg[sid];
+            const pct = agg.max > 0 ? Math.round((agg.correct / agg.max) * 100) : 0;
+            return { id: sid, name: subj ? subj.name : sid, code: subj ? subj.code : sid.toUpperCase(), pct: pct, color: subj ? subj.color : ADASH.blue };
+        }).sort(function(a, b) { return b.pct - a.pct; });
+
+        // Overall weighted accuracy across every attempt in range.
+        let sumScore = 0, sumMax = 0;
+        history.forEach(function(h) { sumScore += (h.total_score || 0); sumMax += (h.max_score || 0); });
+        const overallResultPct = sumMax > 0 ? Math.round((sumScore / sumMax) * 100) : 0;
+
+        // Score-band distribution across every attempt in range.
+        const scoreBands = [
+            { label: '0–39%', min: 0, max: 39, color: ADASH.red, value: 0 },
+            { label: '40–59%', min: 40, max: 59, color: ADASH.gold, value: 0 },
+            { label: '60–79%', min: 60, max: 79, color: ADASH.blue, value: 0 },
+            { label: '80–100%', min: 80, max: 100, color: ADASH.green, value: 0 },
+        ];
+        history.forEach(function(h) {
+            if (!h.max_score) return;
+            const pct = Math.round((h.total_score / h.max_score) * 100);
+            const band = scoreBands.find(function(b) { return pct >= b.min && pct <= b.max; }) || scoreBands[0];
+            band.value += 1;
+        });
+
+        // Per-user average accuracy, for a cross-user leaderboard.
+        const userTotals = {};
+        history.forEach(function(h) {
+            if (!h.max_score || !h.user_id) return;
+            if (!userTotals[h.user_id]) userTotals[h.user_id] = { score: 0, max: 0, attempts: 0 };
+            userTotals[h.user_id].score += (h.total_score || 0);
+            userTotals[h.user_id].max += (h.max_score || 0);
+            userTotals[h.user_id].attempts += 1;
+        });
+        const profileById = {};
+        profiles.forEach(function(p) { profileById[p.id] = p; });
+        const resultLeaderboard = Object.keys(userTotals).map(function(uid) {
+            const t = userTotals[uid];
+            const p = profileById[uid];
+            return {
+                userId: uid,
+                name: (p && (p.full_name || p.username)) || 'Unknown user',
+                pct: t.max > 0 ? Math.round((t.score / t.max) * 100) : 0,
+                attempts: t.attempts,
+            };
+        }).sort(function(a, b) { return b.pct - a.pct; });
+
         state.analyticsData = {
             totalUsers: totalUsers,
             activatedUsers: activatedUsers,
@@ -16232,6 +16618,11 @@ async function loadAnalyticsData() {
             cbtAvg: avg(cbtScores),
             mockAvg: avg(mockScores),
             subjAvg: avg(subjScores),
+            resultSubjectStats: resultSubjectStats,
+            overallResultPct: overallResultPct,
+            scoreBands: scoreBands,
+            resultLeaderboard: resultLeaderboard,
+            usersWithAttempts: Object.keys(userTotals).length,
             _profiles: profiles,
             _logs: logs,
         };
@@ -16248,6 +16639,12 @@ async function loadAnalyticsData() {
         render();
     }
 }
+const ADASH = {
+    green: '#22C773', gold: '#F2B84B', blue: '#4C8DFF', purple: '#A66BFF',
+    red: '#FF6B6B', teal: '#2FE0C6', text: '#F3F8F4', muted: '#93A79B'
+};
+let _chartUid = 0;
+
 function trendOf(dataArr) {
     if (!dataArr || dataArr.length < 4) return null;
     const mid = Math.floor(dataArr.length / 2);
@@ -16261,75 +16658,238 @@ function trendOf(dataArr) {
 
 function renderTrendBadge(trend) {
     if (!trend) return '';
-    const color = trend.up ? '#0F6B3F' : '#C0392B';
-    const bg = trend.up ? '#e8f5e9' : '#fce4ec';
     const arrow = trend.up ? '↑' : '↓';
-    return '<span style="display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:' + color + ';background:' + bg + ';padding:1px 6px;border-radius:999px;margin-top:4px">' + arrow + ' ' + trend.pct + '%</span>';
+    return '<span class="adash-trend ' + (trend.up ? 'up' : 'down') + '">' + arrow + ' ' + trend.pct + '%</span>';
 }
 
-function renderStatCard(icon, value, label, color) {
+// ---- SVG chart primitives (all colors passed in explicitly; scoped for use
+// inside the dark .analytics-dash panel) --------------------------------
+function svgSparkline(data, opts) {
+    opts = opts || {};
+    const color = opts.color || ADASH.green;
+    const w = opts.width || 68, h = opts.height || 24;
+    const vals = data.map(function(d) { return d.value; });
+    if (vals.length === 0) return '';
+    const max = Math.max.apply(null, vals.concat([1]));
+    const min = Math.min.apply(null, vals.concat([0]));
+    const range = (max - min) || 1;
+    const step = vals.length > 1 ? w / (vals.length - 1) : w;
+    const pts = vals.map(function(v, i) { return [i * step, h - ((v - min) / range) * (h - 4) - 2]; });
+    const path = pts.map(function(p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+    const last = pts[pts.length - 1];
     return (
-        '<div class="card" style="text-align:center;padding:14px 6px;margin:0">' +
-        '<div style="font-size:20px;margin-bottom:4px">' + icon + '</div>' +
-        '<div style="font-size:20px;font-weight:800;color:' + (color || 'var(--green)') + ';line-height:1.1">' + value + '</div>' +
-        '<div style="font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.04em">' + esc(label) + '</div>' +
+        '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" style="display:block;overflow:visible">' +
+        '<path d="' + path + '" fill="none" stroke="' + color + '" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>' +
+        '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.4" fill="' + color + '"/>' +
+        '</svg>'
+    );
+}
+
+function svgAreaChart(data, opts) {
+    opts = opts || {};
+    const color = opts.color || ADASH.green;
+    const prefix = opts.prefix || '';
+    const W = 300, H = 108, padX = 4, padTop = 16, padBottom = 4;
+    const vals = data.map(function(d) { return d.value; });
+    const max = Math.max.apply(null, vals.concat([1]));
+    const innerW = W - padX * 2;
+    const innerH = H - padTop - padBottom;
+    const stepX = data.length > 1 ? innerW / (data.length - 1) : 0;
+    const pts = vals.map(function(v, i) {
+        const x = padX + i * stepX;
+        const y = padTop + innerH - (v / max) * innerH;
+        return [x, y];
+    });
+    const linePath = pts.map(function(p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+    const areaPath = linePath + ' L ' + pts[pts.length - 1][0].toFixed(1) + ' ' + (padTop + innerH) +
+        ' L ' + pts[0][0].toFixed(1) + ' ' + (padTop + innerH) + ' Z';
+    const gid = 'adg' + (_chartUid++);
+
+    let grid = '';
+    [0, 1, 2].forEach(function(i) {
+        const gy = padTop + innerH * (i / 2);
+        grid += '<line x1="' + padX + '" y1="' + gy.toFixed(1) + '" x2="' + (W - padX) + '" y2="' + gy.toFixed(1) + '" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>';
+    });
+
+    let dots = '';
+    let peakLabel = '';
+    let peakIdx = 0;
+    vals.forEach(function(v, i) { if (v >= vals[peakIdx]) peakIdx = i; });
+    pts.forEach(function(p, i) {
+        dots += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.4" fill="' + color + '" stroke="#0A1911" stroke-width="1.2"/>';
+    });
+    if (vals[peakIdx] > 0) {
+        const pp = pts[peakIdx];
+        peakLabel = '<text x="' + pp[0].toFixed(1) + '" y="' + Math.max(9, pp[1] - 6).toFixed(1) + '" text-anchor="middle" font-size="8.5" font-weight="700" fill="' + color + '">' + prefix + vals[peakIdx] + '</text>';
+    }
+
+    const svgHtml = (
+        '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="106" preserveAspectRatio="none" style="display:block;overflow:visible">' +
+        '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.45"/>' +
+        '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
+        '</linearGradient></defs>' +
+        grid +
+        '<path d="' + areaPath + '" fill="url(#' + gid + ')" stroke="none"/>' +
+        '<path d="' + linePath + '" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        dots + peakLabel +
+        '</svg>'
+    );
+
+    const labelStep = data.length > 10 ? Math.ceil(data.length / 6) : (data.length > 6 ? 2 : 1);
+    let labels = '<div style="display:flex;justify-content:space-between;margin-top:2px;padding:0 2px">';
+    data.forEach(function(d, i) {
+        if (i % labelStep === 0 || i === data.length - 1) {
+            labels += '<span style="font-size:8px;color:var(--adash-faint)">' + esc(d.label) + '</span>';
+        }
+    });
+    labels += '</div>';
+
+    return '<div>' + svgHtml + labels + '</div>';
+}
+
+function svgGauge(pct, opts) {
+    opts = opts || {};
+    const color = opts.color || ADASH.green;
+    const size = opts.size || 78;
+    const stroke = opts.stroke || 7;
+    const r = (size - stroke) / 2;
+    const c = size / 2;
+    const circ = 2 * Math.PI * r;
+    const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+    const dash = circ * clamped / 100;
+    const fontSize = Math.round(size * 0.24);
+    return (
+        '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
+        '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="' + stroke + '"/>' +
+        '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + stroke + '" stroke-linecap="round" ' +
+        'stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '" transform="rotate(-90 ' + c + ' ' + c + ')"/>' +
+        '<text x="' + c + '" y="' + (c + fontSize * 0.34) + '" text-anchor="middle" font-size="' + fontSize + '" font-weight="800" fill="' + ADASH.text + '">' + clamped + '%</text>' +
+        '</svg>'
+    );
+}
+
+function svgDonut(segments, opts) {
+    opts = opts || {};
+    const size = opts.size || 108;
+    const stroke = opts.stroke || 15;
+    const r = (size - stroke) / 2;
+    const c = size / 2;
+    const circ = 2 * Math.PI * r;
+    const total = segments.reduce(function(a, s) { return a + s.value; }, 0) || 1;
+    let offsetAcc = 0;
+    let circles = '';
+    segments.forEach(function(s) {
+        if (s.value <= 0) return;
+        const frac = s.value / total;
+        const dash = Math.max(0.6, circ * frac - 1.2);
+        circles += '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="none" stroke="' + s.color + '" stroke-width="' + stroke + '" ' +
+            'stroke-linecap="round" stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '" stroke-dashoffset="' + (-offsetAcc).toFixed(1) + '" transform="rotate(-90 ' + c + ' ' + c + ')"/>';
+        offsetAcc += circ * frac;
+    });
+    const svgHtml = (
+        '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' + circles +
+        '<text x="' + c + '" y="' + (c - 3) + '" text-anchor="middle" font-size="18" font-weight="800" fill="' + ADASH.text + '">' + total + '</text>' +
+        '<text x="' + c + '" y="' + (c + 12) + '" text-anchor="middle" font-size="7.5" letter-spacing="0.05em" fill="var(--adash-muted)">TOTAL</text>' +
+        '</svg>'
+    );
+    let legend = '';
+    segments.forEach(function(s) {
+        const pct = total ? Math.round((s.value / total) * 100) : 0;
+        legend += (
+            '<div class="adash-donut-legend-row">' +
+            '<span style="width:8px;height:8px;border-radius:2px;background:' + s.color + ';display:inline-block;flex:0 0 auto"></span>' +
+            '<span style="color:var(--adash-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(s.label) + '</span>' +
+            '<span style="color:var(--adash-muted);font-weight:700">' + pct + '%</span>' +
+            '</div>'
+        );
+    });
+    return (
+        '<div style="display:flex;align-items:center;gap:12px">' +
+        '<div style="flex:0 0 auto">' + svgHtml + '</div>' +
+        '<div style="flex:1;min-width:0">' + legend + '</div>' +
         '</div>'
     );
 }
 
-function renderKpiCard(opts) {
+// ---- Card / stat building blocks (dark theme) --------------------------
+function renderAdashStat(icon, value, label, color) {
+    return (
+        '<div class="adash-stat">' +
+        '<div class="icon">' + icon + '</div>' +
+        '<div class="val" style="color:' + (color || ADASH.green) + '">' + value + '</div>' +
+        '<div class="lbl">' + esc(label) + '</div>' +
+        '</div>'
+    );
+}
+// Back-compat alias (kept in case other code paths reference the old name)
+function renderStatCard(icon, value, label, color) { return renderAdashStat(icon, value, label, color); }
+
+function renderAdashKpi(opts) {
     const trendHtml = opts.trend ? renderTrendBadge(opts.trend) : '';
     const clickAttr = opts.filterKey ? ' data-action="analytics-filter-users" data-filter="' + opts.filterKey + '" style="cursor:pointer"' : '';
+    const color = opts.color || ADASH.green;
+    const sparkHtml = opts.spark ? '<div class="adash-kpi-spark">' + svgSparkline(opts.spark, { color: color }) + '</div>' : '';
     return (
-        '<div class="card"' + clickAttr + ' style="padding:14px;margin:0">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-        '<span style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;font-weight:600">' + esc(opts.label) + '</span>' +
-        '<span style="font-size:16px">' + opts.icon + '</span>' +
+        '<div class="adash-kpi"' + clickAttr + '>' +
+        '<div class="adash-kpi-head">' +
+        '<span class="adash-kpi-icon" style="background:' + color + '22;color:' + color + '">' + opts.icon + '</span>' +
+        (opts.spark ? '' : (trendHtml || '')) +
         '</div>' +
-        '<div style="font-size:22px;font-weight:800;color:' + (opts.color || 'var(--ink)') + ';line-height:1">' + opts.value + '</div>' +
-        (trendHtml ? '<div style="margin-top:6px">' + trendHtml + '</div>' : '') +
+        '<div class="adash-kpi-value">' + opts.value + '</div>' +
+        '<div class="adash-kpi-label">' + esc(opts.label) + '</div>' +
+        (opts.spark && trendHtml ? '<div style="margin-top:5px">' + trendHtml + '</div>' : '') +
+        sparkHtml +
         '</div>'
     );
 }
-
+// Back-compat alias
+function renderKpiCard(opts) { return renderAdashKpi(opts); }
 function renderStatCardClickable(icon, value, label, color, filterKey) {
-    return renderKpiCard({ icon: icon, value: value, label: label, color: color, filterKey: filterKey });
+    return renderAdashKpi({ icon: icon, value: value, label: label, color: color, filterKey: filterKey });
 }
 
-function renderBarChart(data, opts) {
+function renderAdashBarChart(data, opts) {
     opts = opts || {};
-    const color = opts.color || GREEN;
+    const color = opts.color || ADASH.green;
     const prefix = opts.prefix || '';
-    const max = Math.max(1, ...data.map(function(d) { return d.value; }));
+    const max = Math.max.apply(null, data.map(function(d) { return d.value; }).concat([1]));
     let bars = '';
     data.forEach(function(d) {
         const pct = Math.max(2, Math.round((d.value / max) * 100));
         bars += (
             '<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:22px">' +
-            '<div style="font-size:9px;font-weight:700;color:var(--ink);margin-bottom:3px;white-space:nowrap">' + prefix + d.value + '</div>' +
-            '<div style="width:100%;max-width:26px;height:90px;display:flex;align-items:flex-end;background:var(--bg);border-radius:5px;overflow:hidden">' +
-            '<div style="width:100%;height:' + pct + '%;background:linear-gradient(180deg,' + color + ' 0%,' + color + 'cc 100%);border-radius:4px 4px 0 0;transition:height 0.3s"></div>' +
+            '<div style="font-size:9px;font-weight:700;color:var(--adash-text);margin-bottom:3px;white-space:nowrap">' + prefix + d.value + '</div>' +
+            '<div style="width:100%;max-width:24px;height:82px;display:flex;align-items:flex-end;background:rgba(255,255,255,0.05);border-radius:5px;overflow:hidden">' +
+            '<div style="width:100%;height:' + pct + '%;background:linear-gradient(180deg,' + color + ' 0%,' + color + '88 100%);border-radius:4px 4px 0 0;transition:height 0.3s"></div>' +
             '</div>' +
-            '<div style="font-size:8px;color:var(--muted);margin-top:4px;text-align:center;white-space:nowrap">' + esc(d.label) + '</div>' +
+            '<div style="font-size:8px;color:var(--adash-faint);margin-top:4px;text-align:center;white-space:nowrap">' + esc(d.label) + '</div>' +
             '</div>'
         );
     });
     return '<div style="display:flex;gap:5px;align-items:flex-end;overflow-x:auto;padding:4px 2px 0">' + bars + '</div>';
 }
-function renderDashboardCard(title, icon, contentHtml) {
+// Back-compat alias
+function renderBarChart(data, opts) { return renderAdashBarChart(data, opts); }
+
+function renderAdashCard(title, icon, contentHtml, subtitle) {
     return (
-        '<div class="card" style="margin-bottom:10px">' +
-        '<p style="font-size:12px;font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:6px">' + icon + ' ' + esc(title) + '</p>' +
+        '<div class="adash-card">' +
+        '<p class="adash-card-title">' + icon + ' ' + esc(title) + (subtitle ? ' <span class="sub">· ' + esc(subtitle) + '</span>' : '') + '</p>' +
         contentHtml +
         '</div>'
     );
 }
+// Back-compat alias
+function renderDashboardCard(title, icon, contentHtml) { return renderAdashCard(title, icon, contentHtml); }
 
 const ANALYTICS_SUBTABS = [
     { key: 'overview', label: '📊 Overview' },
+    { key: 'results', label: '📝 Results' },
     { key: 'growth', label: '📈 Growth' },
     { key: 'revenue', label: '💰 Revenue' },
     { key: 'engagement', label: '🎯 Engagement' },
+    { key: 'content', label: '🗂️ Content' },
 ];
 
 function renderAnalyticsSubTabs() {
@@ -16344,82 +16904,191 @@ function renderAnalyticsSubTabs() {
 
 function renderAdminAnalytics() {
     if (state.analyticsUserFilter) {
-        return renderAnalyticsUserList(state.analyticsUserFilter);
+        return '<div class="analytics-dash">' + renderAnalyticsUserList(state.analyticsUserFilter) + '</div>';
     }
 
     if (!state.analyticsLoaded && !state.analyticsLoading) {
         loadAnalyticsData();
-        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading analytics data...</p></div>';
+        return '<div class="analytics-dash"><div class="loading-spinner"><div class="spinner"></div><p>Loading analytics data...</p></div></div>';
     }
     if (state.analyticsLoading) {
-        return '<div class="loading-spinner"><div class="spinner"></div><p>Crunching numbers...</p></div>';
+        return '<div class="analytics-dash"><div class="loading-spinner"><div class="spinner"></div><p>Crunching numbers...</p></div></div>';
     }
     if (!state.analyticsData) {
-        return '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No data available.</p></div>';
+        return '<div class="analytics-dash"><div class="adash-card"><p style="text-align:center;color:var(--adash-muted);padding:16px 0;font-size:13px">No data available.</p></div></div>';
     }
     const d = state.analyticsData;
 
-    let html = '';
+    let html = '<div class="analytics-dash">';
 
     // Header: range selector + refresh
     html += (
-        '<div style="display:flex;gap:4px;margin-bottom:10px">' +
-        [7, 14, 30].map(function(n) {
-            return '<button class="btn btn-sm ' + (state.analyticsRange === n ? 'btn-green' : 'btn-outline') + '" data-action="analytics-range" data-range="' + n + '" style="flex:1">' + n + 'd</button>';
+        '<div class="adash-range-row">' +
+        [7, 30, 'all'].map(function(n) {
+            const label = n === 'all' ? 'All' : (n + 'd');
+            return '<button class="btn btn-sm ' + (state.analyticsRange === n ? 'btn-green' : 'btn-outline') + '" data-action="analytics-range" data-range="' + n + '" style="flex:1">' + label + '</button>';
         }).join('') +
         '<button class="btn btn-outline btn-sm btn-refresh" data-action="analytics-refresh" style="flex:0 0 auto;padding:6px 10px">' + svg('refresh', 15) + '</button>' +
         '</div>'
     );
 
-    html += renderAnalyticsSubTabs();
+    // Single continuous page — every section flows into side-by-side
+    // columns instead of stacking vertically, so there's no long
+    // scroll: on mobile it "bends" sideways (swipe left/right), on a
+    // laptop it just naturally shows more columns across the width.
+    html += '<div class="adash-onepage">';
+    html += '<div class="adash-section"><p class="adash-section-label">📊 Overview</p>' + renderAnalyticsOverviewTab(d) + '</div>';
+    html += '<div class="adash-section"><p class="adash-section-label">📝 Result Analysis</p>' + renderAnalyticsResultsTab(d) + '</div>';
+    html += '<div class="adash-section"><p class="adash-section-label">📈 Growth</p>' + renderAnalyticsGrowthTab(d) + '</div>';
+    html += '<div class="adash-section"><p class="adash-section-label">💰 Revenue</p>' + renderAnalyticsRevenueTab(d) + '</div>';
+    html += '<div class="adash-section"><p class="adash-section-label">🎯 Engagement</p>' + renderAnalyticsEngagementTab(d) + '</div>';
+    html += '<div class="adash-section"><p class="adash-section-label">🗂️ Content</p>' + renderAnalyticsContentTab(d) + '</div>';
+    html += '</div>';
 
-    if (state.analyticsSubTab === 'overview') html += renderAnalyticsOverviewTab(d);
-    else if (state.analyticsSubTab === 'growth') html += renderAnalyticsGrowthTab(d);
-    else if (state.analyticsSubTab === 'revenue') html += renderAnalyticsRevenueTab(d);
-    else if (state.analyticsSubTab === 'engagement') html += renderAnalyticsEngagementTab(d);
-
+    html += '</div>';
     return html;
 }
 
 function renderAnalyticsOverviewTab(d) {
     let html = '';
-
-    // Top-line snapshot: 4 hero KPIs
-    html += (
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' +
-        renderKpiCard({ icon: '👤', label: 'Total Users', value: d.totalUsers, trend: trendOf(d.signupsByDay), color: GREEN, filterKey: 'all-users' }) +
-        renderKpiCard({ icon: '✅', label: 'Activated', value: d.activatedUsers + ' / ' + d.totalUsers, color: GREEN, filterKey: 'activated-users' }) +
-        renderKpiCard({ icon: '🟢', label: 'Online Now', value: d.onlineNow.length, color: GOLD, filterKey: 'online-now' }) +
-        renderKpiCard({ icon: '💵', label: 'Revenue', value: '₦' + (d.totalRevenue >= 1000 ? Math.round(d.totalRevenue / 1000) + 'k' : d.totalRevenue), trend: trendOf(d.paymentsByDay), color: GOLD }) +
-        '</div>'
-    );
-
-    // Conversion rate bar
     const conversionPct = d.totalUsers > 0 ? Math.round((d.activatedUsers / d.totalUsers) * 100) : 0;
+    const onlinePct = d.totalUsers > 0 ? Math.round((d.onlineNow.length / d.totalUsers) * 100) : 0;
+
+    // Hero: two gauges side by side — activation rate & online share
+    html += renderAdashCard('Account Health', '🩺',
+        '<div class="adash-gauge-row">' +
+        '<div class="adash-gauge-item">' + svgGauge(conversionPct, { color: conversionPct >= 50 ? ADASH.green : conversionPct >= 25 ? ADASH.gold : ADASH.red }) +
+        '<p class="lbl">Activation Rate</p></div>' +
+        '<div class="adash-gauge-item">' + svgGauge(onlinePct, { color: ADASH.teal }) +
+        '<p class="lbl">Online Right Now</p></div>' +
+        '</div>' +
+        '<p style="font-size:9px;color:var(--adash-faint);text-align:center;margin-top:8px">' + d.activatedUsers + ' of ' + d.totalUsers + ' users activated · ' + d.onlineNow.length + ' online now</p>'
+    );
+
+    // Top-line KPIs with embedded sparklines
     html += (
-        '<div class="card" style="margin-bottom:10px">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
-        '<span style="font-size:11px;font-weight:700;color:var(--ink)">Activation Rate</span>' +
-        '<span style="font-size:13px;font-weight:800;color:' + (conversionPct >= 50 ? GREEN : conversionPct >= 25 ? GOLD : '#e2543a') + '">' + conversionPct + '%</span>' +
-        '</div>' +
-        '<div style="width:100%;height:8px;background:var(--bg);border-radius:99px;overflow:hidden">' +
-        '<div style="width:' + conversionPct + '%;height:100%;background:linear-gradient(90deg,' + GREEN + ',' + GOLD + ');border-radius:99px"></div>' +
-        '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin-top:5px">' + d.activatedUsers + ' of ' + d.totalUsers + ' registered users have an active plan</p>' +
+        '<div class="adash-kpi-grid">' +
+        renderAdashKpi({ icon: '👤', label: 'Total Users', value: d.totalUsers, spark: d.signupsByDay, trend: trendOf(d.signupsByDay), color: ADASH.green, filterKey: 'all-users' }) +
+        renderAdashKpi({ icon: '👁️', label: 'App Opens (' + rangeLabelShort() + ')', value: d.totalViews, spark: d.viewsByDay, trend: trendOf(d.viewsByDay), color: ADASH.blue, filterKey: 'app-views' }) +
+        renderAdashKpi({ icon: '🟢', label: 'Online Now', value: d.onlineNow.length, color: ADASH.teal, filterKey: 'online-now' }) +
+        renderAdashKpi({ icon: '💵', label: 'Revenue (' + rangeLabelShort() + ')', value: '₦' + (d.totalRevenue >= 1000 ? Math.round(d.totalRevenue / 1000) + 'k' : d.totalRevenue), spark: d.paymentsByDay, trend: trendOf(d.paymentsByDay), color: ADASH.gold }) +
         '</div>'
     );
 
-    html += renderDashboardCard('New Signups (' + state.analyticsRange + 'd)', '📈', renderBarChart(d.signupsByDay, { color: GREEN }));
-    html += renderDashboardCard('App Opens (' + state.analyticsRange + 'd)', '👁️', renderBarChart(d.viewsByDay, { color: '#2E6FF2' }));
+    html += renderAdashCard('New Signups', '📈', svgAreaChart(d.signupsByDay, { color: ADASH.green }), rangeLabelLong());
+    html += renderAdashCard('App Opens', '👁️', svgAreaChart(d.viewsByDay, { color: ADASH.blue }), rangeLabelLong());
+
+    // User base breakdown donut
+    html += renderAdashCard('User Base Breakdown', '🍩', svgDonut([
+        { label: 'Activated', value: d.activatedUsers, color: ADASH.green },
+        { label: 'Inactive', value: d.inactiveUsers, color: ADASH.red },
+    ]));
 
     // Quick health strip
     html += (
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">' +
-        renderStatCard('📅', d.activeToday, 'Active Today', GREEN) +
-        renderStatCard('👁️', d.totalViews, 'App Views', '#2E6FF2') +
-        renderStatCard('⛔', d.inactiveUsers, 'Inactive', '#e2543a') +
+        '<div class="adash-stat-grid">' +
+        renderAdashStat('📅', d.activeToday, 'Active Today', ADASH.green) +
+        renderAdashStat('👁️', d.totalViews, 'App Views', ADASH.blue) +
+        renderAdashStat('⛔', d.inactiveUsers, 'Inactive', ADASH.red) +
         '</div>'
     );
+
+    return html;
+}
+
+// ---- Result Analysis tab: exam performance aggregated across every user,
+// for the selected range (7 / 30 / All). Reuses the same subject-accuracy
+// aggregator the Personal Analytics dashboard uses for one user, just run
+// here over everyone's attempts at once. -------------------------------
+function renderAnalyticsResultsTab(d) {
+    let html = '';
+
+    const gaugeColor = d.overallResultPct >= 70 ? ADASH.green : d.overallResultPct >= 50 ? ADASH.gold : ADASH.red;
+    html += (
+        '<div class="adash-kpi-grid">' +
+        renderAdashKpi({ icon: '🎯', label: 'Overall Accuracy', value: d.overallResultPct + '%', color: gaugeColor }) +
+        renderAdashKpi({ icon: '📝', label: 'Attempts (' + rangeLabelShort() + ')', value: d.totalAttempts, color: ADASH.gold }) +
+        renderAdashKpi({ icon: '🧑‍🎓', label: 'Users With Attempts', value: d.usersWithAttempts, color: ADASH.blue }) +
+        renderAdashKpi({ icon: '📚', label: 'Subjects Covered', value: d.resultSubjectStats.length, color: ADASH.purple }) +
+        '</div>'
+    );
+
+    // Score-band distribution — how attempts spread across grade bands.
+    const bandSegments = d.scoreBands.map(function(b) { return { label: b.label, value: b.value, color: b.color }; });
+    const totalBanded = bandSegments.reduce(function(a, s) { return a + s.value; }, 0);
+    if (totalBanded > 0) {
+        html += renderAdashCard('Score Distribution', '🍩', svgDonut(bandSegments), totalBanded + ' attempts, ' + rangeLabelLong());
+    } else {
+        html += renderAdashCard('Score Distribution', '🍩', '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:10px 0">No attempts in this range yet.</p>');
+    }
+
+    // Per-subject accuracy across every user — strongest to weakest.
+    let subjectRows = '';
+    if (d.resultSubjectStats.length === 0) {
+        subjectRows = '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:10px 0">No subject data in this range yet.</p>';
+    } else {
+        d.resultSubjectStats.forEach(function(s) {
+            subjectRows += (
+                '<div style="margin-bottom:9px">' +
+                '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">' +
+                '<span style="color:var(--adash-text);font-weight:700">' + esc(s.name) + '</span>' +
+                '<span style="color:' + (s.pct >= 70 ? ADASH.green : s.pct >= 50 ? ADASH.gold : ADASH.red) + ';font-weight:800">' + s.pct + '%</span>' +
+                '</div>' +
+                '<div style="width:100%;height:6px;border-radius:999px;background:rgba(255,255,255,0.08);overflow:hidden">' +
+                '<div style="width:' + s.pct + '%;height:100%;background:' + s.color + ';border-radius:999px"></div>' +
+                '</div>' +
+                '</div>'
+            );
+        });
+    }
+    html += renderAdashCard('Accuracy by Subject', '📚', subjectRows, 'all users · ' + rangeLabelLong());
+
+    // Strongest / weakest callouts, when there's enough data to be meaningful.
+    if (d.resultSubjectStats.length > 1) {
+        const strongest = d.resultSubjectStats[0];
+        const weakest = d.resultSubjectStats[d.resultSubjectStats.length - 1];
+        html += (
+            '<div class="adash-stat-grid">' +
+            renderAdashStat('💪', strongest.pct + '%', 'Strongest: ' + strongest.code, ADASH.green) +
+            renderAdashStat('⚠️', weakest.pct + '%', 'Weakest: ' + weakest.code, ADASH.red) +
+            '</div>'
+        );
+    }
+
+    // Cross-user leaderboard by accuracy — same rank/medal styling as the
+    // student-facing leaderboard, just scoped to the selected range.
+    let lbRows = '';
+    if (d.resultLeaderboard.length === 0) {
+        lbRows = '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:10px 0">No results in this range yet.</p>';
+    } else {
+        d.resultLeaderboard.slice(0, 10).forEach(function(u, i) {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+            lbRows += (
+                '<div class="lb-row">' +
+                '<div class="left">' +
+                '<span class="rank">' + medal + '</span>' +
+                '<span style="font-size:12px;color:var(--adash-text)">' + esc(u.name) + '</span>' +
+                '</div>' +
+                '<span class="score" style="font-size:12px">' + u.pct + '% <span style="color:var(--adash-faint);font-weight:400">(' + u.attempts + ')</span></span>' +
+                '</div>'
+            );
+        });
+    }
+    html += renderAdashCard('Top Performers', '🏆', lbRows, 'by accuracy, ' + rangeLabelLong());
+
+    // Average score by mode, reusing the same per-mode averages already
+    // computed for the Engagement tab, so the two stay consistent.
+    let modeRows = '';
+    Object.keys(d.modeLabels).forEach(function(m) {
+        if (d.historyByModeAvg[m] === undefined) return;
+        modeRows += (
+            '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)">' +
+            '<span style="font-size:12px;color:var(--adash-text)">' + esc(d.modeLabels[m]) + '</span>' +
+            '<span style="font-size:12px;font-weight:800;color:' + (d.historyByModeAvg[m] >= 70 ? ADASH.green : d.historyByModeAvg[m] >= 50 ? ADASH.gold : ADASH.red) + '">' + d.historyByModeAvg[m] + '%</span>' +
+            '</div>'
+        );
+    });
+    if (modeRows) html += renderAdashCard('Average Score by Mode', '📊', modeRows, rangeLabelLong());
 
     return html;
 }
@@ -16430,31 +17099,31 @@ function renderAnalyticsGrowthTab(d) {
     const viewTrend = trendOf(d.viewsByDay);
 
     html += (
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' +
-        renderKpiCard({ icon: '📝', label: 'New Signups', value: d.signupsByDay.reduce(function(a, b) { return a + b.value; }, 0), trend: signupTrend, color: GREEN }) +
-        renderKpiCard({ icon: '👁️', label: 'Total App Opens', value: d.totalViews, trend: viewTrend, color: '#2E6FF2' }) +
+        '<div class="adash-kpi-grid">' +
+        renderAdashKpi({ icon: '📝', label: 'New Signups', value: d.signupsByDay.reduce(function(a, b) { return a + b.value; }, 0), spark: d.signupsByDay, trend: signupTrend, color: ADASH.green }) +
+        renderAdashKpi({ icon: '👁️', label: 'Total App Opens', value: d.totalViews, spark: d.viewsByDay, trend: viewTrend, color: ADASH.blue }) +
         '</div>'
     );
 
-    html += renderDashboardCard('Signups Over Time', '📈', renderBarChart(d.signupsByDay, { color: GREEN }));
-    html += renderDashboardCard('App Opens Over Time', '👁️', renderBarChart(d.viewsByDay, { color: '#2E6FF2' }));
+    html += renderAdashCard('Signups Over Time', '📈', svgAreaChart(d.signupsByDay, { color: ADASH.green }));
+    html += renderAdashCard('App Opens Over Time', '👁️', svgAreaChart(d.viewsByDay, { color: ADASH.blue }));
 
     // Online now list
     let onlineList = '';
     if (d.onlineNow.length === 0) {
-        onlineList = '<p style="font-size:12px;color:var(--faint);text-align:center;padding:10px 0">No one online right now.</p>';
+        onlineList = '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:10px 0">No one online right now.</p>';
     } else {
         d.onlineNow.slice(0, 20).forEach(function(p) {
             onlineList += (
-                '<div class="lb-row" style="padding:6px 10px">' +
-                '<div class="left"><span style="width:8px;height:8px;border-radius:999px;background:#4CAF50;display:inline-block"></span>' +
-                '<span style="font-size:12px">' + esc(p.username) + '</span></div>' +
-                '<span style="font-size:9px;color:var(--faint)">' + formatTimeAgo(p.last_seen) + '</span>' +
+                '<div class="lb-row" style="padding:6px 4px">' +
+                '<div class="left"><span style="width:8px;height:8px;border-radius:999px;background:' + ADASH.teal + ';display:inline-block"></span>' +
+                '<span style="font-size:12px;color:var(--adash-text)">' + esc(p.username) + '</span></div>' +
+                '<span style="font-size:9px;color:var(--adash-faint)">' + formatTimeAgo(p.last_seen) + '</span>' +
                 '</div>'
             );
         });
     }
-    html += renderDashboardCard('Currently Online (' + d.onlineNow.length + ')', '🟢', onlineList);
+    html += renderAdashCard('Currently Online (' + d.onlineNow.length + ')', '🟢', onlineList);
 
     return html;
 }
@@ -16464,25 +17133,25 @@ function renderAnalyticsRevenueTab(d) {
     const revTrend = trendOf(d.paymentsByDay);
 
     html += (
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' +
-        renderKpiCard({ icon: '💵', label: 'Total Revenue', value: '₦' + d.totalRevenue.toLocaleString(), trend: revTrend, color: GOLD }) +
-        renderKpiCard({ icon: '🧾', label: 'Confirmed Payments', value: d.paidKeys.length, color: GREEN }) +
+        '<div class="adash-kpi-grid">' +
+        renderAdashKpi({ icon: '💵', label: 'Total Revenue', value: '₦' + d.totalRevenue.toLocaleString(), spark: d.paymentsByDay, trend: revTrend, color: ADASH.gold }) +
+        renderAdashKpi({ icon: '🧾', label: 'Confirmed Payments', value: d.paidKeys.length, color: ADASH.green }) +
         '</div>'
     );
 
     const avgOrder = d.paidKeys.length > 0 ? Math.round(d.totalRevenue / d.paidKeys.length) : 0;
     html += (
-        '<div class="card" style="margin-bottom:10px;text-align:center;padding:16px">' +
-        '<p style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin:0 0 4px">Average Order Value</p>' +
-        '<p style="font-size:24px;font-weight:800;color:' + GOLD + ';margin:0">₦' + avgOrder.toLocaleString() + '</p>' +
+        '<div class="adash-card" style="text-align:center;padding:16px">' +
+        '<p style="font-size:9px;color:var(--adash-muted);text-transform:uppercase;letter-spacing:0.05em;margin:0 0 4px">Average Order Value</p>' +
+        '<p style="font-size:24px;font-weight:800;color:' + ADASH.gold + ';margin:0">₦' + avgOrder.toLocaleString() + '</p>' +
         '</div>'
     );
 
-    html += renderDashboardCard('Revenue by Day (₦)', '📈', renderBarChart(d.paymentsByDay, { color: GOLD }));
+    html += renderAdashCard('Revenue Over Time', '📈', svgAreaChart(d.paymentsByDay, { color: ADASH.gold, prefix: '₦' }), rangeLabelLong());
 
     let paymentRows = '';
     if (d.paidKeys.length === 0) {
-        paymentRows = '<p style="font-size:12px;color:var(--faint);text-align:center;padding:10px 0">No confirmed payments yet.</p>';
+        paymentRows = '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:10px 0">No confirmed payments yet.</p>';
     } else {
         d.paidKeys.slice(0, 30).forEach(function(k) {
             paymentRows += (
@@ -16491,13 +17160,13 @@ function renderAnalyticsRevenueTab(d) {
                 '<span class="user-name">' + esc(k.used_by_username || 'Unknown') + '</span>' +
                 '<span class="user-email">' + esc(k.plan_name || '') + ' · ' + (k.days || 0) + ' days · ' + esc(k.key_code || '') + '</span>' +
                 '</div>' +
-                '<span style="font-weight:700;color:var(--green);font-size:13px">₦' + (k.price || 0).toLocaleString() + '</span>' +
-                '<span style="font-size:9px;color:var(--faint)">' + formatTimeAgo(k.used_at) + '</span>' +
+                '<span style="font-weight:700;color:' + ADASH.green + ';font-size:13px">₦' + (k.price || 0).toLocaleString() + '</span>' +
+                '<span style="font-size:9px;color:var(--adash-faint)">' + formatTimeAgo(k.used_at) + '</span>' +
                 '</div>'
             );
         });
     }
-    html += renderDashboardCard('Recent Payments (' + d.paidKeys.length + ')', '🧾', '<div style="max-height:320px;overflow-y:auto">' + paymentRows + '</div>');
+    html += renderAdashCard('Recent Payments', '🧾', '<div style="max-height:320px;overflow-y:auto">' + paymentRows + '</div>', d.paidKeys.length + ' total');
 
     return html;
 }
@@ -16506,32 +17175,119 @@ function renderAnalyticsEngagementTab(d) {
     let html = '';
 
     html += (
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
-        renderStatCard('📝', d.totalAttempts, 'Total Attempts', GOLD) +
-        renderStatCard('📚', (d.modeUsers['cbt-full'] ? d.modeUsers['cbt-full'].size : 0) + (d.modeUsers['cbt-single'] ? d.modeUsers['cbt-single'].size : 0), 'CBT Users', '#2E6FF2') +
-        renderStatCard('🎯', d.modeUsers['mock'] ? d.modeUsers['mock'].size : 0, 'Mock Users', '#8E44AD') +
+        '<div class="adash-stat-grid">' +
+        renderAdashStat('📝', d.totalAttempts, 'Total Attempts', ADASH.gold) +
+        renderAdashStat('📚', (d.modeUsers['cbt-full'] ? d.modeUsers['cbt-full'].size : 0) + (d.modeUsers['cbt-single'] ? d.modeUsers['cbt-single'].size : 0), 'CBT Users', ADASH.blue) +
+        renderAdashStat('🎯', d.modeUsers['mock'] ? d.modeUsers['mock'].size : 0, 'Mock Users', ADASH.purple) +
         '</div>'
     );
 
-    html += (
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">' +
-        renderStatCard('📚', d.cbtAvg + '%', 'Avg CBT Score', GREEN) +
-        renderStatCard('🎯', d.mockAvg + '%', 'Avg Mock Score', '#8E44AD') +
-        renderStatCard('📋', d.subjAvg + '%', 'Avg Subject Score', '#7C5CFC') +
+    // Average score gauges
+    html += renderAdashCard('Average Scores', '🎯',
+        '<div class="adash-gauge-row">' +
+        '<div class="adash-gauge-item">' + svgGauge(d.cbtAvg, { color: ADASH.green }) + '<p class="lbl">CBT</p></div>' +
+        '<div class="adash-gauge-item">' + svgGauge(d.mockAvg, { color: ADASH.purple }) + '<p class="lbl">Mock</p></div>' +
+        '<div class="adash-gauge-item">' + svgGauge(d.subjAvg, { color: ADASH.teal }) + '<p class="lbl">Subject</p></div>' +
         '</div>'
     );
 
-    Object.keys(d.modeLabels).forEach(function(m) {
+    // Attempts distribution by mode — donut using real totals over the range
+    const donutColors = [ADASH.blue, ADASH.red, ADASH.purple, ADASH.teal, ADASH.gold, ADASH.green];
+    const modeKeysWithData = Object.keys(d.modeLabels).filter(function(m) {
+        return (d.modeUsers[m] ? true : false) || Object.keys(d.modeAttemptsByDay).some(function(day) { return (d.modeAttemptsByDay[day] || {})[m]; });
+    });
+    const donutSegments = Object.keys(d.modeLabels).map(function(m, i) {
+        let total = 0;
+        d.days.forEach(function(day) { total += (d.modeAttemptsByDay[day] && d.modeAttemptsByDay[day][m]) || 0; });
+        return { label: d.modeLabels[m], value: total, color: donutColors[i % donutColors.length] };
+    }).filter(function(s) { return s.value > 0; });
+
+    if (donutSegments.length > 0) {
+        html += renderAdashCard('Attempts by Mode', '🍩', svgDonut(donutSegments), rangeLabelLong());
+    }
+
+    Object.keys(d.modeLabels).forEach(function(m, i) {
         const perDay = d.days.map(function(day) {
             return { label: shortDay(day), value: (d.modeAttemptsByDay[day] && d.modeAttemptsByDay[day][m]) || 0 };
         });
         const totalForMode = perDay.reduce(function(a, b) { return a + b.value; }, 0);
         if (totalForMode === 0) return;
-        html += renderDashboardCard(
-            d.modeLabels[m] + ' — ' + totalForMode + ' attempts, avg ' + (d.historyByModeAvg[m] || 0) + '%',
+        html += renderAdashCard(
+            d.modeLabels[m],
             '📊',
-            renderBarChart(perDay, { color: SUBJECT_PALETTE[Object.keys(d.modeLabels).indexOf(m) % SUBJECT_PALETTE.length] })
+            renderAdashBarChart(perDay, { color: SUBJECT_PALETTE[i % SUBJECT_PALETTE.length] }),
+            totalForMode + ' attempts, avg ' + (d.historyByModeAvg[m] || 0) + '%'
         );
+    });
+
+    return html;
+}
+
+// ---- Content tab: real question-bank composition (reuses the same data
+// loadAllQuestionsForAdmin() already fetches for the Overview admin tab) --
+function renderAnalyticsContentTab(d) {
+    if (!state.allQuestionsLoaded) {
+        loadAllQuestionsForAdmin();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading question bank...</p></div>';
+    }
+
+    const modeCounts = { cbt: 0, exam: 0, mock: 0, topic: 0, literature: 0 };
+    const subjectBreakdown = {};
+    (state.allQuestions || []).forEach(function(q) {
+        const type = q.type || '';
+        const subject = q.subject_id || '';
+        if (!subjectBreakdown[type]) subjectBreakdown[type] = {};
+        if (!subjectBreakdown[type][subject]) subjectBreakdown[type][subject] = 0;
+        subjectBreakdown[type][subject] += 1;
+
+        if (type === 'cbt') modeCounts.cbt += 1;
+        else if (type === 'exam') modeCounts.exam += 1;
+        else if (type === 'mock') modeCounts.mock += 1;
+        else if (type === 'subject') modeCounts.topic += 1;
+        else if (type === 'NOVEL (CBT)') modeCounts.literature += 1;
+    });
+
+    const totalQuestions = modeCounts.cbt + modeCounts.exam + modeCounts.mock + modeCounts.topic + modeCounts.literature;
+
+    let html = '';
+    html += (
+        '<div class="adash-stat-grid">' +
+        renderAdashStat('❓', totalQuestions, 'Total Questions', ADASH.gold) +
+        renderAdashStat('📘', SUBJECTS.length, 'Subjects', ADASH.blue) +
+        renderAdashStat('🚩', state.flaggedCount || 0, 'Unresolved Flags', ADASH.red) +
+        '</div>'
+    );
+
+    html += renderAdashCard('Question Bank by Mode', '🍩', svgDonut([
+        { label: 'CBT Mode', value: modeCounts.cbt, color: ADASH.blue },
+        { label: 'Exam Mode', value: modeCounts.exam, color: ADASH.red },
+        { label: 'Mock Exam', value: modeCounts.mock, color: ADASH.purple },
+        { label: 'Topic Practice', value: modeCounts.topic, color: ADASH.teal },
+        { label: 'Novel (CBT)', value: modeCounts.literature, color: ADASH.gold },
+    ]));
+
+    function subjectTagsFor(type) {
+        const breakdown = subjectBreakdown[type] || {};
+        const keys = Object.keys(breakdown);
+        if (keys.length === 0) return '<p style="font-size:10px;color:var(--adash-faint)">No questions yet.</p>';
+        let out = '';
+        keys.forEach(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            const name = subj ? subj.code : sid;
+            out += '<span class="adash-subj-tag">' + esc(name) + ' <b>' + breakdown[sid] + '</b></span>';
+        });
+        return out;
+    }
+
+    const modeMeta = [
+        { key: 'cbt', label: 'CBT Mode', icon: '📚', count: modeCounts.cbt, subjType: 'cbt' },
+        { key: 'exam', label: 'Exam Mode', icon: '📝', count: modeCounts.exam, subjType: 'exam' },
+        { key: 'mock', label: 'Mock Exam', icon: '🎯', count: modeCounts.mock, subjType: 'mock' },
+        { key: 'topic', label: 'Topic Practice', icon: '📋', count: modeCounts.topic, subjType: 'subject' },
+        { key: 'literature', label: 'Novel (CBT)', icon: '📖', count: modeCounts.literature, subjType: 'NOVEL (CBT)' },
+    ];
+    modeMeta.forEach(function(m) {
+        html += renderAdashCard(m.label, m.icon, subjectTagsFor(m.subjType), m.count + ' questions');
     });
 
     return html;
@@ -18184,6 +18940,7 @@ function renderLoginModal() {
         '<p class="sub">Log in to continue your JAMB prep — pick up your practice, mocks and progress right where you left off.</p>' +
         '</div>' +
         '<div class="auth-sheet">' +
+        '<div class="auth-form-card">' +
         '<div class="field-group">' +
         '<label>Email or username</label>' +
         '<div class="af-input-wrap">' +
@@ -18236,6 +18993,7 @@ function renderSignupModal() {
         '<div class="af-perk">' + svg('checkcircle', 16) + ' Timed mock exams that feel like the real thing</div>' +
         '<div class="af-perk">' + svg('checkcircle', 16) + ' Track your progress subject by subject</div>' +
         '</div>' +
+        '<div class="auth-form-card">' +
         '<div class="field-group">' +
         '<label>Full name</label>' +
         '<div class="af-input-wrap">' +
@@ -18275,6 +19033,7 @@ function renderSignupModal() {
         '<button class="password-toggle" data-action="toggle-password" data-field="signup">' +
         svg(isShowing ? 'eyeoff' : 'eye', 18) +
         '</button>' +
+        '</div>' +
         '</div>' +
         '</div>' +
         (state.authError ? '<div class="af-error">⚠️ ' + esc(state.authError) + '</div>' : '') +
@@ -20183,7 +20942,8 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'analytics-range') {
-        state.analyticsRange = parseInt(el.getAttribute('data-range'), 10);
+        const rangeAttr = el.getAttribute('data-range');
+        state.analyticsRange = rangeAttr === 'all' ? 'all' : parseInt(rangeAttr, 10);
         state.analyticsLoaded = false;
         loadAnalyticsData();
         return;
@@ -22400,7 +23160,8 @@ async function init() {
     addLog(state.authUser ? state.authUser.id : null, state.profile.name || 'Guest', 'page_view', 'App opened');
     if (state.authUser) startLastSeenHeartbeat();
     window.addEventListener('online', function() {
-        showToast('Back online — syncing data...', 'success');
+        // Reconnect handling now runs silently — no "Back online — syncing
+        // data..." toast on every reconnect.
         upgradeSupabaseClientIfNeeded();
         cacheAllDataForOffline();
         checkAndDeactivateExpiredUsers();
