@@ -1256,6 +1256,109 @@
         margin-top: 6px;
     }
 
+
+    /* JAMB-style result slip — shown after a Full Mock UTME session. */
+    .utme-slip {
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        background: var(--card-bg);
+        box-shadow: var(--shadow-md);
+        margin-bottom: 12px;
+        border: 1px solid var(--line);
+    }
+    .utme-slip-head {
+        background: var(--topbar-bg);
+        color: #fff;
+        padding: 16px;
+        text-align: center;
+    }
+    .utme-slip-head .usm-badge {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.85;
+        margin: 0 0 4px;
+    }
+    .utme-slip-head .usm-name {
+        font-size: 16px;
+        font-weight: 800;
+        margin: 0;
+    }
+    .utme-slip-head .usm-date {
+        font-size: 11px;
+        opacity: 0.8;
+        margin: 2px 0 0;
+    }
+    .utme-slip-agg {
+        text-align: center;
+        padding: 18px 16px 10px;
+        border-bottom: 1px dashed var(--line);
+    }
+    .utme-slip-agg .usa-score {
+        font-family: var(--font-mono);
+        font-size: 42px;
+        font-weight: 800;
+        color: var(--green);
+    }
+    .utme-slip-agg .usa-max {
+        font-family: var(--font-mono);
+        font-size: 18px;
+        color: var(--faint);
+    }
+    .utme-slip-agg .usa-label {
+        font-size: 11px;
+        color: var(--muted);
+        margin: 2px 0 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .utme-slip-table {
+        padding: 14px 16px;
+    }
+    .utme-slip-table .ust-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+    }
+    .utme-slip-table .ust-name {
+        flex: 0 0 88px;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--ink);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .utme-slip-table .ust-bar-track {
+        flex: 1;
+        height: 7px;
+        border-radius: 4px;
+        background: var(--bg);
+        overflow: hidden;
+    }
+    .utme-slip-table .ust-bar-fill {
+        height: 100%;
+        background: var(--green);
+        border-radius: 4px;
+    }
+    .utme-slip-table .ust-score {
+        flex: 0 0 26px;
+        text-align: right;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--green);
+    }
+    .usm-footnote {
+        font-size: 9.5px;
+        color: var(--faint);
+        text-align: center;
+        padding: 0 16px 14px;
+        margin: 0;
+    }
+
     .review-item {
         padding: 10px;
         border-radius: 10px;
@@ -1287,6 +1390,216 @@
     }
     .review-item .flag-btn {
         margin-top: 6px;
+    }
+
+    /* Flashcards mode — swipeable/tappable flip card */
+    .flashcard-progress-track {
+        height: 4px;
+        background: var(--line);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+    .flashcard-progress-fill {
+        height: 100%;
+        background: var(--green);
+        transition: width 0.25s ease;
+    }
+    .flashcard-stage {
+        perspective: 1400px;
+        margin: 4px 0 10px;
+        touch-action: pan-y;
+    }
+    .flashcard {
+        position: relative;
+        width: 100%;
+        min-height: 240px;
+        cursor: pointer;
+    }
+    .flashcard-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        min-height: 240px;
+        transition: transform 0.45s cubic-bezier(.4,.2,.2,1);
+        transform-style: preserve-3d;
+    }
+    .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+    .flashcard-face {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        border-radius: 16px;
+        border: 1.5px solid var(--line);
+        background: var(--card-bg);
+        padding: 22px 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        min-height: 240px;
+        overflow-y: auto;
+    }
+    .flashcard-face .fc-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--faint);
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+    .flashcard-face .fc-text {
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.45;
+        margin: 0;
+    }
+    .flashcard-face .fc-explain {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 10px;
+        font-weight: 400;
+        line-height: 1.4;
+    }
+    .flashcard-face.fc-back {
+        transform: rotateY(180deg);
+        border-color: var(--green);
+    }
+    .flashcard-hint {
+        text-align: center;
+        font-size: 11px;
+        color: var(--faint);
+        margin: 8px 0 12px;
+    }
+    .flashcard-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .flashcard-actions .btn { flex: 1; }
+    .flashcard-nav {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .flashcard-nav .btn { flex: 1; }
+
+    /* Spaced repetition — due badges on Revise Weak screens */
+    .due-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 20px;
+        background: var(--green);
+        color: #fff;
+    }
+    .due-badge.later {
+        background: var(--line);
+        color: var(--muted);
+    }
+    .revise-filter-tabs {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    .revise-filter-tab {
+        flex: 1;
+        padding: 8px;
+        border-radius: 10px;
+        border: 1.5px solid var(--line);
+        background: var(--card-bg);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-align: center;
+    }
+    .revise-filter-tab.active {
+        border-color: var(--green);
+        color: var(--green);
+        background: rgba(15,107,63,0.08);
+    }
+    .sr-next-review {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 6px;
+    }
+
+    /* Personal Analytics Dashboard */
+    .analytics-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+    .analytics-stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 6px;
+        text-align: center;
+    }
+    .analytics-stat-card .val { font-size: 17px; font-weight: 700; margin: 0; }
+    .analytics-stat-card .lbl { font-size: 9px; color: var(--muted); margin: 2px 0 0; }
+    .analytics-section-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 18px 0 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .heatmap-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+    .heatmap-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .heatmap-row .hm-label {
+        flex: 0 0 92px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .heatmap-row .hm-bar-track {
+        flex: 1;
+        height: 16px;
+        border-radius: 8px;
+        background: var(--line);
+        overflow: hidden;
+        position: relative;
+    }
+    .heatmap-row .hm-bar-fill {
+        height: 100%;
+        border-radius: 8px;
+    }
+    .heatmap-row .hm-pct {
+        flex: 0 0 34px;
+        font-size: 11px;
+        font-weight: 700;
+        text-align: right;
+    }
+    .missed-list-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        margin-bottom: 6px;
+        font-size: 12px;
     }
 
     .result-card {
@@ -1529,6 +1842,7 @@
     .goto-legend .gl-swatch.answered { background: var(--green); }
     .goto-legend .gl-swatch.unanswered { background: var(--bg); border: 1.5px solid var(--line); }
     .goto-legend .gl-swatch.current { background: #fff; border: 2px solid var(--gold); }
+    .goto-legend .gl-swatch.marked { background: var(--flag-color); }
     .goto-groups {
         display: flex;
         flex-direction: column;
@@ -1599,6 +1913,23 @@
     .goto-modal .goto-grid .goto-q.current {
         border-color: var(--gold);
         box-shadow: 0 0 0 2px var(--gold);
+    }
+    /* JAMB-style "marked for review" — a small dot in the corner so the
+       marked state is visible whether the question is answered or not
+       (as opposed to replacing the answered/unanswered color outright). */
+    .goto-modal .goto-grid .goto-q {
+        position: relative;
+    }
+    .goto-modal .goto-grid .goto-q.marked::after {
+        content: '';
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--flag-color);
+        border: 1.5px solid var(--card-bg);
     }
     .goto-modal .goto-close {
         width: 100%;
@@ -2900,10 +3231,37 @@
         color: #fff;
     }
     .exam-question-card .flag-inline.flagged svg { stroke: #fff; }
+    .exam-question-card .mark-review-btn {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        font-size: 8px;
+        font-weight: 600;
+        padding: 4px 6px;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: var(--muted);
+    }
+    .exam-question-card .mark-review-btn svg { width: 14px; height: 14px; stroke: var(--muted); }
+    .exam-question-card .mark-review-btn:hover { border-color: var(--flag-color); }
+    .exam-question-card .mark-review-btn.marked {
+        background: var(--flag-color);
+        border-color: var(--flag-color);
+        color: var(--ink);
+    }
+    .exam-question-card .mark-review-btn.marked svg { stroke: var(--ink); }
     .exam-question-card p {
         font-size: 17px !important;
         line-height: 1.5;
         padding-right: 36px;
+        padding-left: 34px;
     }   
     .exam-options-wrap {
         display: flex;
@@ -4905,6 +5263,8 @@
 
 <script id="supabase-cdn-script" async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 <script async crossorigin="anonymous" src="https://js.paystack.co/v1/inline.js"></script>
+<!-- Client-side PDF generation (result breakdowns + analytics summary). No server involved. -->
+<script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="offline-db.js"></script>
 <script>
 // ============================================================
@@ -5202,6 +5562,7 @@ const ICONS = {
     home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/>',
     chart: '<path d="M4 20h16"/><path d="M6 16v-4"/><path d="M12 16v-8"/><path d="M18 16v-6"/>',
     flag: '<path d="M5 3v18"/><path d="M5 4h13l-2.5 4.5L18 13H5"/>',
+    bookmark: '<path d="M6 3h12v18l-6-4-6 4V3Z"/>',
     sparkles: '<path d="M12 3l1.4 4.2L18 9l-4.6 1.8L12 15l-1.4-4.2L6 9l4.6-1.8L12 3Z"/><path d="M19 13.5l.8 2.3L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.7L19 13.5Z"/>',
     plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
     history: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 3"/>',
@@ -5228,6 +5589,8 @@ const ICONS = {
     help: '<circle cx="12" cy="12" r="9.5"/><path d="M9.2 9a2.8 2.8 0 0 1 5.4 1c0 1.6-1.4 2-2.1 2.7-.4.4-.5.7-.5 1.3"/><line x1="12" y1="17" x2="12" y2="17.1"/>',
     image: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15.5 16 11l-8.5 8.5"/>',
     chevdown: '<polyline points="6 9 12 15 18 9"/>',
+    cards: '<rect x="3" y="7" width="14" height="14" rx="2.5"/><path d="M7.5 7V4.5A1.5 1.5 0 0 1 9 3h10.5A1.5 1.5 0 0 1 21 4.5V15a1.5 1.5 0 0 1-1.5 1.5H17"/>',
+    download: '<path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M4 19h16"/>',
 };
 function svg(name, size) {
     const s = size || 24;
@@ -5737,6 +6100,18 @@ let state = {
     reviseMode: null,
     reviseSubject: null,
     reviseIndex: 0,
+    reviseFilter: 'due', // 'due' | 'all' — spaced-repetition filter for Revise Weak
+
+    // Flashcards
+    flashcardSubject: null,
+    flashcardQuestions: [],
+    flashcardIndex: 0,
+    flashcardFlipped: false,
+    flashcardLoading: false,
+    flashcardKnew: 0,
+    flashcardDidntKnow: 0,
+    flashcardSwipeStartX: null,
+    flashcardSwipeStartY: null,
 
     // Leaderboard
     leaderboardTab: "cbt",
@@ -7267,6 +7642,7 @@ function saveSessionSnapshot() {
             cbtQuestions: state.cbtQuestions,
             cbtIndex: state.cbtIndex,
             cbtAnswers: state.cbtAnswers,
+            cbtMarked: state.cbtMarked,
             cbtSubjectQuestions: state.cbtSubjectQuestions,
             cbtSubjectOrder: state.cbtSubjectOrder,
             cbtCurrentSubject: state.cbtCurrentSubject,
@@ -8074,6 +8450,7 @@ function doSubmitMock(autoSubmit) {
             submitted_at: state.mockSubmittedAt,
             exam_title: exam ? exam.title : 'Mock Exam',
         });
+        saveAnalyticsTimeSample('mock', state.settingsCache.mockTimeLimit * 60 - state.mockTimeLeft, state.mockQuestions.length);
     }
     supabase
         .from(attemptsTable)
@@ -9568,6 +9945,7 @@ async function startCbt() {
     state.cbtQuestions = applyTrialQuestionCap(allQuestions);
     state.cbtIndex = 0;
     state.cbtAnswers = new Array(state.cbtQuestions.length).fill(null);
+    state.cbtMarked = new Array(state.cbtQuestions.length).fill(false);
     state.cbtFinished = false;
     state.cbtSubmitted = false;
     state.cbtHistorySaved = false;
@@ -9809,6 +10187,478 @@ async function startTopicPractice() {
 }
 
 // ============================================================
+//  FLASHCARDS
+// ============================================================
+// Flashcards are just a different rendering mode over the same question
+// bank CBT/Exam/Topic already use — no new data source, no new fetch logic.
+// We reuse the same offline-first question loader as CBT Single mode.
+async function startFlashcards(subjectId) {
+    if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+    if (!subjectId) { showToast('Please select a subject.', 'error'); return; }
+
+    state.flashcardSubject = subjectId;
+    state.flashcardLoading = true;
+    state.flashcardQuestions = [];
+    state.flashcardIndex = 0;
+    state.flashcardFlipped = false;
+    state.flashcardKnew = 0;
+    state.flashcardDidntKnow = 0;
+    state.view = 'flashcards';
+    render();
+
+    try {
+        const settings = await loadSettings();
+        const perSubject = settings.subjectQuestionsPerSubject || 40;
+        const s = SUBJECTS.find(function(x) { return x.id === subjectId; });
+        const questions = await window.OfflineDB.loadQuestionsOffline('cbt', subjectId, null, perSubject);
+        const qs = shuffleArray((questions || []).slice()).map(function(q) {
+            return Object.assign({}, q, { subject_id: subjectId, subject_name: s ? s.name : subjectId });
+        });
+        state.flashcardQuestions = qs;
+    } catch (e) {
+        console.warn('Flashcards load error:', e);
+        showToast('Could not load flashcards. Please try again.', 'error');
+    }
+    state.flashcardLoading = false;
+    render();
+}
+
+// ------------------------------------------------------------
+// Local progress store — records each "I knew it" / "I didn't know it" tap
+// per question. This is deliberately a single swappable pair of functions
+// (getFlashcardProgress / saveFlashcardProgress) so the storage layer can
+// later be pointed at Supabase for cross-device sync (spaced-repetition v2)
+// without touching any of the UI code above.
+// ------------------------------------------------------------
+function flashcardProgressStorageKey() {
+    const uid = state.authUser ? state.authUser.id : 'guest';
+    return 'myutme_flashcard_progress_' + uid;
+}
+function getFlashcardProgress() {
+    try {
+        return JSON.parse(storage.get(flashcardProgressStorageKey()) || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+function saveFlashcardProgress(questionId, knewIt) {
+    try {
+        const all = getFlashcardProgress();
+        const prev = all[questionId] || { seenCount: 0, knewCount: 0 };
+        all[questionId] = {
+            seenCount: prev.seenCount + 1,
+            knewCount: prev.knewCount + (knewIt ? 1 : 0),
+            lastResult: knewIt ? 'knew' : 'didnt_know',
+            lastReviewed: new Date().toISOString(),
+        };
+        storage.set(flashcardProgressStorageKey(), JSON.stringify(all));
+    } catch (e) {
+        console.warn('Save flashcard progress error:', e);
+    }
+}
+
+// ============================================================
+//  SPACED REPETITION — v1 (device-local, simplified SM-2)
+//  Applied to the existing "Revise Weak" question list. Schedule is kept
+//  in localStorage for now, keyed by user id + question id. Exactly like
+//  the flashcard progress store above, this is a single swappable pair
+//  of functions (getReviewSchedule / saveReviewSchedule) — moving this to
+//  Supabase later for cross-device sync (Phase 2, item #5) is a one-
+//  function change; nothing that calls these two needs to know where the
+//  data actually lives.
+// ============================================================
+function reviewScheduleStorageKey() {
+    const uid = state.authUser ? state.authUser.id : 'guest';
+    return 'myutme_review_schedule_' + uid;
+}
+function getReviewSchedule() {
+    try {
+        return JSON.parse(storage.get(reviewScheduleStorageKey()) || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+function saveReviewSchedule(schedule) {
+    try {
+        storage.set(reviewScheduleStorageKey(), JSON.stringify(schedule));
+    } catch (e) {
+        console.warn('Save review schedule error:', e);
+    }
+}
+
+// Simplified SM-2: each question tracks an ease factor, an interval (in
+// days), a repetition count, and a next-due date. A correct re-attempt
+// grows the interval (1 day -> 6 days -> interval*ease...); a wrong
+// re-attempt resets the repetition count, drops the interval back to a
+// single day, and nudges the ease factor down (floor 1.3).
+function updateReviewScheduleForQuestion(questionId, wasCorrect) {
+    if (!questionId) return;
+    const schedule = getReviewSchedule();
+    const prev = schedule[questionId] || { ease: 2.5, interval: 0, reps: 0 };
+
+    let ease = prev.ease, interval, reps;
+    if (wasCorrect) {
+        reps = prev.reps + 1;
+        if (reps === 1) interval = 1;
+        else if (reps === 2) interval = 6;
+        else interval = Math.round(prev.interval * ease);
+        ease = Math.max(1.3, ease + 0.1);
+    } else {
+        reps = 0;
+        interval = 1;
+        ease = Math.max(1.3, ease - 0.2);
+    }
+
+    const dueAt = new Date();
+    dueAt.setDate(dueAt.getDate() + interval);
+
+    schedule[questionId] = {
+        ease: Math.round(ease * 100) / 100,
+        interval: interval,
+        reps: reps,
+        dueAt: dueAt.toISOString(),
+        lastResult: wasCorrect ? 'correct' : 'incorrect',
+        lastReviewed: new Date().toISOString(),
+    };
+    saveReviewSchedule(schedule);
+    return schedule[questionId];
+}
+
+// A question with no schedule entry yet has never been reviewed, so it
+// counts as due immediately (matches how "Revise Weak" already works
+// today — everything missed shows up right away).
+function isQuestionDueForReview(questionId, schedule) {
+    const entry = schedule[questionId];
+    if (!entry || !entry.dueAt) return true;
+    return new Date(entry.dueAt).getTime() <= Date.now();
+}
+
+// ============================================================
+//  ANALYTICS — device-local timing samples
+//  No existing table tracks per-question or per-session time, and adding
+//  one is a backend change, so timing for the Personal Analytics
+//  Dashboard is captured client-side the same way review schedules are:
+//  a small localStorage log, capped at the most recent 200 sessions,
+//  populated at the same spot each timed mode already saves its history
+//  entry. Untimed modes (JAMB Past Questions/"exam") aren't logged here
+//  since there's no timer to derive elapsed seconds from.
+// ============================================================
+function analyticsTimeLogKey() {
+    const uid = state.authUser ? state.authUser.id : 'guest';
+    return 'myutme_time_log_' + uid;
+}
+function getAnalyticsTimeLog() {
+    try {
+        return JSON.parse(storage.get(analyticsTimeLogKey()) || '[]');
+    } catch (e) {
+        return [];
+    }
+}
+function saveAnalyticsTimeSample(mode, timeTakenSeconds, questionCount) {
+    if (!questionCount) return;
+    try {
+        const log = getAnalyticsTimeLog();
+        log.push({
+            mode: mode,
+            time_taken_seconds: Math.max(0, Math.round(timeTakenSeconds)),
+            question_count: questionCount,
+            recorded_at: new Date().toISOString(),
+        });
+        while (log.length > 200) log.shift();
+        storage.set(analyticsTimeLogKey(), JSON.stringify(log));
+    } catch (e) {
+        console.warn('Save analytics time sample error:', e);
+    }
+}
+
+// ============================================================
+//  PDF EXPORT (client-side, via jsPDF — no server involved)
+// ============================================================
+function getJsPdfCtor() {
+    if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+    return null;
+}
+
+function candidateNameForPdf() {
+    return state.profile.fullName || state.profile.name || 'Candidate';
+}
+
+function pdfFriendlyDate(dateInput) {
+    const d = dateInput ? new Date(dateInput) : new Date();
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function slugifyForFilename(text) {
+    return (text || 'MyUTME')
+        .toString()
+        .replace(/[^a-z0-9]+/gi, '-')
+        .replace(/^-+|-+$/g, '')
+        .toLowerCase() || 'myutme';
+}
+
+// Builds a full result-breakdown PDF: title/candidate/score header, an
+// optional per-subject score table, then question-by-question detail
+// (question, the student's answer, the correct answer, and the
+// explanation where available). Used by every exam mode's result screen.
+function downloadResultBreakdownPdf(opts) {
+    const JsPdfCtor = getJsPdfCtor();
+    if (!JsPdfCtor) {
+        showToast('PDF tool is still loading — please try again in a moment.', 'error');
+        return;
+    }
+    if (!opts.questions || opts.questions.length === 0) {
+        showToast('Nothing to export yet.', 'error');
+        return;
+    }
+
+    const doc = new JsPdfCtor({ unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 42;
+    const contentWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    function ensureSpace(needed) {
+        if (y + needed > pageHeight - margin) {
+            doc.addPage();
+            y = margin;
+        }
+    }
+
+    // Header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(15, 107, 63);
+    doc.text('MyUTME', margin, y);
+    doc.setTextColor(20, 20, 20);
+    doc.setFontSize(12);
+    doc.text(opts.title || 'Exam Result', pageWidth - margin, y, { align: 'right' });
+    y += 20;
+
+    doc.setDrawColor(225);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 18;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('Candidate: ' + candidateNameForPdf(), margin, y);
+    doc.text('Date: ' + pdfFriendlyDate(opts.dateInput), pageWidth - margin, y, { align: 'right' });
+    y += 15;
+    if (opts.modeLabel) {
+        doc.text('Mode: ' + opts.modeLabel, margin, y);
+        y += 15;
+    }
+    y += 6;
+
+    // Score block
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    const pct = opts.maxScore > 0 ? Math.round((opts.totalScore / opts.maxScore) * 100) : 0;
+    doc.text('Score: ' + opts.totalScore + ' / ' + opts.maxScore + '  (' + pct + '%)', margin, y);
+    y += 22;
+
+    // Subject breakdown
+    if (opts.subjectScores && Object.keys(opts.subjectScores).length > 0) {
+        doc.setFontSize(11);
+        doc.text('Subject Breakdown', margin, y);
+        y += 15;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        Object.keys(opts.subjectScores).forEach(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            ensureSpace(13);
+            doc.text((subj ? subj.name : sid) + ': ' + opts.subjectScores[sid], margin + 6, y);
+            y += 13;
+        });
+        y += 8;
+    }
+
+    doc.setDrawColor(225);
+    ensureSpace(10);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 18;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    ensureSpace(18);
+    doc.text('Question Breakdown', margin, y);
+    y += 18;
+
+    opts.questions.forEach(function(q, i) {
+        const userAns = opts.answers ? opts.answers[i] : undefined;
+        const hasCorrect = q.correct_answer !== undefined && q.correct_answer !== null;
+        const isCorrect = hasCorrect && userAns === q.correct_answer;
+        const userLetter = (userAns !== null && userAns !== undefined) ? String.fromCharCode(65 + userAns) : '—';
+        const correctLetter = hasCorrect ? String.fromCharCode(65 + q.correct_answer) : '—';
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(20, 20, 20);
+        const qLines = doc.splitTextToSize('Q' + (i + 1) + '. ' + (q.text || ''), contentWidth);
+        ensureSpace(qLines.length * 13 + 30);
+        doc.text(qLines, margin, y);
+        y += qLines.length * 13 + 3;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(isCorrect ? 15 : 176, isCorrect ? 107 : 40, isCorrect ? 63 : 40);
+        doc.text('Your answer: ' + userLetter + '     Correct answer: ' + correctLetter, margin, y);
+        doc.setTextColor(20, 20, 20);
+        y += 13;
+
+        if (q.explanation) {
+            doc.setFontSize(9);
+            const expLines = doc.splitTextToSize('Explanation: ' + q.explanation, contentWidth);
+            ensureSpace(expLines.length * 11.5);
+            doc.text(expLines, margin, y);
+            y += expLines.length * 11.5;
+        }
+        y += 10;
+    });
+
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('Generated by MyUTME — practice result, not an official JAMB document.', margin, pageHeight - 20);
+
+    doc.save(slugifyForFilename(opts.title) + '-result.pdf');
+    showToast('PDF downloaded!', 'success');
+}
+
+// Builds a personal analytics summary PDF from exam history — total exams,
+// overall accuracy, and a per-subject accuracy breakdown aggregated across
+// every attempt on file. (Mirrors the summary the eventual Personal
+// Analytics Dashboard — Phase 1 item #4 — will show on-screen.)
+function downloadAnalyticsSummaryPdf() {
+    const JsPdfCtor = getJsPdfCtor();
+    if (!JsPdfCtor) {
+        showToast('PDF tool is still loading — please try again in a moment.', 'error');
+        return;
+    }
+    const entries = state.historyEntries || [];
+    if (entries.length === 0) {
+        showToast('No exam history yet to summarize.', 'error');
+        return;
+    }
+
+    // Aggregate per-subject correct/total across every history entry's
+    // subject_scores. subject_scores stores correct counts per subject, not
+    // per-subject totals, so we approximate each subject's share of that
+    // entry's total_questions evenly across the subjects it covered. This
+    // is a best-effort summary from the data already available client-side;
+    // a precise per-subject total will be easy to add once the full
+    // Personal Analytics Dashboard (item #4) tracks it directly.
+    const subjectAgg = {};
+    let totalScoreAll = 0, totalMaxAll = 0;
+    entries.forEach(function(entry) {
+        totalScoreAll += entry.total_score || 0;
+        totalMaxAll += entry.max_score || 0;
+        const scores = entry.subject_scores || {};
+        const subjIds = Object.keys(scores);
+        if (subjIds.length === 0) return;
+        const perSubjectMax = (entry.max_score || 0) / subjIds.length;
+        subjIds.forEach(function(sid) {
+            if (!subjectAgg[sid]) subjectAgg[sid] = { correct: 0, max: 0 };
+            subjectAgg[sid].correct += scores[sid] || 0;
+            subjectAgg[sid].max += perSubjectMax;
+        });
+    });
+
+    const JsPdf = JsPdfCtor;
+    const doc = new JsPdf({ unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 42;
+    let y = margin;
+
+    function ensureSpace(needed) {
+        if (y + needed > pageHeight - margin) {
+            doc.addPage();
+            y = margin;
+        }
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(15, 107, 63);
+    doc.text('MyUTME', margin, y);
+    doc.setTextColor(20, 20, 20);
+    doc.setFontSize(12);
+    doc.text('Personal Analytics Summary', pageWidth - margin, y, { align: 'right' });
+    y += 20;
+    doc.setDrawColor(225);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 18;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('Candidate: ' + candidateNameForPdf(), margin, y);
+    doc.text('Date: ' + pdfFriendlyDate(), pageWidth - margin, y, { align: 'right' });
+    y += 24;
+
+    const overallPct = totalMaxAll > 0 ? Math.round((totalScoreAll / totalMaxAll) * 100) : 0;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Exams completed: ' + entries.length, margin, y);
+    y += 16;
+    doc.text('Overall accuracy: ' + overallPct + '%  (' + totalScoreAll + ' / ' + totalMaxAll + ')', margin, y);
+    y += 24;
+
+    doc.setFontSize(11);
+    doc.text('Accuracy by Subject', margin, y);
+    y += 16;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    const subjIds = Object.keys(subjectAgg);
+    if (subjIds.length === 0) {
+        doc.text('No subject-level data available yet.', margin + 6, y);
+        y += 13;
+    } else {
+        subjIds.forEach(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            const agg = subjectAgg[sid];
+            const subjPct = agg.max > 0 ? Math.round((agg.correct / agg.max) * 100) : 0;
+            ensureSpace(13);
+            doc.text((subj ? subj.name : sid) + ': ' + subjPct + '% (approx. ' + Math.round(agg.correct) + ' / ' + Math.round(agg.max) + ')', margin + 6, y);
+            y += 13;
+        });
+    }
+    y += 14;
+
+    doc.setDrawColor(225);
+    ensureSpace(10);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 18;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    ensureSpace(16);
+    doc.text('Recent Exams', margin, y);
+    y += 16;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    entries.slice(0, 25).forEach(function(entry) {
+        const entryPct = entry.max_score > 0 ? Math.round((entry.total_score / entry.max_score) * 100) : 0;
+        ensureSpace(13);
+        doc.text(
+            pdfFriendlyDate(entry.submitted_at) + '  ·  ' + (entry.exam_title || entry.mode) +
+            '  ·  ' + entry.total_score + '/' + entry.max_score + ' (' + entryPct + '%)',
+            margin, y
+        );
+        y += 13;
+    });
+
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    ensureSpace(20);
+    doc.text('Generated by MyUTME. Subject accuracy is approximated from questions-per-subject on record.', margin, pageHeight - 20);
+
+    doc.save('myutme-analytics-summary.pdf');
+    showToast('PDF downloaded!', 'success');
+}
+
+// ============================================================
 //  RENDER HELPERS FOR MODALS
 // ============================================================
 function renderSubmitModal() {
@@ -9858,6 +10708,7 @@ function renderGotoModal() {
     const total = data.total || 0;
     const current = data.current || 0;
     const answers = data.answers || [];
+    const marked = data.marked || [];
     const mode = data.mode || '';
     
     function buildGrid(indices) {
@@ -9865,9 +10716,11 @@ function renderGotoModal() {
         indices.forEach(function(globalIdx, localIdx) {
             const isAnswered = answers[globalIdx] !== null && answers[globalIdx] !== undefined;
             const isCurrent = globalIdx === current;
+            const isMarked = !!marked[globalIdx];
             const cls = 'goto-q' +
                 (isAnswered ? ' answered' : ' unanswered') +
-                (isCurrent ? ' current' : '');
+                (isCurrent ? ' current' : '') +
+                (isMarked ? ' marked' : '');
             g += '<button class="' + cls + '" data-action="goto-q-select" data-idx="' + globalIdx + '" data-mode="' + mode + '">' + (localIdx + 1) + '</button>';
         });
         g += '</div>';
@@ -9912,6 +10765,7 @@ function renderGotoModal() {
         '<span class="gl-item"><span class="gl-swatch answered"></span>Answered</span>' +
         '<span class="gl-item"><span class="gl-swatch unanswered"></span>Unanswered</span>' +
         '<span class="gl-item"><span class="gl-swatch current"></span>Current</span>' +
+        (mode === 'cbt' ? '<span class="gl-item"><span class="gl-swatch marked"></span>Marked for review</span>' : '') +
         '</div>' +
         '<div class="goto-groups">' + groupsHtml + '</div>' +
         '<button class="goto-close" data-action="goto-close">Close</button>' +
@@ -10195,6 +11049,17 @@ function setView(v) {
         state.reviseIndex = 0;
         state.weakQuestionStates = {};
         loadWeakQuestions();
+    }
+    if (v === "flashcards") {
+        // Coming in fresh from the Learning Hub tile (not from a per-subject
+        // "Flashcards" mode card, which pre-sets flashcardSubject before
+        // calling setView) — start at the subject picker.
+        state.flashcardSubject = null;
+        state.flashcardQuestions = [];
+        state.flashcardIndex = 0;
+        state.flashcardFlipped = false;
+        state.flashcardKnew = 0;
+        state.flashcardDidntKnow = 0;
     }
     // NEW: load transactions when view is set
     if (v === "transactions") {
@@ -10775,7 +11640,9 @@ if (v === "subject-modes") return renderSubjectModes();
     if (v === "literature") return renderLiteratureHome();
     if (v === "literature-cbt") return renderLiteratureCbt();
     if (v === "revise") return renderReviseWeak();
+    if (v === "flashcards") return renderFlashcards();
     if (v === "history") return renderHistory();
+    if (v === "analytics") return renderAnalyticsDashboard();
     if (v === "privacy") return renderPrivacyPolicy();
     if (v === "terms") return renderTermsOfService();
     if (v === "transactions") return renderTransactionHistory();
@@ -10886,6 +11753,7 @@ const atMax = mySubjectIds.length === 4;
         { view: 'exam', label: 'Past Questions', sub: '2021 – 2026', icon: 'clipboard', grad: 'linear-gradient(145deg,#E2543A,#B23420)' },
         { view: 'mockexam', label: 'Live Exam', sub: 'Create or join', icon: 'target', grad: 'linear-gradient(145deg,#8E44AD,#5E2D8C)' },
         { view: 'topics', label: 'Topic Practice', sub: 'Drill one topic', icon: 'list', grad: 'linear-gradient(145deg,#7C5CFC,#5A3ADB)' },
+        { view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', grad: 'linear-gradient(145deg,#D64EA0,#A02D74)' },
         { view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', grad: 'linear-gradient(145deg,#0E9488,#0B6E64)' },
         { view: 'revise', label: 'Revise Weak', sub: 'Retry missed Qs', icon: 'rotate', grad: 'linear-gradient(145deg,#0F6B3F,#0A4A2B)' },
         { view: 'history', label: 'Result Analysis', sub: 'Your performance', icon: 'clock', grad: 'linear-gradient(145deg,#8E44AD,#5E2D8C)' },
@@ -10928,6 +11796,7 @@ function renderSubjectModes() {
         { action: 'subj-start-cbt', label: 'CBT Practice', sub: 'Timed, ' + (state.settingsCache.subjectQuestionsPerSubject || 40) + ' questions', icon: 'monitor', grad: 'linear-gradient(145deg,#2E6FF2,#1447B3)' },
         { action: 'subj-start-exam', label: 'Past Questions', sub: 'Pick a year, 2021–2026', icon: 'clipboard', grad: 'linear-gradient(145deg,#E2543A,#B23420)' },
         { action: 'subj-start-topic', label: 'Topic Practice', sub: 'Drill a single topic', icon: 'list', grad: 'linear-gradient(145deg,#7C5CFC,#5A3ADB)' },
+        { action: 'subj-start-flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', grad: 'linear-gradient(145deg,#D64EA0,#A02D74)' },
     ];
     let grid = '<div class="mode-grid-v2">';
     modes.forEach(function(m) {
@@ -10956,6 +11825,7 @@ function renderLearningHub() {
         { key: 'exam', label: 'JAMB Past Questions', blurb: '2021–2026, one subject at a time', icon: 'clipboard', color: '#E2543A' },
         { key: 'mockexam', label: 'Live Exam', blurb: 'Create or join a live exam', icon: 'target', color: '#8E44AD' },
         { key: 'topics', label: 'Topic Practice', blurb: 'Drill one topic at a time', icon: 'list', color: '#7C5CFC' },
+        { key: 'flashcards', label: 'Flashcards', blurb: 'Flip through Q&A fast', icon: 'cards', color: '#D64EA0' },
         { key: 'literature', label: 'Novel (CBT)', blurb: 'Set texts & comprehension', icon: 'book', color: '#0E9488' },
         { key: 'revise', label: 'Revise Weak Qs', blurb: 'Retry questions you missed', icon: 'rotate', color: '#0F6B3F' },
         { key: 'documents', label: 'Document File', blurb: 'Past questions & study files', icon: 'folder', color: '#4C5FD5' },
@@ -10990,7 +11860,7 @@ function renderHome() {
     if (state.authUser && !state.myEnrollmentsLoaded) loadMyEnrollments();
 
     const quickActions = [
-        { view: 'cbt', label: 'CBT', icon: 'monitor', color: 'linear-gradient(145deg,#2E6FF2,#1447B3)' },
+        { view: 'cbt', label: 'Mock UTME', icon: 'monitor', color: 'linear-gradient(145deg,#2E6FF2,#1447B3)', action: 'start-full-mock-utme' },
         { view: 'exam', label: 'Past Qs', icon: 'clipboard', color: 'linear-gradient(145deg,#E2543A,#B23420)' },
         { view: 'mockexam', label: 'Live Exam', icon: 'target', color: 'linear-gradient(145deg,#8E44AD,#5E2D8C)' },
         { view: 'revise', label: 'Revise', icon: 'rotate', color: 'linear-gradient(145deg,#0F6B3F,#0A4A2B)' },
@@ -10998,7 +11868,7 @@ function renderHome() {
     let qaHtml = '<div class="quick-actions">';
     quickActions.forEach(function(a) {
         qaHtml += (
-            '<button class="qa-pill" data-action="set-view" data-view="' + a.view + '">' +
+            '<button class="qa-pill" data-action="' + (a.action || 'set-view') + '" data-view="' + a.view + '">' +
             '<span class="qa-icon" style="background:' + a.color + '">' + svg(a.icon, 18) + '</span>' +
             '<span class="lbl">' + esc(a.label) + '</span>' +
             '</button>'
@@ -11401,8 +12271,10 @@ function renderCbtExam() {
                 total_questions: state.cbtQuestions.length,
                 answered_count: state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
                 submitted_at: new Date().toISOString(),
-                exam_title: isFullCbt ? 'Full CBT Practice' : (subjectName || 'Subject Practice'),
+                exam_title: isFullCbt ? 'Full Mock UTME' : (subjectName || 'Subject Practice'),
             });
+            const cbtTimeLimitMin = isFullCbt ? state.settingsCache.cbtTimeLimit : state.settingsCache.subjectTimeLimit;
+            saveAnalyticsTimeSample(isFullCbt ? 'cbt-full' : 'cbt-single', (cbtTimeLimitMin || 0) * 60 - state.cbtTimeLeft, state.cbtQuestions.length);
             
             saveScore(isFullCbt ? 'cbt' : 'subject', {
                 user_id: state.authUser.id,
@@ -11444,26 +12316,52 @@ function renderCbtExam() {
             );
         });
 
-        return (
-            '<h2 class="title">' + (isFullCbt ? 'CBT' : 'Subject') + ' — Result</h2>' +
+        const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        const slipHtml = isFullCbt ? (
+            '<div class="utme-slip">' +
+            '<div class="utme-slip-head">' +
+            '<p class="usm-badge">Full Mock UTME</p>' +
+            '<p class="usm-name">' + esc(candidateName) + '</p>' +
+            '<p class="usm-date">' + dateStr + '</p>' +
+            '</div>' +
+            '<div class="utme-slip-agg">' +
+            '<span class="usa-score">' + totalScore + '</span>' +
+            '<span class="usa-max">/ ' + maxScore + '</span>' +
+            '<p class="usa-label">Aggregate Score</p>' +
+            '</div>' +
+            '<div class="utme-slip-table">' +
+            Object.keys(subjectScores).map(function(sid) {
+                const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+                const scaled = subjectScores[sid];
+                return (
+                    '<div class="ust-row">' +
+                    '<span class="ust-name">' + (subj ? esc(subj.name) : sid) + '</span>' +
+                    '<div class="ust-bar-track"><div class="ust-bar-fill" style="width:' + scaled + '%"></div></div>' +
+                    '<span class="ust-score">' + scaled + '</span>' +
+                    '</div>'
+                );
+            }).join('') +
+            '</div>' +
+            '<p class="usm-footnote">Practice result — not an official JAMB slip. Each subject scored out of 100.</p>' +
+            '</div>'
+        ) : (
             '<div class="card" style="text-align:center;padding:20px;margin-bottom:12px">' +
             '<p style="font-family:var(--font-mono);font-size:40px;margin:0;color:' + GREEN + '">' + totalScore +
             ' / ' + maxScore + '</p>' +
             '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Questions answered correctly</p>' +
             '<p style="font-size:11px;color:var(--faint);margin:10px 0 0">' + Math.round((totalScore / maxScore) *
                 100) + '%</p>' +
-            (state.cbtMode === "full" ?
-                '<div style="margin-top:10px;text-align:left;border-top:1px solid var(--line);padding-top:10px">' +
-                Object.keys(subjectScores).map(function(sid) {
-                    const subj = SUBJECTS.find(function(s) { return s.id === sid; });
-                    const scaled = subjectScores[sid];
-                    return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>' +
-                        (subj ? subj.name : sid) + '</span><span style="color:var(--green)">' + scaled +
-                        '/100</span></div>';
-                }).join('') +
-                '</div>' : '') +
-            '</div>' +
+            '</div>'
+        );
+
+        return (
+            '<h2 class="title">' + (isFullCbt ? 'Full Mock UTME' : 'Subject') + ' — Result</h2>' +
+            slipHtml +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="cbt-exit">Back to Home</button>' +
+            '<button class="btn btn-outline" style="margin-bottom:10px" data-action="download-cbt-pdf">' + svg('download', 14) + ' Download PDF</button>' +
             '<button class="btn btn-outline" data-action="cbt-toggle-review">' +
             (state.cbtReviewMode ? 'Hide Review' : 'Show Review') +
             '</button>' +
@@ -11576,6 +12474,8 @@ function renderCbtExam() {
         '<div class="exam-body">' +
         '<div class="card exam-question-card">' +
         '<button class="flag-inline" data-action="flag-review-question" data-qid="' + (item ? item.id : '') + '" data-subject="' + (subj ? subj.id : '') + '" data-mode="cbt" title="Flag Question">🚩</button>' +
+        '<button class="mark-review-btn' + (state.cbtMarked && state.cbtMarked[state.cbtIndex] ? ' marked' : '') + '" data-action="toggle-mark-review" title="Mark for Review">' +
+        svg('bookmark', 14) + '<span>' + (state.cbtMarked && state.cbtMarked[state.cbtIndex] ? 'Marked' : 'Mark') + '</span></button>' +
         '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
         '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
@@ -11737,6 +12637,7 @@ function renderExamExam() {
             '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Questions answered correctly</p>' +
             '</div>' +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="exam-exit">Back to Home</button>' +
+            '<button class="btn btn-outline" style="margin-bottom:10px" data-action="download-exam-pdf">' + svg('download', 14) + ' Download PDF</button>' +
             '<button class="btn btn-outline" data-action="exam-toggle-review">' +
             (state.examReviewMode ? 'Hide Review' : 'Show Review') +
             '</button>' +
@@ -11934,6 +12835,7 @@ function renderTopicExam() {
                 submitted_at: new Date().toISOString(),
                 exam_title: topicName,
             });
+            saveAnalyticsTimeSample('topic', (state.settingsCache.topicTimeLimit || 0) * 60 - state.topicTimeLeft, state.topicQuestions.length);
             
             addLog(state.authUser.id, state.profile.name, 'completed_topic', 'Completed Topic Practice ' + topicName + ' with score ' + score + '/' + state.topicQuestions.length);
         }
@@ -11971,6 +12873,7 @@ function renderTopicExam() {
             '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Questions answered correctly</p>' +
             '</div>' +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="topic-exit">Back to Home</button>' +
+            '<button class="btn btn-outline" style="margin-bottom:10px" data-action="download-topic-pdf">' + svg('download', 14) + ' Download PDF</button>' +
             '<button class="btn btn-outline" data-action="topic-toggle-review">' +
             (state.topicReviewMode ? 'Hide Review' : 'Show Review') +
             '</button>' +
@@ -12085,6 +12988,7 @@ function renderLitExam() {
                 submitted_at: new Date().toISOString(),
                 exam_title: 'Novel (CBT) Practice',
             });
+            saveAnalyticsTimeSample('novel', (state.settingsCache.novelTimeLimit || 0) * 60 - state.litTimeLeft, state.litQuestions.length);
             
             addLog(state.authUser.id, state.profile.name, 'completed_novel', 'Completed Novel CBT with score ' + score + '/' + state.litQuestions.length);
         }
@@ -12121,6 +13025,7 @@ function renderLitExam() {
             '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Questions answered correctly</p>' +
             '</div>' +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="lit-exit">Back to Home</button>' +
+            '<button class="btn btn-outline" style="margin-bottom:10px" data-action="download-lit-pdf">' + svg('download', 14) + ' Download PDF</button>' +
             '<button class="btn btn-outline" data-action="lit-toggle-review">' +
             (state.litReviewMode ? 'Hide Review' : 'Show Review') +
             '</button>' +
@@ -12355,6 +13260,31 @@ const REVISE_MODE_META = {
     unknown: { label: 'Other', icon: 'rotate', color: '#5B6B60' },
 };
 
+// Applies the spaced-repetition due/all filter used across the three
+// Revise Weak screens. "Due" means either never reviewed yet (no
+// schedule entry — matches the app's original all-missed-questions
+// behavior) or its next-due date has arrived.
+function getFilteredWeakQuestions() {
+    if (state.reviseFilter !== 'due') return state.weakQuestions;
+    const schedule = getReviewSchedule();
+    return state.weakQuestions.filter(function(wq) {
+        return isQuestionDueForReview(wq.question_id, schedule);
+    });
+}
+
+function renderReviseFilterTabs() {
+    const schedule = getReviewSchedule();
+    const dueCount = state.weakQuestions.filter(function(wq) {
+        return isQuestionDueForReview(wq.question_id, schedule);
+    }).length;
+    return (
+        '<div class="revise-filter-tabs">' +
+        '<button class="revise-filter-tab' + (state.reviseFilter === 'due' ? ' active' : '') + '" data-action="revise-set-filter" data-filter="due">Due Now (' + dueCount + ')</button>' +
+        '<button class="revise-filter-tab' + (state.reviseFilter === 'all' ? ' active' : '') + '" data-action="revise-set-filter" data-filter="all">All (' + state.weakQuestions.length + ')</button>' +
+        '</div>'
+    );
+}
+
 function renderReviseWeak() {
     if (!state.authUser) { 
         return (
@@ -12388,14 +13318,18 @@ function renderReviseWeak() {
 }
 
 function renderReviseModes() {
+    const filtered = getFilteredWeakQuestions();
     const counts = {};
-    state.weakQuestions.forEach(function(wq) {
+    filtered.forEach(function(wq) {
         const m = wq.mode || 'unknown';
         counts[m] = (counts[m] || 0) + 1;
     });
     const modeKeys = Object.keys(counts);
 
     let cards = "";
+    if (modeKeys.length === 0) {
+        cards = '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Nothing due for review right now — nice work! Check "All" to revisit everything anyway.</p></div>';
+    }
     modeKeys.forEach(function(m) {
         const meta = REVISE_MODE_META[m] || REVISE_MODE_META.unknown;
         cards += (
@@ -12416,7 +13350,7 @@ function renderReviseModes() {
         '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 30) + '</div>' +
         '<h2 class="title">Revise Weak Questions</h2>' +
         '<p class="sub">Choose a mode to see what you\'ve missed</p>' +
-        '<p style="font-size:12px;color:var(--muted);margin-bottom:10px">Total: ' + state.weakQuestions.length + ' weak question(s)</p>' +
+        renderReviseFilterTabs() +
         cards
     );
 }
@@ -12424,13 +13358,17 @@ function renderReviseModes() {
 function renderReviseModeSubjects() {
     const mode = state.reviseMode;
     const meta = REVISE_MODE_META[mode] || REVISE_MODE_META.unknown;
-    const inMode = state.weakQuestions.filter(function(wq) { return (wq.mode || 'unknown') === mode; });
+    const filtered = getFilteredWeakQuestions();
+    const inMode = filtered.filter(function(wq) { return (wq.mode || 'unknown') === mode; });
 
     const counts = {};
     inMode.forEach(function(wq) { counts[wq.subject_id] = (counts[wq.subject_id] || 0) + 1; });
     const subjIds = Object.keys(counts);
 
     let cards = "";
+    if (subjIds.length === 0) {
+        cards = '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Nothing due here right now. Switch to "All" above to see every missed question in this mode.</p></div>';
+    }
     subjIds.forEach(function(sid) {
         const subj = SUBJECTS.find(function(s) { return s.id === sid; });
         const name = subj ? subj.name : (sid || 'Unknown');
@@ -12449,6 +13387,7 @@ function renderReviseModeSubjects() {
         '<button class="back-link" data-action="revise-back-to-modes">' + svg("chevleft", 14) + ' All modes</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(meta.label) + '</h2>' +
         '<p class="sub" style="font-size:12px">Choose a subject</p>' +
+        renderReviseFilterTabs() +
         cards
     );
 }
@@ -12460,7 +13399,9 @@ function renderReviseModeQuestions() {
     const subj = SUBJECTS.find(function(s) { return s.id === subjectId; });
     const subjName = subj ? subj.name : (subjectId || 'Unknown');
 
-    let list = state.weakQuestions.filter(function(wq) {
+    const schedule = getReviewSchedule();
+    const filtered = getFilteredWeakQuestions();
+    let list = filtered.filter(function(wq) {
         return (wq.mode || 'unknown') === mode && wq.subject_id === subjectId;
     });
     list.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
@@ -12469,6 +13410,7 @@ function renderReviseModeQuestions() {
         return (
             '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subjName) + '</h2>' +
+            renderReviseFilterTabs() +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">No more weak questions here. Great job!</p></div>'
         );
     }
@@ -12518,6 +13460,19 @@ function renderReviseModeQuestions() {
     }
 
     const total = list.length;
+    const schedEntry = schedule[wq.question_id];
+    let nextReviewHtml = "";
+    if (isAnswered) {
+        const updated = getReviewSchedule()[wq.question_id];
+        if (updated && updated.dueAt) {
+            const dueDate = new Date(updated.dueAt);
+            nextReviewHtml = '<p class="sr-next-review">📅 Next review: ' + dueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + (updated.interval === 1 ? ' (tomorrow)' : ' (in ' + updated.interval + ' days)') + '</p>';
+        }
+    } else if (schedEntry && schedEntry.dueAt) {
+        const dueDate = new Date(schedEntry.dueAt);
+        const isDueNow = dueDate.getTime() <= Date.now();
+        nextReviewHtml = '<span class="due-badge' + (isDueNow ? '' : ' later') + '">' + (isDueNow ? '⏰ Due now' : '📅 Due ' + dueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })) + '</span>';
+    }
 
     return (
         '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
@@ -12526,7 +13481,8 @@ function renderReviseModeQuestions() {
         
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
         '<span style="font-size:13px;font-weight:600">Question ' + (state.reviseIndex + 1) + ' of ' + total + '</span>' +
-        '<div style="display:flex;gap:4px">' +
+        '<div style="display:flex;gap:4px;align-items:center">' +
+        (isAnswered ? '' : nextReviewHtml) +
         askAiButtonHtml(q, subjName, (isAnswered ? userAnswer : wq.user_answer), { label: '✨', style: 'font-size:9px;padding:6px 8px' }) +
         '<button class="mini-btn flag" data-action="flag-review-question" data-qid="' + q.id + '" data-subject="' + subjectId + '" data-mode="' + mode + '" style="font-size:9px">🚩</button>' +
         '<button class="mini-btn danger" data-action="weak-remove-question" data-wid="' + wq.id + '" data-qid="' + q.id + '" style="font-size:9px">✕</button>' +
@@ -12538,12 +13494,133 @@ function renderReviseModeQuestions() {
         '</div>' +
         '<div class="exam-options-wrap">' + optsHtml + '</div>' +
         explanationHtml +
+        (isAnswered ? nextReviewHtml : '') +
         
         '<div style="display:flex;gap:6px;margin-top:12px">' +
         (state.reviseIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="revise-prev">Previous</button>' : '') +
         (state.reviseIndex < total - 1 ? '<button class="btn btn-green" style="flex:1" data-action="revise-next">Next</button>' : 
             (isAnswered ? '<button class="btn btn-green" style="flex:1" data-action="revise-done">Done</button>' : '')) +
         '</div>'
+    );
+}
+
+// ============================================================
+//  FLASHCARDS
+// ============================================================
+function renderFlashcards() {
+    if (!state.authUser) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
+            '<div class="feature-icon" style="background:#D64EA0">' + svg("cards", 30) + '</div>' +
+            '<h2 class="title">Flashcards</h2>' +
+            '<p class="sub">Flip through questions fast</p>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to access flashcards.</p></div>'
+        );
+    }
+
+    if (!state.flashcardSubject) return renderFlashcardSubjectPicker();
+
+    if (state.flashcardLoading) {
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Shuffling flashcards...</p></div>';
+    }
+
+    if (!state.flashcardQuestions || state.flashcardQuestions.length === 0) {
+        return (
+            '<button class="back-link" data-action="flashcards-back-to-subjects">' + svg("chevleft", 14) + ' Change subject</button>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">No flashcards available for this subject yet.</p></div>'
+        );
+    }
+
+    if (state.flashcardIndex >= state.flashcardQuestions.length) return renderFlashcardsDone();
+
+    const subj = SUBJECTS.find(function(s) { return s.id === state.flashcardSubject; });
+    const total = state.flashcardQuestions.length;
+    const q = state.flashcardQuestions[state.flashcardIndex];
+    const pct = Math.round((state.flashcardIndex / total) * 100);
+    const correctText = (q.options && q.correct_answer !== undefined && q.options[q.correct_answer] !== undefined) ?
+        (String.fromCharCode(65 + q.correct_answer) + '. ' + q.options[q.correct_answer]) : 'Answer unavailable';
+
+    return (
+        '<button class="back-link" data-action="flashcards-back-to-subjects">' + svg("chevleft", 14) + ' Change subject</button>' +
+        '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subj ? subj.name : 'Flashcards') +
+        '</h2>' +
+        '<p class="sub" style="font-size:12px">Card ' + (state.flashcardIndex + 1) + ' of ' + total +
+        ' &nbsp;·&nbsp; 👍 ' + state.flashcardKnew + ' &nbsp; 👎 ' + state.flashcardDidntKnow + '</p>' +
+        '<div class="flashcard-progress-track"><div class="flashcard-progress-fill" style="width:' + pct + '%"></div></div>' +
+
+        '<div class="flashcard-stage">' +
+        '<div class="flashcard' + (state.flashcardFlipped ? ' flipped' : '') + '" data-action="flashcard-flip">' +
+        '<div class="flashcard-inner">' +
+        '<div class="flashcard-face fc-front">' +
+        '<span class="fc-label">Question</span>' +
+        '<p class="fc-text">' + esc(q.text) + '</p>' +
+        '</div>' +
+        '<div class="flashcard-face fc-back">' +
+        '<span class="fc-label">Answer</span>' +
+        '<p class="fc-text">' + esc(correctText) + '</p>' +
+        (q.explanation ? '<p class="fc-explain">' + esc(q.explanation) + '</p>' : '') +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+
+        (state.flashcardFlipped ?
+            ('<p class="flashcard-hint">Did you know it?</p>' +
+            '<div class="flashcard-actions">' +
+            '<button class="btn btn-outline" style="border-color:var(--danger);color:var(--danger)" data-action="flashcard-mark" data-know="0">👎 Didn\'t know it</button>' +
+            '<button class="btn btn-green" data-action="flashcard-mark" data-know="1">👍 I knew it</button>' +
+            '</div>')
+            :
+            '<p class="flashcard-hint">Tap the card (or swipe) to reveal the answer</p>'
+        ) +
+
+        '<div class="flashcard-nav">' +
+        (state.flashcardIndex > 0 ? '<button class="btn btn-outline" data-action="flashcard-prev">Previous</button>' : '<span></span>') +
+        '<button class="btn btn-outline" data-action="flashcard-skip">Skip ' + svg('arrowright', 14) + '</button>' +
+        '</div>'
+    );
+}
+
+function renderFlashcardSubjectPicker() {
+    const mySubjectIds = getMySubjectIds();
+    let subjChips = "";
+    SUBJECTS.filter(function(s) { return mySubjectIds.indexOf(s.id) !== -1; }).forEach(function(s) {
+        subjChips += (
+            '<button class="subject-chip" data-action="start-flashcards" data-subject="' + s.id + '">' +
+            subjectBadge(s) +
+            '<span class="sname">' + esc(s.name) + '</span>' +
+            '</button>'
+        );
+    });
+    if (!anyCourseAccess()) {
+        subjChips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in Practice Hub first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to Practice Hub</button></div>';
+    }
+
+    return (
+        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
+        '<div class="feature-icon" style="background:#D64EA0">' + svg("cards", 30) + '</div>' +
+        '<h2 class="title">Flashcards</h2>' +
+        '<p class="sub">Flip through questions fast, subject by subject</p>' +
+        '<div class="mode-note">Pick a subject to start a flashcard deck.</div>' +
+        '<p class="section-label">Select a subject</p>' +
+        '<div class="subject-grid">' + subjChips + '</div>'
+    );
+}
+
+function renderFlashcardsDone() {
+    const total = state.flashcardQuestions.length;
+    const subj = SUBJECTS.find(function(s) { return s.id === state.flashcardSubject; });
+    const pct = total > 0 ? Math.round((state.flashcardKnew / total) * 100) : 0;
+    return (
+        '<h2 class="title">Deck Complete 🎉</h2>' +
+        '<p class="sub" style="font-size:12px">' + esc(subj ? subj.name : '') + ' · ' + total + ' card' + (total === 1 ? '' : 's') + '</p>' +
+        '<div class="card" style="text-align:center;padding:20px;margin-bottom:12px">' +
+        '<p style="font-family:var(--font-mono);font-size:36px;margin:0;color:' + GREEN + '">' + state.flashcardKnew +
+        ' / ' + total + '</p>' +
+        '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Marked "I knew it" (' + pct + '%)</p>' +
+        '</div>' +
+        '<button class="btn btn-green" style="margin-bottom:8px" data-action="flashcard-restart">Go Through Again</button>' +
+        '<button class="btn btn-outline" data-action="flashcards-back-to-subjects">Choose Another Subject</button>'
     );
 }
 
@@ -13124,6 +14201,8 @@ function renderHistory() {
         '<h2 class="title" style="font-size:18px">📊 Result Analysis</h2>' +
         '<p class="sub" style="font-size:12px">View all your exam results and performance</p>' +
         statsHtml +
+        '<button class="btn btn-green" style="margin-bottom:8px" data-action="set-view" data-view="analytics">' + svg('chart', 14) + ' Open Personal Analytics Dashboard</button>' +
+        '<button class="btn btn-outline" style="margin-bottom:12px" data-action="download-analytics-pdf">' + svg('download', 14) + ' Download Analytics Summary (PDF)</button>' +
         filterHtml
     );
 
@@ -13162,6 +14241,217 @@ function renderHistory() {
     });
 
     return html;
+}
+
+// ============================================================
+//  PERSONAL ANALYTICS DASHBOARD
+//  Everything below is computed entirely from data already available
+//  client-side for the logged-in user: exam_history (loaded via
+//  loadHistory()), weak_questions (loaded via loadWeakQuestions()), the
+//  existing daily study-streak counter, and the local time-log samples
+//  captured alongside each timed mode's history entry above. No new
+//  backend is needed for this personal (single-user) view — cross-user
+//  cohort comparisons are Phase 2, item #6.
+// ============================================================
+
+// Same best-effort per-subject aggregation the PDF summary already uses:
+// subject_scores stores correct counts per subject, not per-subject
+// totals, so each entry's max_score is split evenly across the subjects
+// it covered.
+function aggregateSubjectAccuracy(entries) {
+    const subjectAgg = {};
+    entries.forEach(function(entry) {
+        const scores = entry.subject_scores || {};
+        const subjIds = Object.keys(scores);
+        if (subjIds.length === 0) return;
+        const perSubjectMax = (entry.max_score || 0) / subjIds.length;
+        subjIds.forEach(function(sid) {
+            if (!subjectAgg[sid]) subjectAgg[sid] = { correct: 0, max: 0 };
+            subjectAgg[sid].correct += scores[sid] || 0;
+            subjectAgg[sid].max += perSubjectMax;
+        });
+    });
+    return subjectAgg;
+}
+
+function buildTrendSparklineSvg(pctPoints) {
+    const w = 300, h = 90, pad = 10;
+    if (pctPoints.length === 0) return '';
+    if (pctPoints.length === 1) pctPoints = [pctPoints[0], pctPoints[0]];
+    const stepX = (w - pad * 2) / (pctPoints.length - 1);
+    const toY = function(pct) { return h - pad - (pct / 100) * (h - pad * 2); };
+    let path = '';
+    let dots = '';
+    pctPoints.forEach(function(pct, i) {
+        const x = pad + i * stepX;
+        const y = toY(pct);
+        path += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+        dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2.5" fill="#0F6B3F"/>';
+    });
+    return (
+        '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '" preserveAspectRatio="none" style="display:block">' +
+        '<line x1="' + pad + '" y1="' + toY(50) + '" x2="' + (w - pad) + '" y2="' + toY(50) + '" stroke="var(--line)" stroke-width="1" stroke-dasharray="3,3"/>' +
+        '<path d="' + path.trim() + '" fill="none" stroke="#0F6B3F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+        dots +
+        '</svg>'
+    );
+}
+
+function renderAnalyticsDashboard() {
+    if (!state.authUser) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>' +
+            '<h2 class="title" style="font-size:18px">📈 Personal Analytics</h2>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view your analytics.</p></div>'
+        );
+    }
+
+    if (!state.historyLoaded) {
+        loadHistory();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Crunching your numbers...</p></div>';
+    }
+    if (!state.weakQuestionsLoaded) {
+        loadWeakQuestions();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Crunching your numbers...</p></div>';
+    }
+
+    const entries = (state.historyEntries || []).slice();
+    const backBtn = '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>';
+    const header = '<h2 class="title" style="font-size:18px">📈 Personal Analytics</h2><p class="sub" style="font-size:12px">A deeper look at your strengths, weaknesses, and pace</p>';
+
+    if (entries.length === 0) {
+        return (
+            backBtn + header +
+            '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">Complete a few exams and this dashboard will fill in automatically.</p></div>'
+        );
+    }
+
+    // ---- Overview stats ----
+    let totalQuestions = 0, totalCorrect = 0, totalMax = 0;
+    entries.forEach(function(e) {
+        totalQuestions += e.total_questions || 0;
+        totalCorrect += e.total_score || 0;
+        totalMax += e.max_score || 0;
+    });
+    const overallPct = totalMax > 0 ? Math.round((totalCorrect / totalMax) * 100) : 0;
+    const streak = parseInt(storage.get('streakCount') || '0', 10) || 0;
+
+    const overviewHtml = (
+        '<div class="analytics-stat-grid">' +
+        '<div class="analytics-stat-card"><p class="val" style="color:var(--green)">' + entries.length + '</p><p class="lbl">Exams Taken</p></div>' +
+        '<div class="analytics-stat-card"><p class="val" style="color:' + (overallPct >= 70 ? 'var(--green)' : overallPct >= 50 ? 'var(--gold)' : 'var(--danger)') + '">' + overallPct + '%</p><p class="lbl">Overall Accuracy</p></div>' +
+        '<div class="analytics-stat-card"><p class="val">' + streak + '🔥</p><p class="lbl">Day Streak</p></div>' +
+        '</div>'
+    );
+
+    // ---- Accuracy trend over time (chronological) ----
+    const sortedAsc = entries.slice().sort(function(a, b) { return new Date(a.submitted_at) - new Date(b.submitted_at); });
+    const trendPoints = sortedAsc.map(function(e) { return e.max_score > 0 ? Math.round((e.total_score / e.max_score) * 100) : 0; });
+    const trendHtml = (
+        '<p class="analytics-section-title">' + svg('chart', 14) + ' Accuracy Over Time</p>' +
+        '<div class="card" style="padding:12px">' +
+        buildTrendSparklineSvg(trendPoints) +
+        '<p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:center">Oldest → most recent · ' + trendPoints.length + ' exam(s)</p>' +
+        '</div>'
+    );
+
+    // ---- Strength/weakness heatmap by subject ----
+    const subjectAgg = aggregateSubjectAccuracy(entries);
+    const subjRows = Object.keys(subjectAgg)
+        .map(function(sid) {
+            const agg = subjectAgg[sid];
+            const pct = agg.max > 0 ? Math.round((agg.correct / agg.max) * 100) : 0;
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            return { sid: sid, name: subj ? subj.name : sid, pct: pct };
+        })
+        .sort(function(a, b) { return a.pct - b.pct; });
+
+    let heatmapHtml = '<p class="analytics-section-title">🎯 Strengths &amp; Weaknesses by Subject</p><div class="heatmap-grid">';
+    subjRows.forEach(function(r) {
+        const color = r.pct >= 75 ? 'var(--green)' : r.pct >= 50 ? 'var(--gold)' : 'var(--danger)';
+        heatmapHtml += (
+            '<div class="heatmap-row">' +
+            '<span class="hm-label">' + esc(r.name) + '</span>' +
+            '<div class="hm-bar-track"><div class="hm-bar-fill" style="width:' + r.pct + '%;background:' + color + '"></div></div>' +
+            '<span class="hm-pct" style="color:' + color + '">' + r.pct + '%</span>' +
+            '</div>'
+        );
+    });
+    heatmapHtml += '</div>';
+    if (subjRows.length > 0) {
+        const weakest = subjRows[0];
+        heatmapHtml += '<p style="font-size:11px;color:var(--muted);margin:0 0 4px">Focus area: <b style="color:var(--danger)">' + esc(weakest.name) + '</b> is your lowest-scoring subject right now.</p>';
+    }
+
+    // ---- Most-missed subjects (from weak_questions) ----
+    // Note: weak_questions doesn't store a topic_id today, only subject_id
+    // + mode, so this surfaces most-missed *subjects* rather than
+    // individual topics. Adding a topic_id column to weak_questions later
+    // would let this drill down further with no other changes needed.
+    const missedCounts = {};
+    (state.weakQuestions || []).forEach(function(wq) {
+        missedCounts[wq.subject_id] = (missedCounts[wq.subject_id] || 0) + 1;
+    });
+    const missedRows = Object.keys(missedCounts)
+        .map(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            return { name: subj ? subj.name : (sid || 'Unknown'), count: missedCounts[sid] };
+        })
+        .sort(function(a, b) { return b.count - a.count; })
+        .slice(0, 5);
+
+    let missedHtml = '<p class="analytics-section-title">⚠️ Most-Missed Subjects</p>';
+    if (missedRows.length === 0) {
+        missedHtml += '<div class="card"><p style="text-align:center;color:var(--muted);padding:12px 0;font-size:12px">No outstanding weak questions right now — great job!</p></div>';
+    } else {
+        missedRows.forEach(function(r) {
+            missedHtml += (
+                '<div class="missed-list-row">' +
+                '<span>' + esc(r.name) + '</span>' +
+                '<span class="count-badge">' + r.count + ' missed</span>' +
+                '</div>'
+            );
+        });
+    }
+
+    // ---- Time-per-question averages ----
+    const timeLog = getAnalyticsTimeLog();
+    let timeHtml = '<p class="analytics-section-title">⏱️ Time Per Question</p>';
+    if (timeLog.length === 0) {
+        timeHtml += '<div class="card"><p style="text-align:center;color:var(--muted);padding:12px 0;font-size:12px">Complete a timed session (CBT, Mock, Topic, or Novel) to see your pacing here.</p></div>';
+    } else {
+        const byMode = {};
+        let sumSeconds = 0, sumQuestions = 0;
+        timeLog.forEach(function(s) {
+            sumSeconds += s.time_taken_seconds;
+            sumQuestions += s.question_count;
+            if (!byMode[s.mode]) byMode[s.mode] = { seconds: 0, questions: 0 };
+            byMode[s.mode].seconds += s.time_taken_seconds;
+            byMode[s.mode].questions += s.question_count;
+        });
+        const overallAvg = sumQuestions > 0 ? Math.round(sumSeconds / sumQuestions) : 0;
+        timeHtml += (
+            '<div class="card" style="padding:12px">' +
+            '<p style="font-size:20px;font-weight:700;color:var(--green);margin:0 0 2px">' + overallAvg + 's <span style="font-size:11px;font-weight:500;color:var(--muted)">/ question, on average</span></p>'
+        );
+        const TIME_MODE_LABELS = { 'cbt-full': 'CBT Full', 'cbt-single': 'CBT Single', 'mock': 'Mock Exam', 'topic': 'Topic Practice', 'novel': 'Novel (CBT)' };
+        Object.keys(byMode).forEach(function(m) {
+            const label = TIME_MODE_LABELS[m] || m;
+            const avg = byMode[m].questions > 0 ? Math.round(byMode[m].seconds / byMode[m].questions) : 0;
+            timeHtml += '<p style="font-size:11px;color:var(--muted);margin:4px 0 0">' + esc(label) + ': ' + avg + 's/question</p>';
+        });
+        timeHtml += '</div>';
+    }
+
+    return (
+        backBtn + header +
+        overviewHtml +
+        trendHtml +
+        heatmapHtml +
+        missedHtml +
+        timeHtml +
+        '<button class="btn btn-outline" style="margin-top:8px" data-action="download-analytics-pdf">' + svg('download', 14) + ' Download Analytics Summary (PDF)</button>'
+    );
 }
 
 // ============================================================
@@ -14309,6 +15599,7 @@ function renderMockResult() {
             subjRows +
             '</div>' +
             '<button class="btn btn-green" style="margin-top:10px;padding:10px" data-action="mock-exit">Back to Home</button>' +
+            '<button class="btn btn-outline" style="margin-top:6px;padding:8px" data-action="download-mock-pdf">' + svg('download', 14) + ' Download PDF</button>' +
             '<button class="btn btn-outline" style="margin-top:6px;padding:8px" data-action="mock-toggle-review">' +
             (state.mockReviewMode ? 'Hide Review' : 'Show Review') +
             '</button>' +
@@ -16926,7 +18217,29 @@ document.addEventListener('click', function(e) {
         setView(el.getAttribute('data-view'));
         return;
     }
-    
+
+    if (action === 'start-full-mock-utme') {
+        if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+        state.cbtMode = 'full';
+        const myElectives = getMySubjectIds().filter(function(sid) { return sid !== 'eng'; });
+        const requiredSubjects = state.settingsCache.cbtSubjectCount || 3;
+        const comboComplete = myElectives.length === requiredSubjects;
+        state.cbtSelected = comboComplete ? myElectives.slice() : [];
+        if (comboComplete) {
+            // Student's combo is already set — skip the picker screen
+            // entirely and go straight into the timed session, same as
+            // walking into the real UTME hall already knowing your subjects.
+            setView('cbt');
+            startCbt();
+        } else {
+            // Combo isn't complete yet (new student) — send them to the
+            // normal CBT screen where Full CBT mode is preselected so they
+            // just finish picking electives once, per Practice Hub.
+            setView('cbt');
+        }
+        return;
+    }
+
     if (action === 'open-subject-modes') {
         state.selectedSubjectId = el.getAttribute('data-subjectid');
         setView('subject-modes');
@@ -17027,6 +18340,11 @@ document.addEventListener('click', function(e) {
         setView('topics');
         return;
     }
+    if (action === 'subj-start-flashcards') {
+        const sid = el.getAttribute('data-subjectid');
+        startFlashcards(sid);
+        return;
+    }
 
     if (action === 'dismiss-inapp-banner') {
         dismissInAppBanner();
@@ -17094,6 +18412,7 @@ document.addEventListener('click', function(e) {
             total: state.cbtQuestions.length,
             current: state.cbtIndex,
             answers: state.cbtAnswers,
+            marked: state.cbtMarked || [],
             answered: state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
             bySubject: bySubject.length > 1 ? bySubject : null,
         };
@@ -17654,6 +18973,14 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'toggle-mark-review') {
+        if (!Array.isArray(state.cbtMarked)) state.cbtMarked = new Array(state.cbtQuestions.length).fill(false);
+        state.cbtMarked[state.cbtIndex] = !state.cbtMarked[state.cbtIndex];
+        saveSessionSnapshot();
+        render();
+        return;
+    }
+
     if (action === 'cbt-goto') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         if (idx >= 0 && idx < state.cbtQuestions.length) {
@@ -17763,6 +19090,7 @@ document.addEventListener('click', function(e) {
         state.cbtQuestions = [];
         state.cbtIndex = 0;
         state.cbtAnswers = [];
+        state.cbtMarked = [];
         state.cbtFinished = false;
         state.cbtSubmitted = false;
         state.cbtHistorySaved = false;
@@ -17781,6 +19109,30 @@ document.addEventListener('click', function(e) {
     if (action === 'cbt-toggle-review') {
         state.cbtReviewMode = !state.cbtReviewMode;
         render();
+        return;
+    }
+    if (action === 'download-cbt-pdf') {
+        const isFullCbt = state.cbtMode === 'full';
+        let totalScore = 0, maxScore = 0;
+        const subjectScores = {};
+        state.cbtQuestions.forEach(function(item, i) {
+            maxScore++;
+            if (!(item.subject_id in subjectScores)) subjectScores[item.subject_id] = 0;
+            if (state.cbtAnswers[i] === item.correct_answer) {
+                totalScore++;
+                subjectScores[item.subject_id]++;
+            }
+        });
+        const subjectName = (SUBJECTS.find(function(s) { return s.id === state.cbtSelected[0]; }) || {}).name;
+        downloadResultBreakdownPdf({
+            title: isFullCbt ? 'Full Mock UTME — Result' : (subjectName ? subjectName + ' — CBT Result' : 'CBT Result'),
+            modeLabel: isFullCbt ? 'CBT Full' : 'CBT Single',
+            totalScore: totalScore,
+            maxScore: maxScore,
+            subjectScores: isFullCbt ? subjectScores : null,
+            questions: state.cbtQuestions,
+            answers: state.cbtAnswers,
+        });
         return;
     }
 
@@ -17930,6 +19282,22 @@ document.addEventListener('click', function(e) {
     if (action === 'exam-toggle-review') {
         state.examReviewMode = !state.examReviewMode;
         render();
+        return;
+    }
+    if (action === 'download-exam-pdf') {
+        let totalScore = 0;
+        state.examQuestions.forEach(function(item, i) {
+            if (state.examAnswers[i] === item.correct_answer) totalScore++;
+        });
+        const subjName = state.examQuestions[0]?.subject_name || 'Subject';
+        downloadResultBreakdownPdf({
+            title: subjName + ' Past Questions ' + state.examYear + ' — Result',
+            modeLabel: 'Past Questions · ' + state.examYear,
+            totalScore: totalScore,
+            maxScore: state.examQuestions.length,
+            questions: state.examQuestions,
+            answers: state.examAnswers,
+        });
         return;
     }
 
@@ -18083,6 +19451,64 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    // ============================================================
+    //  FLASHCARDS
+    // ============================================================
+    if (action === 'start-flashcards') {
+        const sid = el.getAttribute('data-subject');
+        startFlashcards(sid);
+        return;
+    }
+    if (action === 'flashcards-back-to-subjects') {
+        state.flashcardSubject = null;
+        state.flashcardQuestions = [];
+        state.flashcardIndex = 0;
+        state.flashcardFlipped = false;
+        state.flashcardKnew = 0;
+        state.flashcardDidntKnow = 0;
+        render();
+        return;
+    }
+    if (action === 'flashcard-flip') {
+        state.flashcardFlipped = !state.flashcardFlipped;
+        render();
+        return;
+    }
+    if (action === 'flashcard-mark') {
+        const knewIt = el.getAttribute('data-know') === '1';
+        const q = state.flashcardQuestions[state.flashcardIndex];
+        if (q) {
+            if (knewIt) state.flashcardKnew++;
+            else state.flashcardDidntKnow++;
+            saveFlashcardProgress(q.id, knewIt);
+        }
+        state.flashcardIndex++;
+        state.flashcardFlipped = false;
+        render();
+        return;
+    }
+    if (action === 'flashcard-skip') {
+        state.flashcardIndex++;
+        state.flashcardFlipped = false;
+        render();
+        return;
+    }
+    if (action === 'flashcard-prev') {
+        if (state.flashcardIndex > 0) state.flashcardIndex--;
+        state.flashcardFlipped = false;
+        render();
+        return;
+    }
+    if (action === 'flashcard-restart') {
+        state.flashcardQuestions = shuffleArray(state.flashcardQuestions.slice());
+        state.flashcardIndex = 0;
+        state.flashcardFlipped = false;
+        state.flashcardKnew = 0;
+        state.flashcardDidntKnow = 0;
+        render();
+        return;
+    }
+
     if (action === 'topic-answer') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         state.topicAnswers[state.topicIndex] = idx;
@@ -18175,6 +19601,22 @@ document.addEventListener('click', function(e) {
     if (action === 'topic-toggle-review') {
         state.topicReviewMode = !state.topicReviewMode;
         render();
+        return;
+    }
+    if (action === 'download-topic-pdf') {
+        let totalScore = 0;
+        state.topicQuestions.forEach(function(item, i) {
+            if (state.topicAnswers[i] === item.correct_answer) totalScore++;
+        });
+        const topicName = state.topicsList.find(function(t) { return t.id === state.topicId; })?.name || 'Topic Practice';
+        downloadResultBreakdownPdf({
+            title: topicName + ' — Result',
+            modeLabel: 'Topic Practice',
+            totalScore: totalScore,
+            maxScore: state.topicQuestions.length,
+            questions: state.topicQuestions,
+            answers: state.topicAnswers,
+        });
         return;
     }
 
@@ -18271,6 +19713,21 @@ document.addEventListener('click', function(e) {
     if (action === 'lit-toggle-review') {
         state.litReviewMode = !state.litReviewMode;
         render();
+        return;
+    }
+    if (action === 'download-lit-pdf') {
+        let totalScore = 0;
+        state.litQuestions.forEach(function(item, i) {
+            if (state.litAnswers[i] === item.correct_answer) totalScore++;
+        });
+        downloadResultBreakdownPdf({
+            title: 'Novel (CBT) — Result',
+            modeLabel: 'Novel (CBT)',
+            totalScore: totalScore,
+            maxScore: state.litQuestions.length,
+            questions: state.litQuestions,
+            answers: state.litAnswers,
+        });
         return;
     }
 
@@ -18494,6 +19951,23 @@ document.addEventListener('click', function(e) {
     if (action === 'mock-toggle-review') {
         state.mockReviewMode = !state.mockReviewMode;
         render();
+        return;
+    }
+    if (action === 'download-mock-pdf') {
+        const questions = state.mockQuestions || [];
+        const answers = state.mockAnswers || [];
+        const examsList = state.mockExamSource === 'live' ? state.liveExams : state.mockExams;
+        const exam = examsList.find(function(e) { return e.id === state.mockExamId; });
+        downloadResultBreakdownPdf({
+            title: (exam ? exam.title : 'Mock Exam') + ' — Result',
+            modeLabel: 'Mock Exam',
+            dateInput: state.mockSubmittedAt,
+            totalScore: state.mockScore,
+            maxScore: (state.settingsCache.mockSubjectCount || 4) * 100,
+            subjectScores: state.mockSubjectScores,
+            questions: questions,
+            answers: answers,
+        });
         return;
     }
 
@@ -19612,6 +21086,11 @@ if (action === 'browse-filter') {
     }
 
     // HISTORY
+    if (action === 'download-analytics-pdf') {
+        downloadAnalyticsSummaryPdf();
+        return;
+    }
+
     if (action === 'history-print') {
         const id = el.getAttribute('data-id');
         const entry = state.historyEntries.find(function(e) { return e.id === id; });
@@ -19761,6 +21240,12 @@ if (action === 'browse-filter') {
     }
 
     // REVISE WEAK QUESTIONS - Rebuilt
+    if (action === 'revise-set-filter') {
+        state.reviseFilter = el.getAttribute('data-filter') === 'all' ? 'all' : 'due';
+        state.reviseIndex = 0;
+        render();
+        return;
+    }
     if (action === 'revise-select-mode') {
         state.reviseMode = el.getAttribute('data-mode');
         state.reviseView = 'subjects';
@@ -19794,7 +21279,10 @@ if (action === 'browse-filter') {
     if (action === 'revise-next') {
         const mode = state.reviseMode;
         const subjectId = state.reviseSubject;
-        let list = state.weakQuestions.filter(function(wq) {
+        // Must match the exact list renderReviseModeQuestions() builds
+        // (the due/all filter applied first), or the index can point at
+        // a different question than what's on screen.
+        let list = getFilteredWeakQuestions().filter(function(wq) {
             return (wq.mode || 'unknown') === mode && wq.subject_id === subjectId;
         });
         if (state.reviseIndex < list.length - 1) {
@@ -19813,7 +21301,7 @@ if (action === 'browse-filter') {
             state.reviseIndex--;
             const mode = state.reviseMode;
             const subjectId = state.reviseSubject;
-            let list = state.weakQuestions.filter(function(wq) {
+            let list = getFilteredWeakQuestions().filter(function(wq) {
                 return (wq.mode || 'unknown') === mode && wq.subject_id === subjectId;
             });
             const wq = list[state.reviseIndex];
@@ -19852,6 +21340,12 @@ if (action === 'browse-filter') {
         render();
 
         if (isCorrect) {
+            // Getting it right removes the question from the weak list
+            // entirely, so it's no longer part of "Revise Weak" — drop its
+            // spaced-repetition entry too rather than let it linger.
+            const schedule = getReviewSchedule();
+            delete schedule[wq.question_id];
+            saveReviewSchedule(schedule);
             removeWeakQuestion(state.authUser.id, wq.question_id).then(function() {
                 // Do NOT write to history — revise attempts are not stored in exam_history
                 // Reload weak questions after removal
@@ -19859,6 +21353,7 @@ if (action === 'browse-filter') {
                 loadWeakQuestions();
             });
         } else {
+            updateReviewScheduleForQuestion(wq.question_id, false);
             saveWeakQuestion(state.authUser.id, wq.question_id, wq.subject_id, wq.mode, idx, q.correct_answer);
             // Reload to update attempts count
             state.weakQuestionsLoaded = false;
@@ -21050,6 +22545,49 @@ function updateQuestionOffline(questionId, data) {
 function deleteQuestionOffline(questionId) {
     return window.OfflineDB.deleteQuestionOffline(questionId);
 }
+
+// ============================================================
+//  FLASHCARDS — SWIPE GESTURE
+// ============================================================
+// Lets a flashcard be swiped left/right to move through the deck (in
+// addition to the tap-to-flip and Previous/Skip buttons already in the
+// markup, which cover non-touch input).
+(function() {
+    let swiping = false;
+    let startX = 0;
+    let startY = 0;
+
+    document.addEventListener('touchstart', function(e) {
+        const card = e.target.closest('.flashcard');
+        if (!card) { swiping = false; return; }
+        swiping = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(e) {
+        if (!swiping) return;
+        swiping = false;
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (!touch) return;
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        // Require a mostly-horizontal swipe of decent length so a vertical
+        // scroll attempt near the card doesn't get misread as a swipe.
+        if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        if (state.view !== 'flashcards' || !state.flashcardQuestions || state.flashcardIndex >= state.flashcardQuestions.length) return;
+
+        if (dx < 0) {
+            // Swipe left — next card
+            state.flashcardIndex++;
+        } else if (state.flashcardIndex > 0) {
+            // Swipe right — previous card
+            state.flashcardIndex--;
+        }
+        state.flashcardFlipped = false;
+        render();
+    }, { passive: true });
+})();
 
 </script>
 </body>
