@@ -119,7 +119,12 @@
     min-height: 100%;
     background: var(--bg);
     transition: background 0.3s, color 0.3s;
-    scroll-behavior: smooth;
+    /* Deliberately NOT scroll-behavior: smooth — this app rebuilds the DOM on
+       every state change (see render()), and browsers animate any scrollTop
+       assignment on a smooth-scroll element, even ones set purely to restore
+       position after a re-render. That animation is what caused screens to
+       visibly "jump to top then slide back down" on every tap. */
+    scroll-behavior: auto;
     /* Stop the browser's native "drag down to reload the page" gesture and
        rubber-band bounce at the page level. The app already scrolls inside
        .view (below), not the document, so this only removes the
@@ -395,7 +400,9 @@
         position: relative;
         max-height: calc(100vh - 64px - 58px);
         -webkit-overflow-scrolling: touch;
-        scroll-behavior: smooth;
+        /* See html/body comment above — smooth scroll-behavior + render()'s
+           scrollTop restore is what caused the "snaps back to top" bug. */
+        scroll-behavior: auto;
         scrollbar-width: none;
         -ms-overflow-style: none;
         /* Same reason as html/body above: this is the screen's real scroll
@@ -3297,7 +3304,7 @@
         max-height: 300px;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        scroll-behavior: smooth;
+        scroll-behavior: auto;
         scrollbar-width: none;
         -ms-overflow-style: none;
     }
@@ -3338,27 +3345,63 @@
         padding: 3px 0;
     }
 
+    /* Card-style notice (icon + message on a soft accent border) instead of a
+       flat, alarming color block — matches the app's own card/notice styling
+       (see .explanation-box, .af-error) so a validation message reads as
+       normal in-app guidance rather than a system crash. */
     .toast-msg {
         position: fixed;
+        left: 16px;
+        right: 16px;
         bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: var(--ink);
-        color: #fff;
-        padding: 8px 16px;
-        border-radius: 10px;
-        font-size: 12px;
+        max-width: 352px;
+        margin: 0 auto;
+        background: var(--card-bg);
+        color: var(--ink);
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-size: 12.5px;
+        font-weight: 600;
+        line-height: 1.4;
         z-index: 200;
-        max-width: 90%;
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
-        animation: fadeIn 0.25s ease;
-        text-align: center;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--muted);
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        text-align: left;
+        animation: toastSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .toast-msg.error { background: #B23420; }
-    .toast-msg.success { background: var(--green); }
+    .toast-msg .toast-icon {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 800;
+        margin-top: 1px;
+        background: var(--bg);
+        color: var(--muted);
+    }
+    .toast-msg.error { border-left-color: #C0392B; }
+    .toast-msg.error .toast-icon { background: #FDEDEA; color: #C0392B; }
+    [data-theme="dark"] .toast-msg.error .toast-icon { background: rgba(194,57,43,0.16); color: #ff8a7a; }
+    .toast-msg.success { border-left-color: var(--green); }
+    .toast-msg.success .toast-icon { background: var(--green-light); color: var(--green); }
+    [data-theme="dark"] .toast-msg.success .toast-icon { background: rgba(15,107,63,0.18); }
     /* Neutral (non-alarming) style for "you're offline" style messages — poor
        connectivity is not a red-flag error, so it gets its own calmer color. */
-    .toast-msg.offline { background: #4A5568; }
+    .toast-msg.offline { border-left-color: #4A5568; }
+    .toast-msg.offline .toast-icon { background: #EDF0F3; color: #4A5568; }
+    [data-theme="dark"] .toast-msg.offline .toast-icon { background: rgba(74,85,104,0.25); color: #c3cbd6; }
+    @keyframes toastSlideUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 
     /* "Ask AI" button — surfaced on questions once an answer/explanation is
        already visible (review screens, instant-result modes, revise mode).
@@ -5198,6 +5241,22 @@ function formatTime(seconds) {
     return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
 }
 
+// Exam timers (CBT/Mock/Topic/Novel) used to call the full render() every
+// single second just to count down — rebuilding the entire page each tick.
+// That's what made scrolling and tapping "Next" feel like it kept jumping:
+// a full DOM rebuild was happening under the user's finger once a second.
+// This only updates the timer text itself, so normal renders (answering a
+// question, tapping Next, etc.) are the only thing that touch the DOM.
+// Returns true if it successfully updated the display, false if the timer
+// bar isn't on screen right now (caller should fall back to a full render()).
+function tickTimerDisplay(seconds) {
+    const timeEl = document.querySelector('.timer-bar .time');
+    if (!timeEl) return false;
+    timeEl.textContent = formatTime(seconds);
+    timeEl.classList.toggle('warning', seconds < 300);
+    return true;
+}
+
 function formatTimeShort(seconds) {
     if (seconds < 0) seconds = 0;
     const hours = Math.floor(seconds / 3600);
@@ -5275,16 +5334,36 @@ function getJambCountdown() {
     const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
     return { days: days, year: target.getFullYear() };
 }
+// ============================================================
+//  MY SUBJECTS — ordinary local/offline feature (English + up to 3
+//  electives). This is deliberately plain localStorage, NOT a Supabase
+//  table: it must work the instant the app opens, with or without a
+//  connection, and must never show stale/empty data while waiting on a
+//  network round trip. See loadMyElectivesLocal()/saveMyElectivesLocal().
+// ============================================================
+function myElectivesStorageKey() {
+    return 'myElectiveSubjects_' + (state.authUser ? state.authUser.id : 'guest');
+}
+function loadMyElectivesLocal() {
+    try {
+        const raw = storage.get(myElectivesStorageKey());
+        const parsed = raw ? JSON.parse(raw) : [];
+        state.myElectives = Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        state.myElectives = [];
+    }
+}
+function saveMyElectivesLocal() {
+    storage.set(myElectivesStorageKey(), JSON.stringify(state.myElectives || []));
+}
+
 function enrolledSubjectIds() {
-    const ids = new Set();
-    (state.myEnrollments || []).forEach(function(e) {
-        const course = state.courses.find(function(c) { return c.id === e.course_id; });
-        if (course) (course.subject_ids || []).forEach(function(sid) { ids.add(sid); });
-    });
+    const ids = new Set(['eng']);
+    (state.myElectives || []).forEach(function(sid) { ids.add(sid); });
     return ids;
 }
 // Returns the user's subject combo as an array of subject IDs: English first,
-// then their enrolled electives (excluding Literature, which has its own flow).
+// then their electives (excluding Literature, which has its own flow).
 // Admins are treated as having all 4 "slots" filled since they can access everything.
 function getMySubjectIds() {
     const mySubjectIds = ['eng'];
@@ -5294,8 +5373,7 @@ function getMySubjectIds() {
             .forEach(function(s) { mySubjectIds.push(s.id); });
         return mySubjectIds;
     }
-    const enrolledIds = enrolledSubjectIds();
-    enrolledIds.forEach(function(sid) {
+    (state.myElectives || []).forEach(function(sid) {
         if (sid !== 'eng' && sid !== 'lhm' && mySubjectIds.indexOf(sid) === -1) {
             mySubjectIds.push(sid);
         }
@@ -5374,7 +5452,15 @@ function showToast(msg, type) {
     if (toastTimer) clearTimeout(toastTimer);
     const el = document.createElement('div');
     el.className = 'toast-msg' + (type === 'error' ? ' error' : type === 'success' ? ' success' : type === 'offline' ? ' offline' : '');
-    el.textContent = msg;
+    const iconGlyph = type === 'error' ? '!' : type === 'success' ? '✓' : type === 'offline' ? '⚠' : 'i';
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'toast-icon';
+    iconSpan.textContent = iconGlyph;
+    const textSpan = document.createElement('span');
+    textSpan.className = 'toast-text';
+    textSpan.textContent = msg;
+    el.appendChild(iconSpan);
+    el.appendChild(textSpan);
     document.body.appendChild(el);
     toastTimer = setTimeout(function() {
         if (el.parentNode) el.remove();
@@ -5725,12 +5811,11 @@ coursesLoading: false,
 myEnrollments: [],
 myEnrollmentsLoaded: false,
 myEnrollmentsLoading: false,
+    myElectives: [], // English + up to 3 elective subject IDs — local/offline, see loadMyElectivesLocal()
     selectedCourseId: null,
     selectedSubjectId: null,
     mycAdding: false,
-    mycSaving: false,
     mycSwappingSubjectId: null,
-    mycSaving: false,
     browseCourseFilter: 'all',
     adminKeys: [],
     adminKeysLoaded: false,
@@ -6731,6 +6816,7 @@ async function checkAuthSession() {
             const user = data.session.user;
             resetUserScopedChatState();
             state.authUser = user;
+            loadMyElectivesLocal();
             const cachedProfile = loadOfflineCache('profile_' + user.id);
             const { data: prof, error: pErr } = await withNetworkTimeout(
                 supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
@@ -6865,6 +6951,7 @@ async function signUp(fullName, username, email, password) {
 
             resetUserScopedChatState();
             state.authUser = data.user;
+            loadMyElectivesLocal();
             state.profile.name = username;
             state.profile.email = email;
             state.profile.id = data.user.id;
@@ -6930,6 +7017,7 @@ async function signIn(emailOrUsername, password) {
         if (data.user) {
             resetUserScopedChatState();
             state.authUser = data.user;
+            loadMyElectivesLocal();
             const { data: prof, error: pErr } = await supabase
                 .from('profiles')
                 .select('*')
@@ -6994,6 +7082,7 @@ async function signOut() {
         state.profile = { name: "Guest", email: "", id: null, is_active: true, activation_expiry: null, fullName: "", avatarUrl: null, walletBalance: 0 };
         state.formName = "";
         state.formEmail = "";
+        state.myElectives = [];
         resetUserScopedChatState();
         storage.set("profile", JSON.stringify(state.profile));
         state.view = "home";
@@ -7503,7 +7592,7 @@ async function startMockExam(mockExamId, source) {
                             state.mockTimer = null;
                             submitMockExam(true);
                         } else {
-                            render();
+                            if (!tickTimerDisplay(state.mockTimeLeft)) render();
                         }
                     }, 1000);
 
@@ -7723,7 +7812,7 @@ async function startMockExam(mockExamId, source) {
                 state.mockTimer = null;
                 submitMockExam(true);
             } else {
-                render();
+                if (!tickTimerDisplay(state.mockTimeLeft)) render();
             }
         }, 1000);
 
@@ -9400,7 +9489,7 @@ async function startCbt() {
             }
             render();
         } else {
-            render();
+            if (!tickTimerDisplay(state.cbtTimeLeft)) render();
         }
     }, 1000);
     
@@ -9490,7 +9579,7 @@ async function startLiteratureCbt() {
             }
             render();
         } else {
-            render();
+            if (!tickTimerDisplay(state.litTimeLeft)) render();
         }
     }, 1000);
     
@@ -9600,7 +9689,7 @@ async function startTopicPractice() {
             }
             render();
         } else {
-            render();
+            if (!tickTimerDisplay(state.topicTimeLeft)) render();
         }
     }, 1000);
     
@@ -10592,23 +10681,21 @@ if (v === "subject-modes") return renderSubjectModes();
 //  MY SUBJECTS (home for subject combo + practice modes)
 // ============================================================
 function renderMyCourses() {
-    if (!state.coursesLoaded) loadCourses();
-    if (state.authUser && !state.myEnrollmentsLoaded) loadMyEnrollments();
-
-    const enrolledIds = enrolledSubjectIds(); // Set, or null for admin (full access)
+    // Local/offline: state.myElectives is loaded from localStorage the moment
+    // we know who's logged in (see loadMyElectivesLocal()), so this page has
+    // real data on first paint whether or not there's a connection — nothing
+    // to fetch, nothing to wait on.
     const isAdminUser = isAdmin();
 
     const mySubjectIds = ['eng'];
-    if (enrolledIds) {
-        // Show EVERY real elective you're enrolled in — do not silently cap/hide any.
-        // If there are more than 3, old subjects never got cleaned up properly; showing
-        // them all lets you remove the extras yourself instead of them vanishing.
-        enrolledIds.forEach(function(sid) {
-            if (sid !== 'eng' && sid !== 'lhm' && mySubjectIds.indexOf(sid) === -1) {
-                mySubjectIds.push(sid);
-            }
-        });
-    }
+    // Show EVERY real elective saved locally — do not silently cap/hide any.
+    // If there are somehow more than 3 (e.g. old data), show them all so the
+    // user can remove the extras themselves instead of them vanishing.
+    (state.myElectives || []).forEach(function(sid) {
+        if (sid !== 'eng' && sid !== 'lhm' && mySubjectIds.indexOf(sid) === -1) {
+            mySubjectIds.push(sid);
+        }
+    });
     const excessCount = Math.max(0, mySubjectIds.length - 4);
 
 const atMax = mySubjectIds.length === 4;
@@ -11068,7 +11155,7 @@ function renderCbtMode() {
             );
         });
         if (!anyCourseAccess() && !isAdmin()) {
-            chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Enroll in a course to unlock subjects.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="all-courses">Browse Courses</button></div>';
+            chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in My Subjects first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to My Subjects</button></div>';
         }
         body = (
             '<div class="mode-note">Choose <b>1 subject</b> from your combo to practice.</div>' +
@@ -11406,7 +11493,7 @@ function renderExamMode() {
         );
     });
     if (!anyCourseAccess()) {
-        chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Enroll in a course to unlock subjects.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="all-courses">Browse Courses</button></div>';
+        chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in My Subjects first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to My Subjects</button></div>';
     }
     let yearOptions = "";
     for (let y = 2026; y >= 2021; y--) {
@@ -11641,7 +11728,7 @@ function renderTopicsPicker() {
         );
     });
     if (!anyCourseAccess()) {
-        subjChips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Enroll in a course to unlock subjects.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="all-courses">Browse Courses</button></div>';
+        subjChips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in My Subjects first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to My Subjects</button></div>';
     }
 
     let topicsHtml = "";
@@ -16732,15 +16819,20 @@ document.addEventListener('click', function(e) {
         setView('subject-modes');
         return;
     }
+    // ============================================================
+    //  MY SUBJECTS — ordinary local/offline actions. Picking your 3
+    //  electives is just editing state.myElectives + saving it to
+    //  localStorage (loadMyElectivesLocal/saveMyElectivesLocal). No network
+    //  call, no course lookup, so it works identically online or offline
+    //  and updates the screen immediately.
+    // ============================================================
     if (action === 'myc-toggle-add') {
-        if (state.mycSaving) return;
         state.mycAdding = !state.mycAdding;
         state.mycSwappingSubjectId = null;
         render();
         return;
     }
     if (action === 'myc-swap-subject') {
-        if (state.mycSaving) return;
         const sid = el.getAttribute('data-subjectid');
         if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
         state.mycSwappingSubjectId = sid;
@@ -16749,138 +16841,54 @@ document.addEventListener('click', function(e) {
         return;
     }
     if (action === 'myc-add-subject') {
-        if (state.mycSaving) return;
         const sid = el.getAttribute('data-subjectid');
         if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
-        const course = state.courses.find(function(c) {
-            return c.exam_type === 'jamb' && (c.subject_ids || []).length === 1 && c.subject_ids[0] === sid;
-        });
-        if (!course) { showToast('Course not found for this subject.', 'error'); return; }
-        if (blockIfOffline()) return;
-        if (!isValidUuid(course.id)) {
-            // This subject only has a local placeholder course (no matching
-            // row in the database yet) — enrolling would fail with a raw
-            // database error, so stop here with a clear explanation instead.
-            showToast('This subject isn\'t set up for enrollment yet. Please contact support or try again later.', 'error');
-            return;
-        }
-        if ((course.price || 0) > 0) {
-            state.mycAdding = false;
-            payForCourse(course);
-            return;
-        }
-        const swapOutSid = state.mycSwappingSubjectId;
         const s = SUBJECTS.find(function(x) { return x.id === sid; });
+        const swapOutSid = state.mycSwappingSubjectId;
         const oldSubject = swapOutSid ? SUBJECTS.find(function(x) { return x.id === swapOutSid; }) : null;
 
-        // Lock the UI and close the picker immediately so a second tap can't
-        // start an overlapping change while this one is still talking to the server.
-        state.mycSaving = true;
-        state.mycAdding = false;
-        render();
+        if (!Array.isArray(state.myElectives)) state.myElectives = [];
 
-        (async function() {
-            const insertRes = await supabase.from('course_enrollments').insert([{
-                user_id: state.authUser.id, course_id: course.id, amount: 0,
-            }]);
-            if (insertRes && insertRes.error) {
-                showNetworkAwareError('Could not add ' + (s ? s.name : 'the subject') + ': ' + insertRes.error.message, insertRes.error);
-                state.mycSaving = false;
-                render();
-                return;
-            }
-            if (!swapOutSid) {
-                state.myEnrollmentsLoaded = false;
-                await loadMyEnrollments();
-                showToast('Added ' + (s ? s.name : 'subject') + '!', 'success');
-                state.mycSaving = false;
-                render();
-                return;
-            }
-
-            const oldEnrollments = state.myEnrollments.filter(function(e) {
-                const c = state.courses.find(function(cc) { return cc.id === e.course_id; });
-                return c && (c.subject_ids || []).length === 1 && c.subject_ids[0] === swapOutSid;
-            });
-
-            if (oldEnrollments.length === 0) {
-                state.myEnrollmentsLoaded = false;
-                await loadMyEnrollments();
-                showToast('Added ' + (s ? s.name : 'new subject') + ', but could not find your old ' + (oldSubject ? oldSubject.name : 'subject') + ' enrollment to remove. Please remove it manually.', 'error');
+        if (swapOutSid) {
+            const idx = state.myElectives.indexOf(swapOutSid);
+            if (idx !== -1) state.myElectives.splice(idx, 1);
+        }
+        if (state.myElectives.indexOf(sid) === -1) {
+            if (state.myElectives.length >= 3) {
+                // Shouldn't normally happen (UI only offers "Add" when there's
+                // a free slot), but guard against it rather than silently
+                // going over the 3-elective limit.
+                showToast('You already have 3 subjects. Remove one first.', 'error');
                 state.mycSwappingSubjectId = null;
-                state.mycSaving = false;
+                state.mycAdding = false;
                 render();
                 return;
             }
+            state.myElectives.push(sid);
+        }
+        saveMyElectivesLocal();
 
-            const idsToDelete = oldEnrollments.map(function(e) { return e.id; });
-            const delRes = await supabase.from('course_enrollments').delete().in('id', idsToDelete).select();
-
-            state.myEnrollmentsLoaded = false;
-            await loadMyEnrollments();
-
-            // Trust nothing — re-check what's ACTUALLY in the database now, since Supabase
-            // can silently delete 0 rows (no error) if a row-level-security policy blocks it.
-            const stillHasOld = state.myEnrollments.some(function(e) { return idsToDelete.indexOf(e.id) !== -1; });
-
-            if (delRes && delRes.error) {
-                showNetworkAwareError('Added ' + (s ? s.name : 'new subject') + ', but removing ' + (oldSubject ? oldSubject.name : 'the old subject') + ' failed: ' + delRes.error.message, delRes.error);
-            } else if (stillHasOld) {
-                showToast((oldSubject ? oldSubject.name : 'Old subject') + ' could not be removed — check database permissions. ' + (s ? s.name : 'The new subject') + ' was still added.', 'error');
-            } else {
-                showToast('Swapped ' + (oldSubject ? oldSubject.name : 'subject') + ' for ' + (s ? s.name : 'new subject') + '!', 'success');
-            }
-            state.mycSwappingSubjectId = null;
-            state.mycSaving = false;
-            render();
-        })().catch(function(err) {
-            showNetworkAwareError('Swap failed: ' + (err && err.message ? err.message : 'unknown error'), err);
-            state.mycSwappingSubjectId = null;
-            state.mycSaving = false;
-            render();
-        });
+        state.mycSwappingSubjectId = null;
+        state.mycAdding = false;
+        showToast(swapOutSid
+            ? 'Swapped ' + (oldSubject ? oldSubject.name : 'subject') + ' for ' + (s ? s.name : 'new subject') + '!'
+            : 'Added ' + (s ? s.name : 'subject') + '!', 'success');
+        render();
         return;
     }
     if (action === 'myc-remove-subject') {
-        if (state.mycSaving) return;
         const sid = el.getAttribute('data-subjectid');
         if (!state.authUser) return;
         if (!confirm('Remove this subject from My Subjects?')) return;
         const s = SUBJECTS.find(function(x) { return x.id === sid; });
-        const singleSubjectEnrollments = state.myEnrollments.filter(function(e) {
-            const c = state.courses.find(function(cc) { return cc.id === e.course_id; });
-            return c && (c.subject_ids || []).length === 1 && c.subject_ids[0] === sid;
-        });
-        if (singleSubjectEnrollments.length === 0) {
-            showToast((s ? s.name : 'This subject') + ' is part of a combined course package and can\'t be removed on its own. Please contact support.', 'error');
-            return;
-        }
-        if (blockIfOffline()) return;
-        state.mycSaving = true;
+
+        if (!Array.isArray(state.myElectives)) state.myElectives = [];
+        const idx = state.myElectives.indexOf(sid);
+        if (idx !== -1) state.myElectives.splice(idx, 1);
+        saveMyElectivesLocal();
+
+        showToast('Removed ' + (s ? s.name : 'subject') + '.', 'success');
         render();
-        const idsToDelete = singleSubjectEnrollments.map(function(e) { return e.id; });
-        supabase.from('course_enrollments').delete().in('id', idsToDelete).select().then(function(res) {
-            if (res && res.error) {
-                showNetworkAwareError('Error removing subject: ' + res.error.message, res.error);
-                state.mycSaving = false;
-                render();
-                return;
-            }
-            state.myEnrollmentsLoaded = false;
-            loadMyEnrollments().then(function() {
-                const stillHas = enrolledSubjectIds().has(sid);
-                showToast(stillHas
-                    ? (s ? s.name : 'Subject') + ' could not be removed — check database permissions.'
-                    : 'Removed ' + (s ? s.name : 'subject') + '.',
-                    stillHas ? 'error' : 'success');
-                state.mycSaving = false;
-                render();
-            });
-        }).catch(function(err) {
-            showNetworkAwareError('Error removing subject: ' + (err && err.message ? err.message : 'unknown error'), err);
-            state.mycSaving = false;
-            render();
-        });
         return;
     }
     if (action === 'subj-start-cbt') {
@@ -20544,7 +20552,7 @@ async function init() {
                         }
                         render();
                     } else {
-                        render();
+                        if (!tickTimerDisplay(state.cbtTimeLeft)) render();
                     }
                 }, 1000);
             }
@@ -20556,7 +20564,7 @@ async function init() {
                         state.mockTimer = null;
                         submitMockExam(true);
                     } else {
-                        render();
+                        if (!tickTimerDisplay(state.mockTimeLeft)) render();
                     }
                 }, 1000);
             }
@@ -20580,7 +20588,7 @@ async function init() {
                         }
                         render();
                     } else {
-                        render();
+                        if (!tickTimerDisplay(state.topicTimeLeft)) render();
                     }
                 }, 1000);
             }
@@ -20604,7 +20612,7 @@ async function init() {
                         }
                         render();
                     } else {
-                        render();
+                        if (!tickTimerDisplay(state.litTimeLeft)) render();
                     }
                 }, 1000);
             }
