@@ -417,8 +417,8 @@
        #root — see setupPullToRefresh() at the bottom of the script. */
     #pull-refresh-indicator {
         position: fixed;
-        top: 64px;
-        left: 50%;
+        top: 14px;
+        left: 14px;
         width: 34px;
         height: 34px;
         border-radius: 50%;
@@ -429,10 +429,19 @@
         color: var(--green);
         box-shadow: var(--shadow-md);
         opacity: 0;
-        transform: translate(-50%, -40px);
+        transform: translateY(-40px);
         transition: opacity 0.15s ease-out, transform 0.15s ease-out;
-        z-index: 40;
+        z-index: 500;
         pointer-events: none;
+        cursor: pointer;
+    }
+    /* Persistent circle button (idle state) — always tappable, both in a
+       browser tab and once installed. The drag gesture only kicks in on
+       top of this in browser-tab mode; see setupPullToRefresh(). */
+    #pull-refresh-indicator.idle-visible {
+        opacity: 0.85;
+        transform: translateY(0);
+        pointer-events: auto;
     }
     #pull-refresh-indicator.ready { color: var(--gold); }
     #pull-refresh-indicator.spinning svg { animation: spin 0.7s linear infinite; }
@@ -4894,8 +4903,8 @@
     <span class="dismiss" data-action="dismiss-inapp-banner">×</span>
 </div>
 
-<script id="supabase-cdn-script" async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
-<script async src="https://js.paystack.co/v1/inline.js"></script>
+<script id="supabase-cdn-script" async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script async crossorigin="anonymous" src="https://js.paystack.co/v1/inline.js"></script>
 <script src="offline-db.js"></script>
 <script>
 // ============================================================
@@ -5555,7 +5564,22 @@ function showUserError(context, err, friendlyMsg) {
 // no record of why). Regular users never see these; they land in Admin
 // Panel → Errors.
 window.addEventListener('error', function(event) {
-    logAppError('window.onerror: ' + (event.filename || 'app.js') + ':' + (event.lineno || '?'), event.error || event.message);
+    // Browsers deliberately strip all detail (filename, line, message —
+    // just the literal string "Script error.") for errors thrown inside
+    // a <script> tag loaded from a different origin (our supabase-js /
+    // paystack CDN scripts) unless that script is served with a matching
+    // Access-Control-Allow-Origin header AND fetched via crossorigin=
+    // "anonymous". We've added crossorigin="anonymous" to those tags so
+    // real detail comes through going forward. Any "Script error." that
+    // still has no filename/lineno is almost always the CDN script
+    // failing to load at all (offline / blocked), not a bug in our code —
+    // logging hundreds of these with no information was just noise in
+    // the admin Errors tab, so skip logging when there's truly nothing
+    // to act on and it lines up with connectivity being the cause.
+    const msg = event.message || '';
+    const isBlankCrossOriginError = msg === 'Script error.' && !event.filename && !event.lineno;
+    if (isBlankCrossOriginError && !isOnline()) return;
+    logAppError('window.onerror: ' + (event.filename || 'unknown') + ':' + (event.lineno || '?'), event.error || event.message);
 });
 window.addEventListener('unhandledrejection', function(event) {
     logAppError('unhandledrejection', event.reason);
@@ -7038,8 +7062,12 @@ async function signUp(fullName, username, email, password) {
         }
     } catch (err) {
         logAppError("Signup", err);
-        const isAdminAttempt = email && email.toLowerCase() === ADMIN_EMAIL;
-        state.authError = isAdminAttempt ? (err.message || "Signup failed. Please try again.") : "Signup failed. Please try again.";
+        if (isNetworkError(err)) {
+            state.authError = "You're offline — connect to the internet to sign up.";
+        } else {
+            const isAdminAttempt = email && email.toLowerCase() === ADMIN_EMAIL;
+            state.authError = isAdminAttempt ? (err.message || "Signup failed. Please try again.") : "Signup failed. Please try again.";
+        }
         render();
     }
     state.authLoading = false;
@@ -7127,8 +7155,18 @@ async function signIn(emailOrUsername, password) {
         }
     } catch (err) {
         logAppError("Login", err);
-        const isAdminAttempt = emailOrUsername && emailOrUsername.toLowerCase() === ADMIN_EMAIL;
-        state.authError = isAdminAttempt ? (err.message || "Login failed. Check your email/username and password.") : "Login failed. Check your email/username and password.";
+        // A dropped connection (no signal, wifi cut mid-request, etc.) was
+        // surfacing as the raw "Failed to fetch" browser message — which
+        // looks broken and isn't the actual reason login failed. Show the
+        // calm offline message in that case for everyone, same as the
+        // rest of the app; only fall back to the raw error for admins on
+        // genuine (non-network) failures.
+        if (isNetworkError(err)) {
+            state.authError = "You're offline — connect to the internet to log in.";
+        } else {
+            const isAdminAttempt = emailOrUsername && emailOrUsername.toLowerCase() === ADMIN_EMAIL;
+            state.authError = isAdminAttempt ? (err.message || "Login failed. Check your email/username and password.") : "Login failed. Check your email/username and password.";
+        }
         render();
     }
     state.authLoading = false;
@@ -20768,6 +20806,94 @@ async function init() {
     if (state.authUser) {
         loadStudyReminder();
     }
+
+    setupPullToRefresh();
+}
+
+// ============================================================
+//  PULL-TO-REFRESH / REFRESH BUTTON
+// ============================================================
+// A small circle button, pinned top-left, that refreshes the app on tap.
+// In a normal browser tab it's paired with a drag-down-from-the-top
+// gesture (the classic "pull to refresh"), same as a native mobile
+// website. Once installed as a standalone PWA, the drag gesture is
+// intentionally turned off — installed apps shouldn't fight the user's
+// finger with a scroll-vs-refresh guessing game — and only the button
+// remains, matching how most installed apps handle refresh.
+function refreshApp() {
+    const indicator = document.getElementById('pull-refresh-indicator');
+    if (indicator) indicator.classList.add('spinning');
+    // Full reload so any cached HTML/JS/data is re-fetched from the
+    // network (falling back to the service worker cache if offline) —
+    // this is a single-file app, so "refresh" means reload the page.
+    setTimeout(function() { location.reload(); }, 350);
+}
+
+function setupPullToRefresh() {
+    let indicator = document.getElementById('pull-refresh-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'pull-refresh-indicator';
+        indicator.setAttribute('aria-label', 'Refresh');
+        indicator.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>';
+        document.body.appendChild(indicator);
+    }
+    // Always tappable, in browser tab or installed — this is the one
+    // refresh method guaranteed to work everywhere.
+    indicator.classList.add('idle-visible');
+    indicator.style.pointerEvents = 'auto';
+    indicator.addEventListener('click', function() {
+        if (indicator.classList.contains('spinning')) return;
+        refreshApp();
+    });
+
+    // Drag-to-refresh gesture: browser tab only (see comment above).
+    if (isStandaloneApp()) return;
+
+    const THRESHOLD = 70;
+    let startY = 0;
+    let pulling = false;
+    let dragging = false;
+
+    function scrollHost() {
+        // The currently visible screen's own scroll container; pull-to-
+        // refresh should only engage when that container is scrolled all
+        // the way to the top, otherwise this would hijack normal scrolling.
+        return document.querySelector('.view') || document.scrollingElement || document.documentElement;
+    }
+
+    document.addEventListener('touchstart', function(e) {
+        if (indicator.classList.contains('spinning')) return;
+        const host = scrollHost();
+        if (host && host.scrollTop > 0) { pulling = false; return; }
+        startY = e.touches[0].clientY;
+        pulling = true;
+        dragging = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function(e) {
+        if (!pulling) return;
+        const dy = e.touches[0].clientY - startY;
+        if (dy <= 0) { dragging = false; indicator.classList.remove('ready'); indicator.style.opacity = ''; indicator.style.transform = ''; return; }
+        dragging = true;
+        const pull = Math.min(dy * 0.5, THRESHOLD + 30);
+        indicator.style.opacity = Math.min(pull / THRESHOLD, 1);
+        indicator.style.transform = 'translateY(' + (pull - 40) + 'px)';
+        indicator.classList.toggle('ready', pull >= THRESHOLD);
+    }, { passive: true });
+
+    document.addEventListener('touchend', function() {
+        if (!pulling) return;
+        pulling = false;
+        if (dragging && indicator.classList.contains('ready')) {
+            refreshApp();
+        } else {
+            indicator.style.opacity = '';
+            indicator.style.transform = '';
+            indicator.classList.remove('ready');
+        }
+        dragging = false;
+    }, { passive: true });
 }
 
 if (document.readyState === 'loading') {
