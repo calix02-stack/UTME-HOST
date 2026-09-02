@@ -260,12 +260,23 @@
     }
 
     /* ============================================================
-       FULLSCREEN "FIT-TO-SCREEN" ANALYTICS MODE
+       FULLSCREEN "ONE-SCREEN" ANALYTICS MODE
        Used by both the Personal Analytics screen and the Admin
        Analytics tab. The topbar + bottom nav are hidden so the
-       dashboard gets the entire viewport, and the content block is
-       auto-scaled (via JS, see fitAnalyticsToScreen()) so every
-       section is visible with zero scrolling on any screen size.
+       dashboard gets the entire viewport.
+
+       Below ~700px (phones) there simply isn't room to show six dense
+       admin-analytics sections at once and stay legible, so the page
+       flows normally and scrolls like any mobile screen.
+
+       At ≥700px (tablet and up) the whole dashboard locks to exactly
+       one viewport — the page itself never scrolls. Cards are laid
+       out in a CSS grid whose rows/columns stretch (`fr` units) to
+       fill the exact available height and width, so there's no
+       leftover empty space and nothing is pushed off-screen. If one
+       individual panel's content is still too tall for its cell
+       (e.g. a long list), only *that panel* scrolls internally —
+       the rest of the dashboard stays fully visible.
        ============================================================ */
     /* The normal app UI is a mobile "card" capped at 384px (or wider
        breakpoint caps) even on desktop. Analytics must ignore all of
@@ -302,13 +313,21 @@
         -webkit-overflow-scrolling: touch;
     }
     .fit-screen-content {
-        /* The dashboard is a normal, responsive in-flow block now — it
-           reflows its own grid columns based on available width (see
-           .pa-canvas/.adash-canvas below) instead of being drawn at a
-           fixed pixel size and uniformly scaled up/down to fit. */
         width: 100%;
         min-height: 100%;
         box-sizing: border-box;
+    }
+    @media (min-width: 700px) {
+        /* Lock the page itself — individual panels handle their own
+           overflow from here up. */
+        .fit-screen-stage { overflow: hidden; }
+        .fit-screen-content {
+            height: 100%;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
     }
     .analytics-close-fab {
         position: absolute;
@@ -1698,9 +1717,11 @@
         font-size: 12px;
     }
 
-    /* Personal Analytics — responsive dashboard canvas. Fluid width that
-       reflows its grid columns at each breakpoint instead of being drawn
-       at one fixed phone-sized canvas and stretched/scaled to fit. */
+    /* Personal Analytics — one-screen dashboard canvas above ~700px:
+       header + KPI strip stay a fixed height, and the card grid below
+       stretches (`fr` rows/cols) to consume exactly the remaining
+       height, so the whole dashboard sits in one viewport with no page
+       scroll. Below 700px it's a normal flowing, scrollable page. */
     .pa-canvas {
         width: 100%;
         max-width: 1360px;
@@ -1714,6 +1735,26 @@
     }
     @media (min-width: 1024px) {
         .pa-canvas { padding: 28px 40px 40px; }
+    }
+    @media (min-width: 700px) {
+        .pa-canvas {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .pa-canvas > .pa-header,
+        .pa-canvas > .pa-kpi-row,
+        .pa-canvas > .pa-footer-btn {
+            flex: 0 0 auto;
+        }
+        .pa-canvas > .pa-grid {
+            flex: 1;
+            min-height: 0;
+        }
     }
     .pa-header {
         display: flex;
@@ -1784,6 +1825,7 @@
         padding: 11px 12px 12px;
         box-shadow: var(--shadow-sm);
         min-width: 0;
+        min-height: 0;
     }
     .pa-card.pa-span2 { grid-column: span 2; }
     @media (min-width: 640px) {
@@ -1791,12 +1833,25 @@
         .pa-card { padding: 16px 18px 18px; border-radius: 18px; }
         .pa-card.pa-span2 { grid-column: span 2; }
     }
-    @media (min-width: 1024px) {
-        .pa-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
-        .pa-card.pa-span2 { grid-column: span 2; }
-    }
     @media (min-width: 1440px) {
-        .pa-grid { grid-template-columns: repeat(6, 1fr); }
+        .pa-grid { grid-template-columns: repeat(6, 1fr); gap: 16px; }
+    }
+    /* One-screen mode: rows stretch to fill the grid's own height
+       exactly (no leftover strip of empty space below the cards), and
+       each card scrolls internally as a fallback if its own content
+       (a long list, say) is taller than the row it landed in — the
+       rest of the dashboard never has to move to make room for it. */
+    @media (min-width: 700px) {
+        .pa-grid {
+            height: 100%;
+            grid-auto-rows: 1fr;
+            grid-auto-flow: dense;
+        }
+        .pa-card {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
     }
     .pa-card-title {
         font-size: 10.5px;
@@ -3652,6 +3707,37 @@
     @media (min-width: 1100px) {
         .analytics-dash { padding: 26px 28px 32px; }
     }
+    /* One-screen mode: the whole dashboard (range row + the 6-section
+       grid) fills the fixed-height .adash-canvas exactly, and only the
+       6-section grid is allowed to flex — so nothing pushes the page
+       taller than the viewport. */
+    @media (min-width: 700px) {
+        .adash-canvas {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .analytics-dash {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            margin-top: 0;
+        }
+        .analytics-dash > .adash-range-row,
+        .analytics-dash > .admin-sub-tabs {
+            flex: 0 0 auto;
+        }
+        .analytics-dash > .adash-onepage {
+            flex: 1;
+            min-height: 0;
+        }
+    }
     .analytics-dash .adash-range-row {
         display: flex;
         gap: 6px;
@@ -3720,7 +3806,19 @@
         .analytics-dash .adash-onepage { grid-template-columns: repeat(3, 1fr); gap: 18px; }
     }
     @media (min-width: 1600px) {
-        .analytics-dash .adash-onepage { gap: 24px; }
+        .analytics-dash .adash-onepage { grid-template-columns: repeat(6, 1fr); gap: 20px; }
+    }
+    /* One-screen mode: 6 sections always divide evenly into the column
+       counts above (2, 3 or 6 → exactly 3, 2 or 1 rows), and
+       grid-auto-rows: 1fr makes every row share the grid's own height
+       equally — so the section grid always fills the space exactly,
+       with no leftover strip of empty space at the bottom. */
+    @media (min-width: 700px) {
+        .analytics-dash .adash-onepage {
+            height: 100%;
+            grid-auto-rows: 1fr;
+            align-items: stretch;
+        }
     }
     .analytics-dash .adash-section {
         min-width: 0;
@@ -3734,6 +3832,32 @@
         margin: 4px 0 10px;
         padding-bottom: 6px;
         border-bottom: 1px solid var(--adash-card-border);
+    }
+    /* Each section becomes its own self-contained panel: it fills its
+       grid cell exactly and scrolls internally if its own cards (a
+       section can hold several charts/lists) are taller than the cell
+       — so a data-heavy section never pushes the other 5 sections off
+       screen or shrinks them to make room. */
+    @media (min-width: 700px) {
+        .analytics-dash .adash-section {
+            min-height: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 2px 8px 8px 2px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+        }
+        .analytics-dash .adash-section-label {
+            flex: 0 0 auto;
+            position: sticky;
+            top: 0;
+            background: linear-gradient(180deg, #0e2119 88%, transparent);
+            z-index: 1;
+        }
     }
 
     .adash-card {
