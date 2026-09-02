@@ -259,6 +259,59 @@
         color: var(--faint);
     }
 
+    /* ============================================================
+       FULLSCREEN "FIT-TO-SCREEN" ANALYTICS MODE
+       Used by both the Personal Analytics screen and the Admin
+       Analytics tab. The topbar + bottom nav are hidden so the
+       dashboard gets the entire viewport, and the content block is
+       auto-scaled (via JS, see fitAnalyticsToScreen()) so every
+       section is visible with zero scrolling on any screen size.
+       ============================================================ */
+    #app-inner.analytics-fullscreen > .topbar,
+    #app-inner.analytics-fullscreen > .bottom-nav {
+        display: none !important;
+    }
+    #app-inner.analytics-fullscreen > .view {
+        max-height: 100dvh !important;
+        height: 100dvh !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+    #app-inner.analytics-fullscreen > .view > .view-content {
+        height: 100%;
+    }
+    .fit-screen-stage {
+        position: relative;
+        width: 100%;
+        height: 100dvh;
+        overflow: hidden;
+    }
+    .fit-screen-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        transform-origin: top left;
+        visibility: hidden; /* revealed once scale is computed, to avoid a flash of unscaled content */
+    }
+    .fit-screen-content.fit-ready { visibility: visible; }
+    .analytics-close-fab {
+        position: absolute;
+        top: max(10px, env(safe-area-inset-top));
+        right: 10px;
+        z-index: 30;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: rgba(19, 41, 29, 0.55);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        backdrop-filter: blur(4px);
+    }
+    [data-theme="dark"] .analytics-close-fab { background: rgba(0,0,0,0.55); }
+
     .topbar {
         position: sticky;
         top: 0;
@@ -1628,6 +1681,139 @@
         margin-bottom: 6px;
         font-size: 12px;
     }
+
+    /* Personal Analytics — redesigned zero-scroll dashboard canvas.
+       This is a fixed-size "canvas" that fitAnalyticsToScreen() scales
+       to fill whatever viewport it's given, so the design below only
+       needs to look right at its own natural size. */
+    .pa-canvas {
+        width: 344px;
+        padding: 16px 16px 20px;
+        box-sizing: border-box;
+        background: var(--bg);
+    }
+    .pa-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    .pa-header h2 {
+        font-family: var(--font-serif);
+        font-size: 19px;
+        margin: 0;
+        color: var(--ink);
+    }
+    .pa-header p {
+        font-size: 10.5px;
+        color: var(--muted);
+        margin: 3px 0 0;
+    }
+    .pa-header .pa-badge {
+        flex-shrink: 0;
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 4px 9px;
+        border-radius: 999px;
+        color: #fff;
+        white-space: nowrap;
+    }
+    .pa-kpi-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .pa-kpi {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px 4px 9px;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+    }
+    .pa-kpi .val { font-size: 18px; font-weight: 800; margin: 0; line-height: 1.1; }
+    .pa-kpi .lbl { font-size: 8px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .pa-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .pa-card {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 11px 12px 12px;
+        box-shadow: var(--shadow-sm);
+        min-width: 0;
+    }
+    .pa-card.pa-span2 { grid-column: span 2; }
+    .pa-card-title {
+        font-size: 10.5px;
+        font-weight: 700;
+        margin: 0 0 8px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--ink);
+    }
+    .pa-card-title svg { flex-shrink: 0; color: var(--green); }
+    .pa-focus-line {
+        font-size: 9.5px;
+        color: var(--muted);
+        margin: 8px 0 0;
+        line-height: 1.4;
+    }
+    .pa-empty {
+        text-align: center;
+        color: var(--faint);
+        font-size: 10.5px;
+        padding: 10px 4px;
+    }
+    .pa-time-avg {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--green);
+        margin: 0;
+    }
+    .pa-time-avg span { font-size: 9.5px; font-weight: 500; color: var(--muted); }
+    .pa-time-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 9.5px;
+        color: var(--muted);
+        margin-top: 4px;
+    }
+    .pa-footer-btn {
+        margin-top: 12px;
+        width: 100%;
+    }
+    .pa-heatmap-row { margin-bottom: 6px; }
+    .pa-heatmap-row .hm-label { font-size: 9.5px; flex: 0 0 66px; }
+    .pa-heatmap-row .hm-bar-track { height: 10px; }
+    .pa-heatmap-row .hm-pct { font-size: 9.5px; flex: 0 0 28px; }
+    .pa-missed-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 10px;
+        padding: 5px 0;
+        border-bottom: 1px dashed var(--line);
+    }
+    .pa-missed-row:last-child { border-bottom: none; }
+    .count-badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: var(--green-light);
+        color: var(--green);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .pa-missed-row .count-badge { font-size: 9px; padding: 2px 7px; }
 
     .result-card {
         background: var(--card-bg);
@@ -3453,23 +3639,27 @@
         box-shadow: 0 4px 14px rgba(34,199,115,0.3);
     }
 
+    /* Sections used to be laid out as CSS columns you had to swipe
+       sideways through, with a fixed height that silently cropped
+       whatever didn't fit ("some parts are down and not viewable").
+       Now it's a plain 3-column grid inside the fixed-size
+       .adash-canvas, and fitAnalyticsToScreen() scales that whole
+       canvas uniformly to fit the viewport — so every section is
+       always fully visible and nothing ever scrolls, sideways or
+       otherwise. */
+    .adash-canvas {
+        width: 992px;
+        padding: 2px 2px 4px;
+        box-sizing: border-box;
+    }
     .analytics-dash .adash-onepage {
-        column-width: 300px;
-        column-gap: 14px;
-        column-fill: auto;
-        height: calc(100vh - 230px);
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        padding: 2px 2px 10px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        align-items: start;
     }
     .analytics-dash .adash-section {
-        break-inside: avoid-column;
-        -webkit-column-break-inside: avoid;
-        page-break-inside: avoid;
-        margin-bottom: 14px;
-        width: 100%;
-        display: inline-block;
+        min-width: 0;
     }
     .analytics-dash .adash-section-label {
         font-size: 11.5px;
@@ -3480,12 +3670,6 @@
         margin: 4px 0 10px;
         padding-bottom: 6px;
         border-bottom: 1px solid var(--adash-card-border);
-    }
-    @media (min-width: 1024px) {
-        .analytics-dash .adash-onepage {
-            column-width: 340px;
-            height: calc(100vh - 250px);
-        }
     }
 
     .adash-card {
@@ -5634,6 +5818,53 @@ window.addEventListener('orientationchange', function() { setTimeout(setAppVh, 1
 if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', setAppVh);
     window.visualViewport.addEventListener('scroll', setAppVh);
+}
+
+// ============================================================
+//  ANALYTICS "FIT TO SCREEN" — zero-scroll dashboards
+// ============================================================
+// Both the Personal Analytics screen and the Admin Analytics tab are
+// built at a fixed "design" size, then uniformly scaled (CSS
+// transform: scale) so the whole dashboard fits inside the viewport
+// with no vertical or horizontal scrolling, on any screen size —
+// tiny phones and large tablets alike. We scale down OR up as
+// needed, always centered horizontally.
+function fitAnalyticsToScreen() {
+    var stage = document.getElementById('analytics-fit-stage');
+    var content = document.getElementById('analytics-fit-content');
+    if (!stage || !content) return;
+
+    // Reset first so we measure the content's true, unscaled size.
+    content.style.transform = 'none';
+    content.style.width = 'auto';
+
+    var stageW = stage.clientWidth;
+    var stageH = stage.clientHeight;
+    var contentW = content.scrollWidth;
+    var contentH = content.scrollHeight;
+    if (!stageW || !stageH || !contentW || !contentH) return;
+
+    // Uniform scale so nothing is ever cropped or needs scrolling.
+    // Capped at 1.35x so text doesn't blow up absurdly large on big screens.
+    var scale = Math.min(stageW / contentW, stageH / contentH, 1.35);
+    var offsetX = Math.max(0, (stageW - contentW * scale) / 2);
+
+    content.style.transform = 'scale(' + scale + ')';
+    content.style.left = offsetX + 'px';
+    content.classList.add('fit-ready');
+}
+var analyticsFitRaf = null;
+function scheduleAnalyticsFit() {
+    if (analyticsFitRaf) cancelAnimationFrame(analyticsFitRaf);
+    analyticsFitRaf = requestAnimationFrame(function() {
+        analyticsFitRaf = null;
+        fitAnalyticsToScreen();
+    });
+}
+window.addEventListener('resize', scheduleAnalyticsFit);
+window.addEventListener('orientationchange', function() { setTimeout(scheduleAnalyticsFit, 150); });
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scheduleAnalyticsFit);
 }
 </script>
 <script>
@@ -11627,6 +11858,10 @@ function render() {
             }
         }
     }
+
+    if (typeof isAnalyticsFullscreen === 'function' && isAnalyticsFullscreen() && typeof scheduleAnalyticsFit === 'function') {
+        scheduleAnalyticsFit();
+    }
 }
 // ============================================================
 //  SPLASH
@@ -11930,6 +12165,26 @@ function renderFaqImageUploadModal() {
 }
 
 
+// True while the Personal Analytics screen or the Admin Analytics tab
+// is open — both take over the full viewport (no topbar/bottom nav)
+// and auto-scale their content so nothing ever needs scrolling.
+function isAnalyticsFullscreen() {
+    return state.view === 'analytics' || (state.view === 'admin' && isAdmin() && state.adminTab === 'analytics');
+}
+
+// Wraps a dashboard's HTML in the fit-to-screen stage: a fixed-size
+// "canvas" that gets uniformly scaled by fitAnalyticsToScreen() (see
+// the <script> near setAppVh) so the whole thing is always visible,
+// plus a small close button since the normal topbar is hidden.
+function wrapAnalyticsFit(innerHtml, closeActionAttrs) {
+    return (
+        '<div id="analytics-fit-stage" class="fit-screen-stage">' +
+        '<button class="analytics-close-fab" ' + closeActionAttrs + ' aria-label="Close analytics">' + svg('x', 16) + '</button>' +
+        '<div id="analytics-fit-content" class="fit-screen-content">' + innerHtml + '</div>' +
+        '</div>'
+    );
+}
+
 function renderApp() {
     const unread = unreadCount();
     const isLoggedIn = !!state.authUser;
@@ -11969,9 +12224,12 @@ function renderApp() {
         loadingOverlay = '<div style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);animation:fadeIn 0.2s ease"><div style="background:var(--card-bg);border-radius:14px;padding:24px;text-align:center;max-width:280px"><div class="spinner" style="width:32px;height:32px;border:3px solid var(--line);border-top:3px solid var(--green);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px"></div><p style="font-size:13px;color:var(--ink)">Loading questions...</p></div></div>';
     }
 
+    const fullscreenAnalytics = isAnalyticsFullscreen();
+
     return (
-        '<div id="app-shell"><div id="app-inner">' +
+        '<div id="app-shell"><div id="app-inner' + (fullscreenAnalytics ? ' analytics-fullscreen' : '') + '">' +
         loadingOverlay +
+        (fullscreenAnalytics ? '' :
         '<div class="topbar">' +
         (state.view === 'home'
             ? '<div class="topbar-left">' + (isLoggedIn ? '<span class="guest-badge" style="margin-left:2px;font-size:9px">' + esc(userName) + '</span>' : '') + '</div>' +
@@ -11985,11 +12243,11 @@ function renderApp() {
               '<div class="topbar-center"></div>' +
               '<div class="topbar-right">' + rightContent + '</div>'
         ) +
-        '</div>' +
-        (!isOnline() ? '<div class="offline-badge" style="position:sticky;top:64px;z-index:19;margin:0 auto;width:fit-content;transform:translateY(6px)">' + svg('wifioff', 12) + ' Offline</div>' : '') +
-        (needsActivation ? renderActivationSignboard() : '') +
+        '</div>') +
+        (fullscreenAnalytics ? '' : (!isOnline() ? '<div class="offline-badge" style="position:sticky;top:64px;z-index:19;margin:0 auto;width:fit-content;transform:translateY(6px)">' + svg('wifioff', 12) + ' Offline</div>' : '')) +
+        (fullscreenAnalytics ? '' : (needsActivation ? renderActivationSignboard() : '')) +
         '<div class="view' + (state.view === 'ai-assistant' ? ' view-chat' : '') + '"><div class="view-content">' + renderView() + '</div></div>' +
-        renderBottomNav() +
+        (fullscreenAnalytics ? '' : renderBottomNav()) +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
         (state.viewingImage ? (
             '<div class="ai-history-overlay" style="z-index:200;align-items:center;justify-content:center;padding:20px" data-action="close-image-viewer">' +
@@ -14717,31 +14975,40 @@ function buildTrendSparklineSvg(pctPoints) {
 }
 
 function renderAnalyticsDashboard() {
+    const closeAttrs = 'data-action="set-view" data-view="history"';
+
     if (!state.authUser) {
-        return (
-            '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>' +
-            '<h2 class="title" style="font-size:18px">📈 Personal Analytics</h2>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view your analytics.</p></div>'
+        return wrapAnalyticsFit(
+            '<div class="pa-canvas" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;text-align:center">' +
+            '<h2 class="title" style="font-size:18px;margin-bottom:4px">📈 Personal Analytics</h2>' +
+            '<p style="color:var(--muted);font-size:13px">Please log in to view your analytics.</p>' +
+            '</div>',
+            closeAttrs
         );
     }
 
     if (!state.historyLoaded) {
         loadHistory();
-        return '<div class="loading-spinner"><div class="spinner"></div><p>Crunching your numbers...</p></div>';
+        return wrapAnalyticsFit('<div class="pa-canvas"><div class="loading-spinner"><div class="spinner"></div><p>Crunching your numbers...</p></div></div>', closeAttrs);
     }
     if (!state.weakQuestionsLoaded) {
         loadWeakQuestions();
-        return '<div class="loading-spinner"><div class="spinner"></div><p>Crunching your numbers...</p></div>';
+        return wrapAnalyticsFit('<div class="pa-canvas"><div class="loading-spinner"><div class="spinner"></div><p>Crunching your numbers...</p></div></div>', closeAttrs);
     }
 
     const entries = (state.historyEntries || []).slice();
-    const backBtn = '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>';
-    const header = '<h2 class="title" style="font-size:18px">📈 Personal Analytics</h2><p class="sub" style="font-size:12px">A deeper look at your strengths, weaknesses, and pace</p>';
+    let header = (
+        '<div class="pa-header">' +
+        '<div><h2>📈 Personal Analytics</h2><p>Your strengths, weaknesses &amp; pace, at a glance</p></div>' +
+        '</div>'
+    );
 
     if (entries.length === 0) {
-        return (
-            backBtn + header +
-            '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">Complete a few exams and this dashboard will fill in automatically.</p></div>'
+        return wrapAnalyticsFit(
+            '<div class="pa-canvas">' + header +
+            '<div class="pa-card"><p class="pa-empty">Complete a few exams and this dashboard will fill in automatically.</p></div>' +
+            '</div>',
+            closeAttrs
         );
     }
 
@@ -14754,23 +15021,31 @@ function renderAnalyticsDashboard() {
     });
     const overallPct = totalMax > 0 ? Math.round((totalCorrect / totalMax) * 100) : 0;
     const streak = parseInt(storage.get('streakCount') || '0', 10) || 0;
+    const accColor = overallPct >= 70 ? 'var(--green)' : overallPct >= 50 ? 'var(--gold)' : 'var(--danger)';
+    const statusLabel = overallPct >= 70 ? 'On Track' : overallPct >= 50 ? 'Improving' : 'Needs Focus';
+    header = (
+        '<div class="pa-header">' +
+        '<div><h2>📈 Personal Analytics</h2><p>Your strengths, weaknesses &amp; pace, at a glance</p></div>' +
+        '<span class="pa-badge" style="background:' + accColor + '">' + statusLabel + '</span>' +
+        '</div>'
+    );
 
-    const overviewHtml = (
-        '<div class="analytics-stat-grid">' +
-        '<div class="analytics-stat-card"><p class="val" style="color:var(--green)">' + entries.length + '</p><p class="lbl">Exams Taken</p></div>' +
-        '<div class="analytics-stat-card"><p class="val" style="color:' + (overallPct >= 70 ? 'var(--green)' : overallPct >= 50 ? 'var(--gold)' : 'var(--danger)') + '">' + overallPct + '%</p><p class="lbl">Overall Accuracy</p></div>' +
-        '<div class="analytics-stat-card"><p class="val">' + streak + '🔥</p><p class="lbl">Day Streak</p></div>' +
+    const kpiRow = (
+        '<div class="pa-kpi-row">' +
+        '<div class="pa-kpi"><p class="val" style="color:var(--green)">' + entries.length + '</p><p class="lbl">Exams Taken</p></div>' +
+        '<div class="pa-kpi"><p class="val" style="color:' + accColor + '">' + overallPct + '%</p><p class="lbl">Accuracy</p></div>' +
+        '<div class="pa-kpi"><p class="val">' + streak + '🔥</p><p class="lbl">Day Streak</p></div>' +
         '</div>'
     );
 
     // ---- Accuracy trend over time (chronological) ----
     const sortedAsc = entries.slice().sort(function(a, b) { return new Date(a.submitted_at) - new Date(b.submitted_at); });
     const trendPoints = sortedAsc.map(function(e) { return e.max_score > 0 ? Math.round((e.total_score / e.max_score) * 100) : 0; });
-    const trendHtml = (
-        '<p class="analytics-section-title">' + svg('chart', 14) + ' Accuracy Over Time</p>' +
-        '<div class="card" style="padding:12px">' +
+    const trendCard = (
+        '<div class="pa-card pa-span2">' +
+        '<p class="pa-card-title">' + svg('chart', 13) + ' Accuracy Over Time</p>' +
         buildTrendSparklineSvg(trendPoints) +
-        '<p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:center">Oldest → most recent · ' + trendPoints.length + ' exam(s)</p>' +
+        '<p style="font-size:9.5px;color:var(--muted);margin:4px 0 0;text-align:center">Oldest → most recent · ' + trendPoints.length + ' exam(s)</p>' +
         '</div>'
     );
 
@@ -14783,24 +15058,25 @@ function renderAnalyticsDashboard() {
             const subj = SUBJECTS.find(function(s) { return s.id === sid; });
             return { sid: sid, name: subj ? subj.name : sid, pct: pct };
         })
-        .sort(function(a, b) { return a.pct - b.pct; });
+        .sort(function(a, b) { return a.pct - b.pct; })
+        .slice(0, 5);
 
-    let heatmapHtml = '<p class="analytics-section-title">🎯 Strengths &amp; Weaknesses by Subject</p><div class="heatmap-grid">';
+    let heatmapBody = '<div class="heatmap-grid">';
     subjRows.forEach(function(r) {
         const color = r.pct >= 75 ? 'var(--green)' : r.pct >= 50 ? 'var(--gold)' : 'var(--danger)';
-        heatmapHtml += (
-            '<div class="heatmap-row">' +
+        heatmapBody += (
+            '<div class="heatmap-row pa-heatmap-row">' +
             '<span class="hm-label">' + esc(r.name) + '</span>' +
             '<div class="hm-bar-track"><div class="hm-bar-fill" style="width:' + r.pct + '%;background:' + color + '"></div></div>' +
             '<span class="hm-pct" style="color:' + color + '">' + r.pct + '%</span>' +
             '</div>'
         );
     });
-    heatmapHtml += '</div>';
+    heatmapBody += '</div>';
     if (subjRows.length > 0) {
-        const weakest = subjRows[0];
-        heatmapHtml += '<p style="font-size:11px;color:var(--muted);margin:0 0 4px">Focus area: <b style="color:var(--danger)">' + esc(weakest.name) + '</b> is your lowest-scoring subject right now.</p>';
+        heatmapBody += '<p class="pa-focus-line">Focus: <b style="color:var(--danger)">' + esc(subjRows[0].name) + '</b> is your lowest-scoring subject.</p>';
     }
+    const heatmapCard = '<div class="pa-card"><p class="pa-card-title">🎯 Strengths &amp; Weaknesses</p>' + heatmapBody + '</div>';
 
     // ---- Most-missed subjects (from weak_questions) ----
     // Note: weak_questions doesn't store a topic_id today, only subject_id
@@ -14817,27 +15093,27 @@ function renderAnalyticsDashboard() {
             return { name: subj ? subj.name : (sid || 'Unknown'), count: missedCounts[sid] };
         })
         .sort(function(a, b) { return b.count - a.count; })
-        .slice(0, 5);
+        .slice(0, 4);
 
-    let missedHtml = '<p class="analytics-section-title">⚠️ Most-Missed Subjects</p>';
+    let missedBody;
     if (missedRows.length === 0) {
-        missedHtml += '<div class="card"><p style="text-align:center;color:var(--muted);padding:12px 0;font-size:12px">No outstanding weak questions right now — great job!</p></div>';
+        missedBody = '<p class="pa-empty">No outstanding weak questions — great job!</p>';
     } else {
+        missedBody = '';
         missedRows.forEach(function(r) {
-            missedHtml += (
-                '<div class="missed-list-row">' +
-                '<span>' + esc(r.name) + '</span>' +
-                '<span class="count-badge">' + r.count + ' missed</span>' +
-                '</div>'
+            missedBody += (
+                '<div class="pa-missed-row"><span>' + esc(r.name) + '</span>' +
+                '<span class="count-badge">' + r.count + '</span></div>'
             );
         });
     }
+    const missedCard = '<div class="pa-card"><p class="pa-card-title">⚠️ Most-Missed Subjects</p>' + missedBody + '</div>';
 
     // ---- Time-per-question averages ----
     const timeLog = getAnalyticsTimeLog();
-    let timeHtml = '<p class="analytics-section-title">⏱️ Time Per Question</p>';
+    let timeBody;
     if (timeLog.length === 0) {
-        timeHtml += '<div class="card"><p style="text-align:center;color:var(--muted);padding:12px 0;font-size:12px">Complete a timed session (CBT, Mock, Topic, or Novel) to see your pacing here.</p></div>';
+        timeBody = '<p class="pa-empty">Complete a timed session to see your pacing here.</p>';
     } else {
         const byMode = {};
         let sumSeconds = 0, sumQuestions = 0;
@@ -14849,27 +15125,29 @@ function renderAnalyticsDashboard() {
             byMode[s.mode].questions += s.question_count;
         });
         const overallAvg = sumQuestions > 0 ? Math.round(sumSeconds / sumQuestions) : 0;
-        timeHtml += (
-            '<div class="card" style="padding:12px">' +
-            '<p style="font-size:20px;font-weight:700;color:var(--green);margin:0 0 2px">' + overallAvg + 's <span style="font-size:11px;font-weight:500;color:var(--muted)">/ question, on average</span></p>'
-        );
+        timeBody = '<p class="pa-time-avg">' + overallAvg + 's <span>/ question, on average</span></p>';
         const TIME_MODE_LABELS = { 'cbt-full': 'CBT Full', 'cbt-single': 'CBT Single', 'mock': 'Mock Exam', 'topic': 'Topic Practice', 'novel': 'Novel (CBT)' };
-        Object.keys(byMode).forEach(function(m) {
+        Object.keys(byMode).slice(0, 3).forEach(function(m) {
             const label = TIME_MODE_LABELS[m] || m;
             const avg = byMode[m].questions > 0 ? Math.round(byMode[m].seconds / byMode[m].questions) : 0;
-            timeHtml += '<p style="font-size:11px;color:var(--muted);margin:4px 0 0">' + esc(label) + ': ' + avg + 's/question</p>';
+            timeBody += '<div class="pa-time-row"><span>' + esc(label) + '</span><span>' + avg + 's/q</span></div>';
         });
-        timeHtml += '</div>';
     }
+    const timeCard = '<div class="pa-card pa-span2"><p class="pa-card-title">⏱️ Time Per Question</p>' + timeBody + '</div>';
 
-    return (
-        backBtn + header +
-        overviewHtml +
-        trendHtml +
-        heatmapHtml +
-        missedHtml +
-        timeHtml +
-        '<button class="btn btn-outline" style="margin-top:8px" data-action="download-analytics-pdf">' + svg('download', 14) + ' Download Analytics Summary (PDF)</button>'
+    return wrapAnalyticsFit(
+        '<div class="pa-canvas">' +
+        header +
+        kpiRow +
+        '<div class="pa-grid">' +
+        trendCard +
+        heatmapCard +
+        missedCard +
+        timeCard +
+        '</div>' +
+        '<button class="btn btn-outline pa-footer-btn" data-action="download-analytics-pdf">' + svg('download', 14) + ' Download Analytics Summary (PDF)</button>' +
+        '</div>',
+        closeAttrs
     );
 }
 
@@ -16379,6 +16657,14 @@ function renderAdmin() {
         );
     }
 
+    // Analytics takes over the full screen (no admin header/tab bar, no
+    // app topbar/bottom nav — see isAnalyticsFullscreen()) so the
+    // dashboard gets maximum room and never needs to scroll. A small ✕
+    // button (added by wrapAnalyticsFit) returns to the Overview tab.
+    if (state.adminTab === "analytics") {
+        return renderAdminAnalytics();
+    }
+
     let tabBar = "";
     ADMIN_TABS.forEach(function(t) {
         const isFlagged = t.key === "flagged";
@@ -16388,8 +16674,7 @@ function renderAdmin() {
     });
 
     let body = "";
-    if (state.adminTab === "analytics") body = renderAdminAnalytics();
-    else if (state.adminTab === "overview") body = renderAdminOverview();
+    if (state.adminTab === "overview") body = renderAdminOverview();
     else if (state.adminTab === "questions") body = renderAdminQuestions();
     else if (state.adminTab === "settings") body = renderAdminSettings();
     else if (state.adminTab === "documents") body = renderAdminDocuments();
@@ -16903,19 +17188,26 @@ function renderAnalyticsSubTabs() {
 }
 
 function renderAdminAnalytics() {
+    // Analytics is fullscreen (see isAnalyticsFullscreen / renderAdmin) —
+    // the ✕ from wrapAnalyticsFit returns to the admin Overview tab.
+    const closeAttrs = 'data-action="admin-tab" data-tab="overview"';
+
     if (state.analyticsUserFilter) {
-        return '<div class="analytics-dash">' + renderAnalyticsUserList(state.analyticsUserFilter) + '</div>';
+        return wrapAnalyticsFit(
+            '<div class="adash-canvas"><div class="analytics-dash">' + renderAnalyticsUserList(state.analyticsUserFilter) + '</div></div>',
+            closeAttrs
+        );
     }
 
     if (!state.analyticsLoaded && !state.analyticsLoading) {
         loadAnalyticsData();
-        return '<div class="analytics-dash"><div class="loading-spinner"><div class="spinner"></div><p>Loading analytics data...</p></div></div>';
+        return wrapAnalyticsFit('<div class="adash-canvas"><div class="analytics-dash"><div class="loading-spinner"><div class="spinner"></div><p>Loading analytics data...</p></div></div></div>', closeAttrs);
     }
     if (state.analyticsLoading) {
-        return '<div class="analytics-dash"><div class="loading-spinner"><div class="spinner"></div><p>Crunching numbers...</p></div></div>';
+        return wrapAnalyticsFit('<div class="adash-canvas"><div class="analytics-dash"><div class="loading-spinner"><div class="spinner"></div><p>Crunching numbers...</p></div></div></div>', closeAttrs);
     }
     if (!state.analyticsData) {
-        return '<div class="analytics-dash"><div class="adash-card"><p style="text-align:center;color:var(--adash-muted);padding:16px 0;font-size:13px">No data available.</p></div></div>';
+        return wrapAnalyticsFit('<div class="adash-canvas"><div class="analytics-dash"><div class="adash-card"><p style="text-align:center;color:var(--adash-muted);padding:16px 0;font-size:13px">No data available.</p></div></div></div>', closeAttrs);
     }
     const d = state.analyticsData;
 
@@ -16932,10 +17224,10 @@ function renderAdminAnalytics() {
         '</div>'
     );
 
-    // Single continuous page — every section flows into side-by-side
-    // columns instead of stacking vertically, so there's no long
-    // scroll: on mobile it "bends" sideways (swipe left/right), on a
-    // laptop it just naturally shows more columns across the width.
+    // Single continuous page — every section flows into a 3-column
+    // grid inside a fixed-size canvas that gets scaled to fit the
+    // whole screen exactly (see fitAnalyticsToScreen), so nothing is
+    // ever cropped and nothing ever needs scrolling, sideways or down.
     html += '<div class="adash-onepage">';
     html += '<div class="adash-section"><p class="adash-section-label">📊 Overview</p>' + renderAnalyticsOverviewTab(d) + '</div>';
     html += '<div class="adash-section"><p class="adash-section-label">📝 Result Analysis</p>' + renderAnalyticsResultsTab(d) + '</div>';
@@ -16946,7 +17238,7 @@ function renderAdminAnalytics() {
     html += '</div>';
 
     html += '</div>';
-    return html;
+    return wrapAnalyticsFit('<div class="adash-canvas">' + html + '</div>', closeAttrs);
 }
 
 function renderAnalyticsOverviewTab(d) {
