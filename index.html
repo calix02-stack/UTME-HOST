@@ -267,6 +267,19 @@
        auto-scaled (via JS, see fitAnalyticsToScreen()) so every
        section is visible with zero scrolling on any screen size.
        ============================================================ */
+    /* The normal app UI is a mobile "card" capped at 384px (or wider
+       breakpoint caps) even on desktop. Analytics must ignore all of
+       that and truly take over the entire browser window on every
+       screen size, so override #app-inner itself here, not just .view. */
+    #app-inner.analytics-fullscreen {
+        max-width: none !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
     #app-inner.analytics-fullscreen > .topbar,
     #app-inner.analytics-fullscreen > .bottom-nav {
         display: none !important;
