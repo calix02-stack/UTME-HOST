@@ -297,20 +297,18 @@
         position: relative;
         width: 100%;
         height: 100dvh;
-        overflow: auto; /* safety net: scroll is only ever seen if the JS scale-to-fit hasn't run yet or fails on an unusual device */
+        overflow-y: auto;
+        overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
     }
     .fit-screen-content {
-        position: absolute;
-        top: 0;
-        left: 0;
-        transform-origin: top left;
-        /* Visible immediately at natural size — if the JS scale
-           calculation is ever delayed or fails for any reason, the
-           user still sees the full dashboard (with normal scrolling
-           as a safety net) instead of a blank screen. fitAnalyticsToScreen()
-           then applies the scale as soon as it can measure correctly,
-           which removes the need to scroll on virtually every device. */
+        /* The dashboard is a normal, responsive in-flow block now — it
+           reflows its own grid columns based on available width (see
+           .pa-canvas/.adash-canvas below) instead of being drawn at a
+           fixed pixel size and uniformly scaled up/down to fit. */
+        width: 100%;
+        min-height: 100%;
+        box-sizing: border-box;
     }
     .analytics-close-fab {
         position: absolute;
@@ -1700,15 +1698,22 @@
         font-size: 12px;
     }
 
-    /* Personal Analytics — redesigned zero-scroll dashboard canvas.
-       This is a fixed-size "canvas" that fitAnalyticsToScreen() scales
-       to fill whatever viewport it's given, so the design below only
-       needs to look right at its own natural size. */
+    /* Personal Analytics — responsive dashboard canvas. Fluid width that
+       reflows its grid columns at each breakpoint instead of being drawn
+       at one fixed phone-sized canvas and stretched/scaled to fit. */
     .pa-canvas {
-        width: 344px;
-        padding: 16px 16px 20px;
+        width: 100%;
+        max-width: 1360px;
+        margin: 0 auto;
+        padding: 16px 16px 24px;
         box-sizing: border-box;
         background: var(--bg);
+    }
+    @media (min-width: 640px) {
+        .pa-canvas { padding: 22px 28px 32px; }
+    }
+    @media (min-width: 1024px) {
+        .pa-canvas { padding: 28px 40px 40px; }
     }
     .pa-header {
         display: flex;
@@ -1754,6 +1759,19 @@
     }
     .pa-kpi .val { font-size: 18px; font-weight: 800; margin: 0; line-height: 1.1; }
     .pa-kpi .lbl { font-size: 8px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    @media (min-width: 640px) {
+        .pa-kpi-row { gap: 12px; margin-bottom: 16px; }
+        .pa-kpi { padding: 16px 8px 14px; border-radius: 16px; }
+        .pa-kpi .val { font-size: 24px; }
+        .pa-kpi .lbl { font-size: 10px; }
+    }
+    @media (min-width: 1024px) {
+        .pa-kpi .val { font-size: 28px; }
+        .pa-kpi .lbl { font-size: 11px; }
+    }
+    /* 2 columns on phones, growing to as many ~260px columns as fit on
+       larger screens so cards fill the available width instead of
+       leaving empty space beside a narrow, phone-width grid. */
     .pa-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1768,6 +1786,18 @@
         min-width: 0;
     }
     .pa-card.pa-span2 { grid-column: span 2; }
+    @media (min-width: 640px) {
+        .pa-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .pa-card { padding: 16px 18px 18px; border-radius: 18px; }
+        .pa-card.pa-span2 { grid-column: span 2; }
+    }
+    @media (min-width: 1024px) {
+        .pa-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .pa-card.pa-span2 { grid-column: span 2; }
+    }
+    @media (min-width: 1440px) {
+        .pa-grid { grid-template-columns: repeat(6, 1fr); }
+    }
     .pa-card-title {
         font-size: 10.5px;
         font-weight: 700;
@@ -3616,6 +3646,12 @@
         margin-top: 4px;
         color: var(--adash-text);
     }
+    @media (min-width: 700px) {
+        .analytics-dash { padding: 20px 20px 24px; border-radius: 24px; }
+    }
+    @media (min-width: 1100px) {
+        .analytics-dash { padding: 26px 28px 32px; }
+    }
     .analytics-dash .adash-range-row {
         display: flex;
         gap: 6px;
@@ -3657,24 +3693,34 @@
         box-shadow: 0 4px 14px rgba(34,199,115,0.3);
     }
 
-    /* Sections used to be laid out as CSS columns you had to swipe
-       sideways through, with a fixed height that silently cropped
-       whatever didn't fit ("some parts are down and not viewable").
-       Now it's a plain 3-column grid inside the fixed-size
-       .adash-canvas, and fitAnalyticsToScreen() scales that whole
-       canvas uniformly to fit the viewport — so every section is
-       always fully visible and nothing ever scrolls, sideways or
-       otherwise. */
+    /* Sections used to be laid out at one fixed 992px "canvas" width and
+       then uniformly scaled (up or down) to fit whatever viewport it was
+       given — which is why it looked like a narrow phone-width strip
+       floating in a sea of empty space on wide screens. It's now a
+       fluid width with a responsive section grid: 1 column on phones,
+       2 on tablets, and 3+ on laptops/desktops/TVs, growing to fill the
+       available width at every size. */
     .adash-canvas {
-        width: 992px;
+        width: 100%;
+        max-width: 1600px;
+        margin: 0 auto;
         padding: 2px 2px 4px;
         box-sizing: border-box;
     }
     .analytics-dash .adash-onepage {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: 1fr;
         gap: 14px;
         align-items: start;
+    }
+    @media (min-width: 700px) {
+        .analytics-dash .adash-onepage { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    }
+    @media (min-width: 1100px) {
+        .analytics-dash .adash-onepage { grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    }
+    @media (min-width: 1600px) {
+        .analytics-dash .adash-onepage { gap: 24px; }
     }
     .analytics-dash .adash-section {
         min-width: 0;
@@ -3712,12 +3758,26 @@
         color: var(--adash-muted);
         font-size: 10px;
     }
+    @media (min-width: 700px) {
+        .adash-card { padding: 16px; border-radius: 18px; margin-bottom: 14px; }
+        .adash-card-title { font-size: 12.5px; margin-bottom: 12px; }
+    }
+    @media (min-width: 1100px) {
+        .adash-card { padding: 18px; }
+        .adash-card-title { font-size: 13px; }
+    }
 
+    /* 2 columns by default; grows to fit as many ~140px KPI tiles as the
+       section can hold on wider screens instead of staying capped at 2
+       while the rest of the section sits mostly empty. */
     .adash-kpi-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
         margin-bottom: 10px;
+    }
+    @media (min-width: 1100px) {
+        .adash-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
     }
     .adash-kpi {
         background: var(--adash-card);
@@ -3756,6 +3816,9 @@
         line-height: 1.1;
         color: var(--adash-text);
     }
+    @media (min-width: 1100px) {
+        .adash-kpi-value { font-size: 23px; }
+    }
     .adash-kpi-spark {
         position: absolute;
         right: 8px;
@@ -3791,6 +3854,12 @@
     .adash-stat .icon { font-size: 16px; margin-bottom: 3px; }
     .adash-stat .val { font-size: 15px; font-weight: 800; line-height: 1.1; }
     .adash-stat .lbl { font-size: 8px; color: var(--adash-muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.03em; }
+    @media (min-width: 1100px) {
+        .adash-stat-grid { gap: 10px; }
+        .adash-stat { padding: 14px 6px; border-radius: 15px; }
+        .adash-stat .val { font-size: 18px; }
+        .adash-stat .lbl { font-size: 9px; }
+    }
 
     .adash-gauge-row {
         display: flex;
@@ -5839,43 +5908,29 @@ if (window.visualViewport) {
 }
 
 // ============================================================
-//  ANALYTICS "FIT TO SCREEN" — zero-scroll dashboards
+//  ANALYTICS RESPONSIVE DASHBOARD (formerly "fit to screen")
 // ============================================================
-// Both the Personal Analytics screen and the Admin Analytics tab are
-// built at a fixed "design" size, then uniformly scaled (CSS
-// transform: scale) so the whole dashboard fits inside the viewport
-// with no vertical or horizontal scrolling, on any screen size —
-// tiny phones and large tablets alike. We scale down OR up as
-// needed, always centered horizontally.
+// The Personal Analytics screen and the Admin Analytics tab used to be
+// built at one fixed "design" size and then uniformly scaled (CSS
+// transform: scale) up or down to fill whatever viewport they were
+// given. That's what produced the narrow, phone-shaped dashboard with
+// large empty margins on tablets/laptops/TVs — scaling a fixed layout
+// isn't the same as actually reflowing it.
+//
+// The dashboard markup (.pa-canvas / .adash-canvas and their grids) is
+// now fluid and reflows its own column count via CSS media queries, so
+// no JS-driven scaling is needed. These functions are kept as harmless
+// no-ops so existing call sites elsewhere in the app don't need to be
+// touched.
 function fitAnalyticsToScreen() {
     try {
-        var stage = document.getElementById('analytics-fit-stage');
         var content = document.getElementById('analytics-fit-content');
-        if (!stage || !content) return;
-
-        // Reset first so we measure the content's true, unscaled size.
+        if (!content) return;
         content.style.transform = 'none';
-        content.style.width = 'auto';
-
-        var stageW = stage.clientWidth;
-        var stageH = stage.clientHeight;
-        var contentW = content.scrollWidth;
-        var contentH = content.scrollHeight;
-        if (!stageW || !stageH || !contentW || !contentH) return;
-
-        // Uniform scale so nothing is ever cropped or needs scrolling.
-        // Capped at 1.35x so text doesn't blow up absurdly large on big screens.
-        var scale = Math.min(stageW / contentW, stageH / contentH, 1.35);
-        if (!isFinite(scale) || scale <= 0) return;
-        var offsetX = Math.max(0, (stageW - contentW * scale) / 2);
-
-        content.style.transform = 'scale(' + scale + ')';
-        content.style.left = offsetX + 'px';
+        content.style.left = '';
+        content.style.width = '';
     } catch (e) {
-        // If anything goes wrong measuring/scaling, leave the content at
-        // its natural size — the .fit-screen-stage's overflow:auto means
-        // it stays visible and scrollable rather than disappearing.
-        console.warn('Analytics fit-to-screen skipped:', e);
+        console.warn('Analytics fit-to-screen reset skipped:', e);
     }
 }
 var analyticsFitRaf = null;
