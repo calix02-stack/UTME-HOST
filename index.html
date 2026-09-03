@@ -3821,6 +3821,14 @@
         background: rgba(255,255,255,0.02);
         border: 1px solid rgba(255,255,255,0.06);
         border-radius: 14px;
+        display: flex;
+        flex-direction: column;
+    }
+    @media (min-width: 700px) {
+        .analytics-dash .adash-section { padding: 10px 12px; }
+    }
+    @media (min-width: 1100px) {
+        .analytics-dash .adash-section { padding: 12px 14px; }
     }
     .analytics-dash .adash-section-label {
         font-size: 9px;
@@ -3834,21 +3842,50 @@
     }
     .analytics-dash .adash-fit-inner {
         width: 100%;
-        position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        transform-origin: top center;
+        height: 100%;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        /* The label is always the first item, so it gets the explicit
+           first row (sized to its own content); every row generated
+           after that is an *implicit* row and picks up grid-auto-rows,
+           so all the actual card rows share the leftover height
+           equally instead of collapsing to their own content size and
+           leaving the rest of the section empty. */
+        grid-template-rows: auto;
+        grid-auto-rows: 1fr;
         grid-auto-flow: dense;
         gap: 6px;
-        align-items: start;
+        align-items: stretch;
+    }
+    @media (min-width: 700px) {
+        .analytics-dash .adash-fit-inner { gap: 10px; }
+    }
+    @media (min-width: 1100px) {
+        .analytics-dash .adash-fit-inner { gap: 12px; }
     }
     .analytics-dash .adash-fit-inner > .adash-section-label,
     .analytics-dash .adash-fit-inner > .adash-kpi-grid,
     .analytics-dash .adash-fit-inner > .adash-stat-grid {
         grid-column: 1 / -1;
+    }
+    /* Cards/grids now occupy a real (equal-share) row instead of an
+       auto-height one, so stretch their own box to fill it and center
+       their content within the extra room rather than leaving it
+       pinned to the top with blank space below. */
+    .analytics-dash .adash-fit-inner > .adash-card {
+        height: 100%;
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 0;
+    }
+    .analytics-dash .adash-fit-inner > .adash-kpi-grid,
+    .analytics-dash .adash-fit-inner > .adash-stat-grid {
+        height: 100%;
+        margin-bottom: 0;
+        align-content: center;
+        min-height: 0;
     }
 
     .adash-card {
@@ -6067,24 +6104,9 @@ if (window.visualViewport) {
 }
 
 function fitActiveAnalyticsSection() {
-    try {
-        document.querySelectorAll('.analytics-dash .adash-fit-inner').forEach(function(inner) {
-            const section = inner.parentElement;
-            if (!section) return;
-
-            inner.style.transform = 'translateX(-50%) scale(1)';
-            const availableH = section.clientHeight;
-            const availableW = section.clientWidth;
-            const naturalH = inner.scrollHeight;
-            const naturalW = inner.scrollWidth;
-            if (!availableH || !naturalH) return;
-
-            const scale = Math.min(1, availableH / naturalH, availableW / naturalW);
-            inner.style.transform = 'translateX(-50%) scale(' + scale + ')';
-        });
-    } catch (e) {
-        console.warn('Analytics section fit skipped:', e);
-    }
+    // No-op: .adash-fit-inner is a normal-flow CSS grid (grid-auto-rows: 1fr)
+    // that already fills 100% of its section's height/width responsively.
+    // This function is kept so existing call sites don't need to change.
 }
 let analyticsSectionFitRaf = null;
 function scheduleAnalyticsSectionFit() {
