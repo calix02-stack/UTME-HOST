@@ -3793,11 +3793,12 @@
         padding: 2px 2px 4px;
         box-sizing: border-box;
     }
-    .analytics-dash .adash-onepage {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 14px;
-        align-items: start;
+    .analytics-dash .adash-onepage--single {
+        grid-template-columns: 1fr !important;
+        height: 100%;
+    }
+    .analytics-dash .adash-onepage--single .adash-section {
+        height: 100%;
     }
     @media (min-width: 700px) {
         .analytics-dash .adash-onepage { grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -3833,30 +3834,38 @@
         padding-bottom: 6px;
         border-bottom: 1px solid var(--adash-card-border);
     }
-    /* Each section becomes its own self-contained panel: it fills its
-       grid cell exactly and scrolls internally if its own cards (a
-       section can hold several charts/lists) are taller than the cell
-       — so a data-heavy section never pushes the other 5 sections off
-       screen or shrinks them to make room. */
     @media (min-width: 700px) {
         .analytics-dash .adash-section {
             min-height: 0;
             height: 100%;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 2px 8px 8px 2px;
+            position: relative;
+            overflow: hidden;
+            padding: 10px 12px;
             background: rgba(255,255,255,0.02);
             border: 1px solid rgba(255,255,255,0.06);
             border-radius: 16px;
         }
-        .analytics-dash .adash-section-label {
-            flex: 0 0 auto;
-            position: sticky;
+    }
+    .analytics-dash .adash-fit-inner {
+        width: 100%;
+        transform-origin: top center;
+    }
+    @media (min-width: 700px) {
+        .analytics-dash .adash-fit-inner {
+            position: absolute;
             top: 0;
-            background: linear-gradient(180deg, #0e2119 88%, transparent);
-            z-index: 1;
+            left: 50%;
+            transform: translateX(-50%);
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            grid-auto-flow: dense;
+            gap: 12px;
+            align-items: start;
+        }
+        .analytics-dash .adash-fit-inner > .adash-section-label,
+        .analytics-dash .adash-fit-inner > .adash-kpi-grid,
+        .analytics-dash .adash-fit-inner > .adash-stat-grid {
+            grid-column: 1 / -1;
         }
     }
 
@@ -6073,6 +6082,44 @@ window.addEventListener('resize', scheduleAnalyticsFit);
 window.addEventListener('orientationchange', function() { setTimeout(scheduleAnalyticsFit, 150); });
 if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', scheduleAnalyticsFit);
+}
+
+function fitActiveAnalyticsSection() {
+    try {
+        const isDesktopFit = window.matchMedia('(min-width: 700px)').matches;
+        document.querySelectorAll('.analytics-dash .adash-fit-inner').forEach(function(inner) {
+            const section = inner.parentElement;
+            if (!section) return;
+
+            if (!isDesktopFit) {
+                inner.style.transform = 'none';
+                return;
+            }
+
+            inner.style.transform = 'translateX(-50%) scale(1)';
+            const availableH = section.clientHeight;
+            const naturalH = inner.scrollHeight;
+            if (!availableH || !naturalH) return;
+
+            const scale = Math.min(1, availableH / naturalH);
+            inner.style.transform = 'translateX(-50%) scale(' + scale + ')';
+        });
+    } catch (e) {
+        console.warn('Analytics section fit skipped:', e);
+    }
+}
+let analyticsSectionFitRaf = null;
+function scheduleAnalyticsSectionFit() {
+    if (analyticsSectionFitRaf) cancelAnimationFrame(analyticsSectionFitRaf);
+    analyticsSectionFitRaf = requestAnimationFrame(function() {
+        analyticsSectionFitRaf = null;
+        fitActiveAnalyticsSection();
+        setTimeout(fitActiveAnalyticsSection, 200);
+    });
+}
+window.addEventListener('resize', scheduleAnalyticsSectionFit);
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scheduleAnalyticsSectionFit);
 }
 </script>
 <script>
@@ -12029,6 +12076,7 @@ function render() {
     }
     
     root.innerHTML = html;
+    scheduleAnalyticsSectionFit();
 
     if (state.showLogin && !state.authUser) {
         const overlay = document.createElement('div');
@@ -17395,6 +17443,17 @@ function renderAnalyticsSubTabs() {
     return html;
 }
 
+function renderAdashFitSection(label, contentHtml) {
+    return (
+        '<div class="adash-section">' +
+        '<div class="adash-fit-inner">' +
+        '<p class="adash-section-label">' + label + '</p>' +
+        contentHtml +
+        '</div>' +
+        '</div>'
+    );
+}
+
 function renderAdminAnalytics() {
     // Analytics is fullscreen (see isAnalyticsFullscreen / renderAdmin) —
     // the ✕ from wrapAnalyticsFit returns to the admin Overview tab.
@@ -17437,14 +17496,13 @@ function renderAdminAnalytics() {
     // whole screen exactly (see fitAnalyticsToScreen), so nothing is
     // ever cropped and nothing ever needs scrolling, sideways or down.
     html += '<div class="adash-onepage">';
-    html += '<div class="adash-section"><p class="adash-section-label">📊 Overview</p>' + renderAnalyticsOverviewTab(d) + '</div>';
-    html += '<div class="adash-section"><p class="adash-section-label">📝 Result Analysis</p>' + renderAnalyticsResultsTab(d) + '</div>';
-    html += '<div class="adash-section"><p class="adash-section-label">📈 Growth</p>' + renderAnalyticsGrowthTab(d) + '</div>';
-    html += '<div class="adash-section"><p class="adash-section-label">💰 Revenue</p>' + renderAnalyticsRevenueTab(d) + '</div>';
-    html += '<div class="adash-section"><p class="adash-section-label">🎯 Engagement</p>' + renderAnalyticsEngagementTab(d) + '</div>';
-    html += '<div class="adash-section"><p class="adash-section-label">🗂️ Content</p>' + renderAnalyticsContentTab(d) + '</div>';
+    html += renderAdashFitSection('📊 Overview', renderAnalyticsOverviewTab(d));
+    html += renderAdashFitSection('📝 Result Analysis', renderAnalyticsResultsTab(d));
+    html += renderAdashFitSection('📈 Growth', renderAnalyticsGrowthTab(d));
+    html += renderAdashFitSection('💰 Revenue', renderAnalyticsRevenueTab(d));
+    html += renderAdashFitSection('🎯 Engagement', renderAnalyticsEngagementTab(d));
+    html += renderAdashFitSection('🗂️ Content', renderAnalyticsContentTab(d));
     html += '</div>';
-
     html += '</div>';
     return wrapAnalyticsFit('<div class="adash-canvas">' + html + '</div>', closeAttrs);
 }
