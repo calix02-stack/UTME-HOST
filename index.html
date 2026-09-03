@@ -304,7 +304,7 @@
     #app-inner.analytics-fullscreen > .view > .view-content {
         height: 100%;
     }
-    .fit-screen-stage {
+   .fit-screen-stage {
         position: relative;
         width: 100%;
         height: 100dvh;
@@ -318,8 +318,6 @@
         box-sizing: border-box;
     }
     @media (min-width: 700px) {
-        /* Lock the page itself — individual panels handle their own
-           overflow from here up. */
         .fit-screen-stage { overflow: hidden; }
         .fit-screen-content {
             height: 100%;
@@ -328,6 +326,19 @@
             flex-direction: column;
             overflow: hidden;
         }
+    }
+    /* The admin Analytics dashboard must never scroll, on any screen
+       size — including phones. (Personal Analytics keeps the rule
+       above, which still scrolls on phones.) */
+    .fit-screen-stage:has(.analytics-dash) {
+        overflow: hidden;
+    }
+    .fit-screen-content:has(.analytics-dash) {
+        height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
     .analytics-close-fab {
         position: absolute;
@@ -3701,42 +3712,29 @@
         margin-top: 4px;
         color: var(--adash-text);
     }
-    @media (min-width: 700px) {
-        .analytics-dash { padding: 20px 20px 24px; border-radius: 24px; }
+    .adash-canvas {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
-    @media (min-width: 1100px) {
-        .analytics-dash { padding: 26px 28px 32px; }
+    .analytics-dash {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        margin-top: 0;
     }
-    /* One-screen mode: the whole dashboard (range row + the 6-section
-       grid) fills the fixed-height .adash-canvas exactly, and only the
-       6-section grid is allowed to flex — so nothing pushes the page
-       taller than the viewport. */
-    @media (min-width: 700px) {
-        .adash-canvas {
-            flex: 1;
-            min-height: 0;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .analytics-dash {
-            flex: 1;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            overflow-x: hidden;
-            margin-top: 0;
-        }
-        .analytics-dash > .adash-range-row,
-        .analytics-dash > .admin-sub-tabs {
-            flex: 0 0 auto;
-        }
-        .analytics-dash > .adash-onepage {
-            flex: 1;
-            min-height: 0;
-        }
+    .analytics-dash > .adash-range-row,
+    .analytics-dash > .admin-sub-tabs {
+        flex: 0 0 auto;
+    }
+    .analytics-dash > .adash-onepage {
+        flex: 1;
+        min-height: 0;
     }
     .analytics-dash .adash-range-row {
         display: flex;
@@ -3793,12 +3791,16 @@
         padding: 2px 2px 4px;
         box-sizing: border-box;
     }
-    .analytics-dash .adash-onepage--single {
-        grid-template-columns: 1fr !important;
+    /* All 6 sessions, always in a grid (2 columns on phones, 3 on
+       tablets, 6 on wide screens), always filling the full available
+       height with equal rows — on EVERY screen size, no exceptions. */
+    .analytics-dash .adash-onepage {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
         height: 100%;
-    }
-    .analytics-dash .adash-onepage--single .adash-section {
-        height: 100%;
+        grid-auto-rows: 1fr;
+        align-items: stretch;
     }
     @media (min-width: 700px) {
         .analytics-dash .adash-onepage { grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -3809,64 +3811,44 @@
     @media (min-width: 1600px) {
         .analytics-dash .adash-onepage { grid-template-columns: repeat(6, 1fr); gap: 20px; }
     }
-    /* One-screen mode: 6 sections always divide evenly into the column
-       counts above (2, 3 or 6 → exactly 3, 2 or 1 rows), and
-       grid-auto-rows: 1fr makes every row share the grid's own height
-       equally — so the section grid always fills the space exactly,
-       with no leftover strip of empty space at the bottom. */
-    @media (min-width: 700px) {
-        .analytics-dash .adash-onepage {
-            height: 100%;
-            grid-auto-rows: 1fr;
-            align-items: stretch;
-        }
-    }
     .analytics-dash .adash-section {
         min-width: 0;
+        min-height: 0;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        padding: 6px 8px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 14px;
     }
     .analytics-dash .adash-section-label {
-        font-size: 11.5px;
+        font-size: 9px;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.05em;
         color: var(--adash-gold);
-        margin: 4px 0 10px;
-        padding-bottom: 6px;
+        margin: 0 0 4px;
+        padding-bottom: 3px;
         border-bottom: 1px solid var(--adash-card-border);
-    }
-    @media (min-width: 700px) {
-        .analytics-dash .adash-section {
-            min-height: 0;
-            height: 100%;
-            position: relative;
-            overflow: hidden;
-            padding: 10px 12px;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 16px;
-        }
     }
     .analytics-dash .adash-fit-inner {
         width: 100%;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
         transform-origin: top center;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        grid-auto-flow: dense;
+        gap: 6px;
+        align-items: start;
     }
-    @media (min-width: 700px) {
-        .analytics-dash .adash-fit-inner {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-            grid-auto-flow: dense;
-            gap: 12px;
-            align-items: start;
-        }
-        .analytics-dash .adash-fit-inner > .adash-section-label,
-        .analytics-dash .adash-fit-inner > .adash-kpi-grid,
-        .analytics-dash .adash-fit-inner > .adash-stat-grid {
-            grid-column: 1 / -1;
-        }
+    .analytics-dash .adash-fit-inner > .adash-section-label,
+    .analytics-dash .adash-fit-inner > .adash-kpi-grid,
+    .analytics-dash .adash-fit-inner > .adash-stat-grid {
+        grid-column: 1 / -1;
     }
 
     .adash-card {
@@ -6086,22 +6068,18 @@ if (window.visualViewport) {
 
 function fitActiveAnalyticsSection() {
     try {
-        const isDesktopFit = window.matchMedia('(min-width: 700px)').matches;
         document.querySelectorAll('.analytics-dash .adash-fit-inner').forEach(function(inner) {
             const section = inner.parentElement;
             if (!section) return;
 
-            if (!isDesktopFit) {
-                inner.style.transform = 'none';
-                return;
-            }
-
             inner.style.transform = 'translateX(-50%) scale(1)';
             const availableH = section.clientHeight;
+            const availableW = section.clientWidth;
             const naturalH = inner.scrollHeight;
+            const naturalW = inner.scrollWidth;
             if (!availableH || !naturalH) return;
 
-            const scale = Math.min(1, availableH / naturalH);
+            const scale = Math.min(1, availableH / naturalH, availableW / naturalW);
             inner.style.transform = 'translateX(-50%) scale(' + scale + ')';
         });
     } catch (e) {
