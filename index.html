@@ -327,18 +327,20 @@
             overflow: hidden;
         }
     }
-    /* The admin Analytics dashboard must never scroll, on any screen
-       size — including phones. (Personal Analytics keeps the rule
-       above, which still scrolls on phones.) */
+    /* Each admin Analytics sub-tab is now its own full page, so the
+       dashboard always scrolls normally — like any other page — on
+       every screen size, instead of being locked/shrunk to fit one
+       viewport. */
     .fit-screen-stage:has(.analytics-dash) {
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
     }
     .fit-screen-content:has(.analytics-dash) {
-        height: 100%;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+        height: auto;
+        min-height: 100%;
+        display: block;
+        overflow: visible;
     }
     .analytics-close-fab {
         position: absolute;
@@ -3713,28 +3715,20 @@
         color: var(--adash-text);
     }
     .adash-canvas {
-        flex: 1;
-        min-height: 0;
         width: 100%;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
+        overflow: visible;
     }
     .analytics-dash {
-        flex: 1;
-        min-height: 0;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
+        overflow: visible;
         margin-top: 0;
     }
     .analytics-dash > .adash-range-row,
     .analytics-dash > .admin-sub-tabs {
         flex: 0 0 auto;
-    }
-    .analytics-dash > .adash-onepage {
-        flex: 1;
-        min-height: 0;
     }
     .analytics-dash .adash-range-row {
         display: flex;
@@ -3777,116 +3771,31 @@
         box-shadow: 0 4px 14px rgba(34,199,115,0.3);
     }
 
-    /* Sections used to be laid out at one fixed 992px "canvas" width and
-       then uniformly scaled (up or down) to fit whatever viewport it was
-       given — which is why it looked like a narrow phone-width strip
-       floating in a sea of empty space on wide screens. It's now a
-       fluid width with a responsive section grid: 1 column on phones,
-       2 on tablets, and 3+ on laptops/desktops/TVs, growing to fill the
-       available width at every size. */
+    /* Each of the 6 analytics sub-tabs is now a single, full page that
+       occupies the whole box and simply flows top-to-bottom, scrolling
+       like a normal page — no shrinking, no scaling, nothing clipped. */
     .adash-canvas {
         width: 100%;
-        max-width: 1600px;
+        max-width: 900px;
         margin: 0 auto;
-        padding: 2px 2px 4px;
+        padding: 2px 2px 28px;
         box-sizing: border-box;
     }
-    /* All 6 sessions, always in a grid (2 columns on phones, 3 on
-       tablets, 6 on wide screens), always filling the full available
-       height with equal rows — on EVERY screen size, no exceptions. */
-    .analytics-dash .adash-onepage {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-        height: 100%;
-        grid-auto-rows: 1fr;
-        align-items: stretch;
-    }
-    @media (min-width: 700px) {
-        .analytics-dash .adash-onepage { grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    }
-    @media (min-width: 1100px) {
-        .analytics-dash .adash-onepage { grid-template-columns: repeat(3, 1fr); gap: 18px; }
-    }
-    @media (min-width: 1600px) {
-        .analytics-dash .adash-onepage { grid-template-columns: repeat(6, 1fr); gap: 20px; }
-    }
-    .analytics-dash .adash-section {
-        min-width: 0;
-        min-height: 0;
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-        padding: 6px 8px;
-        background: rgba(255,255,255,0.02);
-        border: 1px solid rgba(255,255,255,0.06);
-        border-radius: 14px;
+    .analytics-dash .adash-page {
+        width: 100%;
         display: flex;
         flex-direction: column;
+        gap: 12px;
     }
-    @media (min-width: 700px) {
-        .analytics-dash .adash-section { padding: 10px 12px; }
-    }
-    @media (min-width: 1100px) {
-        .analytics-dash .adash-section { padding: 12px 14px; }
-    }
-    .analytics-dash .adash-section-label {
-        font-size: 9px;
+    .analytics-dash .adash-page-label {
+        font-size: 11px;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.06em;
         color: var(--adash-gold);
-        margin: 0 0 4px;
-        padding-bottom: 3px;
+        margin: 2px 0 4px;
+        padding-bottom: 6px;
         border-bottom: 1px solid var(--adash-card-border);
-    }
-    .analytics-dash .adash-fit-inner {
-        width: 100%;
-        height: 100%;
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        /* The label is always the first item, so it gets the explicit
-           first row (sized to its own content); every row generated
-           after that is an *implicit* row and picks up grid-auto-rows,
-           so all the actual card rows share the leftover height
-           equally instead of collapsing to their own content size and
-           leaving the rest of the section empty. */
-        grid-template-rows: auto;
-        grid-auto-rows: minmax(min-content, 1fr);
-        grid-auto-flow: dense;
-        gap: 6px;
-        align-items: stretch;
-    }
-    @media (min-width: 700px) {
-        .analytics-dash .adash-fit-inner { gap: 10px; }
-    }
-    @media (min-width: 1100px) {
-        .analytics-dash .adash-fit-inner { gap: 12px; }
-    }
-    .analytics-dash .adash-fit-inner > .adash-section-label,
-    .analytics-dash .adash-fit-inner > .adash-kpi-grid,
-    .analytics-dash .adash-fit-inner > .adash-stat-grid {
-        grid-column: 1 / -1;
-    }
-    /* Cards/grids now occupy a real (equal-share) row instead of an
-       auto-height one, so stretch their own box to fill it and center
-       their content within the extra room rather than leaving it
-       pinned to the top with blank space below. */
-    .analytics-dash .adash-fit-inner > .adash-card {
-        height: 100%;
-        margin-bottom: 0;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-height: 0;
-        overflow: hidden;
-    }
-    .analytics-dash .adash-fit-inner > .adash-kpi-grid,
-    .analytics-dash .adash-fit-inner > .adash-stat-grid {
-        height: 100%;
-        margin-bottom: 0;
-        align-content: center;
-        min-height: 0;
     }
 
     .adash-card {
@@ -6105,9 +6014,32 @@ if (window.visualViewport) {
 }
 
 function fitActiveAnalyticsSection() {
-    // No-op: .adash-fit-inner is a normal-flow CSS grid (grid-auto-rows: 1fr)
-    // that already fills 100% of its section's height/width responsively.
-    // This function is kept so existing call sites don't need to change.
+    try {
+        document.querySelectorAll('.analytics-dash .adash-fit-inner').forEach(function(inner) {
+            const section = inner.parentElement;
+            if (!section) return;
+
+            // Reset first so we measure the inner content's true natural
+            // size, not a size left over from a previous (possibly
+            // stale) scale pass.
+            inner.style.transform = 'none';
+            const availableH = section.clientHeight;
+            const naturalH = inner.scrollHeight;
+            if (!availableH || !naturalH) return;
+
+            // Sparse tabs already fill the box via the CSS grid's own
+            // minmax(min-content, 1fr) rows, so they need no help here.
+            // Dense tabs (more cards than the box's natural row heights
+            // allow) would otherwise overflow and get clipped by the
+            // section's overflow:hidden — scale them down just enough
+            // that every card stays fully visible. Never scale up: a
+            // short tab should stay at its natural, readable size.
+            const scale = Math.min(1, availableH / naturalH);
+            inner.style.transform = 'scale(' + scale + ')';
+        });
+    } catch (e) {
+        console.warn('Analytics section fit skipped:', e);
+    }
 }
 let analyticsSectionFitRaf = null;
 function scheduleAnalyticsSectionFit() {
@@ -17492,18 +17424,26 @@ function renderAdminAnalytics() {
         '</div>'
     );
 
-    // Single continuous page — every section flows into a 3-column
-    // grid inside a fixed-size canvas that gets scaled to fit the
-    // whole screen exactly (see fitAnalyticsToScreen), so nothing is
-    // ever cropped and nothing ever needs scrolling, sideways or down.
-    html += '<div class="adash-onepage">';
-    html += renderAdashFitSection('📊 Overview', renderAnalyticsOverviewTab(d));
-    html += renderAdashFitSection('📝 Result Analysis', renderAnalyticsResultsTab(d));
-    html += renderAdashFitSection('📈 Growth', renderAnalyticsGrowthTab(d));
-    html += renderAdashFitSection('💰 Revenue', renderAnalyticsRevenueTab(d));
-    html += renderAdashFitSection('🎯 Engagement', renderAnalyticsEngagementTab(d));
-    html += renderAdashFitSection('🗂️ Content', renderAnalyticsContentTab(d));
-    html += '</div>';
+    // Six separate full pages — one per sub-tab. Only the active tab's
+    // content is rendered; switching tabs swaps the whole page instead
+    // of cramming all six into one shrunk-to-fit screen.
+    html += renderAnalyticsSubTabs();
+
+    const activeTab = ANALYTICS_SUBTABS.find(function(t) { return t.key === state.analyticsSubTab; }) || ANALYTICS_SUBTABS[0];
+    let pageContent = '';
+    if (activeTab.key === 'overview') pageContent = renderAnalyticsOverviewTab(d);
+    else if (activeTab.key === 'results') pageContent = renderAnalyticsResultsTab(d);
+    else if (activeTab.key === 'growth') pageContent = renderAnalyticsGrowthTab(d);
+    else if (activeTab.key === 'revenue') pageContent = renderAnalyticsRevenueTab(d);
+    else if (activeTab.key === 'engagement') pageContent = renderAnalyticsEngagementTab(d);
+    else if (activeTab.key === 'content') pageContent = renderAnalyticsContentTab(d);
+
+    html += (
+        '<div class="adash-page">' +
+        '<p class="adash-page-label">' + activeTab.label + '</p>' +
+        pageContent +
+        '</div>'
+    );
     html += '</div>';
     return wrapAnalyticsFit('<div class="adash-canvas">' + html + '</div>', closeAttrs);
 }
