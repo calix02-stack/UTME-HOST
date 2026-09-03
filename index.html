@@ -259,107 +259,6 @@
         color: var(--faint);
     }
 
-    /* ============================================================
-       FULLSCREEN "ONE-SCREEN" ANALYTICS MODE
-       Used by both the Personal Analytics screen and the Admin
-       Analytics tab. The topbar + bottom nav are hidden so the
-       dashboard gets the entire viewport.
-
-       Below ~700px (phones) there simply isn't room to show six dense
-       admin-analytics sections at once and stay legible, so the page
-       flows normally and scrolls like any mobile screen.
-
-       At ≥700px (tablet and up) the whole dashboard locks to exactly
-       one viewport — the page itself never scrolls. Cards are laid
-       out in a CSS grid whose rows/columns stretch (`fr` units) to
-       fill the exact available height and width, so there's no
-       leftover empty space and nothing is pushed off-screen. If one
-       individual panel's content is still too tall for its cell
-       (e.g. a long list), only *that panel* scrolls internally —
-       the rest of the dashboard stays fully visible.
-       ============================================================ */
-    /* The normal app UI is a mobile "card" capped at 384px (or wider
-       breakpoint caps) even on desktop. Analytics must ignore all of
-       that and truly take over the entire browser window on every
-       screen size, so override #app-inner itself here, not just .view. */
-    #app-inner.analytics-fullscreen {
-        max-width: none !important;
-        width: 100vw !important;
-        height: 100dvh !important;
-        max-height: 100dvh !important;
-        margin: 0 !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-    }
-    #app-inner.analytics-fullscreen > .topbar,
-    #app-inner.analytics-fullscreen > .bottom-nav {
-        display: none !important;
-    }
-    #app-inner.analytics-fullscreen > .view {
-        max-height: 100dvh !important;
-        height: 100dvh !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-    }
-    #app-inner.analytics-fullscreen > .view > .view-content {
-        height: 100%;
-    }
-   .fit-screen-stage {
-        position: relative;
-        width: 100%;
-        height: 100dvh;
-        overflow-y: auto;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-    }
-    .fit-screen-content {
-        width: 100%;
-        min-height: 100%;
-        box-sizing: border-box;
-    }
-    @media (min-width: 700px) {
-        .fit-screen-stage { overflow: hidden; }
-        .fit-screen-content {
-            height: 100%;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-    }
-    /* Each admin Analytics sub-tab is now its own full page, so the
-       dashboard always scrolls normally — like any other page — on
-       every screen size, instead of being locked/shrunk to fit one
-       viewport. */
-    .fit-screen-stage:has(.analytics-dash) {
-        overflow-y: auto;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-    }
-    .fit-screen-content:has(.analytics-dash) {
-        height: auto;
-        min-height: 100%;
-        display: block;
-        overflow: visible;
-    }
-    .analytics-close-fab {
-        position: absolute;
-        top: max(10px, env(safe-area-inset-top));
-        right: 10px;
-        z-index: 30;
-        width: 32px;
-        height: 32px;
-        border-radius: 999px;
-        background: rgba(19, 41, 29, 0.55);
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        backdrop-filter: blur(4px);
-    }
-    [data-theme="dark"] .analytics-close-fab { background: rgba(0,0,0,0.55); }
-
     .topbar {
         position: sticky;
         top: 0;
@@ -1729,207 +1628,6 @@
         margin-bottom: 6px;
         font-size: 12px;
     }
-
-    /* Personal Analytics — one-screen dashboard canvas above ~700px:
-       header + KPI strip stay a fixed height, and the card grid below
-       stretches (`fr` rows/cols) to consume exactly the remaining
-       height, so the whole dashboard sits in one viewport with no page
-       scroll. Below 700px it's a normal flowing, scrollable page. */
-    .pa-canvas {
-        width: 100%;
-        max-width: 1360px;
-        margin: 0 auto;
-        padding: 16px 16px 24px;
-        box-sizing: border-box;
-        background: var(--bg);
-    }
-    @media (min-width: 640px) {
-        .pa-canvas { padding: 22px 28px 32px; }
-    }
-    @media (min-width: 1024px) {
-        .pa-canvas { padding: 28px 40px 40px; }
-    }
-    @media (min-width: 700px) {
-        .pa-canvas {
-            flex: 1;
-            min-height: 0;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-        .pa-canvas > .pa-header,
-        .pa-canvas > .pa-kpi-row,
-        .pa-canvas > .pa-footer-btn {
-            flex: 0 0 auto;
-        }
-        .pa-canvas > .pa-grid {
-            flex: 1;
-            min-height: 0;
-        }
-    }
-    .pa-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        margin-bottom: 12px;
-    }
-    .pa-header h2 {
-        font-family: var(--font-serif);
-        font-size: 19px;
-        margin: 0;
-        color: var(--ink);
-    }
-    .pa-header p {
-        font-size: 10.5px;
-        color: var(--muted);
-        margin: 3px 0 0;
-    }
-    .pa-header .pa-badge {
-        flex-shrink: 0;
-        font-size: 9px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        padding: 4px 9px;
-        border-radius: 999px;
-        color: #fff;
-        white-space: nowrap;
-    }
-    .pa-kpi-row {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-        margin-bottom: 10px;
-    }
-    .pa-kpi {
-        background: var(--card-bg);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 10px 4px 9px;
-        text-align: center;
-        box-shadow: var(--shadow-sm);
-    }
-    .pa-kpi .val { font-size: 18px; font-weight: 800; margin: 0; line-height: 1.1; }
-    .pa-kpi .lbl { font-size: 8px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
-    @media (min-width: 640px) {
-        .pa-kpi-row { gap: 12px; margin-bottom: 16px; }
-        .pa-kpi { padding: 16px 8px 14px; border-radius: 16px; }
-        .pa-kpi .val { font-size: 24px; }
-        .pa-kpi .lbl { font-size: 10px; }
-    }
-    @media (min-width: 1024px) {
-        .pa-kpi .val { font-size: 28px; }
-        .pa-kpi .lbl { font-size: 11px; }
-    }
-    /* 2 columns on phones, growing to as many ~260px columns as fit on
-       larger screens so cards fill the available width instead of
-       leaving empty space beside a narrow, phone-width grid. */
-    .pa-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-    }
-    .pa-card {
-        background: var(--card-bg);
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 11px 12px 12px;
-        box-shadow: var(--shadow-sm);
-        min-width: 0;
-        min-height: 0;
-    }
-    .pa-card.pa-span2 { grid-column: span 2; }
-    @media (min-width: 640px) {
-        .pa-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
-        .pa-card { padding: 16px 18px 18px; border-radius: 18px; }
-        .pa-card.pa-span2 { grid-column: span 2; }
-    }
-    @media (min-width: 1440px) {
-        .pa-grid { grid-template-columns: repeat(6, 1fr); gap: 16px; }
-    }
-    /* One-screen mode: rows stretch to fill the grid's own height
-       exactly (no leftover strip of empty space below the cards), and
-       each card scrolls internally as a fallback if its own content
-       (a long list, say) is taller than the row it landed in — the
-       rest of the dashboard never has to move to make room for it. */
-    @media (min-width: 700px) {
-        .pa-grid {
-            height: 100%;
-            grid-auto-rows: 1fr;
-            grid-auto-flow: dense;
-        }
-        .pa-card {
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-    }
-    .pa-card-title {
-        font-size: 10.5px;
-        font-weight: 700;
-        margin: 0 0 8px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        color: var(--ink);
-    }
-    .pa-card-title svg { flex-shrink: 0; color: var(--green); }
-    .pa-focus-line {
-        font-size: 9.5px;
-        color: var(--muted);
-        margin: 8px 0 0;
-        line-height: 1.4;
-    }
-    .pa-empty {
-        text-align: center;
-        color: var(--faint);
-        font-size: 10.5px;
-        padding: 10px 4px;
-    }
-    .pa-time-avg {
-        font-size: 20px;
-        font-weight: 800;
-        color: var(--green);
-        margin: 0;
-    }
-    .pa-time-avg span { font-size: 9.5px; font-weight: 500; color: var(--muted); }
-    .pa-time-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 9.5px;
-        color: var(--muted);
-        margin-top: 4px;
-    }
-    .pa-footer-btn {
-        margin-top: 12px;
-        width: 100%;
-    }
-    .pa-heatmap-row { margin-bottom: 6px; }
-    .pa-heatmap-row .hm-label { font-size: 9.5px; flex: 0 0 66px; }
-    .pa-heatmap-row .hm-bar-track { height: 10px; }
-    .pa-heatmap-row .hm-pct { font-size: 9.5px; flex: 0 0 28px; }
-    .pa-missed-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 10px;
-        padding: 5px 0;
-        border-bottom: 1px dashed var(--line);
-    }
-    .pa-missed-row:last-child { border-bottom: none; }
-    .count-badge {
-        font-size: 10px;
-        font-weight: 700;
-        padding: 3px 9px;
-        border-radius: 999px;
-        background: var(--green-light);
-        color: var(--green);
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-    .pa-missed-row .count-badge { font-size: 9px; padding: 2px 7px; }
 
     .result-card {
         background: var(--card-bg);
@@ -3714,22 +3412,6 @@
         margin-top: 4px;
         color: var(--adash-text);
     }
-    .adash-canvas {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        overflow: visible;
-    }
-    .analytics-dash {
-        display: flex;
-        flex-direction: column;
-        overflow: visible;
-        margin-top: 0;
-    }
-    .analytics-dash > .adash-range-row,
-    .analytics-dash > .admin-sub-tabs {
-        flex: 0 0 auto;
-    }
     .analytics-dash .adash-range-row {
         display: flex;
         gap: 6px;
@@ -3771,31 +3453,39 @@
         box-shadow: 0 4px 14px rgba(34,199,115,0.3);
     }
 
-    /* Each of the 6 analytics sub-tabs is now a single, full page that
-       occupies the whole box and simply flows top-to-bottom, scrolling
-       like a normal page — no shrinking, no scaling, nothing clipped. */
-    .adash-canvas {
-        width: 100%;
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 2px 2px 28px;
-        box-sizing: border-box;
+    .analytics-dash .adash-onepage {
+        column-width: 300px;
+        column-gap: 14px;
+        column-fill: auto;
+        height: calc(100vh - 230px);
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding: 2px 2px 10px;
     }
-    .analytics-dash .adash-page {
+    .analytics-dash .adash-section {
+        break-inside: avoid-column;
+        -webkit-column-break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
         width: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+        display: inline-block;
     }
-    .analytics-dash .adash-page-label {
-        font-size: 11px;
+    .analytics-dash .adash-section-label {
+        font-size: 11.5px;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.06em;
         color: var(--adash-gold);
-        margin: 2px 0 4px;
+        margin: 4px 0 10px;
         padding-bottom: 6px;
         border-bottom: 1px solid var(--adash-card-border);
+    }
+    @media (min-width: 1024px) {
+        .analytics-dash .adash-onepage {
+            column-width: 340px;
+            height: calc(100vh - 250px);
+        }
     }
 
     .adash-card {
@@ -3820,26 +3510,12 @@
         color: var(--adash-muted);
         font-size: 10px;
     }
-    @media (min-width: 700px) {
-        .adash-card { padding: 16px; border-radius: 18px; margin-bottom: 14px; }
-        .adash-card-title { font-size: 12.5px; margin-bottom: 12px; }
-    }
-    @media (min-width: 1100px) {
-        .adash-card { padding: 18px; }
-        .adash-card-title { font-size: 13px; }
-    }
 
-    /* 2 columns by default; grows to fit as many ~140px KPI tiles as the
-       section can hold on wider screens instead of staying capped at 2
-       while the rest of the section sits mostly empty. */
     .adash-kpi-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
         margin-bottom: 10px;
-    }
-    @media (min-width: 1100px) {
-        .adash-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
     }
     .adash-kpi {
         background: var(--adash-card);
@@ -3878,9 +3554,6 @@
         line-height: 1.1;
         color: var(--adash-text);
     }
-    @media (min-width: 1100px) {
-        .adash-kpi-value { font-size: 23px; }
-    }
     .adash-kpi-spark {
         position: absolute;
         right: 8px;
@@ -3916,12 +3589,6 @@
     .adash-stat .icon { font-size: 16px; margin-bottom: 3px; }
     .adash-stat .val { font-size: 15px; font-weight: 800; line-height: 1.1; }
     .adash-stat .lbl { font-size: 8px; color: var(--adash-muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.03em; }
-    @media (min-width: 1100px) {
-        .adash-stat-grid { gap: 10px; }
-        .adash-stat { padding: 14px 6px; border-radius: 15px; }
-        .adash-stat .val { font-size: 18px; }
-        .adash-stat .lbl { font-size: 9px; }
-    }
 
     .adash-gauge-row {
         display: flex;
@@ -5907,22 +5574,6 @@
 </style>
 </head>
 <body>
-<script>
-// Set the theme attribute as the very first thing that runs, before any
-// CSS paints or the app's own init() gets to it further down the page.
-// Without this, the browser paints the light (:root) colors for a beat
-// first — a visible white flash — because data-theme wasn't applied until
-// init() ran near the bottom of the document. Dark is the default for
-// anyone who hasn't explicitly chosen light.
-(function () {
-    try {
-        var pref = localStorage.getItem('darkMode');
-        if (pref !== 'false') document.documentElement.setAttribute('data-theme', 'dark');
-    } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-    }
-})();
-</script>
 <div id="root"></div>
 
 <div id="pwa-ios-tip">
@@ -5967,92 +5618,6 @@ window.addEventListener('orientationchange', function() { setTimeout(setAppVh, 1
 if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', setAppVh);
     window.visualViewport.addEventListener('scroll', setAppVh);
-}
-
-// ============================================================
-//  ANALYTICS RESPONSIVE DASHBOARD (formerly "fit to screen")
-// ============================================================
-// The Personal Analytics screen and the Admin Analytics tab used to be
-// built at one fixed "design" size and then uniformly scaled (CSS
-// transform: scale) up or down to fill whatever viewport they were
-// given. That's what produced the narrow, phone-shaped dashboard with
-// large empty margins on tablets/laptops/TVs — scaling a fixed layout
-// isn't the same as actually reflowing it.
-//
-// The dashboard markup (.pa-canvas / .adash-canvas and their grids) is
-// now fluid and reflows its own column count via CSS media queries, so
-// no JS-driven scaling is needed. These functions are kept as harmless
-// no-ops so existing call sites elsewhere in the app don't need to be
-// touched.
-function fitAnalyticsToScreen() {
-    try {
-        var content = document.getElementById('analytics-fit-content');
-        if (!content) return;
-        content.style.transform = 'none';
-        content.style.left = '';
-        content.style.width = '';
-    } catch (e) {
-        console.warn('Analytics fit-to-screen reset skipped:', e);
-    }
-}
-var analyticsFitRaf = null;
-function scheduleAnalyticsFit() {
-    if (analyticsFitRaf) cancelAnimationFrame(analyticsFitRaf);
-    analyticsFitRaf = requestAnimationFrame(function() {
-        analyticsFitRaf = null;
-        fitAnalyticsToScreen();
-        // Run a second pass shortly after: fonts/images can finish
-        // loading a moment later and change the content's natural
-        // size, which would otherwise leave the scale slightly off.
-        setTimeout(fitAnalyticsToScreen, 200);
-    });
-}
-window.addEventListener('resize', scheduleAnalyticsFit);
-window.addEventListener('orientationchange', function() { setTimeout(scheduleAnalyticsFit, 150); });
-if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', scheduleAnalyticsFit);
-}
-
-function fitActiveAnalyticsSection() {
-    try {
-        document.querySelectorAll('.analytics-dash .adash-fit-inner').forEach(function(inner) {
-            const section = inner.parentElement;
-            if (!section) return;
-
-            // Reset first so we measure the inner content's true natural
-            // size, not a size left over from a previous (possibly
-            // stale) scale pass.
-            inner.style.transform = 'none';
-            const availableH = section.clientHeight;
-            const naturalH = inner.scrollHeight;
-            if (!availableH || !naturalH) return;
-
-            // Sparse tabs already fill the box via the CSS grid's own
-            // minmax(min-content, 1fr) rows, so they need no help here.
-            // Dense tabs (more cards than the box's natural row heights
-            // allow) would otherwise overflow and get clipped by the
-            // section's overflow:hidden — scale them down just enough
-            // that every card stays fully visible. Never scale up: a
-            // short tab should stay at its natural, readable size.
-            const scale = Math.min(1, availableH / naturalH);
-            inner.style.transform = 'scale(' + scale + ')';
-        });
-    } catch (e) {
-        console.warn('Analytics section fit skipped:', e);
-    }
-}
-let analyticsSectionFitRaf = null;
-function scheduleAnalyticsSectionFit() {
-    if (analyticsSectionFitRaf) cancelAnimationFrame(analyticsSectionFitRaf);
-    analyticsSectionFitRaf = requestAnimationFrame(function() {
-        analyticsSectionFitRaf = null;
-        fitActiveAnalyticsSection();
-        setTimeout(fitActiveAnalyticsSection, 200);
-    });
-}
-window.addEventListener('resize', scheduleAnalyticsSectionFit);
-if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', scheduleAnalyticsSectionFit);
 }
 </script>
 <script>
@@ -6761,7 +6326,7 @@ let state = {
     profile: { name: "Guest", email: "", id: null, is_active: true, activation_expiry: null, fullName: "", avatarUrl: null, walletBalance: 0 },
     drawerOpen: false,
     view: "home",
-    darkMode: true,
+    darkMode: false,
     studyStreak: 1,
     notifs: [],
     readNotifs: [],
@@ -7150,7 +6715,7 @@ myEnrollmentsLoading: false,
     analyticsLoaded: false,
 analyticsLoading: false,
 analyticsData: null,
-analyticsRange: 'all', // 'all' is the default view; 7 / 30 are opt-in narrower windows
+analyticsRange: 14,
 analyticsUserFilter: null,
 analyticsSubTab: 'overview',
 
@@ -12009,7 +11574,6 @@ function render() {
     }
     
     root.innerHTML = html;
-    scheduleAnalyticsSectionFit();
 
     if (state.showLogin && !state.authUser) {
         const overlay = document.createElement('div');
@@ -12046,10 +11610,6 @@ function render() {
                 try { newActiveEl.setSelectionRange(activeSelStart, activeSelEnd); } catch (e) {}
             }
         }
-    }
-
-    if (typeof isAnalyticsFullscreen === 'function' && isAnalyticsFullscreen() && typeof scheduleAnalyticsFit === 'function') {
-        scheduleAnalyticsFit();
     }
 }
 // ============================================================
@@ -12354,26 +11914,6 @@ function renderFaqImageUploadModal() {
 }
 
 
-// True while the Personal Analytics screen or the Admin Analytics tab
-// is open — both take over the full viewport (no topbar/bottom nav)
-// and auto-scale their content so nothing ever needs scrolling.
-function isAnalyticsFullscreen() {
-    return state.view === 'analytics' || (state.view === 'admin' && isAdmin() && state.adminTab === 'analytics');
-}
-
-// Wraps a dashboard's HTML in the fit-to-screen stage: a fixed-size
-// "canvas" that gets uniformly scaled by fitAnalyticsToScreen() (see
-// the <script> near setAppVh) so the whole thing is always visible,
-// plus a small close button since the normal topbar is hidden.
-function wrapAnalyticsFit(innerHtml, closeActionAttrs) {
-    return (
-        '<div id="analytics-fit-stage" class="fit-screen-stage">' +
-        '<button class="analytics-close-fab" ' + closeActionAttrs + ' aria-label="Close analytics">' + svg('x', 16) + '</button>' +
-        '<div id="analytics-fit-content" class="fit-screen-content">' + innerHtml + '</div>' +
-        '</div>'
-    );
-}
-
 function renderApp() {
     const unread = unreadCount();
     const isLoggedIn = !!state.authUser;
@@ -12386,11 +11926,9 @@ function renderApp() {
         leftContent +=
             '<button class="auth-btn" data-action="show-login">Log in</button>' +
             '<button class="auth-btn gold" data-action="show-signup">Sign up</button>';
+    } else {
+        leftContent += '<span class="guest-badge" style="margin-left:2px;font-size:9px">' + esc(userName) + '</span>';
     }
-    // The tiny name badge used to show here on every screen. It now only
-    // appears on the Home screen (see the topbar-left branch below) —
-    // everywhere else the avatar on the right is enough of a "who am I
-    // logged in as" cue, so we don't repeat the name a second time.
 
     let rightContent = '';
     const badgeLabel = unread > 9 ? '9+' : unread;
@@ -12413,15 +11951,12 @@ function renderApp() {
         loadingOverlay = '<div style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);animation:fadeIn 0.2s ease"><div style="background:var(--card-bg);border-radius:14px;padding:24px;text-align:center;max-width:280px"><div class="spinner" style="width:32px;height:32px;border:3px solid var(--line);border-top:3px solid var(--green);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px"></div><p style="font-size:13px;color:var(--ink)">Loading questions...</p></div></div>';
     }
 
-    const fullscreenAnalytics = isAnalyticsFullscreen();
-
     return (
-        '<div id="app-shell"><div id="app-inner"' + (fullscreenAnalytics ? ' class="analytics-fullscreen"' : '') + '>' +
+        '<div id="app-shell"><div id="app-inner">' +
         loadingOverlay +
-        (fullscreenAnalytics ? '' :
         '<div class="topbar">' +
         (state.view === 'home'
-            ? '<div class="topbar-left">' + (isLoggedIn ? '<span class="guest-badge" style="margin-left:2px;font-size:9px">' + esc(userName) + '</span>' : '') + '</div>' +
+            ? '<div class="topbar-left"></div>' +
               '<div class="topbar-center"><span class="brand">' + logoSvg(22) + '<span>My<b>UTME</b></span></span></div>' +
               '<div class="topbar-right">' +
               '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
@@ -12432,11 +11967,11 @@ function renderApp() {
               '<div class="topbar-center"></div>' +
               '<div class="topbar-right">' + rightContent + '</div>'
         ) +
-        '</div>') +
-        (fullscreenAnalytics ? '' : (!isOnline() ? '<div class="offline-badge" style="position:sticky;top:64px;z-index:19;margin:0 auto;width:fit-content;transform:translateY(6px)">' + svg('wifioff', 12) + ' Offline</div>' : '')) +
-        (fullscreenAnalytics ? '' : (needsActivation ? renderActivationSignboard() : '')) +
+        '</div>' +
+        (!isOnline() ? '<div class="offline-badge" style="position:sticky;top:64px;z-index:19;margin:0 auto;width:fit-content;transform:translateY(6px)">' + svg('wifioff', 12) + ' Offline</div>' : '') +
+        (needsActivation ? renderActivationSignboard() : '') +
         '<div class="view' + (state.view === 'ai-assistant' ? ' view-chat' : '') + '"><div class="view-content">' + renderView() + '</div></div>' +
-        (fullscreenAnalytics ? '' : renderBottomNav()) +
+        renderBottomNav() +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
         (state.viewingImage ? (
             '<div class="ai-history-overlay" style="z-index:200;align-items:center;justify-content:center;padding:20px" data-action="close-image-viewer">' +
@@ -15164,40 +14699,31 @@ function buildTrendSparklineSvg(pctPoints) {
 }
 
 function renderAnalyticsDashboard() {
-    const closeAttrs = 'data-action="set-view" data-view="history"';
-
     if (!state.authUser) {
-        return wrapAnalyticsFit(
-            '<div class="pa-canvas" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;text-align:center">' +
-            '<h2 class="title" style="font-size:18px;margin-bottom:4px">📈 Personal Analytics</h2>' +
-            '<p style="color:var(--muted);font-size:13px">Please log in to view your analytics.</p>' +
-            '</div>',
-            closeAttrs
+        return (
+            '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>' +
+            '<h2 class="title" style="font-size:18px">📈 Personal Analytics</h2>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view your analytics.</p></div>'
         );
     }
 
     if (!state.historyLoaded) {
         loadHistory();
-        return wrapAnalyticsFit('<div class="pa-canvas"><div class="loading-spinner"><div class="spinner"></div><p>Crunching your numbers...</p></div></div>', closeAttrs);
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Crunching your numbers...</p></div>';
     }
     if (!state.weakQuestionsLoaded) {
         loadWeakQuestions();
-        return wrapAnalyticsFit('<div class="pa-canvas"><div class="loading-spinner"><div class="spinner"></div><p>Crunching your numbers...</p></div></div>', closeAttrs);
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Crunching your numbers...</p></div>';
     }
 
     const entries = (state.historyEntries || []).slice();
-    let header = (
-        '<div class="pa-header">' +
-        '<div><h2>📈 Personal Analytics</h2><p>Your strengths, weaknesses &amp; pace, at a glance</p></div>' +
-        '</div>'
-    );
+    const backBtn = '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>';
+    const header = '<h2 class="title" style="font-size:18px">📈 Personal Analytics</h2><p class="sub" style="font-size:12px">A deeper look at your strengths, weaknesses, and pace</p>';
 
     if (entries.length === 0) {
-        return wrapAnalyticsFit(
-            '<div class="pa-canvas">' + header +
-            '<div class="pa-card"><p class="pa-empty">Complete a few exams and this dashboard will fill in automatically.</p></div>' +
-            '</div>',
-            closeAttrs
+        return (
+            backBtn + header +
+            '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">Complete a few exams and this dashboard will fill in automatically.</p></div>'
         );
     }
 
@@ -15210,31 +14736,23 @@ function renderAnalyticsDashboard() {
     });
     const overallPct = totalMax > 0 ? Math.round((totalCorrect / totalMax) * 100) : 0;
     const streak = parseInt(storage.get('streakCount') || '0', 10) || 0;
-    const accColor = overallPct >= 70 ? 'var(--green)' : overallPct >= 50 ? 'var(--gold)' : 'var(--danger)';
-    const statusLabel = overallPct >= 70 ? 'On Track' : overallPct >= 50 ? 'Improving' : 'Needs Focus';
-    header = (
-        '<div class="pa-header">' +
-        '<div><h2>📈 Personal Analytics</h2><p>Your strengths, weaknesses &amp; pace, at a glance</p></div>' +
-        '<span class="pa-badge" style="background:' + accColor + '">' + statusLabel + '</span>' +
-        '</div>'
-    );
 
-    const kpiRow = (
-        '<div class="pa-kpi-row">' +
-        '<div class="pa-kpi"><p class="val" style="color:var(--green)">' + entries.length + '</p><p class="lbl">Exams Taken</p></div>' +
-        '<div class="pa-kpi"><p class="val" style="color:' + accColor + '">' + overallPct + '%</p><p class="lbl">Accuracy</p></div>' +
-        '<div class="pa-kpi"><p class="val">' + streak + '🔥</p><p class="lbl">Day Streak</p></div>' +
+    const overviewHtml = (
+        '<div class="analytics-stat-grid">' +
+        '<div class="analytics-stat-card"><p class="val" style="color:var(--green)">' + entries.length + '</p><p class="lbl">Exams Taken</p></div>' +
+        '<div class="analytics-stat-card"><p class="val" style="color:' + (overallPct >= 70 ? 'var(--green)' : overallPct >= 50 ? 'var(--gold)' : 'var(--danger)') + '">' + overallPct + '%</p><p class="lbl">Overall Accuracy</p></div>' +
+        '<div class="analytics-stat-card"><p class="val">' + streak + '🔥</p><p class="lbl">Day Streak</p></div>' +
         '</div>'
     );
 
     // ---- Accuracy trend over time (chronological) ----
     const sortedAsc = entries.slice().sort(function(a, b) { return new Date(a.submitted_at) - new Date(b.submitted_at); });
     const trendPoints = sortedAsc.map(function(e) { return e.max_score > 0 ? Math.round((e.total_score / e.max_score) * 100) : 0; });
-    const trendCard = (
-        '<div class="pa-card pa-span2">' +
-        '<p class="pa-card-title">' + svg('chart', 13) + ' Accuracy Over Time</p>' +
+    const trendHtml = (
+        '<p class="analytics-section-title">' + svg('chart', 14) + ' Accuracy Over Time</p>' +
+        '<div class="card" style="padding:12px">' +
         buildTrendSparklineSvg(trendPoints) +
-        '<p style="font-size:9.5px;color:var(--muted);margin:4px 0 0;text-align:center">Oldest → most recent · ' + trendPoints.length + ' exam(s)</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:center">Oldest → most recent · ' + trendPoints.length + ' exam(s)</p>' +
         '</div>'
     );
 
@@ -15247,25 +14765,24 @@ function renderAnalyticsDashboard() {
             const subj = SUBJECTS.find(function(s) { return s.id === sid; });
             return { sid: sid, name: subj ? subj.name : sid, pct: pct };
         })
-        .sort(function(a, b) { return a.pct - b.pct; })
-        .slice(0, 5);
+        .sort(function(a, b) { return a.pct - b.pct; });
 
-    let heatmapBody = '<div class="heatmap-grid">';
+    let heatmapHtml = '<p class="analytics-section-title">🎯 Strengths &amp; Weaknesses by Subject</p><div class="heatmap-grid">';
     subjRows.forEach(function(r) {
         const color = r.pct >= 75 ? 'var(--green)' : r.pct >= 50 ? 'var(--gold)' : 'var(--danger)';
-        heatmapBody += (
-            '<div class="heatmap-row pa-heatmap-row">' +
+        heatmapHtml += (
+            '<div class="heatmap-row">' +
             '<span class="hm-label">' + esc(r.name) + '</span>' +
             '<div class="hm-bar-track"><div class="hm-bar-fill" style="width:' + r.pct + '%;background:' + color + '"></div></div>' +
             '<span class="hm-pct" style="color:' + color + '">' + r.pct + '%</span>' +
             '</div>'
         );
     });
-    heatmapBody += '</div>';
+    heatmapHtml += '</div>';
     if (subjRows.length > 0) {
-        heatmapBody += '<p class="pa-focus-line">Focus: <b style="color:var(--danger)">' + esc(subjRows[0].name) + '</b> is your lowest-scoring subject.</p>';
+        const weakest = subjRows[0];
+        heatmapHtml += '<p style="font-size:11px;color:var(--muted);margin:0 0 4px">Focus area: <b style="color:var(--danger)">' + esc(weakest.name) + '</b> is your lowest-scoring subject right now.</p>';
     }
-    const heatmapCard = '<div class="pa-card"><p class="pa-card-title">🎯 Strengths &amp; Weaknesses</p>' + heatmapBody + '</div>';
 
     // ---- Most-missed subjects (from weak_questions) ----
     // Note: weak_questions doesn't store a topic_id today, only subject_id
@@ -15282,27 +14799,27 @@ function renderAnalyticsDashboard() {
             return { name: subj ? subj.name : (sid || 'Unknown'), count: missedCounts[sid] };
         })
         .sort(function(a, b) { return b.count - a.count; })
-        .slice(0, 4);
+        .slice(0, 5);
 
-    let missedBody;
+    let missedHtml = '<p class="analytics-section-title">⚠️ Most-Missed Subjects</p>';
     if (missedRows.length === 0) {
-        missedBody = '<p class="pa-empty">No outstanding weak questions — great job!</p>';
+        missedHtml += '<div class="card"><p style="text-align:center;color:var(--muted);padding:12px 0;font-size:12px">No outstanding weak questions right now — great job!</p></div>';
     } else {
-        missedBody = '';
         missedRows.forEach(function(r) {
-            missedBody += (
-                '<div class="pa-missed-row"><span>' + esc(r.name) + '</span>' +
-                '<span class="count-badge">' + r.count + '</span></div>'
+            missedHtml += (
+                '<div class="missed-list-row">' +
+                '<span>' + esc(r.name) + '</span>' +
+                '<span class="count-badge">' + r.count + ' missed</span>' +
+                '</div>'
             );
         });
     }
-    const missedCard = '<div class="pa-card"><p class="pa-card-title">⚠️ Most-Missed Subjects</p>' + missedBody + '</div>';
 
     // ---- Time-per-question averages ----
     const timeLog = getAnalyticsTimeLog();
-    let timeBody;
+    let timeHtml = '<p class="analytics-section-title">⏱️ Time Per Question</p>';
     if (timeLog.length === 0) {
-        timeBody = '<p class="pa-empty">Complete a timed session to see your pacing here.</p>';
+        timeHtml += '<div class="card"><p style="text-align:center;color:var(--muted);padding:12px 0;font-size:12px">Complete a timed session (CBT, Mock, Topic, or Novel) to see your pacing here.</p></div>';
     } else {
         const byMode = {};
         let sumSeconds = 0, sumQuestions = 0;
@@ -15314,29 +14831,27 @@ function renderAnalyticsDashboard() {
             byMode[s.mode].questions += s.question_count;
         });
         const overallAvg = sumQuestions > 0 ? Math.round(sumSeconds / sumQuestions) : 0;
-        timeBody = '<p class="pa-time-avg">' + overallAvg + 's <span>/ question, on average</span></p>';
+        timeHtml += (
+            '<div class="card" style="padding:12px">' +
+            '<p style="font-size:20px;font-weight:700;color:var(--green);margin:0 0 2px">' + overallAvg + 's <span style="font-size:11px;font-weight:500;color:var(--muted)">/ question, on average</span></p>'
+        );
         const TIME_MODE_LABELS = { 'cbt-full': 'CBT Full', 'cbt-single': 'CBT Single', 'mock': 'Mock Exam', 'topic': 'Topic Practice', 'novel': 'Novel (CBT)' };
-        Object.keys(byMode).slice(0, 3).forEach(function(m) {
+        Object.keys(byMode).forEach(function(m) {
             const label = TIME_MODE_LABELS[m] || m;
             const avg = byMode[m].questions > 0 ? Math.round(byMode[m].seconds / byMode[m].questions) : 0;
-            timeBody += '<div class="pa-time-row"><span>' + esc(label) + '</span><span>' + avg + 's/q</span></div>';
+            timeHtml += '<p style="font-size:11px;color:var(--muted);margin:4px 0 0">' + esc(label) + ': ' + avg + 's/question</p>';
         });
+        timeHtml += '</div>';
     }
-    const timeCard = '<div class="pa-card pa-span2"><p class="pa-card-title">⏱️ Time Per Question</p>' + timeBody + '</div>';
 
-    return wrapAnalyticsFit(
-        '<div class="pa-canvas">' +
-        header +
-        kpiRow +
-        '<div class="pa-grid">' +
-        trendCard +
-        heatmapCard +
-        missedCard +
-        timeCard +
-        '</div>' +
-        '<button class="btn btn-outline pa-footer-btn" data-action="download-analytics-pdf">' + svg('download', 14) + ' Download Analytics Summary (PDF)</button>' +
-        '</div>',
-        closeAttrs
+    return (
+        backBtn + header +
+        overviewHtml +
+        trendHtml +
+        heatmapHtml +
+        missedHtml +
+        timeHtml +
+        '<button class="btn btn-outline" style="margin-top:8px" data-action="download-analytics-pdf">' + svg('download', 14) + ' Download Analytics Summary (PDF)</button>'
     );
 }
 
@@ -16846,14 +16361,6 @@ function renderAdmin() {
         );
     }
 
-    // Analytics takes over the full screen (no admin header/tab bar, no
-    // app topbar/bottom nav — see isAnalyticsFullscreen()) so the
-    // dashboard gets maximum room and never needs to scroll. A small ✕
-    // button (added by wrapAnalyticsFit) returns to the Overview tab.
-    if (state.adminTab === "analytics") {
-        return renderAdminAnalytics();
-    }
-
     let tabBar = "";
     ADMIN_TABS.forEach(function(t) {
         const isFlagged = t.key === "flagged";
@@ -16863,7 +16370,8 @@ function renderAdmin() {
     });
 
     let body = "";
-    if (state.adminTab === "overview") body = renderAdminOverview();
+    if (state.adminTab === "analytics") body = renderAdminAnalytics();
+    else if (state.adminTab === "overview") body = renderAdminOverview();
     else if (state.adminTab === "questions") body = renderAdminQuestions();
     else if (state.adminTab === "settings") body = renderAdminSettings();
     else if (state.adminTab === "documents") body = renderAdminDocuments();
@@ -16908,38 +16416,23 @@ function shortDay(dateStr) {
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 3) + ' ' + d.getDate();
 }
-// Short label for KPI chips, e.g. "(7d)" / "(All)".
-function rangeLabelShort() {
-    return state.analyticsRange === 'all' ? 'All' : (state.analyticsRange + 'd');
-}
-// Longer label for card subtitles, e.g. "last 7 days" / "all time".
-function rangeLabelLong() {
-    return state.analyticsRange === 'all' ? 'all time' : ('last ' + state.analyticsRange + ' days');
-}
 
 async function loadAnalyticsData() {
     if (state.analyticsLoading) return; // prevent overlapping fetches
     state.analyticsLoading = true;
     render();
 
-    const isAllTime = state.analyticsRange === 'all';
-    // For querying, "all" means no lower bound at all (everything since the
-    // app existed). For the day-by-day charts we still need a finite number
-    // of buckets to draw, so we cap those at 90 days even in "all" mode —
-    // the KPI totals themselves stay true all-time figures either way.
-    const rangeDays = isAllTime ? 90 : (state.analyticsRange || 30);
-    const sinceISO = isAllTime ? new Date(0).toISOString() : (function () {
-        const sinceDate = new Date();
-        sinceDate.setDate(sinceDate.getDate() - rangeDays);
-        return sinceDate.toISOString();
-    })();
+    const rangeDays = state.analyticsRange || 14;
+    const sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - rangeDays);
+    const sinceISO = sinceDate.toISOString();
 
     try {
         // Use the working loadAllUsers function
         await loadAllUsers();
         const profiles = state.allUsers || [];
         
-        const historyRes = await supabase.from('exam_history').select('id, user_id, mode, total_score, max_score, submitted_at, subject_scores').gte('submitted_at', sinceISO);
+        const historyRes = await supabase.from('exam_history').select('id, user_id, mode, total_score, max_score, submitted_at').gte('submitted_at', sinceISO);
         const keysRes = await supabase.from('activation_keys').select('*').eq('is_used', true);
         const logsRes = await supabase.from('activity_logs').select('action, created_at, username').gte('created_at', sinceISO);
         const cbtRes = await supabase.from('cbt_scores').select('score, username');
@@ -17018,59 +16511,6 @@ async function loadAnalyticsData() {
             historyByModeAvg[m] = avg(pcts);
         });
 
-        // ---- Result Analysis (cross-user exam performance) ----------------
-        // Reuses the same subject-accuracy aggregator the Personal Analytics
-        // dashboard uses for a single user, run here over every user's
-        // attempts in the selected range.
-        const resultSubjectAgg = aggregateSubjectAccuracy(history);
-        const resultSubjectStats = Object.keys(resultSubjectAgg).map(function(sid) {
-            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
-            const agg = resultSubjectAgg[sid];
-            const pct = agg.max > 0 ? Math.round((agg.correct / agg.max) * 100) : 0;
-            return { id: sid, name: subj ? subj.name : sid, code: subj ? subj.code : sid.toUpperCase(), pct: pct, color: subj ? subj.color : ADASH.blue };
-        }).sort(function(a, b) { return b.pct - a.pct; });
-
-        // Overall weighted accuracy across every attempt in range.
-        let sumScore = 0, sumMax = 0;
-        history.forEach(function(h) { sumScore += (h.total_score || 0); sumMax += (h.max_score || 0); });
-        const overallResultPct = sumMax > 0 ? Math.round((sumScore / sumMax) * 100) : 0;
-
-        // Score-band distribution across every attempt in range.
-        const scoreBands = [
-            { label: '0–39%', min: 0, max: 39, color: ADASH.red, value: 0 },
-            { label: '40–59%', min: 40, max: 59, color: ADASH.gold, value: 0 },
-            { label: '60–79%', min: 60, max: 79, color: ADASH.blue, value: 0 },
-            { label: '80–100%', min: 80, max: 100, color: ADASH.green, value: 0 },
-        ];
-        history.forEach(function(h) {
-            if (!h.max_score) return;
-            const pct = Math.round((h.total_score / h.max_score) * 100);
-            const band = scoreBands.find(function(b) { return pct >= b.min && pct <= b.max; }) || scoreBands[0];
-            band.value += 1;
-        });
-
-        // Per-user average accuracy, for a cross-user leaderboard.
-        const userTotals = {};
-        history.forEach(function(h) {
-            if (!h.max_score || !h.user_id) return;
-            if (!userTotals[h.user_id]) userTotals[h.user_id] = { score: 0, max: 0, attempts: 0 };
-            userTotals[h.user_id].score += (h.total_score || 0);
-            userTotals[h.user_id].max += (h.max_score || 0);
-            userTotals[h.user_id].attempts += 1;
-        });
-        const profileById = {};
-        profiles.forEach(function(p) { profileById[p.id] = p; });
-        const resultLeaderboard = Object.keys(userTotals).map(function(uid) {
-            const t = userTotals[uid];
-            const p = profileById[uid];
-            return {
-                userId: uid,
-                name: (p && (p.full_name || p.username)) || 'Unknown user',
-                pct: t.max > 0 ? Math.round((t.score / t.max) * 100) : 0,
-                attempts: t.attempts,
-            };
-        }).sort(function(a, b) { return b.pct - a.pct; });
-
         state.analyticsData = {
             totalUsers: totalUsers,
             activatedUsers: activatedUsers,
@@ -17092,11 +16532,6 @@ async function loadAnalyticsData() {
             cbtAvg: avg(cbtScores),
             mockAvg: avg(mockScores),
             subjAvg: avg(subjScores),
-            resultSubjectStats: resultSubjectStats,
-            overallResultPct: overallResultPct,
-            scoreBands: scoreBands,
-            resultLeaderboard: resultLeaderboard,
-            usersWithAttempts: Object.keys(userTotals).length,
             _profiles: profiles,
             _logs: logs,
         };
@@ -17359,7 +16794,6 @@ function renderDashboardCard(title, icon, contentHtml) { return renderAdashCard(
 
 const ANALYTICS_SUBTABS = [
     { key: 'overview', label: '📊 Overview' },
-    { key: 'results', label: '📝 Results' },
     { key: 'growth', label: '📈 Growth' },
     { key: 'revenue', label: '💰 Revenue' },
     { key: 'engagement', label: '🎯 Engagement' },
@@ -17376,38 +16810,20 @@ function renderAnalyticsSubTabs() {
     return html;
 }
 
-function renderAdashFitSection(label, contentHtml) {
-    return (
-        '<div class="adash-section">' +
-        '<div class="adash-fit-inner">' +
-        '<p class="adash-section-label">' + label + '</p>' +
-        contentHtml +
-        '</div>' +
-        '</div>'
-    );
-}
-
 function renderAdminAnalytics() {
-    // Analytics is fullscreen (see isAnalyticsFullscreen / renderAdmin) —
-    // the ✕ from wrapAnalyticsFit returns to the admin Overview tab.
-    const closeAttrs = 'data-action="admin-tab" data-tab="overview"';
-
     if (state.analyticsUserFilter) {
-        return wrapAnalyticsFit(
-            '<div class="adash-canvas"><div class="analytics-dash">' + renderAnalyticsUserList(state.analyticsUserFilter) + '</div></div>',
-            closeAttrs
-        );
+        return '<div class="analytics-dash">' + renderAnalyticsUserList(state.analyticsUserFilter) + '</div>';
     }
 
     if (!state.analyticsLoaded && !state.analyticsLoading) {
         loadAnalyticsData();
-        return wrapAnalyticsFit('<div class="adash-canvas"><div class="analytics-dash"><div class="loading-spinner"><div class="spinner"></div><p>Loading analytics data...</p></div></div></div>', closeAttrs);
+        return '<div class="analytics-dash"><div class="loading-spinner"><div class="spinner"></div><p>Loading analytics data...</p></div></div>';
     }
     if (state.analyticsLoading) {
-        return wrapAnalyticsFit('<div class="adash-canvas"><div class="analytics-dash"><div class="loading-spinner"><div class="spinner"></div><p>Crunching numbers...</p></div></div></div>', closeAttrs);
+        return '<div class="analytics-dash"><div class="loading-spinner"><div class="spinner"></div><p>Crunching numbers...</p></div></div>';
     }
     if (!state.analyticsData) {
-        return wrapAnalyticsFit('<div class="adash-canvas"><div class="analytics-dash"><div class="adash-card"><p style="text-align:center;color:var(--adash-muted);padding:16px 0;font-size:13px">No data available.</p></div></div></div>', closeAttrs);
+        return '<div class="analytics-dash"><div class="adash-card"><p style="text-align:center;color:var(--adash-muted);padding:16px 0;font-size:13px">No data available.</p></div></div>';
     }
     const d = state.analyticsData;
 
@@ -17416,36 +16832,27 @@ function renderAdminAnalytics() {
     // Header: range selector + refresh
     html += (
         '<div class="adash-range-row">' +
-        [7, 30, 'all'].map(function(n) {
-            const label = n === 'all' ? 'All' : (n + 'd');
-            return '<button class="btn btn-sm ' + (state.analyticsRange === n ? 'btn-green' : 'btn-outline') + '" data-action="analytics-range" data-range="' + n + '" style="flex:1">' + label + '</button>';
+        [7, 14, 30].map(function(n) {
+            return '<button class="btn btn-sm ' + (state.analyticsRange === n ? 'btn-green' : 'btn-outline') + '" data-action="analytics-range" data-range="' + n + '" style="flex:1">' + n + 'd</button>';
         }).join('') +
         '<button class="btn btn-outline btn-sm btn-refresh" data-action="analytics-refresh" style="flex:0 0 auto;padding:6px 10px">' + svg('refresh', 15) + '</button>' +
         '</div>'
     );
 
-    // Six separate full pages — one per sub-tab. Only the active tab's
-    // content is rendered; switching tabs swaps the whole page instead
-    // of cramming all six into one shrunk-to-fit screen.
-    html += renderAnalyticsSubTabs();
-
-    const activeTab = ANALYTICS_SUBTABS.find(function(t) { return t.key === state.analyticsSubTab; }) || ANALYTICS_SUBTABS[0];
-    let pageContent = '';
-    if (activeTab.key === 'overview') pageContent = renderAnalyticsOverviewTab(d);
-    else if (activeTab.key === 'results') pageContent = renderAnalyticsResultsTab(d);
-    else if (activeTab.key === 'growth') pageContent = renderAnalyticsGrowthTab(d);
-    else if (activeTab.key === 'revenue') pageContent = renderAnalyticsRevenueTab(d);
-    else if (activeTab.key === 'engagement') pageContent = renderAnalyticsEngagementTab(d);
-    else if (activeTab.key === 'content') pageContent = renderAnalyticsContentTab(d);
-
-    html += (
-        '<div class="adash-page">' +
-        '<p class="adash-page-label">' + activeTab.label + '</p>' +
-        pageContent +
-        '</div>'
-    );
+    // Single continuous page — every section flows into side-by-side
+    // columns instead of stacking vertically, so there's no long
+    // scroll: on mobile it "bends" sideways (swipe left/right), on a
+    // laptop it just naturally shows more columns across the width.
+    html += '<div class="adash-onepage">';
+    html += '<div class="adash-section"><p class="adash-section-label">📊 Overview</p>' + renderAnalyticsOverviewTab(d) + '</div>';
+    html += '<div class="adash-section"><p class="adash-section-label">📈 Growth</p>' + renderAnalyticsGrowthTab(d) + '</div>';
+    html += '<div class="adash-section"><p class="adash-section-label">💰 Revenue</p>' + renderAnalyticsRevenueTab(d) + '</div>';
+    html += '<div class="adash-section"><p class="adash-section-label">🎯 Engagement</p>' + renderAnalyticsEngagementTab(d) + '</div>';
+    html += '<div class="adash-section"><p class="adash-section-label">🗂️ Content</p>' + renderAnalyticsContentTab(d) + '</div>';
     html += '</div>';
-    return wrapAnalyticsFit('<div class="adash-canvas">' + html + '</div>', closeAttrs);
+
+    html += '</div>';
+    return html;
 }
 
 function renderAnalyticsOverviewTab(d) {
@@ -17468,14 +16875,14 @@ function renderAnalyticsOverviewTab(d) {
     html += (
         '<div class="adash-kpi-grid">' +
         renderAdashKpi({ icon: '👤', label: 'Total Users', value: d.totalUsers, spark: d.signupsByDay, trend: trendOf(d.signupsByDay), color: ADASH.green, filterKey: 'all-users' }) +
-        renderAdashKpi({ icon: '👁️', label: 'App Opens (' + rangeLabelShort() + ')', value: d.totalViews, spark: d.viewsByDay, trend: trendOf(d.viewsByDay), color: ADASH.blue, filterKey: 'app-views' }) +
+        renderAdashKpi({ icon: '👁️', label: 'App Opens (' + state.analyticsRange + 'd)', value: d.totalViews, spark: d.viewsByDay, trend: trendOf(d.viewsByDay), color: ADASH.blue, filterKey: 'app-views' }) +
         renderAdashKpi({ icon: '🟢', label: 'Online Now', value: d.onlineNow.length, color: ADASH.teal, filterKey: 'online-now' }) +
-        renderAdashKpi({ icon: '💵', label: 'Revenue (' + rangeLabelShort() + ')', value: '₦' + (d.totalRevenue >= 1000 ? Math.round(d.totalRevenue / 1000) + 'k' : d.totalRevenue), spark: d.paymentsByDay, trend: trendOf(d.paymentsByDay), color: ADASH.gold }) +
+        renderAdashKpi({ icon: '💵', label: 'Revenue (' + state.analyticsRange + 'd)', value: '₦' + (d.totalRevenue >= 1000 ? Math.round(d.totalRevenue / 1000) + 'k' : d.totalRevenue), spark: d.paymentsByDay, trend: trendOf(d.paymentsByDay), color: ADASH.gold }) +
         '</div>'
     );
 
-    html += renderAdashCard('New Signups', '📈', svgAreaChart(d.signupsByDay, { color: ADASH.green }), rangeLabelLong());
-    html += renderAdashCard('App Opens', '👁️', svgAreaChart(d.viewsByDay, { color: ADASH.blue }), rangeLabelLong());
+    html += renderAdashCard('New Signups', '📈', svgAreaChart(d.signupsByDay, { color: ADASH.green }), 'last ' + state.analyticsRange + ' days');
+    html += renderAdashCard('App Opens', '👁️', svgAreaChart(d.viewsByDay, { color: ADASH.blue }), 'last ' + state.analyticsRange + ' days');
 
     // User base breakdown donut
     html += renderAdashCard('User Base Breakdown', '🍩', svgDonut([
@@ -17491,103 +16898,6 @@ function renderAnalyticsOverviewTab(d) {
         renderAdashStat('⛔', d.inactiveUsers, 'Inactive', ADASH.red) +
         '</div>'
     );
-
-    return html;
-}
-
-// ---- Result Analysis tab: exam performance aggregated across every user,
-// for the selected range (7 / 30 / All). Reuses the same subject-accuracy
-// aggregator the Personal Analytics dashboard uses for one user, just run
-// here over everyone's attempts at once. -------------------------------
-function renderAnalyticsResultsTab(d) {
-    let html = '';
-
-    const gaugeColor = d.overallResultPct >= 70 ? ADASH.green : d.overallResultPct >= 50 ? ADASH.gold : ADASH.red;
-    html += (
-        '<div class="adash-kpi-grid">' +
-        renderAdashKpi({ icon: '🎯', label: 'Overall Accuracy', value: d.overallResultPct + '%', color: gaugeColor }) +
-        renderAdashKpi({ icon: '📝', label: 'Attempts (' + rangeLabelShort() + ')', value: d.totalAttempts, color: ADASH.gold }) +
-        renderAdashKpi({ icon: '🧑‍🎓', label: 'Users With Attempts', value: d.usersWithAttempts, color: ADASH.blue }) +
-        renderAdashKpi({ icon: '📚', label: 'Subjects Covered', value: d.resultSubjectStats.length, color: ADASH.purple }) +
-        '</div>'
-    );
-
-    // Score-band distribution — how attempts spread across grade bands.
-    const bandSegments = d.scoreBands.map(function(b) { return { label: b.label, value: b.value, color: b.color }; });
-    const totalBanded = bandSegments.reduce(function(a, s) { return a + s.value; }, 0);
-    if (totalBanded > 0) {
-        html += renderAdashCard('Score Distribution', '🍩', svgDonut(bandSegments), totalBanded + ' attempts, ' + rangeLabelLong());
-    } else {
-        html += renderAdashCard('Score Distribution', '🍩', '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:10px 0">No attempts in this range yet.</p>');
-    }
-
-    // Per-subject accuracy across every user — strongest to weakest.
-    let subjectRows = '';
-    if (d.resultSubjectStats.length === 0) {
-        subjectRows = '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:10px 0">No subject data in this range yet.</p>';
-    } else {
-        d.resultSubjectStats.forEach(function(s) {
-            subjectRows += (
-                '<div style="margin-bottom:9px">' +
-                '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">' +
-                '<span style="color:var(--adash-text);font-weight:700">' + esc(s.name) + '</span>' +
-                '<span style="color:' + (s.pct >= 70 ? ADASH.green : s.pct >= 50 ? ADASH.gold : ADASH.red) + ';font-weight:800">' + s.pct + '%</span>' +
-                '</div>' +
-                '<div style="width:100%;height:6px;border-radius:999px;background:rgba(255,255,255,0.08);overflow:hidden">' +
-                '<div style="width:' + s.pct + '%;height:100%;background:' + s.color + ';border-radius:999px"></div>' +
-                '</div>' +
-                '</div>'
-            );
-        });
-    }
-    html += renderAdashCard('Accuracy by Subject', '📚', subjectRows, 'all users · ' + rangeLabelLong());
-
-    // Strongest / weakest callouts, when there's enough data to be meaningful.
-    if (d.resultSubjectStats.length > 1) {
-        const strongest = d.resultSubjectStats[0];
-        const weakest = d.resultSubjectStats[d.resultSubjectStats.length - 1];
-        html += (
-            '<div class="adash-stat-grid">' +
-            renderAdashStat('💪', strongest.pct + '%', 'Strongest: ' + strongest.code, ADASH.green) +
-            renderAdashStat('⚠️', weakest.pct + '%', 'Weakest: ' + weakest.code, ADASH.red) +
-            '</div>'
-        );
-    }
-
-    // Cross-user leaderboard by accuracy — same rank/medal styling as the
-    // student-facing leaderboard, just scoped to the selected range.
-    let lbRows = '';
-    if (d.resultLeaderboard.length === 0) {
-        lbRows = '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:10px 0">No results in this range yet.</p>';
-    } else {
-        d.resultLeaderboard.slice(0, 10).forEach(function(u, i) {
-            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-            lbRows += (
-                '<div class="lb-row">' +
-                '<div class="left">' +
-                '<span class="rank">' + medal + '</span>' +
-                '<span style="font-size:12px;color:var(--adash-text)">' + esc(u.name) + '</span>' +
-                '</div>' +
-                '<span class="score" style="font-size:12px">' + u.pct + '% <span style="color:var(--adash-faint);font-weight:400">(' + u.attempts + ')</span></span>' +
-                '</div>'
-            );
-        });
-    }
-    html += renderAdashCard('Top Performers', '🏆', lbRows, 'by accuracy, ' + rangeLabelLong());
-
-    // Average score by mode, reusing the same per-mode averages already
-    // computed for the Engagement tab, so the two stay consistent.
-    let modeRows = '';
-    Object.keys(d.modeLabels).forEach(function(m) {
-        if (d.historyByModeAvg[m] === undefined) return;
-        modeRows += (
-            '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)">' +
-            '<span style="font-size:12px;color:var(--adash-text)">' + esc(d.modeLabels[m]) + '</span>' +
-            '<span style="font-size:12px;font-weight:800;color:' + (d.historyByModeAvg[m] >= 70 ? ADASH.green : d.historyByModeAvg[m] >= 50 ? ADASH.gold : ADASH.red) + '">' + d.historyByModeAvg[m] + '%</span>' +
-            '</div>'
-        );
-    });
-    if (modeRows) html += renderAdashCard('Average Score by Mode', '📊', modeRows, rangeLabelLong());
 
     return html;
 }
@@ -17646,7 +16956,7 @@ function renderAnalyticsRevenueTab(d) {
         '</div>'
     );
 
-    html += renderAdashCard('Revenue Over Time', '📈', svgAreaChart(d.paymentsByDay, { color: ADASH.gold, prefix: '₦' }), rangeLabelLong());
+    html += renderAdashCard('Revenue Over Time', '📈', svgAreaChart(d.paymentsByDay, { color: ADASH.gold, prefix: '₦' }), 'last ' + state.analyticsRange + ' days');
 
     let paymentRows = '';
     if (d.paidKeys.length === 0) {
@@ -17702,7 +17012,7 @@ function renderAnalyticsEngagementTab(d) {
     }).filter(function(s) { return s.value > 0; });
 
     if (donutSegments.length > 0) {
-        html += renderAdashCard('Attempts by Mode', '🍩', svgDonut(donutSegments), rangeLabelLong());
+        html += renderAdashCard('Attempts by Mode', '🍩', svgDonut(donutSegments), 'last ' + state.analyticsRange + ' days');
     }
 
     Object.keys(d.modeLabels).forEach(function(m, i) {
@@ -21441,8 +20751,7 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'analytics-range') {
-        const rangeAttr = el.getAttribute('data-range');
-        state.analyticsRange = rangeAttr === 'all' ? 'all' : parseInt(rangeAttr, 10);
+        state.analyticsRange = parseInt(el.getAttribute('data-range'), 10);
         state.analyticsLoaded = false;
         loadAnalyticsData();
         return;
