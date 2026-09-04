@@ -51,12 +51,22 @@ self.addEventListener("fetch", (event) => {
 
 // ===== PUSH NOTIFICATIONS =====
 self.addEventListener("push", (event) => {
-  const data = event.data ? event.data.json() : {};
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    // Payload wasn't valid JSON — fall back to plain text rather than
+    // dropping the notification entirely.
+    data = { title: "MyUTME", body: event.data ? event.data.text() : "" };
+  }
   event.waitUntil(
     self.registration.showNotification(data.title || "MyUTME", {
       body: data.body || "",
       icon: "./icon-192.png",
       badge: "./icon-badge-96.png",
+      // A stable tag means a second reminder replaces the first
+      // notification in the tray instead of stacking duplicates.
+      tag: data.tag || "myutme-notification",
       data: data.url || "/",
     })
   );
@@ -64,5 +74,15 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data || "/"));
+  const targetUrl = event.notification.data || "/";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // Focus an already-open app tab instead of piling up new ones.
+      for (const client of clientList) {
+        if ("focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+    })
+  );
 });
