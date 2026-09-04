@@ -1804,6 +1804,198 @@
         margin-bottom: 4px;
     }
 
+    /* ============================================================
+       EXAM CHROME V2 — redesigned exam-taking header/toolbar/footer
+       ============================================================ */
+    .exam-shell {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 12px 14px 10px;
+        overflow: hidden;
+    }
+    .exam-shell-scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        min-height: 0;
+    }
+    .exam-shell-scroll::-webkit-scrollbar { display: none; }
+
+    .exam-brandbar {
+        font-size: 17px;
+        font-weight: 800;
+        color: var(--ink);
+        padding: 2px 0 10px;
+        flex-shrink: 0;
+    }
+
+    .exam-timeleft-card {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 10px;
+        flex-shrink: 0;
+    }
+    .exam-timeleft-card .tl-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 600;
+    }
+    .exam-timeleft-card .tl-label svg { width: 15px; height: 15px; stroke: var(--muted); }
+    .exam-timeleft-card .tl-time {
+        font-size: 19px;
+        font-weight: 800;
+        color: var(--green);
+        font-family: var(--font-mono);
+    }
+    .exam-timeleft-card .tl-time.warning { color: var(--danger); }
+
+    .exam-icon-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    .exam-icon-row .exam-square-group { display: flex; align-items: center; gap: 8px; }
+    .exam-icon-row .exam-square-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: var(--radius-sm);
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-sm);
+        cursor: pointer;
+        color: var(--ink);
+        transition: transform 0.15s;
+        flex-shrink: 0;
+        font-size: 16px;
+    }
+    .exam-icon-row .exam-square-btn:active { transform: scale(0.93); }
+    .exam-icon-row .exam-square-btn.enabled { background: var(--gold); color: #fff; border-color: var(--gold); }
+    .exam-icon-row .exam-pill-group { display: flex; gap: 8px; }
+    .exam-icon-row .exam-pill-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        min-width: 56px;
+        padding: 6px 10px;
+        border-radius: var(--radius-sm);
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow-sm);
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--muted);
+        cursor: pointer;
+    }
+    .exam-icon-row .exam-pill-btn svg { width: 16px; height: 16px; stroke: var(--muted); }
+    .exam-icon-row .exam-pill-btn.marked,
+    .exam-icon-row .exam-pill-btn.flagged {
+        background: var(--green-light);
+        border-color: var(--green);
+        color: var(--green);
+    }
+    .exam-icon-row .exam-pill-btn.marked svg,
+    .exam-icon-row .exam-pill-btn.flagged svg { stroke: var(--green); }
+
+    .exam-q-card-v2 {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 14px;
+    }
+    .exam-q-card-v2 .q-num {
+        color: var(--green);
+        font-weight: 700;
+        font-size: 12.5px;
+        margin: 0 0 6px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+    }
+    .exam-q-card-v2 .q-body {
+        margin: 0;
+        font-weight: 600;
+        color: var(--ink);
+        font-size: 15px;
+        line-height: 1.55;
+    }
+
+    .exam-lock-card {
+        background: var(--card-bg);
+        border: 1.5px dashed var(--gold);
+        border-radius: var(--radius-lg);
+        padding: 26px 18px;
+        text-align: center;
+        margin-bottom: 14px;
+    }
+    .exam-lock-card svg { width: 30px; height: 30px; stroke: var(--gold); margin-bottom: 10px; }
+    .exam-lock-card p { margin: 0 0 12px; font-size: 13.5px; color: var(--muted); font-weight: 600; }
+
+    .exam-footer-v2 {
+        flex-shrink: 0;
+        padding: 10px 0 0;
+        border-top: 1px solid var(--line);
+        background: var(--card-bg);
+    }
+    .exam-footer-v2 .ef-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .exam-footer-v2 .ef-row button {
+        flex: 1;
+        padding: 11px 0;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        background: var(--green-light);
+        color: var(--green);
+    }
+    .exam-footer-v2 .ef-row button:disabled { opacity: 0.35; cursor: not-allowed; }
+    .exam-footer-v2 .ef-submit {
+        width: 100%;
+        padding: 13px 0;
+        border-radius: var(--radius-sm);
+        background: var(--green-dark);
+        color: #fff;
+        font-weight: 800;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    /* Non-scrolling full-page exam layout — mirrors .view-chat's approach */
+    .view-exam { padding: 0 !important; overflow: hidden !important; }
+    .view-exam .view-content {
+        height: 100%;
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
     /* Goto Question Modal */
     .goto-overlay {
         position: fixed;
@@ -1956,6 +2148,16 @@
     .goto-modal .goto-grid .goto-q {
         position: relative;
     }
+    .goto-modal .goto-grid .goto-q.locked {
+        background: var(--bg);
+        border: 1.5px dashed var(--faint);
+        color: var(--faint);
+        cursor: not-allowed;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .goto-modal .goto-grid .goto-q.locked svg { width: 12px; height: 12px; stroke: var(--faint); }
     .goto-modal .goto-grid .goto-q.marked::after {
         content: '';
         position: absolute;
@@ -6292,6 +6494,93 @@ function renderFlagButton(qid, subjectId, mode) {
 
 function subjectBadge(s) {
     return '<div class="subject-badge">' + esc(s.code) + '</div>';
+}
+
+// ============================================================
+//  EXAM CHROME V2 — shared header/toolbar/footer builders used by
+//  every exam-taking screen (CBT, Past Questions, Topic, Novel, Mock)
+//  so they all look and behave identically.
+// ============================================================
+
+// Free (non-activated) users can only progress through the first
+// FREE_QUESTION_LIMIT questions of any given subject/paper before being
+// asked to activate their account.
+const FREE_QUESTION_LIMIT = 6;
+
+// localIndex is the 0-based position of a question *within its own
+// subject/paper* (not the global array index) — this is what the goto
+// grid and the exam screens both key off already.
+function isLocalIndexLocked(localIndex) {
+    if (isUserActive()) return false;
+    return localIndex >= FREE_QUESTION_LIMIT;
+}
+
+function renderExamTimeLeftCard(timeLeft) {
+    const warn = timeLeft < 300;
+    return (
+        '<div class="exam-timeleft-card">' +
+        '<span class="tl-label">' + svg('clock', 15) + 'Time Left</span>' +
+        '<span class="tl-time' + (warn ? ' warning' : '') + '">' + formatTime(timeLeft) + '</span>' +
+        '</div>'
+    );
+}
+
+// cfg: { calcEnabled, hasPassage, qid, subjectId, mode, marked, markAction }
+function renderExamIconRow(cfg) {
+    const isFlagged = cfg.qid && state.myFlaggedIds.indexOf(cfg.qid) !== -1;
+    return (
+        '<div class="exam-icon-row">' +
+        '<div class="exam-square-group">' +
+        (cfg.calcEnabled
+            ? '<button class="exam-square-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg('calcsigns', 20) + '</button>'
+            : '<button class="exam-square-btn" data-action="toggle-calculator" aria-label="Calculator" style="opacity:0.35;cursor:not-allowed" title="Calculator disabled">' + svg('calcsigns', 20) + '</button>'
+        ) +
+        (cfg.hasPassage ? '<button class="exam-square-btn" data-action="show-passage" title="View Passage" aria-label="View Passage">📖</button>' : '') +
+        '</div>' +
+        '<div class="exam-pill-group">' +
+        '<button class="exam-pill-btn' + (cfg.marked ? ' marked' : '') + '" data-action="toggle-mark-review" data-mode="' + (cfg.mode || '') + '" title="Mark for Review">' +
+        svg('bookmark', 16) + '<span>' + (cfg.marked ? 'Marked' : 'Bookmark') + '</span></button>' +
+        '<button class="exam-pill-btn' + (isFlagged ? ' flagged' : '') + '" data-action="flag-review-question" data-qid="' + (cfg.qid || '') + '" data-subject="' + (cfg.subjectId || '') + '" data-mode="' + (cfg.mode || '') + '" title="Flag Question">' +
+        svg('flag', 16) + '<span>' + (isFlagged ? 'Flagged' : 'Flag') + '</span></button>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
+function renderExamQCardHeader(number, text) {
+    return (
+        '<div class="exam-q-card-v2">' +
+        '<p class="q-num">Question ' + number + '</p>' +
+        '<p class="q-body">' + esc(text || '') + '</p>' +
+        '</div>'
+    );
+}
+
+function renderExamLockCard() {
+    return (
+        '<div class="exam-lock-card">' +
+        svg('lock', 30) +
+        '<p>Free access covers the first ' + FREE_QUESTION_LIMIT + ' questions. Activate your account to unlock the rest of this paper.</p>' +
+        '<button class="btn btn-gold" data-action="set-view" data-view="activate">Activate My Account</button>' +
+        '</div>'
+    );
+}
+
+// cfg: { hasPrev, prevAction, prevIdx, hasNext, nextAction, nextIdx, nextLocked, gotoAction, submitAction }
+function renderExamFooterNav(cfg) {
+    return (
+        '<div class="exam-footer-v2">' +
+        '<div class="ef-row">' +
+        '<button class="ef-back" data-action="' + cfg.prevAction + '" data-idx="' + (cfg.prevIdx != null ? cfg.prevIdx : '') + '"' + (cfg.hasPrev ? '' : ' disabled') + '>' + svg('chevleft', 14) + ' Back</button>' +
+        '<button class="ef-goto" data-action="' + cfg.gotoAction + '">' + svg('list', 14) + ' Goto</button>' +
+        (cfg.nextLocked
+            ? '<button class="ef-next" data-action="set-view" data-view="activate">' + svg('lock', 14) + ' Next</button>'
+            : '<button class="ef-next" data-action="' + cfg.nextAction + '" data-idx="' + (cfg.nextIdx != null ? cfg.nextIdx : '') + '"' + (cfg.hasNext ? '' : ' disabled') + '>Next ' + svg('chevleft', 14).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + '</button>'
+        ) +
+        '</div>' +
+        '<button class="ef-submit" data-action="' + cfg.submitAction + '">' + svg('filetext', 16) + ' Submit Exam</button>' +
+        '</div>'
+    );
 }
 
 function formatTime(seconds) {
@@ -11777,11 +12066,14 @@ function renderGotoModal() {
             const isAnswered = answers[globalIdx] !== null && answers[globalIdx] !== undefined;
             const isCurrent = globalIdx === current;
             const isMarked = !!marked[globalIdx];
+            const isLocked = isLocalIndexLocked(localIdx);
             const cls = 'goto-q' +
-                (isAnswered ? ' answered' : ' unanswered') +
+                (isLocked ? ' locked' : (isAnswered ? ' answered' : ' unanswered')) +
                 (isCurrent ? ' current' : '') +
                 (isMarked ? ' marked' : '');
-            g += '<button class="' + cls + '" data-action="goto-q-select" data-idx="' + globalIdx + '" data-mode="' + mode + '">' + (localIdx + 1) + '</button>';
+            g += isLocked
+                ? '<button class="' + cls + '" data-action="goto-locked" title="Activate to unlock this question">' + svg('lock', 12) + '</button>'
+                : '<button class="' + cls + '" data-action="goto-q-select" data-idx="' + globalIdx + '" data-mode="' + mode + '">' + (localIdx + 1) + '</button>';
         });
         g += '</div>';
         return g;
@@ -12647,6 +12939,8 @@ function renderApp() {
     const userName = state.profile.name || "Guest";
     const initial = userName.trim().charAt(0).toUpperCase() || "G";
     const isHome = state.view === 'home';
+    const EXAM_TAKING_VIEWS = ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'];
+    const isExamTaking = EXAM_TAKING_VIEWS.indexOf(state.view) !== -1;
 
     let leftContent = '';
 
@@ -12685,7 +12979,10 @@ function renderApp() {
         '<div id="app-shell"><div id="app-inner">' +
         loadingOverlay +
         '<div class="topbar' + (isHome ? '' : ' topbar-plain') + '">' +
-        (isHome
+        (isExamTaking
+            ? '<div class="topbar-left"><span class="page-name">MyUTME</span></div>' +
+              '<div class="topbar-center"></div><div class="topbar-right"></div>'
+            : isHome
             ? '<div class="topbar-left">' +
               '<button class="icon-btn topbar-refresh-btn" data-action="app-refresh" aria-label="Refresh">' +
               svg('refresh', 16).replace('stroke="currentColor"', 'stroke="white"') +
@@ -12703,8 +13000,8 @@ function renderApp() {
               rightContent + '</div>'
         ) +
         '</div>' +
-        '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + '"><div class="view-content">' + renderView() + '</div></div>' +
-        renderBottomNav() +
+        '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + '"><div class="view-content">' + renderView() + '</div></div>' +
+        (isExamTaking ? '' : renderBottomNav()) +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
         (state.viewingImage ? (
             '<div class="ai-history-overlay" style="z-index:200;align-items:center;justify-content:center;padding:20px" data-action="close-image-viewer">' +
@@ -13328,19 +13625,18 @@ function renderPassagePage() {
     if (!passage) return renderCbtExam();
     
     return (
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-        '<button class="back-link" data-action="cbt-exit" style="margin:0;font-size:13px">' + svg("chevleft", 14) + ' Exit</button>' +
-        '</div>' +
-        '<div class="timer-bar">' +
-        '<span class="label">⏱️ Time left</span>' +
-        '<span class="time">' + formatTime(state.cbtTimeLeft) + '</span>' +
-        '</div>' +
+        '<div class="exam-shell">' +
+        '<div class="exam-shell-scroll">' +
+        renderExamTimeLeftCard(state.cbtTimeLeft) +
         '<div class="card" style="padding:16px;margin-bottom:12px;min-height:250px">' +
         '<h3 style="font-family:var(--font-serif);margin:0 0 10px;font-size:17px;color:var(--ink)">📖 ' + esc(passage.title || 'Reading Passage') + '</h3>' +
         '<div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">' + esc(passage.passage_text) + '</div>' +
         '</div>' +
-        '<button class="btn btn-green" data-action="passage-done">I\'ve Read It — Next</button>' +
-        '<p style="font-size:11px;color:var(--faint);text-align:center;margin-top:10px">Read the passage carefully. You\'ll answer questions based on it.</p>' +
+        '</div>' +
+        '<div class="exam-footer-v2">' +
+        '<button class="ef-submit" data-action="passage-done">' + svg('chevleft', 14).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + ' I\'ve Read It — Next</button>' +
+        '<p style="font-size:11px;color:var(--faint);text-align:center;margin:10px 0 0">Read the passage carefully. You\'ll answer questions based on it.</p>' +
+        '</div>' +
         '</div>'
     );
 }
@@ -13598,48 +13894,34 @@ function renderCbtExam() {
     const nextIdx = hasNext ? currentSubjectQuestions[currentSubjectIndex + 1] : null;
 
     const hasPassage = state.hasPassage && state.currentEnglishPassage && state.passageRead;
+    const qLocked = isLocalIndexLocked(currentSubjectIndex);
+    const nextLocked = hasNext && isLocalIndexLocked(currentSubjectIndex + 1);
 
     return (
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-        '<button class="back-link" data-action="cbt-exit" style="margin:0;font-size:13px">' + svg("chevleft", 14) + ' Exit</button>' +
+        '<div class="exam-shell">' +
+        '<div class="exam-shell-scroll">' +
+        renderExamTimeLeftCard(state.cbtTimeLeft) +
+        renderExamIconRow({
+            calcEnabled: calcEnabled,
+            hasPassage: hasPassage,
+            qid: item ? item.id : '',
+            subjectId: subj ? subj.id : '',
+            mode: 'cbt',
+            marked: !!(state.cbtMarked && state.cbtMarked[state.cbtIndex]),
+        }) +
+        (state.cbtSubjectOrder.length > 1 ? '<div class="subject-tabs">' + subjectTabs + '</div>' : '') +
+        (qLocked
+            ? renderExamLockCard()
+            : (renderExamQCardHeader(currentSubjectIndex + 1, item?.text) +
+               '<div class="exam-options-wrap">' + opts + '</div>')
+        ) +
         '</div>' +
-        '<div class="exam-top-bar">' +
-        '<div class="left-group">' +
-        (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calcsigns", 18) + ' Calc</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calcsigns", 18) + ' Calc</button>'
-        ) + 
-        (hasPassage ? '<button class="calc-btn" style="background:var(--gold);color:var(--ink);height:28px;padding:0 8px;border-radius:6px;display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:10px;font-weight:600" data-action="show-passage" title="View Passage" aria-label="View Passage">📖 Passage</button>' : '') +
-        '</div>' +
-        '<div class="right-group">' +
-        '<button class="submit-btn" data-action="cbt-submit">Submit</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="timer-bar">' +
-        '<span class="label">⏱️ Time left</span>' +
-        '<span class="time' + (state.cbtTimeLeft < 300 ? ' warning' : '') + '">' +
-        formatTime(state.cbtTimeLeft) +
-        '</span>' +
-        '</div>' +
-        '<div class="subject-tabs">' + subjectTabs + '</div>' +
-        '<div class="exam-nav">' +
-        '<span class="q-counter">Question ' + (currentSubjectIndex + 1) + ' of ' + totalInCurrentSubject + ' in ' + (subj ? subj.name : '') + '</span>' +
-        '<div class="goto-btn-wrap">' +
-        '<button class="goto-btn" data-action="show-goto-cbt">📋 Questions (' + answeredCount + '/' + totalQ + ')</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="exam-body">' +
-        '<div class="card exam-question-card">' +
-        renderFlagButton(item ? item.id : '', subj ? subj.id : '', 'cbt') +
-        '<button class="mark-review-btn' + (state.cbtMarked && state.cbtMarked[state.cbtIndex] ? ' marked' : '') + '" data-action="toggle-mark-review" title="Mark for Review">' +
-        svg('bookmark', 14) + '<span>' + (state.cbtMarked && state.cbtMarked[state.cbtIndex] ? 'Marked' : 'Mark') + '</span></button>' +
-        '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
-        '</div>' +
-        '<div class="exam-options-wrap">' + opts + '</div>' +
-        '<div class="exam-nav-buttons">' +
-        (hasPrev ? '<button class="btn btn-outline" style="flex:1" data-action="cbt-goto" data-idx="' + prevIdx + '">Previous</button>' : '') +
-        (hasNext ? '<button class="btn btn-green" style="flex:1" data-action="cbt-goto" data-idx="' + nextIdx + '">Next</button>' : '') +
-        '</div>' +
+        renderExamFooterNav({
+            hasPrev: hasPrev, prevAction: 'cbt-goto', prevIdx: prevIdx,
+            hasNext: hasNext, nextAction: 'cbt-goto', nextIdx: nextIdx, nextLocked: nextLocked,
+            gotoAction: 'show-goto-cbt',
+            submitAction: 'cbt-submit',
+        }) +
         '</div>'
     );
 }
@@ -13838,44 +14120,39 @@ function renderExamExam() {
         });
     }
 
+    const hasNext = state.examIndex < totalQ - 1;
+    const hasPrev = state.examIndex > 0;
+    const qLocked = isLocalIndexLocked(state.examIndex);
+    const nextLocked = hasNext && isLocalIndexLocked(state.examIndex + 1);
+
     return (
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-        '<button class="back-link" data-action="exam-exit" style="margin:0;font-size:13px">' + svg("chevleft", 14) + ' Exit</button>' +
-        '</div>' +
-        '<div class="exam-top-bar">' +
-        '<div class="left-group">' +
-        (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calcsigns", 18) + ' Calc</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calcsigns", 18) + ' Calc</button>'
+        '<div class="exam-shell">' +
+        '<div class="exam-shell-scroll">' +
+        renderExamIconRow({
+            calcEnabled: calcEnabled,
+            hasPassage: false,
+            qid: item ? item.id : '',
+            subjectId: subj ? subj.id : '',
+            mode: 'exam',
+            marked: !!(state.examMarked && state.examMarked[state.examIndex]),
+        }) +
+        (qLocked
+            ? renderExamLockCard()
+            : (renderExamQCardHeader(state.examIndex + 1, item?.text) +
+               '<div class="exam-options-wrap">' + opts + '</div>' +
+               (isInstant && instantResult !== undefined && item ?
+                   '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><p>' + esc(item.explanation || 'No explanation provided.') + '</p>' +
+                   '<div class="ask-ai-row">' + askAiButtonHtml(item, (subj ? subj.name : ''), state.examAnswers[state.examIndex]) + '</div>' +
+                   '</div>' : '')
+              )
         ) +
         '</div>' +
-        '<div class="right-group">' +
-        '<button class="submit-btn" data-action="exam-submit">Submit</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="exam-nav">' +
-        '<span class="q-counter">Question ' + (state.examIndex + 1) + ' of ' + totalQ + '</span>' +
-        '<div class="goto-btn-wrap">' +
-        '<button class="goto-btn" data-action="show-goto-exam">📋 Questions (' + answeredCount + '/' + totalQ + ')</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="exam-body">' +
-        '<div class="card exam-question-card">' +
-        renderFlagButton(item ? item.id : '', subj ? subj.id : '', 'exam') +
-        '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
-        '</div>' +
-        '<div class="exam-options-wrap">' + opts + '</div>' +
-        (isInstant && instantResult !== undefined && item ? 
-            '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><p>' + esc(item.explanation || 'No explanation provided.') + '</p>' +
-            '<div class="ask-ai-row">' + askAiButtonHtml(item, (subj ? subj.name : ''), state.examAnswers[state.examIndex]) + '</div>' +
-            '</div>' :
-            '') +
-        '<div class="exam-nav-buttons">' +
-        (state.examIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="exam-prev">Previous</button>' :
-            '') +
-        (state.examIndex < totalQ - 1 ?
-            '<button class="btn btn-green" style="flex:1" data-action="exam-next">Next</button>' : '') +
-        '</div>' +
+        renderExamFooterNav({
+            hasPrev: hasPrev, prevAction: 'exam-prev', prevIdx: null,
+            hasNext: hasNext, nextAction: 'exam-next', nextIdx: null, nextLocked: nextLocked,
+            gotoAction: 'show-goto-exam',
+            submitAction: 'exam-submit',
+        }) +
         '</div>'
     );
 }
@@ -14059,45 +14336,35 @@ function renderTopicExam() {
         });
     }
 
+    const hasNext = state.topicIndex < totalQ - 1;
+    const hasPrev = state.topicIndex > 0;
+    const qLocked = isLocalIndexLocked(state.topicIndex);
+    const nextLocked = hasNext && isLocalIndexLocked(state.topicIndex + 1);
+
     return (
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-        '<button class="back-link" data-action="topic-exit" style="margin:0;font-size:13px">' + svg("chevleft", 14) + ' Exit</button>' +
-        '</div>' +
-        '<div class="exam-top-bar">' +
-        '<div class="left-group">' +
-        (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calcsigns", 18) + ' Calc</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calcsigns", 18) + ' Calc</button>'
+        '<div class="exam-shell">' +
+        '<div class="exam-shell-scroll">' +
+        renderExamTimeLeftCard(state.topicTimeLeft) +
+        renderExamIconRow({
+            calcEnabled: calcEnabled,
+            hasPassage: false,
+            qid: item ? item.id : '',
+            subjectId: subj ? subj.id : '',
+            mode: 'topic',
+            marked: !!(state.topicMarked && state.topicMarked[state.topicIndex]),
+        }) +
+        (qLocked
+            ? renderExamLockCard()
+            : (renderExamQCardHeader(state.topicIndex + 1, item?.text) +
+               '<div class="exam-options-wrap">' + opts + '</div>')
         ) +
         '</div>' +
-        '<div class="right-group">' +
-        '<button class="submit-btn" data-action="topic-submit">Submit</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="timer-bar">' +
-        '<span class="label">⏱️ Time left</span>' +
-        '<span class="time' + (state.topicTimeLeft < 300 ? ' warning' : '') + '">' +
-        formatTime(state.topicTimeLeft) +
-        '</span>' +
-        '</div>' +
-        '<div class="exam-nav">' +
-        '<span class="q-counter">Question ' + (state.topicIndex + 1) + ' of ' + totalQ + '</span>' +
-        '<div class="goto-btn-wrap">' +
-        '<button class="goto-btn" data-action="show-goto-topic">📋 Questions (' + answeredCount + '/' + totalQ + ')</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="exam-body">' +
-        '<div class="card exam-question-card">' +
-        renderFlagButton(item ? item.id : '', subj ? subj.id : '', 'topic') +
-        '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
-        '</div>' +
-        '<div class="exam-options-wrap">' + opts + '</div>' +
-        '<div class="exam-nav-buttons">' +
-        (state.topicIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="topic-prev">Previous</button>' :
-            '') +
-        (state.topicIndex < totalQ - 1 ?
-            '<button class="btn btn-green" style="flex:1" data-action="topic-next">Next</button>' : '') +
-        '</div>' +
+        renderExamFooterNav({
+            hasPrev: hasPrev, prevAction: 'topic-prev', prevIdx: null,
+            hasNext: hasNext, nextAction: 'topic-next', nextIdx: null, nextLocked: nextLocked,
+            gotoAction: 'show-goto-topic',
+            submitAction: 'topic-submit',
+        }) +
         '</div>'
     );
 }
@@ -14210,45 +14477,35 @@ function renderLitExam() {
         });
     }
 
+    const hasNext = state.litIndex < totalQ - 1;
+    const hasPrev = state.litIndex > 0;
+    const qLocked = isLocalIndexLocked(state.litIndex);
+    const nextLocked = hasNext && isLocalIndexLocked(state.litIndex + 1);
+
     return (
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-        '<button class="back-link" data-action="lit-exit" style="margin:0;font-size:13px">' + svg("chevleft", 14) + ' Exit</button>' +
-        '</div>' +
-        '<div class="exam-top-bar">' +
-        '<div class="left-group">' +
-        (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calcsigns", 18) + ' Calc</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calcsigns", 18) + ' Calc</button>'
+        '<div class="exam-shell">' +
+        '<div class="exam-shell-scroll">' +
+        renderExamTimeLeftCard(state.litTimeLeft) +
+        renderExamIconRow({
+            calcEnabled: calcEnabled,
+            hasPassage: false,
+            qid: item ? item.id : '',
+            subjectId: subj ? subj.id : '',
+            mode: 'novel',
+            marked: !!(state.litMarked && state.litMarked[state.litIndex]),
+        }) +
+        (qLocked
+            ? renderExamLockCard()
+            : (renderExamQCardHeader(state.litIndex + 1, item?.text) +
+               '<div class="exam-options-wrap">' + opts + '</div>')
         ) +
         '</div>' +
-        '<div class="right-group">' +
-        '<button class="submit-btn" data-action="lit-submit">Submit</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="timer-bar">' +
-        '<span class="label">⏱️ Time left</span>' +
-        '<span class="time' + (state.litTimeLeft < 300 ? ' warning' : '') + '">' +
-        formatTime(state.litTimeLeft) +
-        '</span>' +
-        '</div>' +
-        '<div class="exam-nav">' +
-        '<span class="q-counter">Question ' + (state.litIndex + 1) + ' of ' + totalQ + '</span>' +
-        '<div class="goto-btn-wrap">' +
-        '<button class="goto-btn" data-action="show-goto-lit">📋 Questions (' + answeredCount + '/' + totalQ + ')</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="exam-body">' +
-        '<div class="card exam-question-card">' +
-        renderFlagButton(item ? item.id : '', subj ? subj.id : '', 'cbt') +
-        '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
-        '</div>' +
-        '<div class="exam-options-wrap">' + opts + '</div>' +
-        '<div class="exam-nav-buttons">' +
-        (state.litIndex > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="lit-prev">Previous</button>' :
-            '') +
-        (state.litIndex < totalQ - 1 ?
-            '<button class="btn btn-green" style="flex:1" data-action="lit-next">Next</button>' : '') +
-        '</div>' +
+        renderExamFooterNav({
+            hasPrev: hasPrev, prevAction: 'lit-prev', prevIdx: null,
+            hasNext: hasNext, nextAction: 'lit-next', nextIdx: null, nextLocked: nextLocked,
+            gotoAction: 'show-goto-lit',
+            submitAction: 'lit-submit',
+        }) +
         '</div>'
     );
 }
@@ -16556,49 +16813,34 @@ function renderMockExam() {
     const nextIdx = hasNext ? currentSubjectQuestions[currentSubjectIndex + 1] : null;
 
     const hasPassage = state.engMockHasPassage && state.engMockPassage;
+    const qLocked = isLocalIndexLocked(currentSubjectIndex);
+    const nextLocked = hasNext && isLocalIndexLocked(currentSubjectIndex + 1);
 
     return (
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-        '<button class="back-link" data-action="mock-exit" style="margin:0;font-size:13px">' + svg("chevleft", 14) + ' Exit</button>' +
-        '</div>' +
-        '<div class="exam-top-bar">' +
-        '<div class="left-group">' +
-        (calcEnabled ? 
-            '<button class="calc-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg("calcsigns", 18) + ' Calc</button>' :
-            '<button class="calc-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator disabled" style="opacity:0.3;cursor:not-allowed">' + svg("calcsigns", 18) + ' Calc</button>'
+        '<div class="exam-shell">' +
+        '<div class="exam-shell-scroll">' +
+        renderExamTimeLeftCard(state.mockTimeLeft) +
+        renderExamIconRow({
+            calcEnabled: calcEnabled,
+            hasPassage: hasPassage,
+            qid: item ? item.id : '',
+            subjectId: subj ? subj.id : '',
+            mode: 'mock',
+            marked: !!(state.mockMarked && state.mockMarked[state.mockIndex]),
+        }) +
+        (state.mockSubjectOrder.length > 1 ? '<div class="subject-tabs">' + subjectTabs + '</div>' : '') +
+        (qLocked
+            ? renderExamLockCard()
+            : (renderExamQCardHeader(currentSubjectIndex + 1, item?.text) +
+               '<div class="exam-options-wrap">' + opts + '</div>')
         ) +
-        (hasPassage ? 
-            '<button class="calc-btn" style="background:var(--gold);color:var(--ink);height:28px;padding:0 8px;border-radius:6px;display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:10px;font-weight:600" data-action="show-mock-passage" title="View Passage" aria-label="View Passage">📖 Passage</button>' : 
-            ''
-        ) +
         '</div>' +
-        '<div class="right-group">' +
-        '<button class="submit-btn" data-action="mock-submit">Submit</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="timer-bar">' +
-        '<span class="label">⏱️ Time left</span>' +
-        '<span class="time' + (state.mockTimeLeft < 300 ? ' warning' : '') + '">' +
-        formatTime(state.mockTimeLeft) +
-        '</span>' +
-        '</div>' +
-        '<div class="subject-tabs">' + subjectTabs + '</div>' +
-        '<div class="exam-nav">' +
-        '<span class="q-counter">Question ' + (currentSubjectIndex + 1) + ' of ' + totalInCurrentSubject + ' in ' + (subj ? subj.name : '') + '</span>' +
-        '<div class="goto-btn-wrap">' +
-        '<button class="goto-btn" data-action="show-goto-mock">📋 Questions (' + answeredCount + '/' + totalQ + ')</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="exam-body">' +
-        '<div class="card exam-question-card">' +
-        renderFlagButton(item ? item.id : '', subj ? subj.id : '', 'cbt') +
-        '<p style="font-weight:600;margin:0">' + esc(item?.text || '') + '</p>' +
-        '</div>' +
-        '<div class="exam-options-wrap">' + opts + '</div>' +
-        '<div class="exam-nav-buttons">' +
-        (hasPrev ? '<button class="btn btn-outline" style="flex:1" data-action="mock-goto" data-idx="' + prevIdx + '">Previous</button>' : '') +
-        (hasNext ? '<button class="btn btn-green" style="flex:1" data-action="mock-goto" data-idx="' + nextIdx + '">Next</button>' : '') +
-        '</div>' +
+        renderExamFooterNav({
+            hasPrev: hasPrev, prevAction: 'mock-goto', prevIdx: prevIdx,
+            hasNext: hasNext, nextAction: 'mock-goto', nextIdx: nextIdx, nextLocked: nextLocked,
+            gotoAction: 'show-goto-mock',
+            submitAction: 'mock-submit',
+        }) +
         '</div>'
     );
 }
@@ -16608,19 +16850,18 @@ function renderMockPassagePage() {
     if (!passage) return renderMockExam();
     
     return (
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-        '<button class="back-link" data-action="mock-exit" style="margin:0;font-size:13px">' + svg("chevleft", 14) + ' Exit</button>' +
-        '</div>' +
-        '<div class="timer-bar">' +
-        '<span class="label">⏱️ Time left</span>' +
-        '<span class="time">' + formatTime(state.mockTimeLeft) + '</span>' +
-        '</div>' +
+        '<div class="exam-shell">' +
+        '<div class="exam-shell-scroll">' +
+        renderExamTimeLeftCard(state.mockTimeLeft) +
         '<div class="card" style="padding:16px;margin-bottom:12px;min-height:250px">' +
         '<h3 style="font-family:var(--font-serif);margin:0 0 10px;font-size:17px;color:var(--ink)">📖 ' + esc(passage.title || 'Reading Passage') + '</h3>' +
         '<div style="font-size:14px;line-height:1.7;color:var(--ink);white-space:pre-wrap">' + esc(passage.passage_text) + '</div>' +
         '</div>' +
-        '<button class="btn btn-green" data-action="mock-passage-done">I\'ve Read It — Next</button>' +
-        '<p style="font-size:11px;color:var(--faint);text-align:center;margin-top:10px">Read the passage carefully. You\'ll answer questions based on it.</p>' +
+        '</div>' +
+        '<div class="exam-footer-v2">' +
+        '<button class="ef-submit" data-action="mock-passage-done">' + svg('chevleft', 14).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + ' I\'ve Read It — Next</button>' +
+        '<p style="font-size:11px;color:var(--faint);text-align:center;margin:10px 0 0">Read the passage carefully. You\'ll answer questions based on it.</p>' +
+        '</div>' +
         '</div>'
     );
 }
@@ -20209,6 +20450,14 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
+    if (action === 'goto-locked') {
+        state.showGotoModal = false;
+        state.gotoModalData = null;
+        showToast('🔒 Activate your account to unlock this question.', '');
+        state.view = 'activate';
+        render();
+        return;
+    }
     if (action === 'goto-q-select') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         const mode = el.getAttribute('data-mode');
@@ -20709,8 +20958,18 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'toggle-mark-review') {
-        if (!Array.isArray(state.cbtMarked)) state.cbtMarked = new Array(state.cbtQuestions.length).fill(false);
-        state.cbtMarked[state.cbtIndex] = !state.cbtMarked[state.cbtIndex];
+        const markMode = el.getAttribute('data-mode') || 'cbt';
+        const MARK_MODE_MAP = {
+            cbt: ['cbtMarked', 'cbtIndex', 'cbtQuestions'],
+            exam: ['examMarked', 'examIndex', 'examQuestions'],
+            topic: ['topicMarked', 'topicIndex', 'topicQuestions'],
+            lit: ['litMarked', 'litIndex', 'litQuestions'],
+            mock: ['mockMarked', 'mockIndex', 'mockQuestions'],
+        };
+        const mk = MARK_MODE_MAP[markMode] || MARK_MODE_MAP.cbt;
+        const markedKey = mk[0], idxKey = mk[1], qKey = mk[2];
+        if (!Array.isArray(state[markedKey])) state[markedKey] = new Array((state[qKey] || []).length).fill(false);
+        state[markedKey][state[idxKey]] = !state[markedKey][state[idxKey]];
         saveSessionSnapshot();
         render();
         return;
@@ -20722,6 +20981,14 @@ document.addEventListener('click', function(e) {
             state.cbtIndex = idx;
             const q = state.cbtQuestions[idx];
             if (q) state.cbtCurrentSubject = q.subject_id;
+            if (!isUserActive()) {
+                const qs = getQuestionsForSubject(state.cbtCurrentSubject, state.cbtSubjectQuestions);
+                const localPos = qs.indexOf(idx);
+                if (localPos === FREE_QUESTION_LIMIT - 1 && !state.cbtFreeWarnShown) {
+                    state.cbtFreeWarnShown = true;
+                    showToast('🔓 This is your last free question here — activate your account for full access.', '');
+                }
+            }
             saveSessionSnapshot();
             render();
         }
