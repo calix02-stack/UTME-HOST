@@ -1,5 +1,5 @@
 // MyUTME service worker
-const CACHE_NAME = "myutme-cache-v4";
+const CACHE_NAME = "myutme-cache-v5";
 
 const APP_SHELL = [
   "./",
@@ -67,7 +67,14 @@ self.addEventListener("fetch", (event) => {
           }
           return networkResponse;
         })
-        .catch(() => caches.match(event.request))
+        // Question data files are fetched with a cache-busting "?_=<time>"
+        // query string (see offline-db.js) so every check is a real trip to
+        // the network/CDN, not a stale cached copy. That means the exact
+        // URL is different every time, so when truly offline we look up the
+        // last successfully cached copy while ignoring the query string —
+        // otherwise this fallback could never find anything and offline use
+        // would break entirely.
+        .catch(() => caches.match(event.request, { ignoreSearch: true }))
     );
     return;
   }
