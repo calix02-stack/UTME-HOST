@@ -776,13 +776,24 @@ async function diffAndApplySubjectData(subjectId, data) {
 // Reconcile ONE subject against its file on the server.
 // Returns one of:
 //   { status: 'reconciled', counts }  — file existed, local data now matches it exactly
-//   { status: 'wiped' }               — file confirmed missing (404) — subject fully removed locally
+//   { status: 'wiped' }               — file confirmed missing (404, or an
+//                                        HTML/non-JSON fallback page some
+//                                        hosts return instead of a real 404)
+//                                        — subject fully removed locally
 //   { status: 'offline' }             — couldn't reach the network at all — nothing touched
-//   { status: 'error', code }         — some other problem (bad JSON, 5xx) — nothing touched, safer to retry later
+//   { status: 'error', code }         — some other problem — nothing touched, safer to retry later
 async function reconcileSubjectFile(subjectId) {
+    // Cache-busting query param: without this, some hosts (GitHub Pages via
+    // Fastly, Netlify, Cloudflare, etc.) can keep serving a stale, already
+    // *deleted* file from their CDN edge for several minutes after the
+    // delete, regardless of the `cache: 'no-store'` fetch option below
+    // (that option only bypasses the browser's own cache, not the CDN's).
+    // A unique URL every time forces a real trip past the CDN to the origin.
+    const bustedUrl = 'questions-' + subjectId + '.json?_=' + Date.now();
+
     let response;
     try {
-        response = await fetch('questions-' + subjectId + '.json', { cache: 'no-store' });
+        response = await fetch(bustedUrl, { cache: 'no-store' });
     } catch (e) {
         // No network reachable at all — never treat this as "the file was
         // deleted". Leave local data exactly as it is.
@@ -802,11 +813,34 @@ async function reconcileSubjectFile(subjectId) {
         return { status: 'error', code: response.status };
     }
 
+    // Some static hosts don't return a real 404 for a missing file — they
+    // rewrite any unknown path to index.html and answer with 200 (common
+    // "SPA fallback" behavior). If that's what came back, it's not real
+    // question data, so treat it exactly like a confirmed-missing file.
+    let rawText;
+    try {
+        rawText = await response.text();
+    } catch (e) {
+        return { status: 'error', code: 'unreadable' };
+    }
+    const trimmed = rawText.trim();
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    const looksLikeHTML = trimmed.startsWith('<') || contentType.indexOf('html') !== -1;
+    const looksLikeJSON = trimmed.startsWith('{') || trimmed.startsWith('[');
+    if (looksLikeHTML || !looksLikeJSON) {
+        await wipeSubjectData(subjectId);
+        return { status: 'wiped', reason: 'non-json-response' };
+    }
+
     let data;
     try {
-        data = await response.json();
+        data = JSON.parse(trimmed);
     } catch (e) {
-        return { status: 'error', code: 'bad-json' };
+        // Looked JSON-ish but didn't parse — can't be real question data
+        // either, so treat the same way rather than leaving stale local
+        // records behind forever.
+        await wipeSubjectData(subjectId);
+        return { status: 'wiped', reason: 'invalid-json' };
     }
 
     const counts = await diffAndApplySubjectData(subjectId, data);
