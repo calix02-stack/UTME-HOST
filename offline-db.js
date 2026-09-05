@@ -642,6 +642,193 @@ async function exportSubjectData(subjectId) {
     return data;
 }
 
+// ============================================================
+//  PER-SUBJECT RECONCILE (sync + delete)
+// ============================================================
+// Unlike syncSubjectFile/syncAllSubjectFiles above (which only ever ADD or
+// UPDATE, never delete), these functions make the offline DB exactly match
+// what's in the subject's file on the server:
+//   - question/topic/topic_question/passage still in the file  -> kept, updated if changed
+//   - question/topic/topic_question/passage NOT in the file    -> deleted from offline DB
+//   - the whole file 404s (confirmed gone from the server)     -> every local record
+//                                                                  for that subject is wiped
+// A network error (offline, timeout, DNS failure, etc.) is NEVER treated as
+// "the file was deleted" — in that case nothing local is touched, so the
+// app keeps working normally with whatever it already has offline.
+
+// Wipe every local record belonging to one subject (used when the server
+// confirms the subject's file no longer exists at all).
+async function wipeSubjectData(subjectId) {
+    const allQuestions = await dbGetAll('questions');
+    for (const q of allQuestions.filter(function(q) { return q.subject_id === subjectId; })) {
+        await dbDelete('questions', q.id);
+    }
+    const allPassages = await dbGetAll('passages');
+    for (const p of allPassages.filter(function(p) { return p.subject_id === subjectId; })) {
+        await dbDelete('passages', p.id);
+    }
+    const allTopics = await dbGetAll('topics');
+    const subjectTopics = allTopics.filter(function(t) { return t.subject_id === subjectId; });
+    const allTQs = await dbGetAll('topic_questions');
+    for (const t of subjectTopics) {
+        for (const tq of allTQs.filter(function(tq) { return tq.topic_id === t.id; })) {
+            await dbDelete('topic_questions', tq.id);
+        }
+        await dbDelete('topics', t.id);
+    }
+    cachedQuestions = await dbGetAll('questions');
+    cachedPassages = await dbGetAll('passages');
+    cachedTopics = await dbGetAll('topics');
+    cachedTopicQuestions = await dbGetAll('topic_questions');
+}
+
+function recordsDiffer(a, b) {
+    // Cheap-but-reliable equality check for plain JSON-ish records.
+    return JSON.stringify(a) !== JSON.stringify(b);
+}
+
+// Make local storage for one subject exactly match `data` (the parsed
+// contents of questions-<subjectId>.json): add new records, update changed
+// ones, delete anything local that isn't in `data` anymore.
+async function diffAndApplySubjectData(subjectId, data) {
+    const counts = { added: 0, updated: 0, deleted: 0 };
+
+    // ---- Questions ----
+    const remoteQuestions = data.questions || [];
+    const remoteQIds = new Set(remoteQuestions.map(function(q) { return q.id; }));
+    const localQuestions = (await dbGetAll('questions')).filter(function(q) { return q.subject_id === subjectId; });
+    for (const local of localQuestions) {
+        if (!remoteQIds.has(local.id)) {
+            await dbDelete('questions', local.id);
+            counts.deleted++;
+        }
+    }
+    for (const rq of remoteQuestions) {
+        const existing = await dbGet('questions', rq.id);
+        if (!existing) { await dbPut('questions', rq); counts.added++; }
+        else if (recordsDiffer(existing, rq)) { await dbPut('questions', rq); counts.updated++; }
+    }
+    cachedQuestions = await dbGetAll('questions');
+
+    // ---- Passages ----
+    const remotePassages = data.passages || [];
+    const remotePIds = new Set(remotePassages.map(function(p) { return p.id; }));
+    const localPassages = (await dbGetAll('passages')).filter(function(p) { return p.subject_id === subjectId; });
+    for (const local of localPassages) {
+        if (!remotePIds.has(local.id)) {
+            await dbDelete('passages', local.id);
+            counts.deleted++;
+        }
+    }
+    for (const rp of remotePassages) {
+        const existing = await dbGet('passages', rp.id);
+        if (!existing) { await dbPut('passages', rp); counts.added++; }
+        else if (recordsDiffer(existing, rp)) { await dbPut('passages', rp); counts.updated++; }
+    }
+    cachedPassages = await dbGetAll('passages');
+
+    // ---- Topics + Topic Questions ----
+    const remoteTopics = data.topics || [];
+    const remoteTopicIds = new Set(remoteTopics.map(function(t) { return t.id; }));
+    const remoteTopicQuestions = data.topic_questions || [];
+    const remoteTQIds = new Set(remoteTopicQuestions.map(function(tq) { return tq.id; }));
+
+    const localTopics = (await dbGetAll('topics')).filter(function(t) { return t.subject_id === subjectId; });
+    const allTQs = await dbGetAll('topic_questions');
+
+    for (const t of localTopics) {
+        if (!remoteTopicIds.has(t.id)) {
+            // The whole topic is gone from the file — remove it and every
+            // question that belonged to it (a deleted "subject/topic" case).
+            for (const tq of allTQs.filter(function(tq) { return tq.topic_id === t.id; })) {
+                await dbDelete('topic_questions', tq.id);
+                counts.deleted++;
+            }
+            await dbDelete('topics', t.id);
+            counts.deleted++;
+        } else {
+            // Topic still exists — delete any of its questions that are no
+            // longer present in the remote file.
+            for (const tq of allTQs.filter(function(tq) { return tq.topic_id === t.id; })) {
+                if (!remoteTQIds.has(tq.id)) {
+                    await dbDelete('topic_questions', tq.id);
+                    counts.deleted++;
+                }
+            }
+        }
+    }
+    for (const rt of remoteTopics) {
+        const existing = await dbGet('topics', rt.id);
+        if (!existing) { await dbPut('topics', rt); counts.added++; }
+        else if (recordsDiffer(existing, rt)) { await dbPut('topics', rt); counts.updated++; }
+    }
+    for (const rtq of remoteTopicQuestions) {
+        const existing = await dbGet('topic_questions', rtq.id);
+        if (!existing) { await dbPut('topic_questions', rtq); counts.added++; }
+        else if (recordsDiffer(existing, rtq)) { await dbPut('topic_questions', rtq); counts.updated++; }
+    }
+    cachedTopics = await dbGetAll('topics');
+    cachedTopicQuestions = await dbGetAll('topic_questions');
+
+    return counts;
+}
+
+// Reconcile ONE subject against its file on the server.
+// Returns one of:
+//   { status: 'reconciled', counts }  — file existed, local data now matches it exactly
+//   { status: 'wiped' }               — file confirmed missing (404) — subject fully removed locally
+//   { status: 'offline' }             — couldn't reach the network at all — nothing touched
+//   { status: 'error', code }         — some other problem (bad JSON, 5xx) — nothing touched, safer to retry later
+async function reconcileSubjectFile(subjectId) {
+    let response;
+    try {
+        response = await fetch('questions-' + subjectId + '.json', { cache: 'no-store' });
+    } catch (e) {
+        // No network reachable at all — never treat this as "the file was
+        // deleted". Leave local data exactly as it is.
+        return { status: 'offline' };
+    }
+
+    if (response.status === 404) {
+        // The server has genuinely confirmed there's no file for this
+        // subject — remove every trace of it locally.
+        await wipeSubjectData(subjectId);
+        return { status: 'wiped' };
+    }
+
+    if (!response.ok) {
+        // Some other HTTP error — ambiguous, could be a flaky server. Don't
+        // destroy local data based on this; just try again next time.
+        return { status: 'error', code: response.status };
+    }
+
+    let data;
+    try {
+        data = await response.json();
+    } catch (e) {
+        return { status: 'error', code: 'bad-json' };
+    }
+
+    const counts = await diffAndApplySubjectData(subjectId, data);
+    return { status: 'reconciled', counts };
+}
+
+// Reconcile every subject's file. This is what should run automatically
+// every time the app opens: it keeps the offline DB in sync with GitHub —
+// same questions are left alone, changed ones are updated, questions/topics/
+// whole subjects removed on GitHub are deleted locally, and if there's no
+// network at all, nothing is touched (existing offline data keeps working).
+async function reconcileAllSubjectFiles(subjectIds) {
+    const results = {};
+    let anyNetworkReached = false;
+    for (const id of subjectIds) {
+        const r = await reconcileSubjectFile(id);
+        results[id] = r;
+        if (r.status !== 'offline') anyNetworkReached = true;
+    }
+    results.__networkReached = anyNetworkReached;
+    return results;
+}
 
 // ---- CACHE HELPERS ----
 
@@ -716,6 +903,12 @@ window.OfflineDB = {
     syncAllSubjectFiles,
     exportSubjectData,
     forceSyncSubjectFile,
+
+    // Reconcile (sync + delete) — use these for the "keep offline DB
+    // exactly matching GitHub" behavior.
+    reconcileSubjectFile,
+    reconcileAllSubjectFiles,
+    wipeSubjectData,
     
     // Cache
     getCachedQuestions,
