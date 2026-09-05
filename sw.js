@@ -1,5 +1,5 @@
 // MyUTME service worker
-const CACHE_NAME = "myutme-cache-v3";
+const CACHE_NAME = "myutme-cache-v4";
 
 const APP_SHELL = [
   "./",
@@ -43,10 +43,24 @@ self.addEventListener("fetch", (event) => {
     url.pathname === "/" ||
     url.pathname.endsWith("/");
 
-  if (isAppShell) {
+  // Per-subject question data files (questions-<subjectId>.json) and the
+  // legacy seed file. These are the files the app checks on every open to
+  // decide what to add/update/DELETE offline, so they must always go to
+  // the network first — a cache-first strategy here would keep silently
+  // serving an old (or since-deleted) file's contents forever, since the
+  // app would never even see a 404 from the real server. Falls back to the
+  // last-known-good cached copy only when there's truly no network, so
+  // offline use still works.
+  const isQuestionDataFile =
+    /^\/?questions-[^/]+\.json$/.test(url.pathname) ||
+    url.pathname.endsWith("questions-seed.json");
+
+  if (isAppShell || isQuestionDataFile) {
     event.respondWith(
       fetch(event.request)
         .then((networkResponse) => {
+          // Cache successful responses only — never cache a 404/500 so a
+          // later real network check isn't shadowed by a bad cached entry.
           if (networkResponse && networkResponse.status === 200) {
             const clone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
