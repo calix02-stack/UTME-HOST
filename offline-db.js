@@ -359,6 +359,34 @@ async function deleteTopicQuestionOffline(id) {
     cachedTopicQuestions = cachedTopicQuestions.filter(tq => tq.id !== id);
 }
 
+// Replace ALL questions under one topic with a fresh list in one go — used
+// by the subject-JSON bulk importer so re-uploading a subject file cleanly
+// overwrites that topic's question bank instead of appending duplicates.
+async function replaceTopicQuestionsOffline(topicId, questions) {
+    const existing = await getTopicQuestionsOffline(topicId);
+    for (const tq of existing) {
+        await dbDelete('topic_questions', tq.id);
+    }
+    cachedTopicQuestions = cachedTopicQuestions.filter(tq => tq.topic_id !== topicId);
+
+    const saved = [];
+    for (const q of (questions || [])) {
+        const tq = {
+            id: 'tq_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+            topic_id: topicId,
+            text: q.text || '',
+            options: q.options || ['', '', '', ''],
+            correct_answer: (typeof q.correct_answer === 'number') ? q.correct_answer : 0,
+            explanation: q.explanation || '',
+            created_at: new Date().toISOString(),
+        };
+        await dbPut('topic_questions', tq);
+        cachedTopicQuestions.push(tq);
+        saved.push(tq);
+    }
+    return saved;
+}
+
 // ---- BULK IMPORT/EXPORT ----
 
 async function exportOfflineData() {
@@ -928,6 +956,7 @@ window.OfflineDB = {
     addTopicQuestionOffline,
     updateTopicQuestionOffline,
     deleteTopicQuestionOffline,
+    replaceTopicQuestionsOffline,
     
     // Bulk
     exportOfflineData,
@@ -959,6 +988,7 @@ window.deleteTopicOffline = deleteTopicOffline;
 window.addTopicQuestionOffline = addTopicQuestionOffline;
 window.updateTopicQuestionOffline = updateTopicQuestionOffline;
 window.deleteTopicQuestionOffline = deleteTopicQuestionOffline;
+window.replaceTopicQuestionsOffline = replaceTopicQuestionsOffline;
 window.exportOfflineData = exportOfflineData;
 window.importOfflineData = importOfflineData;
 window.seedOfflineDataIfNeeded = seedOfflineDataIfNeeded;
