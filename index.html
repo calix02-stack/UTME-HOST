@@ -8167,8 +8167,17 @@ let state = {
         syllabusFile: null,
         mockTitle: "",
         mockScheduledDate: "",
+        mockScheduledHour: "",
+        mockScheduledMinute: "",
+        mockScheduledAmPm: "",
         mockRegistrationDeadline: "",
+        mockRegDeadlineHour: "",
+        mockRegDeadlineMinute: "",
+        mockRegDeadlineAmPm: "",
         mockEndDate: "",
+        mockEndHour: "",
+        mockEndMinute: "",
+        mockEndAmPm: "",
         viewModeQuestions: false,
         viewModeType: "",
         viewModeSubject: "",
@@ -17095,13 +17104,16 @@ function renderTopicsListPage() {
             '<p style="font-size:11px;color:var(--faint);margin-top:6px">No topics have been added for this subject yet.</p>';
     } else {
         topicsHtml = '<p class="section-label" style="margin-top:12px">Choose a topic</p>';
-        state.topicsList.forEach(function(t) {
+        state.topicsList.forEach(function(t, i) {
             const sel = state.topicId === t.id;
+            const color = SUBJECT_PALETTE[i % SUBJECT_PALETTE.length];
             topicsHtml += (
-                '<button class="lb-row" style="width:100%;text-align:left' + (sel ?
-                    ';border-color:var(--green)' : '') + '" data-action="select-topic" data-topic="' +
-                t.id + '">' +
-                '<div class="left"><span>' + esc(t.name) + '</span></div>' +
+                '<button class="lb-row" style="width:100%;text-align:left;border-left:4px solid ' + color +
+                (sel ? ';border-color:' + color + ';background:' + color + '14' : '') +
+                '" data-action="select-topic" data-topic="' + t.id + '">' +
+                '<div class="left" style="display:flex;align-items:center;gap:10px">' +
+                '<span style="width:9px;height:9px;border-radius:50%;background:' + color + ';flex:none"></span>' +
+                '<span>' + esc(t.name) + '</span></div>' +
                 '<span style="font-size:10px;color:var(--muted)">' + (t.question_count || 0) +
                 ' Qs' + (sel ? ' · selected' : '') + '</span>' +
                 '</button>'
@@ -23635,6 +23647,46 @@ function renderAdminReminders() {
 }
 
 // ============================================================
+//  CUSTOM TIME-OF-DAY PICKER (hour 1-12 / minute 00-59 / AM-PM)
+// ============================================================
+// Renders a date input plus three <select> boxes instead of relying on the
+// browser's native <input type="time"> clock-face widget.
+function renderTimeOfDayPicker(dateId, dateVal, hourActionId, hourVal, minuteActionId, minuteVal, ampmActionId, ampmVal) {
+    let hourOptions = '<option value="">HH</option>';
+    for (let h = 1; h <= 12; h++) {
+        const hs = String(h);
+        hourOptions += '<option value="' + hs + '"' + (hourVal === hs ? ' selected' : '') + '>' + hs + '</option>';
+    }
+    let minuteOptions = '<option value="">MM</option>';
+    for (let m = 0; m < 60; m++) {
+        const ms = String(m).padStart(2, '0');
+        minuteOptions += '<option value="' + ms + '"' + (minuteVal === ms ? ' selected' : '') + '>' + ms + '</option>';
+    }
+    const ampmOptions = '<option value="">--</option>' + ['AM', 'PM'].map(function(p) {
+        return '<option value="' + p + '"' + (ampmVal === p ? ' selected' : '') + '>' + p + '</option>';
+    }).join('');
+
+    return (
+        '<div style="display:flex;gap:6px;margin-bottom:10px">' +
+        '<input class="field" id="' + dateId + '" type="date" value="' + esc(dateVal || '') + '" style="flex:1.4;font-size:13px" />' +
+        '<select class="field" data-action="' + hourActionId + '" style="flex:1;font-size:13px">' + hourOptions + '</select>' +
+        '<select class="field" data-action="' + minuteActionId + '" style="flex:1;font-size:13px">' + minuteOptions + '</select>' +
+        '<select class="field" data-action="' + ampmActionId + '" style="flex:0.9;font-size:13px">' + ampmOptions + '</select>' +
+        '</div>'
+    );
+}
+
+// Combine a date-only value ("YYYY-MM-DD") with hour(1-12)/minute(00-59)/ampm
+// into the "YYYY-MM-DDTHH:MM" 24-hour string the rest of the mock-exam code
+// already expects (same shape a native datetime-local input used to give).
+function combineDateAndTimeOfDay(dateVal, hour12, minute, ampm) {
+    if (!dateVal || !hour12 || !minute || !ampm) return '';
+    let h = parseInt(hour12, 10) % 12;
+    if (ampm === 'PM') h += 12;
+    return dateVal + 'T' + String(h).padStart(2, '0') + ':' + minute;
+}
+
+// ============================================================
 //  ADMIN MOCK
 // ============================================================
 function renderAdminMock() {
@@ -23654,14 +23706,26 @@ function renderAdminMock() {
         '<input class="field" id="admin-mock-title" placeholder="e.g. Mock Exam 2026" value="' + esc(state.admin
             .mockTitle) + '" style="margin-bottom:10px;font-size:13px" />' +
         '<label class="field-label">Scheduled Date & Time</label>' +
-        '<input class="field" id="admin-mock-scheduled" type="datetime-local" value="' + state.admin
-        .mockScheduledDate + '" style="margin-bottom:10px;font-size:13px" />' +
+        renderTimeOfDayPicker(
+            'admin-mock-scheduled-date', state.admin.mockScheduledDate,
+            'admin-mock-scheduled-hour', state.admin.mockScheduledHour,
+            'admin-mock-scheduled-minute', state.admin.mockScheduledMinute,
+            'admin-mock-scheduled-ampm', state.admin.mockScheduledAmPm
+        ) +
         '<label class="field-label">Registration Deadline (1 hour before mock by default)</label>' +
-        '<input class="field" id="admin-mock-reg-deadline" type="datetime-local" value="' + state.admin
-        .mockRegistrationDeadline + '" style="margin-bottom:10px;font-size:13px" />' +
+        renderTimeOfDayPicker(
+            'admin-mock-reg-date', state.admin.mockRegistrationDeadline,
+            'admin-mock-reg-hour', state.admin.mockRegDeadlineHour,
+            'admin-mock-reg-minute', state.admin.mockRegDeadlineMinute,
+            'admin-mock-reg-ampm', state.admin.mockRegDeadlineAmPm
+        ) +
         '<label class="field-label">End Date & Time (12 hours after scheduled by default)</label>' +
-        '<input class="field" id="admin-mock-end" type="datetime-local" value="' + state.admin.mockEndDate +
-        '" style="margin-bottom:10px;font-size:13px" />' +
+        renderTimeOfDayPicker(
+            'admin-mock-end-date', state.admin.mockEndDate,
+            'admin-mock-end-hour', state.admin.mockEndHour,
+            'admin-mock-end-minute', state.admin.mockEndMinute,
+            'admin-mock-end-ampm', state.admin.mockEndAmPm
+        ) +
         '<label class="field-label">Questions per subject</label>' +
         '<input class="field" id="admin-mock-qs" type="number" value="' + (state.admin.mockQuestionsPerSubject ||
             40) + '" style="margin-bottom:10px;font-size:13px" />' +
@@ -27183,13 +27247,22 @@ document.addEventListener('click', function(e) {
 
     if (action === 'admin-schedule-mock') {
         const title = document.getElementById('admin-mock-title')?.value?.trim() || '';
-        const scheduled = document.getElementById('admin-mock-scheduled')?.value || '';
-        const regDeadline = document.getElementById('admin-mock-reg-deadline')?.value || '';
-        const endDate = document.getElementById('admin-mock-end')?.value || '';
+        const scheduled = combineDateAndTimeOfDay(
+            state.admin.mockScheduledDate, state.admin.mockScheduledHour,
+            state.admin.mockScheduledMinute, state.admin.mockScheduledAmPm
+        );
+        const regDeadline = combineDateAndTimeOfDay(
+            state.admin.mockRegistrationDeadline, state.admin.mockRegDeadlineHour,
+            state.admin.mockRegDeadlineMinute, state.admin.mockRegDeadlineAmPm
+        );
+        const endDate = combineDateAndTimeOfDay(
+            state.admin.mockEndDate, state.admin.mockEndHour,
+            state.admin.mockEndMinute, state.admin.mockEndAmPm
+        );
         const qs = parseInt(document.getElementById('admin-mock-qs')?.value || 25);
 
         if (!title) { showToast('Enter a title.', 'error'); return; }
-        if (!scheduled) { showToast('Select a scheduled date.', 'error'); return; }
+        if (!scheduled) { showToast('Select a scheduled date, hour, minute and AM/PM.', 'error'); return; }
 
         let regDeadlineFinal = regDeadline;
         if (!regDeadlineFinal) {
@@ -27216,8 +27289,17 @@ document.addEventListener('click', function(e) {
             showToast('Mock exam scheduled!', 'success');
             state.admin.mockTitle = '';
             state.admin.mockScheduledDate = '';
+            state.admin.mockScheduledHour = '';
+            state.admin.mockScheduledMinute = '';
+            state.admin.mockScheduledAmPm = '';
             state.admin.mockRegistrationDeadline = '';
+            state.admin.mockRegDeadlineHour = '';
+            state.admin.mockRegDeadlineMinute = '';
+            state.admin.mockRegDeadlineAmPm = '';
             state.admin.mockEndDate = '';
+            state.admin.mockEndHour = '';
+            state.admin.mockEndMinute = '';
+            state.admin.mockEndAmPm = '';
             state.admin.mockQuestionsPerSubject = qs;
             loadMockExams();
             render();
@@ -28737,6 +28819,24 @@ document.addEventListener('change', function(e) {
         render();
     } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'nb-set-save-target') {
         state.notebookSaveTargetId = e.target.value;
+    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-scheduled-hour') {
+        state.admin.mockScheduledHour = e.target.value;
+    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-scheduled-minute') {
+        state.admin.mockScheduledMinute = e.target.value;
+    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-scheduled-ampm') {
+        state.admin.mockScheduledAmPm = e.target.value;
+    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-reg-hour') {
+        state.admin.mockRegDeadlineHour = e.target.value;
+    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-reg-minute') {
+        state.admin.mockRegDeadlineMinute = e.target.value;
+    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-reg-ampm') {
+        state.admin.mockRegDeadlineAmPm = e.target.value;
+    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-end-hour') {
+        state.admin.mockEndHour = e.target.value;
+    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-end-minute') {
+        state.admin.mockEndMinute = e.target.value;
+    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-end-ampm') {
+        state.admin.mockEndAmPm = e.target.value;
     }
 });
 
@@ -28748,9 +28848,9 @@ document.addEventListener('input', function(e) {
     else if (id === 'doc-name-input') state.admin.docName = e.target.value;
     else if (id === 'doc-category-input') state.admin.docCategory = e.target.value;
     else if (id === 'admin-mock-title') state.admin.mockTitle = e.target.value;
-    else if (id === 'admin-mock-scheduled') state.admin.mockScheduledDate = e.target.value;
-    else if (id === 'admin-mock-reg-deadline') state.admin.mockRegistrationDeadline = e.target.value;
-    else if (id === 'admin-mock-end') state.admin.mockEndDate = e.target.value;
+    else if (id === 'admin-mock-scheduled-date') state.admin.mockScheduledDate = e.target.value;
+    else if (id === 'admin-mock-reg-date') state.admin.mockRegistrationDeadline = e.target.value;
+    else if (id === 'admin-mock-end-date') state.admin.mockEndDate = e.target.value;
     else if (id === 'admin-mock-qs') state.admin.mockQuestionsPerSubject = parseInt(e.target.value) || 25;
     else if (id === 'login-email') state.loginEmail = e.target.value;
     else if (id === 'login-password') state.loginPassword = e.target.value;
@@ -29176,7 +29276,14 @@ if ("serviceWorker" in navigator) {
 async function loadTopics(subjectId) {
     try {
         const topics = await window.OfflineDB.getTopicsOffline(subjectId);
-        state.topicsList = topics || [];
+        // Attach a real question_count to each topic — without this the
+        // topic picker always showed "0 Qs" regardless of how many
+        // questions actually existed, for every subject.
+        const withCounts = await Promise.all((topics || []).map(async function(t) {
+            const tqs = await window.OfflineDB.getTopicQuestionsOffline(t.id);
+            return Object.assign({}, t, { question_count: (tqs || []).length });
+        }));
+        state.topicsList = withCounts;
         state.topicsLoaded = true;
         state.topicsSubjectId = subjectId;
         render();
@@ -29228,7 +29335,14 @@ function runTopicJsonImport(raw, topicId) {
 async function loadAdminTopics(subjectId) {
     try {
         const topics = await window.OfflineDB.getTopicsOffline(subjectId);
-        state.admin.adminTopicsList = topics || [];
+        // Same fix as loadTopics: attach the real question_count so the
+        // admin topic list doesn't show "0 questions" for topics that
+        // actually have questions in them.
+        const withCounts = await Promise.all((topics || []).map(async function(t) {
+            const tqs = await window.OfflineDB.getTopicQuestionsOffline(t.id);
+            return Object.assign({}, t, { question_count: (tqs || []).length });
+        }));
+        state.admin.adminTopicsList = withCounts;
         state.admin.adminTopicsLoaded = true;
         render();
     } catch (e) {
