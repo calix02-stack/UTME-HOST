@@ -262,6 +262,20 @@ async function loadQuestionsOffline(type, subjectId, year, limit) {
     return await getQuestionsOffline(type, subjectId, year, limit);
 }
 
+// Fetch a specific set of questions by id (used e.g. to resume a mock/exam
+// attempt whose question_ids were already picked and saved earlier).
+async function getQuestionsByIdsOffline(ids) {
+    if (!ids || ids.length === 0) return [];
+    const idSet = new Set(ids);
+    let pool = cachedQuestions.length > 0 ? cachedQuestions : await dbGetAll('questions');
+    cachedQuestions = pool;
+    const found = pool.filter(q => idSet.has(q.id));
+    // Preserve the original order of `ids` where possible.
+    const byId = {};
+    found.forEach(q => { byId[q.id] = q; });
+    return ids.map(id => byId[id]).filter(Boolean);
+}
+
 // ---- PASSAGES ----
 
 async function getPassageOffline(batchNumber) {
@@ -280,6 +294,18 @@ async function addPassageOffline(passage) {
     await dbPut('passages', passage);
     cachedPassages.push(passage);
     return passage;
+}
+
+// Distinct batch numbers available for a subject (used to pick a random
+// unseen comprehension batch for English mock exams, offline).
+async function getPassageBatchesOffline(subjectId) {
+    let all = cachedPassages.length > 0 ? cachedPassages : await dbGetAll('passages');
+    cachedPassages = all;
+    const nums = all
+        .filter(p => !subjectId || p.subject_id === subjectId)
+        .map(p => p.batch_number)
+        .filter(n => n !== undefined && n !== null);
+    return Array.from(new Set(nums)).sort((a, b) => a - b);
 }
 
 // ---- TOPICS ----
@@ -609,6 +635,11 @@ async function syncAllSubjectFiles(subjectIds) {
 
 // Force-replace: wipes local data for this subject FIRST, then loads fresh from the file.
 // Use this after deleting questions, to guarantee stale local copies can't survive.
+//
+// NOTE: this intentionally only ever touches `questions` and `passages` —
+// topics/topic_questions are admin-managed directly in IndexedDB (via the
+// Topic Practice admin screen) and are never part of the
+// questions-<subjectId>.json bulk file, so they must never be wiped here.
 async function forceSyncSubjectFile(subjectId) {
     try {
         const response = await fetch('questions-' + subjectId + '.json', { cache: 'no-store' });
@@ -622,15 +653,6 @@ async function forceSyncSubjectFile(subjectId) {
         const allPassages = await dbGetAll('passages');
         for (const p of allPassages.filter(function(p) { return p.subject_id === subjectId; })) {
             await dbDelete('passages', p.id);
-        }
-        const allTopics = await dbGetAll('topics');
-        const subjectTopics = allTopics.filter(function(t) { return t.subject_id === subjectId; });
-        const allTQs = await dbGetAll('topic_questions');
-        for (const t of subjectTopics) {
-            for (const tq of allTQs.filter(function(tq) { return tq.topic_id === t.id; })) {
-                await dbDelete('topic_questions', tq.id);
-            }
-            await dbDelete('topics', t.id);
         }
 
         return await upsertSubjectData(data);
@@ -676,16 +698,33 @@ async function exportSubjectData(subjectId) {
 // Unlike syncSubjectFile/syncAllSubjectFiles above (which only ever ADD or
 // UPDATE, never delete), these functions make the offline DB exactly match
 // what's in the subject's file on the server:
-//   - question/topic/topic_question/passage still in the file  -> kept, updated if changed
-//   - question/topic/topic_question/passage NOT in the file    -> deleted from offline DB
-//   - the whole file 404s (confirmed gone from the server)     -> every local record
-//                                                                  for that subject is wiped
+//   - question/passage still in the file  -> kept, updated if changed
+//   - question/passage NOT in the file    -> deleted from offline DB
+//   - the whole file 404s (confirmed gone from the server)     -> every
+//                                                                  local
+//                                                                  question/
+//                                                                  passage
+//                                                                  for that
+//                                                                  subject
+//                                                                  is wiped
 // A network error (offline, timeout, DNS failure, etc.) is NEVER treated as
 // "the file was deleted" — in that case nothing local is touched, so the
 // app keeps working normally with whatever it already has offline.
+//
+// IMPORTANT: topics/topic_questions (Topic Practice) are deliberately
+// EXCLUDED from this reconcile process. They are entered directly by the
+// admin into IndexedDB (there is no questions-<subjectId>.json equivalent
+// for them being continuously re-uploaded), so treating "not present in
+// this bulk file" as "delete it" was wiping out every topic and topic
+// question on the very next reconcile pass — which is why Topic Practice
+// was showing 0 questions for both admin and users. Topics/topic_questions
+// are only ever added or updated here, never deleted by file-diffing.
 
 // Wipe every local record belonging to one subject (used when the server
 // confirms the subject's file no longer exists at all).
+//
+// Only questions/passages are wiped — see note above on why
+// topics/topic_questions are never touched by this reconcile process.
 async function wipeSubjectData(subjectId) {
     const allQuestions = await dbGetAll('questions');
     for (const q of allQuestions.filter(function(q) { return q.subject_id === subjectId; })) {
@@ -695,19 +734,8 @@ async function wipeSubjectData(subjectId) {
     for (const p of allPassages.filter(function(p) { return p.subject_id === subjectId; })) {
         await dbDelete('passages', p.id);
     }
-    const allTopics = await dbGetAll('topics');
-    const subjectTopics = allTopics.filter(function(t) { return t.subject_id === subjectId; });
-    const allTQs = await dbGetAll('topic_questions');
-    for (const t of subjectTopics) {
-        for (const tq of allTQs.filter(function(tq) { return tq.topic_id === t.id; })) {
-            await dbDelete('topic_questions', tq.id);
-        }
-        await dbDelete('topics', t.id);
-    }
     cachedQuestions = await dbGetAll('questions');
     cachedPassages = await dbGetAll('passages');
-    cachedTopics = await dbGetAll('topics');
-    cachedTopicQuestions = await dbGetAll('topic_questions');
 }
 
 function recordsDiffer(a, b) {
@@ -718,6 +746,12 @@ function recordsDiffer(a, b) {
 // Make local storage for one subject exactly match `data` (the parsed
 // contents of questions-<subjectId>.json): add new records, update changed
 // ones, delete anything local that isn't in `data` anymore.
+//
+// Only applies delete-on-absence to questions/passages. Topics/
+// topic_questions found in `data` are added/updated (for backward
+// compatibility with subject files that do include them), but are never
+// deleted just because they're missing from this particular file — see the
+// note above the "PER-SUBJECT RECONCILE" header for why.
 async function diffAndApplySubjectData(subjectId, data) {
     const counts = { added: 0, updated: 0, deleted: 0 };
 
@@ -756,35 +790,12 @@ async function diffAndApplySubjectData(subjectId, data) {
     cachedPassages = await dbGetAll('passages');
 
     // ---- Topics + Topic Questions ----
+    // Add/update only from the file, if it happens to include them.
+    // Never delete local topics/topic_questions based on this diff — they
+    // are the admin's live Topic Practice data, not bulk-file data.
     const remoteTopics = data.topics || [];
-    const remoteTopicIds = new Set(remoteTopics.map(function(t) { return t.id; }));
     const remoteTopicQuestions = data.topic_questions || [];
-    const remoteTQIds = new Set(remoteTopicQuestions.map(function(tq) { return tq.id; }));
 
-    const localTopics = (await dbGetAll('topics')).filter(function(t) { return t.subject_id === subjectId; });
-    const allTQs = await dbGetAll('topic_questions');
-
-    for (const t of localTopics) {
-        if (!remoteTopicIds.has(t.id)) {
-            // The whole topic is gone from the file — remove it and every
-            // question that belonged to it (a deleted "subject/topic" case).
-            for (const tq of allTQs.filter(function(tq) { return tq.topic_id === t.id; })) {
-                await dbDelete('topic_questions', tq.id);
-                counts.deleted++;
-            }
-            await dbDelete('topics', t.id);
-            counts.deleted++;
-        } else {
-            // Topic still exists — delete any of its questions that are no
-            // longer present in the remote file.
-            for (const tq of allTQs.filter(function(tq) { return tq.topic_id === t.id; })) {
-                if (!remoteTQIds.has(tq.id)) {
-                    await dbDelete('topic_questions', tq.id);
-                    counts.deleted++;
-                }
-            }
-        }
-    }
     for (const rt of remoteTopics) {
         const existing = await dbGet('topics', rt.id);
         if (!existing) { await dbPut('topics', rt); counts.added++; }
@@ -795,19 +806,23 @@ async function diffAndApplySubjectData(subjectId, data) {
         if (!existing) { await dbPut('topic_questions', rtq); counts.added++; }
         else if (recordsDiffer(existing, rtq)) { await dbPut('topic_questions', rtq); counts.updated++; }
     }
-    cachedTopics = await dbGetAll('topics');
-    cachedTopicQuestions = await dbGetAll('topic_questions');
+    if (remoteTopics.length) cachedTopics = await dbGetAll('topics');
+    if (remoteTopicQuestions.length) cachedTopicQuestions = await dbGetAll('topic_questions');
 
     return counts;
 }
 
 // Reconcile ONE subject against its file on the server.
 // Returns one of:
-//   { status: 'reconciled', counts }  — file existed, local data now matches it exactly
+//   { status: 'reconciled', counts }  — file existed, local question/passage
+//                                        data now matches it exactly
+//                                        (topics/topic_questions untouched)
 //   { status: 'wiped' }               — file confirmed missing (404, or an
 //                                        HTML/non-JSON fallback page some
 //                                        hosts return instead of a real 404)
-//                                        — subject fully removed locally
+//                                        — subject's questions/passages
+//                                        removed locally (topics/
+//                                        topic_questions kept)
 //   { status: 'offline' }             — couldn't reach the network at all — nothing touched
 //   { status: 'error', code }         — some other problem — nothing touched, safer to retry later
 async function reconcileSubjectFile(subjectId) {
@@ -830,7 +845,8 @@ async function reconcileSubjectFile(subjectId) {
 
     if (response.status === 404) {
         // The server has genuinely confirmed there's no file for this
-        // subject — remove every trace of it locally.
+        // subject — remove local questions/passages (topics/topic_questions
+        // are untouched, see wipeSubjectData).
         await wipeSubjectData(subjectId);
         return { status: 'wiped' };
     }
@@ -877,9 +893,10 @@ async function reconcileSubjectFile(subjectId) {
 
 // Reconcile every subject's file. This is what should run automatically
 // every time the app opens: it keeps the offline DB in sync with GitHub —
-// same questions are left alone, changed ones are updated, questions/topics/
-// whole subjects removed on GitHub are deleted locally, and if there's no
+// same questions are left alone, changed ones are updated, questions/
+// passages removed on GitHub are deleted locally, and if there's no
 // network at all, nothing is touched (existing offline data keeps working).
+// Topic Practice data (topics/topic_questions) is never deleted by this.
 async function reconcileAllSubjectFiles(subjectIds) {
     const results = {};
     let anyNetworkReached = false;
@@ -900,6 +917,39 @@ function getCachedQuestions() {
 
 function setCachedQuestions(questions) {
     cachedQuestions = questions;
+}
+
+// ---- MOCK EXAM — "USED QUESTION" TRACKING (offline, replaces Supabase
+// mock_user_question_tracking) ----
+// Keeps track, per user + subject, of which mock-type question ids have
+// already been served to that user so Mock Arena doesn't repeat questions
+// until the pool is exhausted, then it resets. Stored in the `settings`
+// IndexedDB store (small, simple key/value data — no need for a dedicated
+// object store or a DB_VERSION bump).
+
+function mockTrackingKey(userId, subjectId) {
+    return 'mock_used_' + userId + '_' + subjectId;
+}
+
+async function getUsedMockQuestionIdsOffline(userId, subjectId) {
+    try {
+        const row = await dbGet('settings', mockTrackingKey(userId, subjectId));
+        return (row && Array.isArray(row.value)) ? row.value : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+async function addUsedMockQuestionIdsOffline(userId, subjectId, ids) {
+    if (!ids || ids.length === 0) return;
+    const existing = await getUsedMockQuestionIdsOffline(userId, subjectId);
+    const merged = Array.from(new Set(existing.concat(ids)));
+    await dbPut('settings', { key: mockTrackingKey(userId, subjectId), value: merged });
+    return merged;
+}
+
+async function resetUsedMockQuestionIdsOffline(userId, subjectId) {
+    await dbPut('settings', { key: mockTrackingKey(userId, subjectId), value: [] });
 }
 
 // ---- LEGACY COMPATIBILITY ----
@@ -937,6 +987,7 @@ window.OfflineDB = {
     updateQuestionOffline,
     deleteQuestionOffline,
     getQuestionsOffline,
+    getQuestionsByIdsOffline,
     loadQuestionsOffline,
     loadQuestionsOfflineCompat,
     loadAllQuestionsCountOffline,
@@ -945,6 +996,7 @@ window.OfflineDB = {
     // Passages
     getPassageOffline,
     addPassageOffline,
+    getPassageBatchesOffline,
     
     // Topics
     getTopicsOffline,
@@ -968,10 +1020,16 @@ window.OfflineDB = {
     forceSyncSubjectFile,
 
     // Reconcile (sync + delete) — use these for the "keep offline DB
-    // exactly matching GitHub" behavior.
+    // exactly matching GitHub" behavior. Never deletes topics/topic_questions.
     reconcileSubjectFile,
     reconcileAllSubjectFiles,
     wipeSubjectData,
+
+    // Mock Arena used-question tracking (offline replacement for the
+    // Supabase mock_user_question_tracking table)
+    getUsedMockQuestionIdsOffline,
+    addUsedMockQuestionIdsOffline,
+    resetUsedMockQuestionIdsOffline,
     
     // Cache
     getCachedQuestions,
