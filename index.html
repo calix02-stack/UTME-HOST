@@ -5026,16 +5026,25 @@
         padding: 14px;
         margin-bottom: 10px;
         transition: border-color 0.3s, transform 0.2s;
-        animation: mockCardIn 0.42s cubic-bezier(.2,.7,.3,1) both;
+        /* NOTE: no entrance animation here on the base class — baking it in
+           meant EVERY re-render (including the silent 60s settings-refresh
+           tick that runs no matter which page you're on) replayed the
+           opacity-0 fade-in, which looked like the whole card blinking for
+           no reason. The entrance now only plays via the ".enter" class,
+           which JS adds once per fresh visit/tab-switch — see
+           renderMockExamPicker + the mockAnimatedTabs guard. */
     }
-    .mock-card:active { transform: scale(0.98); }
+    .mock-card:active { transform: scale(0.97) rotate(-0.3deg); }
+    .mock-card.enter { animation: mockCardPop 0.5s cubic-bezier(.34,1.56,.64,1) both; }
     .mock-card.active {
         border-color: var(--green);
-        animation: mockCardIn 0.42s cubic-bezier(.2,.7,.3,1) both, mockOngoingGlow 2.4s ease-in-out 0.5s infinite;
+        animation: mockOngoingGlow 2.4s ease-in-out 0.5s infinite;
     }
-    @keyframes mockCardIn {
-        from { opacity: 0; transform: translateY(10px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
+    .mock-card.active.enter { animation: mockCardPop 0.5s cubic-bezier(.34,1.56,.64,1) both, mockOngoingGlow 2.4s ease-in-out 0.9s infinite; }
+    @keyframes mockCardPop {
+        0% { opacity: 0; transform: translateY(14px) scale(0.9) rotate(-1deg); }
+        60% { opacity: 1; transform: translateY(-2px) scale(1.02) rotate(0.5deg); }
+        100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
     }
     @keyframes mockOngoingGlow {
         0%, 100% { box-shadow: 0 0 0 0 rgba(15,107,63,0.22); }
@@ -5051,13 +5060,22 @@
         vertical-align: middle;
         animation: pulseDot 1.1s ease-in-out infinite;
     }
+    /* A little party popper that rides along the "Ongoing" status pill when
+       exams are live — purely for fun, doesn't affect layout. */
+    .mock-card.active .mock-status.ongoing { animation: mockJiggle 2.6s ease-in-out infinite; display: inline-block; }
+    @keyframes mockJiggle {
+        0%, 92%, 100% { transform: rotate(0deg); }
+        94% { transform: rotate(-6deg); }
+        96% { transform: rotate(5deg); }
+        98% { transform: rotate(-3deg); }
+    }
 
     /* Mock Arena empty state — replaces the plain "No X exams." line */
     .mock-empty-state {
         text-align: center;
         padding: 34px 20px 30px;
-        animation: mockEmptyIn 0.45s ease both;
     }
+    .mock-empty-state.enter { animation: mockEmptyIn 0.5s ease both; }
     @keyframes mockEmptyIn {
         from { opacity: 0; transform: translateY(8px); }
         to { opacity: 1; transform: translateY(0); }
@@ -5067,6 +5085,13 @@
         display: inline-block;
         margin-bottom: 10px;
         animation: mockFloat 2.8s ease-in-out infinite;
+    }
+    .mock-empty-icon.burst { animation: mockHeadBurst 0.9s cubic-bezier(.3,1.6,.4,1) both, mockFloat 2.8s ease-in-out 0.9s infinite; }
+    @keyframes mockHeadBurst {
+        0% { opacity: 0; transform: scale(0.2) rotate(-25deg); }
+        45% { opacity: 1; transform: scale(1.35) rotate(8deg); }
+        65% { transform: scale(0.9) rotate(-4deg); }
+        100% { transform: scale(1) rotate(0deg); }
     }
     @keyframes mockFloat {
         0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -5104,6 +5129,34 @@
     @keyframes mockOrbit {
         from { transform: rotate(0deg) translateX(38px) rotate(0deg); }
         to { transform: rotate(360deg) translateX(38px) rotate(-360deg); }
+    }
+    /* Little emoji confetti that pops once when you land on a tab that has
+       live/upcoming exams waiting — purely celebratory, never repeats on a
+       silent refresh (gated by .enter the same way as the cards above). */
+    .mock-confetti-burst {
+        position: relative;
+        height: 0;
+        text-align: center;
+        overflow: visible;
+    }
+    .mock-confetti-burst span {
+        position: absolute;
+        top: 0; left: 50%;
+        font-size: 18px;
+        opacity: 0;
+        animation: mockConfettiFly 1.1s ease-out both;
+    }
+    @keyframes mockConfettiFly {
+        0% { opacity: 0; transform: translate(-50%, 0) scale(0.5) rotate(0deg); }
+        15% { opacity: 1; }
+        100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), var(--dy, -60px)) scale(1) rotate(var(--rot, 90deg)); }
+    }
+    /* Playful tap-wiggle for the two big action buttons up top */
+    .mock-fun-btn:active { animation: mockBtnWiggle 0.35s ease; }
+    @keyframes mockBtnWiggle {
+        0%, 100% { transform: scale(0.97) rotate(0deg); }
+        30% { transform: scale(0.97) rotate(-2deg); }
+        60% { transform: scale(0.97) rotate(2deg); }
     }
     .mock-card .mock-title {
         font-weight: 700;
@@ -6855,7 +6908,7 @@
      pdf.js decodes and paints the PDF onto a canvas ourselves, so it opens
      the same way on every device, with no extra tap. -->
 <script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-<script src="offline-db.js?v=2" defer></script>
+<script src="offline-db.js?v=3" defer></script>
 <script>
 // ============================================================
 //  VIEWPORT HEIGHT FIX
@@ -8053,6 +8106,12 @@ let state = {
     cbtCurrentSubject: null,
     englishBatchTracker: 1,
     currentEnglishPassage: null,
+    // Tracks which Mock Arena tabs have already played their entrance
+    // animation this "visit" — lets background refreshes (settings poll,
+    // etc.) re-render the list without the cards/empty-state flashing in
+    // again from opacity 0 every time. Reset on fresh navigation into the
+    // page or on an explicit tab switch (see setView / 'live-exam-tab').
+    mockAnimatedTabs: {},
     hasPassage: false,
     passageRead: false,
     passageQuestionIds: [],
@@ -15094,6 +15153,8 @@ function setView(v) {
         showToast('Your exam was submitted because you left the screen.', '');
     }
     if (state.view === 'revise' && v !== 'revise') flushReviseReloadIfNeeded();
+    // Fresh visit to Mock Arena — let the entrance animations play once.
+    if (v === 'mockexam' && state.view !== 'mockexam') state.mockAnimatedTabs = {};
     state.view = v;
     if (v !== "activate") state.activateRedirectReason = null;
     state.drawerOpen = false;
@@ -20738,6 +20799,14 @@ function renderMockExamPicker() {
     const filtered = allExams.filter(function(e) { return status(e) === tab; })
         .sort(function(a, b) { return new Date(a.scheduled_date) - new Date(b.scheduled_date); });
 
+    // Only play the pop-in / confetti / bounce animations once per fresh
+    // visit or deliberate tab switch (see setView + 'live-exam-tab' above).
+    // A background re-render of the SAME tab (e.g. the periodic settings
+    // refresh) will NOT set this, so nothing replays and nothing blinks.
+    const freshEnter = !state.mockAnimatedTabs[tab];
+    state.mockAnimatedTabs[tab] = true;
+    const enterCls = freshEnter ? ' enter' : '';
+
     let tabsHtml = '<div class="leaderboard-tabs">';
     [['upcoming', '📅 Upcoming'], ['ongoing', '🟢 Ongoing'], ['completed', '🔒 Completed']].forEach(function(t) {
         tabsHtml += '<button class="leaderboard-tab' + (tab === t[0] ? ' active' : '') + '" data-action="live-exam-tab" data-tab="' + t[0] + '">' + t[1] + '</button>';
@@ -20747,22 +20816,36 @@ function renderMockExamPicker() {
     let cards = "";
     if (filtered.length === 0) {
         const emptyMeta = {
-            upcoming: { icon: '📅', title: 'Nothing scheduled yet', sub: 'Create a mock exam and invite others, or check back soon for upcoming ones.' },
-            ongoing: { icon: '⚡', title: 'No exam live right now', sub: 'It\'s quiet here at the moment — start your own and it\'ll show up instantly.' },
-            completed: { icon: '📜', title: 'No completed exams yet', sub: 'Once an exam ends, it\'ll land here with results you can review.' },
+            upcoming: { icon: '📅', title: 'Nothing scheduled yet', sub: 'Create a mock exam and invite others, or check back soon for upcoming ones. 🎈' },
+            ongoing: { icon: '🤯', title: 'Mind. Blown. Nothing\'s live.', sub: 'It\'s crickets in here right now 🦗 — start your own and it\'ll show up instantly!' },
+            completed: { icon: '😴', title: 'No completed exams yet', sub: 'Once an exam ends, it\'ll land here with results you can review. Zzz for now.' },
         }[tab] || { icon: '📭', title: 'Nothing here yet', sub: '' };
+        const iconCls = 'mock-empty-icon' + (tab === 'ongoing' ? ' burst' : '');
         cards = (
             '<div class="card">' +
-            '<div class="mock-empty-state">' +
+            '<div class="mock-empty-state' + enterCls + '">' +
             '<div class="mock-empty-orbit"><span></span><span></span><span></span></div>' +
-            '<p class="mock-empty-icon">' + emptyMeta.icon + '</p>' +
+            '<p class="' + iconCls + '">' + emptyMeta.icon + '</p>' +
             '<p class="mock-empty-title">' + emptyMeta.title + '</p>' +
             '<p class="mock-empty-sub">' + emptyMeta.sub + '</p>' +
-            '<button class="btn btn-green" style="padding:9px 18px" data-action="live-exam-view" data-view="create">➕ Create an Exam</button>' +
+            '<button class="btn btn-green mock-fun-btn" style="padding:9px 18px" data-action="live-exam-view" data-view="create">➕ Create an Exam</button>' +
             '</div>' +
             '</div>'
         );
     } else {
+        if (freshEnter && tab === 'ongoing') {
+            // One-time little celebration when you land on a tab that actually
+            // has something live going on right now.
+            const bits = [
+                ['🎉', -46, -58, -35],
+                ['✨', -10, -66, 15],
+                ['🎊', 24, -58, 40],
+                ['🥳', 50, -46, -20],
+            ];
+            cards += '<div class="mock-confetti-burst">' + bits.map(function(b, i) {
+                return '<span style="--dx:' + b[1] + 'px;--dy:' + b[2] + 'px;--rot:' + b[3] + 'deg;animation-delay:' + (i * 0.06) + 's">' + b[0] + '</span>';
+            }).join('') + '</div>';
+        }
         filtered.forEach(function(exam, idx) {
             const scheduled = new Date(exam.scheduled_date);
             const endDate = new Date(exam.end_date);
@@ -20803,7 +20886,8 @@ function renderMockExamPicker() {
             }
 
             cards += (
-                '<div class="mock-card' + (st === 'ongoing' ? ' active' : '') + '" style="animation-delay:' + Math.min(idx * 0.06, 0.4) + 's">' +
+                '<div class="mock-card' + (st === 'ongoing' ? ' active' : '') + enterCls + '"' +
+                (freshEnter ? ' style="animation-delay:' + Math.min(idx * 0.06, 0.4) + 's"' : '') + '>' +
                 '<p class="mock-title">' + esc(exam.title) + (exam.source === 'live' ? ' 👤' : ' 🛡️') + '</p>' +
                 '<p class="mock-date">📅 ' + scheduled.toLocaleString() + (exam.source === 'live' ? ' · by ' + esc(exam.creator_username || 'user') : '') + '</p>' +
                 liveMeta +
@@ -20821,8 +20905,8 @@ function renderMockExamPicker() {
         '<h2 class="title">Mock Arena</h2>' +
         '<p class="sub">Create your own, or join anyone\'s exam</p>' +
         '<div style="display:flex;gap:6px;margin-bottom:12px">' +
-        '<button class="btn btn-green" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="create">➕ Create</button>' +
-        '<button class="btn btn-outline" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="join-code">🔑 Join by Code</button>' +
+        '<button class="btn btn-green mock-fun-btn" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="create">➕ Create</button>' +
+        '<button class="btn btn-outline mock-fun-btn" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="join-code">🔑 Join by Code</button>' +
         '</div>' +
         (state.lastCreatedJoinCode ?
             '<div class="card" style="border-color:var(--gold);text-align:center;padding:12px;margin-bottom:12px">' +
@@ -26451,6 +26535,7 @@ document.addEventListener('click', function(e) {
     }
     if (action === 'live-exam-tab') {
         state.liveExamTab = el.getAttribute('data-tab');
+        state.mockAnimatedTabs = {}; // deliberate switch — play the entrance animation fresh
         render();
         return;
     }
@@ -29497,11 +29582,6 @@ function updateTopicQuestionOffline(questionId, data) {
 function addQuestionOffline(data) {
     return window.OfflineDB.addQuestionOffline(data);
 }
-// NEW — needs a matching savePassageOffline(data) added to offline-db.js.
-// It should upsert into the same local store getPassageOffline(batchNumber)
-// already reads from, keyed by data.batch_number (one passage per batch,
-// shared by CBT/Mock/Exam), with fields: subject_id, batch_number, title,
-// passage_text.
 function savePassageOffline(data) {
     return window.OfflineDB.savePassageOffline(data);
 }
