@@ -8106,6 +8106,7 @@ let state = {
     cbtSubjectOrder: [],
     cbtCurrentSubject: null,
     englishBatchTracker: 1,
+    cbtEngBatch: null,
     currentEnglishPassage: null,
     // Tracks which Mock Arena tabs have already played their entrance
     // animation this "visit" — lets background refreshes (settings poll,
@@ -10617,7 +10618,7 @@ function exitActiveExamDiscarding() {
             state.cbtFinished = false; state.cbtSubmitted = false; state.cbtHistorySaved = false;
             state.cbtSelected = []; state.cbtSubjectQuestions = {}; state.cbtSubjectOrder = [];
             state.cbtCurrentSubject = null; state.currentEnglishPassage = null;
-            state.hasPassage = false; state.passageRead = false;
+            state.hasPassage = false; state.passageRead = false; state.cbtEngBatch = null;
             break;
         case 'exam-exam':
             state.examQuestions = []; state.examIndex = 0; state.examAnswers = [];
@@ -11049,7 +11050,7 @@ async function startMockExam(mockExamId, source) {
                         return q.subject_id === 'eng' && q.batch_number;
                     });
                     if (engQuestion) {
-                        const passage = await window.OfflineDB.getPassageOffline(engQuestion.batch_number);
+                        const passage = await window.OfflineDB.getPassageOffline(engQuestion.batch_number, 'mock');
                         if (passage) {
                             state.engMockPassage = passage;
                             state.engMockHasPassage = true;
@@ -12795,17 +12796,11 @@ async function startCbt() {
     state.isLoading = true;
     render();
 
+    // Reset passage state
     state.currentEnglishPassage = null;
     state.hasPassage = false;
     state.passageRead = false;
     state.passageQuestionIds = [];
-
-    if (state.authUser) {
-        const savedBatch = storage.get('englishBatchTracker_' + state.authUser.id);
-        if (savedBatch) {
-            state.englishBatchTracker = parseInt(savedBatch, 10) || 1;
-        }
-    }
 
     let subjects = [];
     if (isFull) {
@@ -12816,82 +12811,79 @@ async function startCbt() {
     }
 
     let allQuestions = [];
-    // Question count is chosen by the user (25/30/35/40), not the Admin Panel's
-    // per-subject setting — this applies to every mode except Mock Exam.
     const perSubject = state.cbtQuestionCount || 25;
-    
+    state.cbtEngBatch = null;
+
     for (const subject of subjects) {
         let qs = [];
-        
+
         if (subject.id === 'eng') {
-            const currentBatch = state.englishBatchTracker || 1;
-            qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id, null, perSubject);
-             
-            if (qs.length > 0) {
-                qs.sort(function(a, b) {
-                    const aHasPassage = a.passage_id === currentBatch ? 0 : 1;
-                    const bHasPassage = b.passage_id === currentBatch ? 0 : 1;
-                    if (aHasPassage !== bHasPassage) {
-                        return aHasPassage - bHasPassage;
+            // ====== FIX: pick ONE batch and use that SAME batch's passage
+            // + that SAME batch's questions together, so they can never
+            // mismatch. This pool/tracker is CBT-specific (mode: 'cbt'),
+            // kept separate from the Mock Arena's own 'mock' pool/tracker
+            // so running CBT and Mock never steal each other's batches. ======
+            const cbtBatches = await window.OfflineDB.getPassageBatchesOffline('eng', 'cbt');
+            let engQuestionsLoaded = false;
+
+            if (cbtBatches && cbtBatches.length > 0) {
+                const completedKey = 'eng_cbt_completed_' + state.authUser.id;
+                let completedBatches = JSON.parse(storage.get(completedKey) || '[]');
+
+                let availableBatches = cbtBatches.filter(function(bn) { return completedBatches.indexOf(bn) === -1; });
+                if (availableBatches.length === 0) {
+                    storage.set(completedKey, JSON.stringify([]));
+                    availableBatches = cbtBatches.slice();
+                }
+
+                // Shuffle which batch we try first, so it's not always
+                // the same one — but questions ALWAYS come from whichever
+                // batch we end up selecting, never a different one.
+                const batchTryOrder = shuffleArray(availableBatches);
+                const allEngQuestions = await window.OfflineDB.loadQuestionsOffline('cbt', 'eng');
+
+                for (const selectedBatch of batchTryOrder) {
+                    const qData = allEngQuestions
+                        .filter(function(q) { return q.batch_number === selectedBatch; })
+                        .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
+                        .slice(0, perSubject);
+
+                    if (qData.length > 0) {
+                        const passage = await window.OfflineDB.getPassageOffline(selectedBatch, 'cbt');
+
+                        state.cbtEngBatch = selectedBatch;
+                        storage.set('eng_cbt_tracker_' + state.authUser.id, String(selectedBatch));
+
+                        if (passage) {
+                            state.currentEnglishPassage = passage;
+                            state.hasPassage = true;
+                            state.passageRead = false;
+                            state.passageQuestionIds = qData.map(function(q) { return q.id; });
+                        } else {
+                            state.currentEnglishPassage = null;
+                            state.hasPassage = false;
+                            state.passageRead = true;
+                            state.passageQuestionIds = [];
+                        }
+
+                        qs = qData;
+                        engQuestionsLoaded = true;
+                        break;
                     }
-                    return a.id - b.id;
-                });
+                }
             }
-                
-            // Pass mode 'cbt' to get the correct passage for this mode
-            const passage = await window.OfflineDB.getPassageOffline(currentBatch, 'cbt');
-            if (passage) {
-                state.currentEnglishPassage = passage;
-                state.hasPassage = true;
-                state.passageRead = false;
-                state.passageQuestionIds = [];
-                
-                const passageQuestionIds = [];
-                qs.forEach(function(q) {
-                    if (q.passage_id === currentBatch) {
-                        passageQuestionIds.push(q.id);
-                    }
-                });
-                state.passageQuestionIds = passageQuestionIds;
-            } else {
+
+            if (!engQuestionsLoaded) {
                 state.currentEnglishPassage = null;
                 state.hasPassage = false;
-                state.passageRead = false;
+                state.passageRead = true;
                 state.passageQuestionIds = [];
+                state.cbtEngBatch = null;
+
+                qs = await window.OfflineDB.loadQuestionsOffline('cbt', 'eng');
+                qs = shuffleArray(qs).slice(0, perSubject);
             }
-            
-            if (qs.length === 0 && currentBatch < ENGLISH_BATCH_COUNT) {
-                state.englishBatchTracker = currentBatch + 1;
-                qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id, null, perSubject);
-                
-                if (qs.length > 0) {
-                    const nextBatch = state.englishBatchTracker;
-                    qs.sort(function(a, b) {
-                        const aHasPassage = a.passage_id === nextBatch ? 0 : 1;
-                        const bHasPassage = b.passage_id === nextBatch ? 0 : 1;
-                        if (aHasPassage !== bHasPassage) {
-                            return aHasPassage - bHasPassage;
-                        }
-                        return a.id - b.id;
-                    });
-                }
-                
-                // Pass mode 'cbt' to get the correct passage for this mode
-                const nextPassage = await window.OfflineDB.getPassageOffline(state.englishBatchTracker, 'cbt');
-                if (nextPassage) {
-                    state.currentEnglishPassage = nextPassage;
-                    state.hasPassage = true;
-                    state.passageRead = false;
-                    
-                    const passageQuestionIds = [];
-                    qs.forEach(function(q) {
-                        if (q.passage_id === state.englishBatchTracker) {
-                            passageQuestionIds.push(q.id);
-                        }
-                    });
-                    state.passageQuestionIds = passageQuestionIds;
-                }
-            }
+            // ====== END FIX ======
         } else {
             qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id);
             qs = shuffleArray(qs).slice(0, perSubject);
@@ -25407,82 +25399,71 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'cbt-submit') {
-        if (state.cbtSubmitted) return;
-        const subjectMap = {};
-        state.cbtQuestions.forEach(function(q, i) {
-            if (!subjectMap[q.subject_id]) {
-                const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
-                subjectMap[q.subject_id] = {
-                    name: subj ? subj.name : q.subject_id,
-                    total: 0,
-                    answered: 0,
-                    unanswered: 0,
-                };
-            }
-            subjectMap[q.subject_id].total++;
-            const isAnswered = state.cbtAnswers[i] !== null && state.cbtAnswers[i] !== undefined;
-            if (isAnswered) subjectMap[q.subject_id].answered++;
-            else subjectMap[q.subject_id].unanswered++;
-        });
-        const subjectSummaries = Object.values(subjectMap);
-        const totalAnswered = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
-        const totalQuestions = state.cbtQuestions.length;
-        
-        const hasEnglish = state.cbtQuestions.some(function(q) { return q.subject_id === 'eng'; });
-        if (hasEnglish && state.authUser) {
-            const submittedBatches = JSON.parse(storage.get('submittedBatches_' + state.authUser.id) || '[]');
-            const currentBatch = state.englishBatchTracker || 1;
-            
-            if (submittedBatches.indexOf(currentBatch) === -1) {
-                submittedBatches.push(currentBatch);
-                storage.set('submittedBatches_' + state.authUser.id, JSON.stringify(submittedBatches));
-            }
-            
-            // Batches are shuffled (not the questions inside them): pick a random
-            // unfinished batch instead of always going 1 -> 2 -> 3 in order.
-            let availableBatchChoices = [];
-            for (let i = 1; i <= ENGLISH_BATCH_COUNT; i++) {
-                if (submittedBatches.indexOf(i) === -1) availableBatchChoices.push(i);
-            }
-            if (availableBatchChoices.length === 0) {
-                storage.set('submittedBatches_' + state.authUser.id, JSON.stringify([]));
-                availableBatchChoices = Array.from({length: ENGLISH_BATCH_COUNT}, function(_, i) { return i + 1; });
-            }
-            const nextBatch = availableBatchChoices[Math.floor(Math.random() * availableBatchChoices.length)];
-            
-            state.englishBatchTracker = nextBatch;
-            storage.set('englishBatchTracker_' + state.authUser.id, String(nextBatch));
+    if (state.cbtSubmitted) return;
+    const subjectMap = {};
+    state.cbtQuestions.forEach(function(q, i) {
+        if (!subjectMap[q.subject_id]) {
+            const subj = SUBJECTS.find(function(s) { return s.id === q.subject_id; });
+            subjectMap[q.subject_id] = {
+                name: subj ? subj.name : q.subject_id,
+                total: 0,
+                answered: 0,
+                unanswered: 0,
+            };
         }
-        
-        state.showSubmitModal = true;
-        state.submitModalData = {
-            total: totalQuestions,
-            answered: totalAnswered,
-            subjects: subjectSummaries,
-            isMock: false,
-            onConfirm: function() {
-                state.showSubmitModal = false;
-                state.submitModalData = null;
-                state.cbtSubmitted = true;
-                state.cbtFinished = true;
-                state.currentEnglishPassage = null;
-                state.hasPassage = false;
-                state.passageRead = false;
-                state.passageQuestionIds = [];
-                if (state.cbtTimer) { clearInterval(state.cbtTimer);
-                    state.cbtTimer = null; }
-                clearSessionSnapshot();
-                render();
-            },
-            onCancel: function() {
-                state.showSubmitModal = false;
-                state.submitModalData = null;
-                render();
-            }
-        };
-        render();
-        return;
+        subjectMap[q.subject_id].total++;
+        const isAnswered = state.cbtAnswers[i] !== null && state.cbtAnswers[i] !== undefined;
+        if (isAnswered) subjectMap[q.subject_id].answered++;
+        else subjectMap[q.subject_id].unanswered++;
+    });
+    const subjectSummaries = Object.values(subjectMap);
+    const totalAnswered = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
+    const totalQuestions = state.cbtQuestions.length;
+    
+    // ====== FIX: Mark the batch actually used this attempt as completed. ======
+    // This uses the SAME key ('eng_cbt_completed_') that startCbt() reads
+    // from when picking the next batch, so selection and completion never
+    // fall out of sync again. The next batch is picked fresh inside
+    // startCbt() next time, not pre-computed here.
+    if (state.authUser && state.cbtEngBatch) {
+        const completedKey = 'eng_cbt_completed_' + state.authUser.id;
+        let completedBatches = JSON.parse(storage.get(completedKey) || '[]');
+        if (completedBatches.indexOf(state.cbtEngBatch) === -1) {
+            completedBatches.push(state.cbtEngBatch);
+            storage.set(completedKey, JSON.stringify(completedBatches));
+        }
     }
+    // ====== END FIX ======
+    
+    state.showSubmitModal = true;
+    state.submitModalData = {
+        total: totalQuestions,
+        answered: totalAnswered,
+        subjects: subjectSummaries,
+        isMock: false,
+        onConfirm: function() {
+            state.showSubmitModal = false;
+            state.submitModalData = null;
+            state.cbtSubmitted = true;
+            state.cbtFinished = true;
+            state.currentEnglishPassage = null;
+            state.hasPassage = false;
+            state.passageRead = false;
+            state.passageQuestionIds = [];
+            if (state.cbtTimer) { clearInterval(state.cbtTimer);
+                state.cbtTimer = null; }
+            clearSessionSnapshot();
+            render();
+        },
+        onCancel: function() {
+            state.showSubmitModal = false;
+            state.submitModalData = null;
+            render();
+        }
+    };
+    render();
+    return;
+}
 
     if (action === 'cbt-exit') {
         if (state.cbtTimer) { clearInterval(state.cbtTimer);
@@ -25501,6 +25482,7 @@ document.addEventListener('click', function(e) {
         state.currentEnglishPassage = null;
         state.hasPassage = false;
         state.passageRead = false;
+        state.cbtEngBatch = null;
         state.view = 'home';
         clearSessionSnapshot();
         render();
