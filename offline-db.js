@@ -278,13 +278,13 @@ async function getQuestionsByIdsOffline(ids) {
 
 // ---- PASSAGES ----
 
-async function getPassageOffline(batchNumber) {
-    const results = cachedPassages.filter(p => p.batch_number === batchNumber);
+async function getPassageOffline(batchNumber, mode) {
+    const results = cachedPassages.filter(p => p.batch_number === batchNumber && p.mode === mode);
     if (results.length > 0) return results[0] || null;
     
     const allPassages = await dbGetAll('passages');
     cachedPassages = allPassages;
-    return allPassages.find(p => p.batch_number === batchNumber) || null;
+    return allPassages.find(p => p.batch_number === batchNumber && p.mode === mode) || null;
 }
 
 async function addPassageOffline(passage) {
@@ -310,11 +310,12 @@ async function addPassageOffline(passage) {
 async function savePassageOffline(data) {
     let all = cachedPassages.length > 0 ? cachedPassages : await dbGetAll('passages');
     cachedPassages = all;
-    const existing = all.find(p => p.subject_id === data.subject_id && p.batch_number === data.batch_number);
+    const existing = all.find(p => p.subject_id === data.subject_id && p.batch_number === data.batch_number && p.mode === data.mode);
     const record = {
         id: existing ? existing.id : ('p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)),
         subject_id: data.subject_id,
         batch_number: data.batch_number,
+        mode: data.mode || 'cbt',
         title: data.title || '',
         passage_text: data.passage_text || '',
         created_at: existing ? existing.created_at : new Date().toISOString(),
@@ -326,16 +327,15 @@ async function savePassageOffline(data) {
 
 // Distinct batch numbers available for a subject (used to pick a random
 // unseen comprehension batch for English mock exams, offline).
-async function getPassageBatchesOffline(subjectId) {
+async function getPassageBatchesOffline(subjectId, mode) {
     let all = cachedPassages.length > 0 ? cachedPassages : await dbGetAll('passages');
     cachedPassages = all;
     const nums = all
-        .filter(p => !subjectId || p.subject_id === subjectId)
+        .filter(p => (!subjectId || p.subject_id === subjectId) && p.mode === mode)
         .map(p => p.batch_number)
         .filter(n => n !== undefined && n !== null);
     return Array.from(new Set(nums)).sort((a, b) => a - b);
 }
-
 // ---- TOPICS ----
 
 async function getTopicsOffline(subjectId) {
