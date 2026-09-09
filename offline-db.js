@@ -1,4 +1,3 @@
-
 // ============================================================
 // OFFLINE-DB.JS — Complete Offline Question Database
 // ============================================================
@@ -295,6 +294,34 @@ async function addPassageOffline(passage) {
     await dbPut('passages', passage);
     cachedPassages.push(passage);
     return passage;
+}
+
+// Upsert one passage for a (subject_id, batch_number) pair — CBT/Mock/Exam
+// all share a single passage per batch number, so saving from the admin
+// screen should REPLACE whatever's already stored for that batch, not add
+// a duplicate. This is what the "Save Passage" button in index.html calls
+// via window.savePassageOffline -> window.OfflineDB.savePassageOffline.
+//
+// Previously this function didn't exist at all on window.OfflineDB, so
+// every "Save Passage" click threw "OfflineDB.savePassageOffline is not a
+// function" and nothing was ever written to IndexedDB — which is also why
+// passages always came up empty on export (there was never anything there
+// to export).
+async function savePassageOffline(data) {
+    let all = cachedPassages.length > 0 ? cachedPassages : await dbGetAll('passages');
+    cachedPassages = all;
+    const existing = all.find(p => p.subject_id === data.subject_id && p.batch_number === data.batch_number);
+    const record = {
+        id: existing ? existing.id : ('p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)),
+        subject_id: data.subject_id,
+        batch_number: data.batch_number,
+        title: data.title || '',
+        passage_text: data.passage_text || '',
+        created_at: existing ? existing.created_at : new Date().toISOString(),
+    };
+    await dbPut('passages', record);
+    cachedPassages = await dbGetAll('passages');
+    return record;
 }
 
 // Distinct batch numbers available for a subject (used to pick a random
@@ -997,6 +1024,7 @@ window.OfflineDB = {
     // Passages
     getPassageOffline,
     addPassageOffline,
+    savePassageOffline,
     getPassageBatchesOffline,
     
     // Topics
