@@ -7640,6 +7640,8 @@ function renderExamTimeLeftCard(timeLeft) {
 function renderExamIconRow(cfg) {
     const isFlagged = cfg.qid && state.myFlaggedIds.indexOf(cfg.qid) !== -1;
     if (cfg.item) cacheFlaggableQuestion(cfg.item, cfg.subjectId);
+    // Only show passage icon for CBT and Mock modes (not Exam)
+    const showPassageIcon = cfg.hasPassage && cfg.mode !== 'exam';
     return (
         '<div class="exam-icon-row">' +
         '<div class="exam-square-group">' +
@@ -7647,7 +7649,7 @@ function renderExamIconRow(cfg) {
             ? '<button class="exam-square-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg('calcsigns', 20) + '</button>'
             : '<button class="exam-square-btn" data-action="toggle-calculator" aria-label="Calculator" style="opacity:0.35;cursor:not-allowed" title="Calculator disabled">' + svg('calcsigns', 20) + '</button>'
         ) +
-        (cfg.hasPassage ? '<button class="exam-square-btn" data-action="show-passage" title="View Passage" aria-label="View Passage">📖</button>' : '') +
+        (showPassageIcon ? '<button class="exam-square-btn" data-action="show-passage" title="View Passage" aria-label="View Passage">📖</button>' : '') +
         '</div>' +
         '<div class="exam-pill-group">' +
         '<button class="exam-pill-btn' + (cfg.marked ? ' marked' : '') + '" data-action="toggle-mark-review" data-mode="' + (cfg.mode || '') + '" title="Mark for Review">' +
@@ -7658,7 +7660,6 @@ function renderExamIconRow(cfg) {
         '</div>'
     );
 }
-
 function renderExamQCardHeader(number, text) {
     return (
         '<div class="exam-q-card-v2">' +
@@ -11113,90 +11114,92 @@ async function startMockExam(mockExamId, source) {
             const unusedQuestions = allSubjectQuestions.filter(function(q) { return usedIds.indexOf(q.id) === -1; });
 
             if (subjectId === 'eng') {
-                const batches = await window.OfflineDB.getPassageBatchesOffline('eng');
-                let engQuestionsLoaded = false;
+    // Pass 'mock' as the mode to get only Mock-specific passages
+    const batches = await window.OfflineDB.getPassageBatchesOffline('eng', 'mock');
+    let engQuestionsLoaded = false;
 
-                if (batches && batches.length > 0) {
-                    const completedKey = 'eng_mock_completed_' + state.authUser.id;
-                    const completedBatches = JSON.parse(storage.get(completedKey) || '[]');
+    if (batches && batches.length > 0) {
+        const completedKey = 'eng_mock_completed_' + state.authUser.id;
+        const completedBatches = JSON.parse(storage.get(completedKey) || '[]');
 
-                    let availableBatches = batches.filter(function(bn) { return completedBatches.indexOf(bn) === -1; });
+        let availableBatches = batches.filter(function(bn) { return completedBatches.indexOf(bn) === -1; });
 
-                    if (availableBatches.length === 0) {
-                        storage.set(completedKey, JSON.stringify([]));
-                        availableBatches = batches.slice();
-                    }
+        if (availableBatches.length === 0) {
+            storage.set(completedKey, JSON.stringify([]));
+            availableBatches = batches.slice();
+        }
 
-                    const batchTryOrder = shuffleArray(availableBatches);
+        const batchTryOrder = shuffleArray(availableBatches);
 
-                    for (const selectedBatch of batchTryOrder) {
-                        const qData = allSubjectQuestions
-                            .filter(function(q) { return q.batch_number === selectedBatch; })
-                            .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
-                            .slice(0, perSubject);
+        for (const selectedBatch of batchTryOrder) {
+            const qData = allSubjectQuestions
+                .filter(function(q) { return q.batch_number === selectedBatch; })
+                .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
+                .slice(0, perSubject);
 
-                        if (qData.length > 0) {
-                            const passage = await window.OfflineDB.getPassageOffline(selectedBatch);
+            if (qData.length > 0) {
+                // Pass 'mock' as the mode to get only Mock-specific passages
+                const passage = await window.OfflineDB.getPassageOffline(selectedBatch, 'mock');
 
-                            if (passage) {
-                                state.engMockPassage = passage;
-                                state.engMockHasPassage = true;
-                                state.engMockPassageRead = false;
-                                state.engMockPassageId = passage.id;
-                            } else {
-                                state.engMockPassage = null;
-                                state.engMockHasPassage = false;
-                                state.engMockPassageRead = true;
-                                state.engMockPassageId = null;
-                            }
-
-                            allQuestions = allQuestions.concat(qData);
-                            engQuestionsLoaded = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!engQuestionsLoaded) {
+                if (passage) {
+                    state.engMockPassage = passage;
+                    state.engMockHasPassage = true;
+                    state.engMockPassageRead = false;
+                    state.engMockPassageId = passage.id;
+                } else {
                     state.engMockPassage = null;
                     state.engMockHasPassage = false;
                     state.engMockPassageRead = true;
                     state.engMockPassageId = null;
-
-                    let engPool = unusedQuestions.slice()
-                        .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); });
-                    if (engPool.length < perSubject) {
-                        await window.OfflineDB.resetUsedMockQuestionIdsOffline(state.authUser.id, 'eng');
-                        engPool = allSubjectQuestions.slice()
-                            .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); });
-                    }
-
-                    const selectedEng = engPool.slice(0, perSubject);
-                    if (selectedEng.length > 0) {
-                        await window.OfflineDB.addUsedMockQuestionIdsOffline(
-                            state.authUser.id, 'eng', selectedEng.map(function(q) { return q.id; })
-                        );
-                    }
-                    allQuestions = allQuestions.concat(selectedEng);
-                }
-            } else {
-                let selectedQuestions;
-                if (unusedQuestions.length < perSubject) {
-                    await window.OfflineDB.resetUsedMockQuestionIdsOffline(state.authUser.id, subjectId);
-                    const shuffled = shuffleArray(allSubjectQuestions);
-                    selectedQuestions = shuffled.slice(0, perSubject);
-                } else {
-                    const shuffled = shuffleArray(unusedQuestions);
-                    selectedQuestions = shuffled.slice(0, perSubject);
                 }
 
-                if (selectedQuestions.length > 0) {
-                    await window.OfflineDB.addUsedMockQuestionIdsOffline(
-                        state.authUser.id, subjectId, selectedQuestions.map(function(q) { return q.id; })
-                    );
-                }
-                allQuestions = allQuestions.concat(selectedQuestions);
+                allQuestions = allQuestions.concat(qData);
+                engQuestionsLoaded = true;
+                break;
             }
+        }
+    }
+
+    if (!engQuestionsLoaded) {
+        state.engMockPassage = null;
+        state.engMockHasPassage = false;
+        state.engMockPassageRead = true;
+        state.engMockPassageId = null;
+
+        let engPool = unusedQuestions.slice()
+            .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); });
+        if (engPool.length < perSubject) {
+            await window.OfflineDB.resetUsedMockQuestionIdsOffline(state.authUser.id, 'eng');
+            engPool = allSubjectQuestions.slice()
+                .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); });
+        }
+
+        const selectedEng = engPool.slice(0, perSubject);
+        if (selectedEng.length > 0) {
+            await window.OfflineDB.addUsedMockQuestionIdsOffline(
+                state.authUser.id, 'eng', selectedEng.map(function(q) { return q.id; })
+            );
+        }
+        allQuestions = allQuestions.concat(selectedEng);
+    }
+} else {
+    let selectedQuestions;
+    if (unusedQuestions.length < perSubject) {
+        await window.OfflineDB.resetUsedMockQuestionIdsOffline(state.authUser.id, subjectId);
+        const shuffled = shuffleArray(allSubjectQuestions);
+        selectedQuestions = shuffled.slice(0, perSubject);
+    } else {
+        const shuffled = shuffleArray(unusedQuestions);
+        selectedQuestions = shuffled.slice(0, perSubject);
+    }
+
+    if (selectedQuestions.length > 0) {
+        await window.OfflineDB.addUsedMockQuestionIdsOffline(
+            state.authUser.id, subjectId, selectedQuestions.map(function(q) { return q.id; })
+        );
+    }
+    allQuestions = allQuestions.concat(selectedQuestions);
+}
         }
 
         const insertPayload = {
@@ -12835,7 +12838,8 @@ async function startCbt() {
                 });
             }
                 
-            const passage = await window.OfflineDB.getPassageOffline(currentBatch);
+            // Pass mode 'cbt' to get the correct passage for this mode
+            const passage = await window.OfflineDB.getPassageOffline(currentBatch, 'cbt');
             if (passage) {
                 state.currentEnglishPassage = passage;
                 state.hasPassage = true;
@@ -12872,7 +12876,8 @@ async function startCbt() {
                     });
                 }
                 
-                const nextPassage = await window.OfflineDB.getPassageOffline(state.englishBatchTracker);
+                // Pass mode 'cbt' to get the correct passage for this mode
+                const nextPassage = await window.OfflineDB.getPassageOffline(state.englishBatchTracker, 'cbt');
                 if (nextPassage) {
                     state.currentEnglishPassage = nextPassage;
                     state.hasPassage = true;
@@ -13062,50 +13067,18 @@ async function startExam() {
         return;
     }
 
+    // Exam mode does NOT use passages - remove all passage-related state
     state.currentEnglishPassage = null;
     state.hasPassage = false;
     state.passageRead = false;
     state.passageQuestionIds = [];
 
-    // English: same comprehension-batch system as CBT — pick a random batch
-    // that hasn't been done this year, show its passage first, its
-    // questions are not shuffled (batch order is what's randomized).
-    let qsAll;
+    // Exam mode: simply shuffle and select questions, no passage grouping
     const examQCount = state.examQuestionCount || 25;
-    if (state.examSubject === 'eng' && state.authUser) {
-        const trackKey = 'examEngSubmittedBatches_' + state.examYear + '_' + state.authUser.id;
-        const submittedBatches = JSON.parse(storage.get(trackKey) || '[]');
-        let availableBatches = [];
-        for (let i = 1; i <= ENGLISH_BATCH_COUNT; i++) {
-            if (submittedBatches.indexOf(i) === -1) availableBatches.push(i);
-        }
-        if (availableBatches.length === 0) availableBatches = Array.from({length: ENGLISH_BATCH_COUNT}, function(_, i) { return i + 1; });
-        const batchesWithQuestions = availableBatches.filter(function(b) {
-            return questions.some(function(q) { return q.batch_number === b; });
-        });
-        const batch = (batchesWithQuestions.length ? batchesWithQuestions : availableBatches)[
-            Math.floor(Math.random() * (batchesWithQuestions.length ? batchesWithQuestions.length : availableBatches.length))
-        ];
-        state.examBatchTracker = batch;
-
-        const batchQs = questions.filter(function(q) { return q.batch_number === batch; });
-        qsAll = (batchQs.length ? batchQs : questions).slice(0, examQCount).map(function(q) {
-            return Object.assign({}, q, { subject_name: s.name });
-        });
-
-        const passage = await window.OfflineDB.getPassageOffline(batch);
-        if (passage) {
-            state.currentEnglishPassage = passage;
-            state.hasPassage = true;
-            state.passageRead = false;
-            state.passageQuestionIds = qsAll.map(function(q) { return q.id; });
-        }
-    } else {
-        // User-selected count (25/30/35/40), not the Admin Panel setting.
-        qsAll = shuffleArray(questions).slice(0, examQCount).map(function(q) {
-            return Object.assign({}, q, { subject_name: s.name });
-        });
-    }
+    const qsAll = shuffleArray(questions).slice(0, examQCount).map(function(q) {
+        return Object.assign({}, q, { subject_name: s.name });
+    });
+    
     notifyTrialCapIfNeeded(qsAll.length);
     const qs = applyTrialQuestionCap(qsAll);
     state.examQuestions = qs;
@@ -16681,6 +16654,9 @@ function renderPassagePage() {
 }
 
 function renderPassageModal() {
+    // Exam mode does not use passages - never show passage modal in exam
+    if (state.view === 'exam-exam') return '';
+    
     if (state.engMockHasPassage && state.engMockPassage && state.showPassageModal) {
         const passage = state.engMockPassage;
         return (
@@ -16697,6 +16673,9 @@ function renderPassageModal() {
     const passage = state.currentEnglishPassage;
     if (!passage || !state.showPassageModal) return '';
     
+    // Only show passage modal for CBT and Mock modes (not Exam)
+    if (state.view !== 'cbt-exam' && state.view !== 'mock-exam') return '';
+    
     return (
         '<div class="flag-overlay" data-action="close-passage">' +
         '<div class="flag-modal" data-action="prevent-close">' +
@@ -16707,7 +16686,6 @@ function renderPassageModal() {
         '</div>'
     );
 }
-
 function renderCbtExam() {
     if (state.hasPassage && state.currentEnglishPassage && !state.passageRead) {
         return renderPassagePage();
@@ -22770,17 +22748,21 @@ function renderAdminYearPicker(type, subject) {
 // English has its own upload flow — comprehension passages + batches — since
 // none of that applies to the other subjects. CBT, Mock and Exam all share it;
 // Topic Practice does not (no passages there), so it keeps the generic form.
-const ENGLISH_BATCH_COUNT = 10;
+const ENGLISH_BATCH_COUNT = 6<!--  -->;
 
 function renderEnglishBatchAdmin(type, year) {
     const batch = state.admin.engBatchSelected || 1;
     const modeLabel = type === 'cbt' ? 'CBT Mode' : type === 'mock' ? 'Mock Exam' : 'Exam Mode';
 
+    // Exam mode doesn't use passages
+    if (type === 'exam') {
+        return renderEnglishExamQuestions(type, year);
+    }
+
     let batchTabs = '';
     for (let b = 1; b <= ENGLISH_BATCH_COUNT; b++) {
         const qCount = (state.allQuestions || []).filter(function(q) {
-            return q.subject_id === 'eng' && q.type === type && q.batch_number === b &&
-                (type !== 'exam' || q.year === year);
+            return q.subject_id === 'eng' && q.type === type && q.batch_number === b;
         }).length;
         batchTabs += (
             '<button class="mini-btn' + (b === batch ? ' primary' : '') + '" data-action="admin-eng-select-batch" data-batch="' + b +
@@ -22789,23 +22771,21 @@ function renderEnglishBatchAdmin(type, year) {
     }
 
     const passage = state.admin.engCurrentPassage;
-    const passageMatches = passage && passage.batch_number === batch;
+    const passageMatches = passage && passage.batch_number === batch && passage.mode === type;
 
     let html = (
         '<div class="admin-view-mode-header">' +
         '<span class="mode-title" style="font-size:14px">English — ' + esc(modeLabel) + (year ? ' (' + year + ')' : '') + '</span>' +
-        (type === 'exam'
-            ? '<button class="btn btn-outline btn-sm" data-action="admin-back-to-year-picker">← Years</button>'
-            : '<button class="btn btn-outline btn-sm" data-action="admin-back-to-subject-picker">← Subjects</button>') +
+        '<button class="btn btn-outline btn-sm" data-action="admin-back-to-subject-picker">← Subjects</button>' +
         '</div>' +
         '<p class="section-label">Select a batch — one comprehension passage + its question set</p>' +
         '<div style="display:flex;flex-wrap:wrap;margin-bottom:10px">' + batchTabs + '</div>' +
 
         '<div class="card" style="margin-bottom:12px">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 8px">📖 Comprehension Passage — Batch ' + batch + '</p>' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 8px">📖 Comprehension Passage — ' + modeLabel + ' Batch ' + batch + '</p>' +
         (passageMatches
-            ? '<p style="font-size:10px;color:' + GREEN + ';margin:0 0 8px">✅ Already saved — the same passage is reused across CBT/Mock/Exam for this batch number. Saving again replaces it.</p>'
-            : '<p style="font-size:10px;color:var(--muted);margin:0 0 8px">No passage saved for this batch yet. One passage per batch number is shared across all three modes.</p>') +
+            ? '<p style="font-size:10px;color:' + GREEN + ';margin:0 0 8px">✅ Passage saved for ' + modeLabel + ' Batch ' + batch + '. Saving again replaces it.</p>'
+            : '<p style="font-size:10px;color:var(--muted);margin:0 0 8px">No passage saved for this ' + modeLabel + ' batch yet.</p>') +
         '<label class="field-label">Title</label>' +
         '<input class="field" id="eng-passage-title" value="' + esc(passageMatches ? (passage.title || '') : '') + '" style="margin-bottom:8px;font-size:13px" placeholder="e.g. The Rise of Renewable Energy" />' +
         '<label class="field-label">Passage text</label>' +
@@ -22814,9 +22794,9 @@ function renderEnglishBatchAdmin(type, year) {
         '</div>' +
 
         '<div class="card">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 6px">📝 Questions — Batch ' + batch + '</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Just the questions — mode, subject and batch are already set above. Importing replaces this batch\'s question set for ' + esc(modeLabel) + '.</p>' +
-        '<textarea class="field" id="eng-questions-json" rows="6" placeholder=\'[\n  {\n    "text": "According to the passage...",\n    "options": ["A","B","C","D"],\n    "correct_answer": 1,\n    "explanation": "..."\n  }\n]\' style="margin-bottom:8px;font-family:var(--font-mono);font-size:11px"></textarea>' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 6px">📝 Questions — ' + modeLabel + ' Batch ' + batch + '</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Just the questions — mode and batch are already set above. Importing replaces this batch\'s question set.</p>' +
+        '<textarea class="field" id="eng-questions-json" rows="6" placeholder=\'[\n  {\n    "text": "According to the passage...",\n    "options": ["A","B","C","D"],\n    "correct_answer": 1,\n    "explanation": "...",\n    "batch_number": 1\n  }\n]\' style="margin-bottom:8px;font-family:var(--font-mono);font-size:11px"></textarea>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
         '<button class="btn btn-gold" style="flex:1;padding:10px" data-action="admin-import-eng-questions" data-batch="' + batch + '" data-type="' + type + '"' + (year ? ' data-year="' + year + '"' : '') + '>Import Questions</button>' +
         '<button class="btn btn-outline" style="flex:1;padding:10px" data-action="admin-import-eng-questions-file-trigger">⬆️ Upload File</button>' +
@@ -22846,7 +22826,80 @@ function renderEnglishBatchAdmin(type, year) {
         });
     }
 
-    return html;
+        return html;
+}
+
+function renderEnglishExamQuestions(type, year) {
+    const subj = SUBJECTS.find(function(s) { return s.id === 'eng'; });
+    const search = state.admin.searchQuery || '';
+
+    let filtered = (state.allQuestions || []).filter(function(q) {
+        return q.type === 'exam' && q.subject_id === 'eng' && q.year === year;
+    });
+
+    if (search) {
+        const s = search.toLowerCase();
+        filtered = filtered.filter(function(q) {
+            return q.text.toLowerCase().includes(s) ||
+                (q.options && q.options.some(function(o) { return o.toLowerCase().includes(s); }));
+        });
+    }
+
+    let rows = "";
+    if (filtered.length === 0) {
+        rows = '<p style="text-align:center;color:var(--faint);padding:20px 0;font-size:13px">No questions yet for English ' + year + '. Add them below!</p>';
+    } else {
+        filtered.forEach(function(q, i) {
+            let optsList = '<ul class="admin-list">';
+            q.options.forEach(function(o, oi) {
+                optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') +
+                    '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
+            });
+            optsList += '</ul>';
+            rows += (
+                '<div class="saved-question-item">' +
+                '<div class="q-header">' +
+                '<p class="q-text">Q' + (i + 1) + '. ' + esc(q.text) + '</p>' +
+                '<div class="q-actions">' +
+                '<button class="mini-btn edit" data-action="edit-question" data-qid="' + q.id + '">✏️</button>' +
+                '<button class="mini-btn danger" data-action="delete-question-immediate" data-qid="' + q.id + '">🗑️</button>' +
+                '</div>' +
+                '</div>' +
+                '<div class="q-options">' + optsList + '</div>' +
+                (q.explanation ? '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + esc(q.explanation) + '</div>' : '') +
+                '</div>'
+            );
+        });
+    }
+
+    let optsHtml = "";
+    for (let i = 0; i < 4; i++) {
+        optsHtml += (
+            '<div class="opt-row">' +
+            '<input type="radio" name="qform-correct" value="' + i + '"' + (state.admin.qCorrect === i ? ' checked' : '') + ' data-action="qform-correct" />' +
+            '<input class="field" data-action="qform-opt" data-idx="' + i + '" placeholder="Option ' + (i + 1) + '" value="' + esc(state.admin.qOpts[i]) + '" style="font-size:13px" />' +
+            '</div>'
+        );
+    }
+
+    return (
+        '<div class="admin-view-mode-header">' +
+        '<span class="mode-title" style="font-size:14px">English — ' + year + '</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-back-to-year-picker">← Years</button>' +
+        '</div>' +
+        '<input class="search-box" id="admin-view-search" placeholder="🔍 Search questions..." value="' + esc(search) + '" />' +
+        '<p style="font-size:11px;color:var(--muted);margin-bottom:8px">' + filtered.length + ' question(s)</p>' +
+        '<div class="admin-question-list" style="max-height:400px">' + rows + '</div>' +
+        '<div class="card" style="margin-top:12px">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 10px">➕ Add Question to English ' + year + '</p>' +
+        '<textarea class="field" rows="3" data-action="qform-text" style="margin-bottom:8px;font-size:13px" placeholder="Enter question...">' + esc(state.admin.qText) + '</textarea>' +
+        '<label class="field-label">Options (tick the correct one)</label>' +
+        optsHtml +
+        '<label class="field-label">Explanation (shown after answering)</label>' +
+        '<textarea class="field" rows="2" data-action="qform-explanation" style="margin-bottom:8px;font-size:13px" placeholder="Explain why this answer is correct...">' + esc(state.admin.qExplanation) + '</textarea>' +
+        '<button class="btn btn-green" data-action="qform-add-admin" style="padding:10px">Save Question</button>' +
+        '</div>'
+    );
 }
 
 // Shared by both the "Import Questions" button and the file-upload path.
@@ -25852,39 +25905,44 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'admin-eng-select-batch') {
-        const b = parseInt(el.getAttribute('data-batch'), 10);
-        state.admin.engBatchSelected = b;
-        state.admin.engCurrentPassage = null;
-        render();
-        if (window.OfflineDB && typeof window.OfflineDB.getPassageOffline === 'function') {
-            window.OfflineDB.getPassageOffline(b).then(function(p) {
-                state.admin.engCurrentPassage = p || null;
-                render();
-            }).catch(function() {});
-        }
-        return;
+    const b = parseInt(el.getAttribute('data-batch'), 10);
+    const mode = state.admin.viewModeType || 'cbt';
+    if (mode === 'exam') { showToast('Exam mode does not use passages.', 'error'); return; }
+    state.admin.engBatchSelected = b;
+    state.admin.engCurrentPassage = null;
+    render();
+    if (window.OfflineDB && typeof window.OfflineDB.getPassageOffline === 'function') {
+        window.OfflineDB.getPassageOffline(b, mode).then(function(p) {
+            state.admin.engCurrentPassage = p || null;
+            render();
+        }).catch(function() {});
     }
+    return;
+}
 
     if (action === 'admin-save-eng-passage') {
-        const batch = parseInt(el.getAttribute('data-batch'), 10);
-        const title = document.getElementById('eng-passage-title')?.value?.trim() || '';
-        const text = document.getElementById('eng-passage-text')?.value?.trim() || '';
-        if (!text) { showToast('Paste the passage text first.', 'error'); return; }
-        savePassageOffline({
-            subject_id: 'eng',
-            batch_number: batch,
-            title: title,
-            passage_text: text,
-        }).then(function(saved) {
-            showToast('Passage saved for Batch ' + batch + '.', 'success');
-            state.admin.engCurrentPassage = saved || { subject_id: 'eng', batch_number: batch, title: title, passage_text: text };
-            render();
-        }).catch(function(err) {
-            console.error('Save passage error:', err);
-            showNetworkAwareError('Error saving passage.', err);
-        });
-        return;
-    }
+    const batch = parseInt(el.getAttribute('data-batch'), 10);
+    const mode = state.admin.viewModeType || 'cbt';
+    if (mode === 'exam') { showToast('Exam mode does not use passages.', 'error'); return; }
+    const title = document.getElementById('eng-passage-title')?.value?.trim() || '';
+    const text = document.getElementById('eng-passage-text')?.value?.trim() || '';
+    if (!text) { showToast('Paste the passage text first.', 'error'); return; }
+    savePassageOffline({
+        subject_id: 'eng',
+        batch_number: batch,
+        mode: mode,
+        title: title,
+        passage_text: text,
+    }).then(function(saved) {
+        showToast('Passage saved for ' + mode + ' Batch ' + batch + '.', 'success');
+        state.admin.engCurrentPassage = saved || { subject_id: 'eng', batch_number: batch, mode: mode, title: title, passage_text: text };
+        render();
+    }).catch(function(err) {
+        console.error('Save passage error:', err);
+        showNetworkAwareError('Error saving passage.', err);
+    });
+    return;
+}
 
     if (action === 'admin-import-eng-questions') {
         const batch = parseInt(el.getAttribute('data-batch'), 10);
