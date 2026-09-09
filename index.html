@@ -5025,9 +5025,86 @@
         border-radius: 14px;
         padding: 14px;
         margin-bottom: 10px;
-        transition: border-color 0.3s;
+        transition: border-color 0.3s, transform 0.2s;
+        animation: mockCardIn 0.42s cubic-bezier(.2,.7,.3,1) both;
     }
-    .mock-card.active { border-color: var(--green); }
+    .mock-card:active { transform: scale(0.98); }
+    .mock-card.active {
+        border-color: var(--green);
+        animation: mockCardIn 0.42s cubic-bezier(.2,.7,.3,1) both, mockOngoingGlow 2.4s ease-in-out 0.5s infinite;
+    }
+    @keyframes mockCardIn {
+        from { opacity: 0; transform: translateY(10px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes mockOngoingGlow {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(15,107,63,0.22); }
+        50% { box-shadow: 0 0 0 7px rgba(15,107,63,0); }
+    }
+    .mock-live-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #e65100;
+        margin-right: 5px;
+        vertical-align: middle;
+        animation: pulseDot 1.1s ease-in-out infinite;
+    }
+
+    /* Mock Arena empty state — replaces the plain "No X exams." line */
+    .mock-empty-state {
+        text-align: center;
+        padding: 34px 20px 30px;
+        animation: mockEmptyIn 0.45s ease both;
+    }
+    @keyframes mockEmptyIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .mock-empty-icon {
+        font-size: 44px;
+        display: inline-block;
+        margin-bottom: 10px;
+        animation: mockFloat 2.8s ease-in-out infinite;
+    }
+    @keyframes mockFloat {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-9px) rotate(-4deg); }
+    }
+    .mock-empty-state .mock-empty-title {
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--ink);
+        margin: 0 0 4px;
+    }
+    .mock-empty-state .mock-empty-sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 0 0 16px;
+        line-height: 1.5;
+    }
+    .mock-empty-orbit {
+        position: relative;
+        width: 90px;
+        height: 90px;
+        margin: 0 auto 6px;
+    }
+    .mock-empty-orbit span {
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        opacity: 0.55;
+        animation: mockOrbit 3.2s linear infinite;
+    }
+    .mock-empty-orbit span:nth-child(2) { animation-delay: -1.07s; opacity: 0.35; background: var(--gold); }
+    .mock-empty-orbit span:nth-child(3) { animation-delay: -2.13s; opacity: 0.2; }
+    @keyframes mockOrbit {
+        from { transform: rotate(0deg) translateX(38px) rotate(0deg); }
+        to { transform: rotate(360deg) translateX(38px) rotate(-360deg); }
+    }
     .mock-card .mock-title {
         font-weight: 700;
         font-size: 15px;
@@ -8272,7 +8349,7 @@ let state = {
     liveExamView: 'browse',
     liveExamTab: 'ongoing',
     liveExamCreateStep: 'type',
-    liveExamCreateForm: { title: '', examType: '', subject: '', startTime: '', numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true },
+    liveExamCreateForm: { title: '', examType: '', subject: '', startOffsetMinutes: 10, numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true },
     liveExamJoinCodeInput: '',
     mockExamSource: 'admin',
 
@@ -10586,11 +10663,21 @@ const LIVE_EXAM_TYPES = [
     { key: 'lhm', label: 'The Lekki Headmaster', icon: '📖', enabled: true },
 ];
 
+// Quick-pick options for "starts in" — no native clock/time picker needed.
+// Values are minutes from the moment the user taps a chip.
+const LIVE_EXAM_START_PRESETS = [
+    { label: 'Now', minutes: 0 },
+    { label: '+5m', minutes: 5 },
+    { label: '+15m', minutes: 15 },
+    { label: '+30m', minutes: 30 },
+    { label: '+1h', minutes: 60 },
+    { label: '+2h', minutes: 120 },
+];
+
+// Kept only for display purposes (e.g. showing "today" as the date label).
 function getLiveExamTimeConstraints() {
     const now = new Date();
-    const max = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-    function toHM(d) { return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
-    return { min: toHM(now), max: toHM(max), dateStr: now.toISOString().slice(0, 10) };
+    return { dateStr: now.toISOString().slice(0, 10) };
 }
 
 async function loadLiveExams() {
@@ -10646,18 +10733,11 @@ async function createLiveExam() {
 if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam type.', 'error'); return; }
     if (!f.subject) { showToast('Select a subject.', 'error'); return; }
     if (!f.title.trim()) { showToast('Enter a title.', 'error'); return; }
-    if (!f.startTime) { showToast('Pick a start time.', 'error'); return; }
-
-    const tc = getLiveExamTimeConstraints();
-    if (f.startTime < tc.min || f.startTime > tc.max) {
-        showToast('Start time must be within the next 2 hours.', 'error');
-        return;
-    }
-    const scheduledDate = new Date(tc.dateStr + 'T' + f.startTime + ':00');
-    if (isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
-        showToast('Pick a valid future start time.', 'error');
-        return;
-    }
+    // Start time is chosen as "minutes from now" (no clock picker), so it's always
+    // computed fresh off the current clock at submit time — nothing can go stale.
+    const offsetMinutes = Math.max(0, Math.min(120, parseInt(f.startOffsetMinutes, 10)));
+    if (isNaN(offsetMinutes)) { showToast('Pick a start time.', 'error'); return; }
+    const scheduledDate = new Date(Date.now() + offsetMinutes * 60000);
 
     const numQuestions = Math.max(1, Math.min(100, parseInt(f.numQuestions) || 40));
     const durationMinutes = Math.max(1, (parseInt(f.durationHours) || 0) * 60 + (parseInt(f.durationMinutes) || 0));
@@ -10685,7 +10765,7 @@ if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam typ
         state.lastCreatedJoinCode = code;
     }
     showToast('🎉 Live exam created!', 'success');
-    state.liveExamCreateForm = { title: '', examType: '', subject: '', startTime: '', numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true };
+    state.liveExamCreateForm = { title: '', examType: '', subject: '', startOffsetMinutes: 10, numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true };
     state.liveExamCreateStep = 'type';
     state.liveExamView = 'browse';
     loadLiveExams();
@@ -20666,9 +20746,24 @@ function renderMockExamPicker() {
 
     let cards = "";
     if (filtered.length === 0) {
-        cards = '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No ' + tab + ' exams.</p></div>';
+        const emptyMeta = {
+            upcoming: { icon: '📅', title: 'Nothing scheduled yet', sub: 'Create a mock exam and invite others, or check back soon for upcoming ones.' },
+            ongoing: { icon: '⚡', title: 'No exam live right now', sub: 'It\'s quiet here at the moment — start your own and it\'ll show up instantly.' },
+            completed: { icon: '📜', title: 'No completed exams yet', sub: 'Once an exam ends, it\'ll land here with results you can review.' },
+        }[tab] || { icon: '📭', title: 'Nothing here yet', sub: '' };
+        cards = (
+            '<div class="card">' +
+            '<div class="mock-empty-state">' +
+            '<div class="mock-empty-orbit"><span></span><span></span><span></span></div>' +
+            '<p class="mock-empty-icon">' + emptyMeta.icon + '</p>' +
+            '<p class="mock-empty-title">' + emptyMeta.title + '</p>' +
+            '<p class="mock-empty-sub">' + emptyMeta.sub + '</p>' +
+            '<button class="btn btn-green" style="padding:9px 18px" data-action="live-exam-view" data-view="create">➕ Create an Exam</button>' +
+            '</div>' +
+            '</div>'
+        );
     } else {
-        filtered.forEach(function(exam) {
+        filtered.forEach(function(exam, idx) {
             const scheduled = new Date(exam.scheduled_date);
             const endDate = new Date(exam.end_date);
             const st = status(exam);
@@ -20678,7 +20773,7 @@ function renderMockExamPicker() {
             const reg = regList.find(function(r) { return r.live_exam_id === exam.id || r.mock_exam_id === exam.id; });
             const attempt = attemptsList.find(function(a) { return a.live_exam_id === exam.id || a.mock_exam_id === exam.id; });
 
-            let statusText = st === 'upcoming' ? '📅 Upcoming' : st === 'ongoing' ? '🟢 Ongoing' : '🔒 Ended';
+            let statusText = st === 'upcoming' ? '📅 Upcoming' : st === 'ongoing' ? '<span class="mock-live-dot"></span>Ongoing' : '🔒 Ended';
 
             let actionHtml = "";
             if (reg) {
@@ -20708,7 +20803,7 @@ function renderMockExamPicker() {
             }
 
             cards += (
-                '<div class="mock-card' + (st === 'ongoing' ? ' active' : '') + '">' +
+                '<div class="mock-card' + (st === 'ongoing' ? ' active' : '') + '" style="animation-delay:' + Math.min(idx * 0.06, 0.4) + 's">' +
                 '<p class="mock-title">' + esc(exam.title) + (exam.source === 'live' ? ' 👤' : ' 🛡️') + '</p>' +
                 '<p class="mock-date">📅 ' + scheduled.toLocaleString() + (exam.source === 'live' ? ' · by ' + esc(exam.creator_username || 'user') : '') + '</p>' +
                 liveMeta +
@@ -20779,8 +20874,15 @@ function renderLiveExamCreateWizard() {
         );
     }
 
-    const tc = getLiveExamTimeConstraints();
     const detailsBackStep = f.examType === 'lhm' ? 'type' : 'subject';
+    const chosenOffset = (typeof f.startOffsetMinutes === 'number') ? f.startOffsetMinutes : 10;
+    const previewDate = new Date(Date.now() + chosenOffset * 60000);
+    const previewLabel = chosenOffset === 0 ? 'Starts immediately' : ('Starts around ' + previewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    let startChips = '';
+    LIVE_EXAM_START_PRESETS.forEach(function(p) {
+        const sel = chosenOffset === p.minutes;
+        startChips += '<button type="button" class="subject-chip' + (sel ? ' selected' : '') + '" style="flex:1;min-width:56px;padding:8px 4px" data-action="live-set-start-offset" data-minutes="' + p.minutes + '">' + p.label + '</button>';
+    });
     return (
         '<button class="back-link" data-action="live-create-step" data-step="' + detailsBackStep + '">' + svg("chevleft", 14) + ' Back</button>' +
         '<h2 class="title">Exam Details</h2>' +
@@ -20790,8 +20892,9 @@ function renderLiveExamCreateWizard() {
         '<input class="field" id="live-title" value="' + esc(f.title) + '" placeholder="e.g. Friday Physics Sprint" style="margin-bottom:10px" />' +
         '<label class="field-label">Date</label>' +
         '<div class="field-locked" style="margin-bottom:10px"><span>' + new Date().toLocaleDateString() + ' (today only)</span></div>' +
-        '<label class="field-label">Start time (within the next 2 hours)</label>' +
-        '<input class="field" id="live-start-time" type="time" min="' + tc.min + '" max="' + tc.max + '" value="' + esc(f.startTime || '') + '" style="margin-bottom:10px" />' +
+        '<label class="field-label">Starts in</label>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' + startChips + '</div>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + previewLabel + '</p>' +
         '<label class="field-label">Number of questions (1–100)</label>' +
         '<input class="field" id="live-num-questions" type="number" min="1" max="100" value="' + (f.numQuestions || 40) + '" style="margin-bottom:10px" />' +
         '<label class="field-label">Duration</label>' +
@@ -26385,9 +26488,13 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
+    if (action === 'live-set-start-offset') {
+        state.liveExamCreateForm.startOffsetMinutes = parseInt(el.getAttribute('data-minutes'), 10) || 0;
+        render();
+        return;
+    }
     if (action === 'submit-create-live-exam') {
         state.liveExamCreateForm.title = document.getElementById('live-title')?.value || '';
-        state.liveExamCreateForm.startTime = document.getElementById('live-start-time')?.value || '';
         state.liveExamCreateForm.numQuestions = parseInt(document.getElementById('live-num-questions')?.value || 40);
         state.liveExamCreateForm.durationHours = parseInt(document.getElementById('live-duration-hours')?.value || 0);
         state.liveExamCreateForm.durationMinutes = parseInt(document.getElementById('live-duration-minutes')?.value || 30);
