@@ -98,15 +98,30 @@
         --flag-color: #f1c40f;
     }
 
-    /* Anti-screenshot (scoped to exam content only, not the whole app) */
+    /* ============================================================
+       COPY PROTECTION
+       Default-deny text selection/copying across the whole app so
+       protected content (questions, options, explanations, passages,
+       and any other app content) can't be selected, copied, or
+       screenshotted-and-dragged. Only a small, explicit allow-list of
+       areas stays selectable: real form fields (needed to type/edit),
+       editable/contenteditable areas, code/reference snippets meant to
+       be copied (pre/code), and anything explicitly marked .copyable.
+       ============================================================ */
     * {
         -webkit-touch-callout: none;
     }
-    .exam-question-card, .exam-options-wrap, .qa-option,
-    .review-item .q-text, .weak-question-item .q-text,
-    .saved-question-item .q-text {
+    #app-shell, #app-inner {
         -webkit-user-select: none;
         user-select: none;
+    }
+    input, textarea, select,
+    [contenteditable="true"], [contenteditable=""],
+    pre, code,
+    .copyable {
+        -webkit-user-select: text !important;
+        user-select: text !important;
+        -webkit-touch-callout: default;
     }
     img, video, canvas {
         -webkit-user-drag: none;
@@ -472,11 +487,11 @@
         font-size: 14px;
         color: var(--muted);
         margin-bottom: 12px;
-        transition: color 0.3s;
+        transition: color 0.2s, transform 0.2s;
         cursor: pointer;
     }
-    .back-link:hover { color: var(--ink); }
-    .back-link svg { width: 16px; height: 16px; }
+    .back-link:hover { color: var(--green); transform: translateX(-2px); }
+    .back-link svg { width: 16px; height: 16px; transition: transform .2s; }
 
     .feature-icon {
         width: 56px;
@@ -486,8 +501,23 @@
         align-items: center;
         justify-content: center;
         margin-bottom: 12px;
+        position: relative;
+        box-shadow: 0 10px 24px -6px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.25);
+        animation: featureIconIn .45s cubic-bezier(.2,.8,.2,1) both;
     }
-    .feature-icon svg { width: 32px; height: 32px; color: #fff; }
+    .feature-icon::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(160deg, rgba(255,255,255,0.28), transparent 55%);
+        pointer-events: none;
+    }
+    .feature-icon svg { width: 32px; height: 32px; color: #fff; position: relative; z-index: 1; }
+    @keyframes featureIconIn {
+        from { opacity: 0; transform: scale(.8) rotate(-6deg); }
+        to { opacity: 1; transform: scale(1) rotate(0); }
+    }
 
     h2.title {
         font-family: var(--font-serif);
@@ -748,10 +778,20 @@
         padding: 11px 12px;
         border-radius: var(--radius-sm);
         border: 1.5px solid var(--line);
-        transition: border-color 0.15s, box-shadow 0.15s;
+        transition: border-color 0.15s, box-shadow 0.15s, transform .15s;
         background: var(--card-bg);
         cursor: pointer;
         box-shadow: var(--shadow-sm);
+        animation: homeItemIn .4s ease both;
+    }
+    .subject-grid > .subject-chip:nth-child(1) { animation-delay: .02s; }
+    .subject-grid > .subject-chip:nth-child(2) { animation-delay: .06s; }
+    .subject-grid > .subject-chip:nth-child(3) { animation-delay: .1s; }
+    .subject-grid > .subject-chip:nth-child(4) { animation-delay: .14s; }
+    .subject-grid > .subject-chip:nth-child(5) { animation-delay: .18s; }
+    .subject-grid > .subject-chip:nth-child(n+6) { animation-delay: .22s; }
+    @media (hover: hover) and (pointer: fine) {
+        .subject-chip:hover { border-color: var(--green); box-shadow: var(--shadow-md); transform: translateY(-1px); }
     }
     .subject-chip:active { transform: scale(0.99); }
     .subject-chip.selected {
@@ -1298,6 +1338,39 @@
         font-size: 13px;
         color: var(--green);
     }
+
+    /* Topic Practice — topic list cards (bigger, wider, clearly spaced,
+       so tapping the right one is easy and nothing feels cramped). */
+    .topic-item-list { display: flex; flex-direction: column; gap: 12px; padding-bottom: 4px; }
+    .topic-item-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        text-align: left;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--tc, var(--green));
+        border-radius: 16px;
+        padding: 16px 16px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        transition: transform .15s, box-shadow .15s, border-color .15s, background .15s;
+    }
+    .topic-item-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.09); }
+    .topic-item-card:active { transform: scale(0.98); }
+    .topic-item-card.selected { background: color-mix(in srgb, var(--tc, var(--green)) 10%, var(--card-bg)); border-color: var(--tc, var(--green)); }
+    .topic-item-list > .topic-item-card { animation: homeItemIn .4s ease both; }
+    .topic-item-list > .topic-item-card:nth-child(1) { animation-delay: .02s; }
+    .topic-item-list > .topic-item-card:nth-child(2) { animation-delay: .05s; }
+    .topic-item-list > .topic-item-card:nth-child(3) { animation-delay: .08s; }
+    .topic-item-list > .topic-item-card:nth-child(4) { animation-delay: .11s; }
+    .topic-item-list > .topic-item-card:nth-child(5) { animation-delay: .14s; }
+    .topic-item-list > .topic-item-card:nth-child(n+6) { animation-delay: .17s; }
+    .topic-item-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .topic-item-dot { width: 11px; height: 11px; border-radius: 999px; background: var(--tc, var(--green)); flex-shrink: 0; }
+    .topic-item-name { font-size: 14.5px; font-weight: 700; color: var(--ink); line-height: 1.3; }
+    .topic-item-meta { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
 
     .lb-empty {
         text-align: center;
@@ -2319,56 +2392,111 @@
     }
     .result-card .subj-score:last-child { border-bottom: none; }
 
-    /* Simple, clean result summary — replaces the old official-looking
-       result-card/UTME-slip design across every mode's result screen. */
-    .result-summary {
-        padding: 6px 0 4px;
-        margin-bottom: 12px;
+    /* Results — a plain, printable result DOCUMENT, deliberately not a
+       card/widget: no box-shadow, no rounded container, no logo, no
+       JAMB branding. Just rules (like a printed slip) framing the
+       candidate's name, their score, only the breakdown relevant to
+       that result, and a short line of encouragement. Works equally
+       well viewed on screen or shared/downloaded — it's not a
+       print-only layout. */
+    .result-doc {
+        margin: 4px 0 14px;
+        padding: 0 0 4px;
+        border-top: 2px solid var(--ink);
+        border-bottom: 2px solid var(--ink);
+        animation: resultDocIn .5s cubic-bezier(.2,.8,.2,1) both;
     }
-    .result-summary .r-candidate {
-        font-size: 13px;
-        color: var(--muted);
-        margin: 0 0 12px;
+    @keyframes resultDocIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
     }
-    .result-summary .r-candidate b { color: var(--ink); }
-    .result-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 14px;
-    }
-    .result-table td {
-        padding: 9px 0;
-        font-size: 13px;
-        color: var(--muted);
+    .result-doc-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+        padding: 12px 0 10px;
         border-bottom: 1px solid var(--line);
     }
-    .result-table tr:last-child td { border-bottom: none; }
-    .result-table td:last-child {
+    .result-doc-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--ink);
+    }
+    .result-doc-sub {
+        font-size: 10.5px;
+        color: var(--muted);
+        text-align: right;
+        flex-shrink: 0;
+    }
+    .result-doc-score {
+        text-align: center;
+        padding: 20px 0 14px;
+        border-bottom: 1px solid var(--line);
+    }
+    .result-doc-score .rd-line {
+        font-size: 11px;
+        color: var(--muted);
+        margin: 0 0 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+    .result-doc-score .rd-big {
+        font-family: var(--font-mono);
+        font-size: 40px;
+        font-weight: 700;
+        color: var(--ink);
+        line-height: 1;
+        display: inline-block;
+        animation: rdBigPop .5s cubic-bezier(.2,.9,.25,1.4) both;
+        animation-delay: .15s;
+    }
+    @keyframes rdBigPop {
+        from { opacity: 0; transform: scale(.75); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .result-doc-score .rd-outof {
+        font-size: 14px;
+        color: var(--muted);
+        margin-left: 3px;
+    }
+    .result-doc-score .rd-pct {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 6px 0 0;
+    }
+    .result-doc-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+    .result-doc-table td {
+        padding: 8px 0;
+        font-size: 12.5px;
+        color: var(--muted);
+        border-bottom: 1px solid var(--line);
+        animation: homeItemIn .4s ease both;
+    }
+    .result-doc-table tr:nth-child(1) td { animation-delay: .22s; }
+    .result-doc-table tr:nth-child(2) td { animation-delay: .26s; }
+    .result-doc-table tr:nth-child(3) td { animation-delay: .3s; }
+    .result-doc-table tr:nth-child(n+4) td { animation-delay: .34s; }
+    .result-doc-table tr:last-child td { border-bottom: none; }
+    .result-doc-table td:last-child {
         text-align: right;
         font-weight: 700;
         font-family: var(--font-mono);
         color: var(--ink);
     }
-    .result-table tr.r-total td {
-        font-size: 15px;
+    .result-doc-note {
+        font-size: 12.5px;
         color: var(--ink);
-        font-weight: 700;
+        line-height: 1.55;
+        padding: 14px 0 8px;
+        font-style: italic;
+        border-top: 1px dashed var(--line);
+        margin-top: 4px;
     }
-    .result-table tr.r-total td:last-child { color: var(--green); }
-    .perf-tag {
-        display: inline-block;
-        padding: 6px 16px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        margin-bottom: 4px;
-    }
-    .perf-tag.excellent { background: rgba(15,107,63,0.12); color: #0F6B3F; }
-    .perf-tag.very-good { background: rgba(46,111,242,0.12); color: #2E6FF2; }
-    .perf-tag.good { background: rgba(124,92,252,0.12); color: #7C5CFC; }
-    .perf-tag.fair { background: rgba(228,169,58,0.18); color: #946A0D; }
-    .perf-tag.needs-improvement { background: rgba(226,84,58,0.12); color: #B23420; }
 
     /* History/Result Analysis Card Styles */
     .history-card {
@@ -3814,6 +3942,63 @@
         margin: 12px 0;
     }
     .faq-img-upload-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Free Access Announcement — orange, continuously left-to-right
+       scrolling marquee shown on the Home screen while the Activation
+       System is switched OFF. A fixed icon sits on the left; the message
+       itself lives in an overflow-hidden track so any length of text is
+       fully supported without ever being clipped — it's simply hidden
+       off-screen at the start/end of each pass rather than cut off. */
+    .free-announce-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        background: linear-gradient(90deg, #C9711A 0%, #F5A623 50%, #C9711A 100%);
+        box-shadow: 0 2px 10px rgba(201,113,26,0.35);
+        overflow: hidden;
+    }
+    .free-announce-banner .fab-icon {
+        flex-shrink: 0;
+        font-size: 16px;
+        line-height: 1;
+    }
+    .free-announce-banner .fab-track {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        height: 18px;
+        overflow: hidden;
+    }
+    .free-announce-banner .fab-text {
+        position: absolute;
+        top: 50%;
+        left: 100%;
+        white-space: nowrap;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        transform: translateY(-50%) translateX(0%);
+        animation: freeAnnounceScroll 18s linear infinite;
+        will-change: left, transform;
+    }
+    @keyframes freeAnnounceScroll {
+        0%   { left: 100%; transform: translateY(-50%) translateX(0%); }
+        100% { left: 0%;   transform: translateY(-50%) translateX(-100%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .free-announce-banner .fab-text {
+            animation: none;
+            position: static;
+            transform: none;
+            display: block;
+            white-space: normal;
+        }
+        .free-announce-banner .fab-track { height: auto; overflow: visible; }
+    }
 
     /* Post-login Activation Banner */
     /* Persistent "Not Activated" signboard — sits at the top of the app,
@@ -5813,9 +5998,10 @@
         box-shadow: 0 1px 2px rgba(0,0,0,0.08);
     }
     .chat-bubble.me {
-        background: var(--green);
+        background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
         color: #fff;
         border-bottom-right-radius: 3px;
+        box-shadow: 0 3px 10px rgba(15,107,63,0.22);
     }
     /* Support replies — whether answered by the assistant or a human admin
        — are styled identically on purpose, so there's no visual tell
@@ -6414,10 +6600,26 @@
         border-radius: 14px;
         padding: 12px 14px;
         cursor: pointer;
-        transition: border-color .15s, transform .15s;
+        transition: border-color .15s, transform .15s, box-shadow .2s;
+        box-shadow: 0 2px 8px rgba(19,41,29,0.04);
+        animation: homeItemIn .45s ease both;
     }
     .acct-menu-item:active {
         transform: scale(0.98);
+    }
+    @media (hover: hover) and (pointer: fine) {
+        .acct-menu-item:hover {
+            border-color: var(--green);
+            box-shadow: 0 6px 16px rgba(15,107,63,0.1);
+            transform: translateY(-1px);
+        }
+        .acct-menu-item:hover .amii-chevron { transform: translateX(2px); color: var(--green); }
+    }
+    .acct-menu-item .amii-chevron {
+        color: var(--faint);
+        flex-shrink: 0;
+        display: flex;
+        transition: transform .2s ease, color .2s ease;
     }
     .acct-menu-item .amicon {
         width: 40px;
@@ -6704,38 +6906,50 @@
         color: var(--ink);
     }
 
-    .home-hero{background:linear-gradient(160deg,var(--green) 0%,var(--green-dark) 100%);border-radius:22px;padding:22px 20px 20px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 12px 32px rgba(15,107,63,0.28)}
+    .home-hero{background:linear-gradient(160deg,var(--green) 0%,var(--green-dark) 100%);border-radius:22px;padding:22px 20px 20px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 12px 32px rgba(15,107,63,0.28);animation:heroDropIn .6s cubic-bezier(.2,.8,.2,1) both}
     .home-hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
-    .home-hero .glow3{position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:999px;background:radial-gradient(circle,rgba(228,169,58,0.18) 0%,transparent 70%)}
-    .home-hero .glow4{position:absolute;bottom:-50px;left:-30px;width:120px;height:120px;border-radius:999px;background:rgba(255,255,255,0.05)}
-    .home-hero .hi{color:rgba(255,255,255,0.7);font-size:12px;margin:0;position:relative;z-index:1;letter-spacing:0.02em}
-    .home-hero .name{color:#fff;font-family:var(--font-serif);font-size:24px;margin:2px 0 14px;position:relative;z-index:1;letter-spacing:-0.01em}
-    .home-hero .cd-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.12);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.15);border-radius:13px;padding:9px 14px;position:relative;z-index:1;width:fit-content}
-    .home-hero .cd-row .cd-emoji{font-size:17px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2))}
+    .home-hero .glow3{position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:999px;background:radial-gradient(circle,rgba(228,169,58,0.18) 0%,transparent 70%);animation:glowDrift 7s ease-in-out infinite}
+    .home-hero .glow4{position:absolute;bottom:-50px;left:-30px;width:120px;height:120px;border-radius:999px;background:rgba(255,255,255,0.05);animation:glowDrift 9s ease-in-out infinite reverse}
+    .home-hero .hi{color:rgba(255,255,255,0.7);font-size:12px;margin:0;position:relative;z-index:1;letter-spacing:0.02em;animation:heroFadeUp .55s ease both;animation-delay:.08s}
+    .home-hero .name{color:#fff;font-family:var(--font-serif);font-size:24px;margin:2px 0 14px;position:relative;z-index:1;letter-spacing:-0.01em;animation:heroFadeUp .55s ease both;animation-delay:.16s}
+    .home-hero .cd-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.12);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.15);border-radius:13px;padding:9px 14px;position:relative;z-index:1;width:fit-content;animation:heroFadeUp .55s ease both;animation-delay:.24s}
+    .home-hero .cd-row .cd-emoji{font-size:17px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));display:inline-block;animation:cdEmojiPulse 2.4s ease-in-out infinite}
     .home-hero .cd-row .n{font-family:var(--font-mono);font-weight:800;color:var(--gold);font-size:15px;letter-spacing:0.01em}
     .home-hero .cd-row .l{font-size:9.5px;color:rgba(255,255,255,0.68);text-transform:uppercase;letter-spacing:0.04em}
-    .home-hero .hi, .home-hero .name{max-width:calc(100% - 108px)}
-    .home-brainteaser{position:absolute;top:14px;right:14px;width:96px;z-index:2;background:rgba(255,255,255,0.13);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.18);border-radius:13px;padding:8px 7px;text-align:center}
-    .home-brainteaser .bt-label{font-size:8.5px;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.03em;margin:0 0 4px}
-    .home-brainteaser .bt-q{font-size:9.5px;line-height:1.25;color:#fff;margin:0 0 6px;min-height:24px}
-    .home-brainteaser .bt-opts{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-    .home-brainteaser .bt-opt{background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.22);border-radius:7px;font-size:10px;font-weight:800;font-family:var(--font-mono);padding:5px 0;cursor:pointer;transition:background 0.15s,transform 0.1s}
-    .home-brainteaser .bt-opt:hover{background:rgba(255,255,255,0.3)}
-    .home-brainteaser .bt-opt:active{transform:scale(0.92)}
-    .home-brainteaser .bt-emoji{font-size:20px;margin:0 0 2px}
-    .home-brainteaser .bt-result{font-size:10.5px;font-weight:700;color:#fff;margin:0 0 2px}
-    .home-brainteaser .bt-streak{font-size:8.5px;color:rgba(255,255,255,0.75);margin:0}
+    .home-hero .hi, .home-hero .name{max-width:calc(100% - 88px)}
+    .hero-spark{position:absolute;border-radius:999px;background:var(--gold);opacity:0;z-index:1;pointer-events:none}
+    .hero-spark.s1{top:22%;right:34%;width:5px;height:5px;animation:sparkleTwinkle 3.2s ease-in-out infinite;animation-delay:.2s}
+    .hero-spark.s2{top:62%;right:22%;width:4px;height:4px;background:#fff;animation:sparkleTwinkle 2.6s ease-in-out infinite;animation-delay:1s}
+    .hero-spark.s3{top:40%;right:8%;width:3px;height:3px;animation:sparkleTwinkle 3.6s ease-in-out infinite;animation-delay:1.8s}
+    .home-hero-badge{position:absolute;top:14px;right:14px;width:60px;height:60px;z-index:2;display:flex;align-items:center;justify-content:center;animation:heroFadeUp .55s ease both,badgeBob 3.6s ease-in-out infinite;animation-delay:0s,.6s}
+    .home-hero-badge .hhb-ring{position:absolute;border-radius:999px;border:1.5px solid rgba(228,169,58,0.55);top:50%;left:50%;transform:translate(-50%,-50%)}
+    .home-hero-badge .hhb-ring.r1{width:60px;height:60px;animation:ringPulse 2.6s ease-out infinite}
+    .home-hero-badge .hhb-ring.r2{width:60px;height:60px;animation:ringPulse 2.6s ease-out infinite;animation-delay:1.3s}
+    .home-hero-badge .hhb-icon{position:relative;z-index:1;width:42px;height:42px;border-radius:999px;background:rgba(255,255,255,0.16);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,0.18)}
+
+    @keyframes heroDropIn{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes heroFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes glowDrift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-6px,8px) scale(1.12)}}
+    @keyframes cdEmojiPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+    @keyframes badgeBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    @keyframes ringPulse{0%{transform:translate(-50%,-50%) scale(0.7);opacity:0.9}100%{transform:translate(-50%,-50%) scale(1.55);opacity:0}}
+    @keyframes sparkleTwinkle{0%,100%{opacity:0;transform:scale(0.4)}50%{opacity:1;transform:scale(1)}}
+    @keyframes homeItemIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
     .quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;padding:2px 2px 4px}
     .quick-actions::-webkit-scrollbar{display:none}
-    .qa-pill{width:100%;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--card-bg);border:1px solid var(--line);border-radius:16px;padding:12px 6px;cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .2s;box-shadow:0 2px 6px rgba(0,0,0,0.04)}
+    .qa-pill{width:100%;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--card-bg);border:1px solid var(--line);border-radius:16px;padding:12px 6px;cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .2s;box-shadow:0 2px 6px rgba(0,0,0,0.04);animation:homeItemIn .5s ease both}
+    .quick-actions .qa-pill:nth-child(1){animation-delay:.28s}
+    .quick-actions .qa-pill:nth-child(2){animation-delay:.34s}
+    .quick-actions .qa-pill:nth-child(3){animation-delay:.4s}
+    .quick-actions .qa-pill:nth-child(4){animation-delay:.46s}
     .qa-pill:active{transform:scale(0.94)}
     .qa-pill:hover{border-color:var(--green);box-shadow:0 6px 16px rgba(15,107,63,0.12)}
     .qa-pill .qa-icon{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center}
     .qa-pill .qa-icon svg{width:18px;height:18px}
     .qa-pill span.lbl{font-size:9.5px;font-weight:700;color:var(--ink);white-space:normal;text-align:center;line-height:1.2;letter-spacing:0.01em}
 
-    .section-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+    .section-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;animation:homeItemIn .5s ease both;animation-delay:.5s}
     .section-hdr h2{margin:0;font-size:17px;font-family:var(--font-serif);color:var(--ink)}
     .section-hdr .see-all{font-size:11px;color:var(--green);font-weight:700;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:2px}
 
@@ -6799,9 +7013,27 @@
 .mcv2-text{display:flex;flex-direction:column;min-width:0}
 .mcv2-label{font-size:12.5px;font-weight:800;color:var(--ink)}
 .mcv2-sub{font-size:10px;color:var(--muted);margin-top:1px}
+
+/* Practice Hub — practice-mode cards. Deliberately a separate, wider,
+   single-column layout (not the shared 2-column mode-card-v2 grid used
+   elsewhere) so each mode reads as its own clear, spacious row with real
+   room to breathe between entries. */
+.ph-mode-list{display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
+.ph-mode-card{display:flex;align-items:center;gap:14px;width:100%;background:var(--card-bg);border:1px solid var(--line);border-radius:18px;padding:16px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.06);transition:transform .15s,box-shadow .15s,border-color .15s;text-align:left}
+.ph-mode-card:hover{border-color:var(--green);box-shadow:0 10px 24px rgba(15,107,63,0.14)}
+.ph-mode-card:active{transform:scale(0.98)}
+.ph-mode-icon{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ph-mode-text{display:flex;flex-direction:column;justify-content:center;min-width:0;gap:2px;flex:1}
+.ph-mode-label{font-size:15px;font-weight:800;color:var(--ink)}
+.ph-mode-sub{font-size:12px;color:var(--muted)}
+.ph-mode-chevron{color:var(--faint);flex-shrink:0;display:flex}
 .course-scroll-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px;-webkit-overflow-scrolling:touch}
 .course-scroll-row::-webkit-scrollbar{display:none}
-.course-card-h{flex:0 0 auto;width:150px;border-radius:16px;overflow:hidden;background:var(--card-bg);border:1px solid var(--line);cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.05);transition:transform .15s,box-shadow .15s}
+.course-card-h{flex:0 0 auto;width:150px;border-radius:16px;overflow:hidden;background:var(--card-bg);border:1px solid var(--line);cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.05);transition:transform .15s,box-shadow .15s;animation:homeItemIn .5s ease both;animation-delay:.56s}
+.course-card-h:nth-child(2){animation-delay:.62s}
+.course-card-h:nth-child(3){animation-delay:.68s}
+.course-card-h:nth-child(4){animation-delay:.74s}
+.course-card-h:nth-child(n+5){animation-delay:.78s}
 .course-card-h:active{transform:scale(0.96)}
 .course-card-h:hover{box-shadow:0 8px 20px rgba(0,0,0,0.09)}
 .cch-img{width:100%;height:90px;object-fit:cover;display:block}
@@ -6869,10 +7101,10 @@
     justify-content: center;
     min-width: 0;
 }
-.admin-mode-card, .mode-card-v2, .acct-menu-item, .qa-pill, .subject-chip, .lb-row {
+.admin-mode-card, .mode-card-v2, .acct-menu-item, .qa-pill, .subject-chip, .lb-row, .ph-mode-card, .topic-item-card {
     line-height: 1.3;
 }
-.admin-mode-card svg, .mode-card-v2 svg, .acct-menu-item svg, .qa-pill svg, .drawer-item svg, .bottom-nav-item svg {
+.admin-mode-card svg, .mode-card-v2 svg, .acct-menu-item svg, .qa-pill svg, .drawer-item svg, .bottom-nav-item svg, .ph-mode-card svg, .topic-item-card svg {
     flex-shrink: 0;
     display: block;
 }
@@ -6881,6 +7113,130 @@
     align-items: center;
     gap: 6px;
 }
+
+/* ============================================================
+   PREMIUM POLISH LAYER
+   A global pass that (a) makes every tap/click/hover feel smooth
+   and consistent across pages, (b) adds a tasteful, non-jarring
+   page-transition for real navigation only, (c) gives modals/
+   overlays a matching entrance, (d) widens and elevates the app
+   frame on tablet/desktop so it isn't just a stretched phone, and
+   (e) hardens bottom safe-area spacing so nothing fixed/sticky
+   can sit on top of content.
+
+   IMPORTANT ARCHITECTURE NOTE: render() replaces root.innerHTML on
+   *every* state change, including individual keystrokes (see the
+   scroll/focus-preservation code around render()). That means a
+   generic "fade/slide in" animation on the page wrapper would fire
+   on every keystroke too, causing exactly the jitter this app's own
+   comments say was deliberately removed. So: page-level entrance
+   animation is opt-in via the `.view-enter` class, which JS only
+   adds on genuine navigation (state.view actually changing) — see
+   the state.view setter and renderApp(). Hover/active/focus effects
+   below are plain CSS pseudo-classes, so they're always safe.
+   ============================================================ */
+
+/* -- Universal smooth micro-interactions -------------------------- */
+button, .btn, .icon-btn, .auth-btn, a, input, select, textarea,
+.bottom-nav-item, .drawer-item, .card, [class*="-card"], [class*="-chip"],
+[class*="-item"], [class*="-btn"], [class*="-pill"], [class*="-tab"] {
+    transition: transform .15s ease, box-shadow .2s ease, background-color .2s ease,
+        border-color .2s ease, color .15s ease, opacity .2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+    .btn:hover, .mini-btn:hover, .auth-btn:hover, .icon-btn:hover,
+    [class$="-card"]:not(.no-hover):hover, [class$="-chip"]:hover,
+    .drawer-item:hover, .bottom-nav-item:hover {
+        transform: translateY(-1px);
+    }
+    [class$="-card"]:not(.no-hover):hover {
+        box-shadow: var(--shadow-md);
+    }
+}
+button:not(:disabled):active, .btn:not(:disabled):active,
+.icon-btn:active, .auth-btn:active, [class$="-card"]:active,
+[class$="-chip"]:active, .bottom-nav-item:active {
+    transform: scale(0.97);
+}
+.bottom-nav-item svg, .drawer-item svg { transition: transform .2s ease, color .2s ease; }
+.bottom-nav-item.active svg { transform: translateY(-1px); }
+
+/* Consistent, visible keyboard focus without disturbing mouse/touch use */
+button:focus-visible, .btn:focus-visible, .icon-btn:focus-visible,
+a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* -- Page-level navigation transition (opt-in, see note above) ---- */
+@keyframes viewEnter {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.view-content.view-enter {
+    animation: viewEnter .32s cubic-bezier(.16,1,.3,1);
+}
+@media (prefers-reduced-motion: reduce) {
+    .view-content.view-enter { animation: none; }
+}
+
+/* -- Modal / overlay entrance, applied generically by class-name pattern -- */
+@keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalPopIn {
+    from { opacity: 0; transform: translateY(14px) scale(.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* NOTE: scoped behind .modal-anim-on on purpose. root.innerHTML is
+   replaced on every state change in this app, including individual
+   keystrokes (see render()), which recreates every open modal/overlay
+   node too. An unscoped animation here would therefore replay on every
+   keystroke typed inside a modal (login, signup, flag reason, etc.) —
+   exactly the jitter this app's own code elsewhere was written to avoid.
+   render() only adds .modal-anim-on for the single render where a modal
+   flag actually flips from closed to open (see __modalJustOpened /
+   __modalWrap in the JS), so the entrance plays once per open, never
+   while the person is typing or tapping inside it. */
+.modal-anim-on [class*="-overlay"] { animation: overlayFadeIn .18s ease both; }
+.modal-anim-on [class$="-modal"], .modal-anim-on [class$="-sheet"] { animation: modalPopIn .22s cubic-bezier(.16,1,.3,1) both; }
+@media (prefers-reduced-motion: reduce) {
+    .modal-anim-on [class*="-overlay"], .modal-anim-on [class$="-modal"], .modal-anim-on [class$="-sheet"] { animation: none; }
+}
+
+/* -- Tablet / desktop: the app is deliberately a centered "device
+   frame" (see #app-shell/#app-inner) rather than a fluid layout, since
+   its internals are built for a phone-width column. On larger screens
+   we widen that frame a little, add a soft premium backdrop behind it,
+   and lift it off the background so it still feels intentional and
+   polished rather than like a stretched phone. -------------------- */
+#app-shell {
+    background: radial-gradient(120% 100% at 50% 0%, #EEF5F0 0%, var(--bg) 55%);
+}
+[data-theme="dark"] #app-shell {
+    background: radial-gradient(120% 100% at 50% 0%, #14203a 0%, var(--bg) 55%);
+}
+@media (min-width: 520px) {
+    #app-shell { padding: 28px 16px; align-items: center; }
+    #app-inner {
+        max-width: 420px;
+        min-height: min(860px, 96vh);
+        max-height: min(860px, 96vh) !important;
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 30px 70px rgba(15, 41, 29, 0.18), 0 2px 8px rgba(15,41,29,0.06);
+    }
+    .view { max-height: calc(min(860px, 96vh) - 46px - 58px) !important; }
+    .view-exam { max-height: min(860px, 96vh) !important; }
+}
+
+/* -- Bottom safe-area hardening — defensive net so nothing fixed or
+   sticky at the bottom of a screen can sit on top of content, even
+   on devices with a home-indicator/gesture-bar. --------------------- */
+.nb-save-row {
+    background: linear-gradient(180deg, transparent, var(--bg) 22%);
+    padding: 10px 0 calc(6px + env(safe-area-inset-bottom));
+}
+.bottom-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 2px); }
 </style>
 </head>
 <body>
@@ -7528,31 +7884,47 @@ function logoSvg(size) {
         '</svg>';
 }
 
-// Simple performance tag shown under a result, based on percentage score.
-function getPerformanceTag(pct) {
-    if (pct >= 80) return { label: "Excellent", cls: "excellent" };
-    if (pct >= 70) return { label: "Very Good", cls: "very-good" };
-    if (pct >= 60) return { label: "Good", cls: "good" };
-    if (pct >= 50) return { label: "Fair", cls: "fair" };
-    return { label: "Needs Improvement", cls: "needs-improvement" };
+// Short, plain-spoken line of encouragement shown at the bottom of a
+// result document, based on percentage score. Deliberately not a badge
+// or "tag" pill — just a sentence, like a note someone would write on
+// a printed result slip.
+function getEncouragementNote(pct) {
+    if (pct >= 80) return "Outstanding work. You're clearly ready — keep this level up.";
+    if (pct >= 70) return "Very good performance. A bit more practice and you'll be at the very top.";
+    if (pct >= 60) return "Good result. Review the questions you missed and you'll climb higher next time.";
+    if (pct >= 50) return "A fair attempt. Steady, focused practice from here will make a real difference.";
+    return "Don't be discouraged. Go over what tripped you up, and try again — every attempt is practice.";
 }
 
-// Shared, clean result renderer used by every mode's result screen
-// (CBT, Exam, Novel/Lit, Mock). Replaces the old "official exam slip"
-// look with a simple table + a performance tag — no card/box styling.
-// opts: { title, candidateName, score, maxScore, rows: [{label, value}] }
+// Shared result renderer used by every mode's result screen (CBT, Past
+// Questions, Topic, Novel, Mock). Deliberately NOT a card/widget — no
+// box-shadow, no rounded container, no logo, no JAMB branding. It's
+// laid out like a plain, printable result document: rules instead of
+// a box, the candidate's name up top, a clear statement of what they
+// scored, only the score breakdown that's actually relevant to this
+// result, and a short line of encouragement. Reads fine on screen and
+// works just as well shared or downloaded — it isn't a print-only layout.
+// opts: { candidateName, subtitle, score, maxScore, rows: [{label, value}] }
 function renderResultBlock(opts) {
     const pct = opts.maxScore > 0 ? Math.round((opts.score / opts.maxScore) * 100) : 0;
-    const tag = getPerformanceTag(pct);
+    const note = getEncouragementNote(pct);
     let rowsHtml = "";
     (opts.rows || []).forEach(function(r) {
-        rowsHtml += '<tr' + (r.total ? ' class="r-total"' : '') + '><td>' + esc(r.label) + '</td><td>' + r.value + '</td></tr>';
+        rowsHtml += '<tr><td>' + esc(r.label) + '</td><td>' + r.value + '</td></tr>';
     });
     return (
-        '<div class="result-summary">' +
-        '<p class="r-candidate">Candidate: <b>' + esc(opts.candidateName || 'Candidate') + '</b></p>' +
-        '<table class="result-table">' + rowsHtml + '</table>' +
-        '<span class="perf-tag ' + tag.cls + '">' + tag.label + '</span>' +
+        '<div class="result-doc">' +
+        '<div class="result-doc-head">' +
+        '<span class="result-doc-name">' + esc(opts.candidateName || 'Candidate') + '</span>' +
+        (opts.subtitle ? '<span class="result-doc-sub">' + esc(opts.subtitle) + '</span>' : '') +
+        '</div>' +
+        '<div class="result-doc-score">' +
+        '<p class="rd-line">You scored</p>' +
+        '<span class="rd-big">' + opts.score + '</span><span class="rd-outof">/ ' + opts.maxScore + '</span>' +
+        '<p class="rd-pct">' + pct + '%</p>' +
+        '</div>' +
+        (rowsHtml ? '<table class="result-doc-table">' + rowsHtml + '</table>' : '') +
+        '<p class="result-doc-note">' + esc(note) + '</p>' +
         '</div>'
     );
 }
@@ -7563,6 +7935,16 @@ function getCandidateCode(userId) {
     if (!userId) return "Candidate";
     const clean = String(userId).replace(/-/g, "").toUpperCase();
     return "JAMB-" + clean.slice(-6);
+}
+
+// Partially-masked username for the Leaderboard, e.g. "habeeb" -> "hab***".
+// Keeps the first few characters visible (enough to recognize a friend)
+// without showing the full username to other candidates.
+function maskUsername(username) {
+    const name = String(username || '').trim();
+    if (!name) return "Candidate";
+    const visible = name.slice(0, Math.min(3, name.length));
+    return visible + "***";
 }
 
 function esc(s) {
@@ -7796,7 +8178,12 @@ function getJambCountdown() {
     }
     const diffMs = target - now;
     const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-    return { days: days, year: target.getFullYear() };
+    // Round UP to the next multiple of 5 so the figure is always a safe
+    // upper bound (never understates the time left) and stays stable for
+    // several days at a time instead of ticking down daily — paired with
+    // "Less than X days" wording rather than an exact count.
+    const approxDays = Math.max(5, Math.ceil(days / 5) * 5);
+    return { days: days, approxDays: approxDays, year: target.getFullYear() };
 }
 // ============================================================
 //  MY SUBJECTS — ordinary local/offline feature (English + up to 3
@@ -7878,7 +8265,14 @@ function anyCourseAccess() {
 function isAdmin() {
     return state.profile.email && state.profile.email.toLowerCase() === ADMIN_EMAIL;
 }
+// Master switch for the whole Activation System, controlled from the Admin
+// Panel. While this is OFF, every user is treated as fully unlocked and no
+// activation-related UI (status pills, prompts, restrictions) should show.
+function isActivationSystemOn() {
+    return !!(state.settingsCache && state.settingsCache.activationEnabled === true);
+}
 function isUserActive() {
+    if (!isActivationSystemOn()) return true;
     if (isAdmin()) return true;
     if (!state.authUser) return false;
     if (!state.profile.is_active) return false;
@@ -7887,6 +8281,35 @@ function isUserActive() {
         if (expiry < new Date()) return false;
     }
     return true;
+}
+
+// Checks whether the admin's scheduled "auto turn ON" date has arrived while
+// the Activation System is OFF, and if so flips it ON for every account by
+// updating the shared admin_settings row. Safe to call from any client —
+// it's a no-op unless the system is currently off with a due date.
+async function checkActivationAutoEnable() {
+    try {
+        const s = state.settingsCache;
+        if (!s || s.activationEnabled) return;
+        if (!s.activationAutoEnableDate) return;
+        const target = new Date(s.activationAutoEnableDate);
+        if (isNaN(target.getTime()) || target > new Date()) return;
+
+        const { error } = await supabase.from('admin_settings').upsert([
+            { setting_key: 'activation_enabled', setting_value: true },
+            { setting_key: 'activation_auto_enable_date', setting_value: null },
+        ], { onConflict: 'setting_key' });
+        if (error) {
+            console.warn('Auto-enable activation error:', error);
+            return;
+        }
+        state.settingsCache.activationEnabled = true;
+        state.settingsCache.activationAutoEnableDate = null;
+        console.log('Activation system auto-enabled on schedule.');
+        render();
+    } catch (e) {
+        console.warn('Auto-enable activation exception:', e);
+    }
 }
 
 // Sends a non-activated user to the Activate page with a friendly, on-brand
@@ -8335,6 +8758,12 @@ let state = {
         cbtSubjectCount: 3,
         mockSubjectCount: 4,
         viewingMockAttempts: null,
+        // ALL mock attempts/registrations across every user (not just the
+        // logged-in admin's own) — used to build Admin Panel mock stats.
+        mockAttemptsAll: [],
+        mockRegistrationsAll: [],
+        mockAdminDataLoaded: false,
+        mockAdminDataLoading: false,
         flaggedFilter: "unresolved",
         flaggedLoaded: false,
         flaggedLoading: false,
@@ -8479,6 +8908,8 @@ myEnrollmentsLoading: false,
         mockSubjectCount: 4,
         underConstruction: false,
         constructionReopenTime: null,
+        activationEnabled: false,
+        activationAutoEnableDate: null,
         faqImages: {},
     },
 
@@ -8560,12 +8991,21 @@ analyticsSubTab: 'overview',
 let __viewHistory = [];
 let __currentView = state.view;
 let __suppressHistoryPush = false;
+// Set whenever state.view genuinely changes (real navigation), so the next
+// render() can play a one-shot entrance animation on the page content. Kept
+// separate from every other state mutation (typing, toggling, etc.) so the
+// animation never replays on ordinary re-renders — see the "PREMIUM POLISH
+// LAYER" note in <style> for why that distinction matters here.
+let __viewJustChanged = false;
 Object.defineProperty(state, 'view', {
     get: function() { return __currentView; },
     set: function(v) {
-        if (v !== __currentView && !__suppressHistoryPush) {
-            __viewHistory.push(__currentView);
-            if (__viewHistory.length > 40) __viewHistory.shift();
+        if (v !== __currentView) {
+            if (!__suppressHistoryPush) {
+                __viewHistory.push(__currentView);
+                if (__viewHistory.length > 40) __viewHistory.shift();
+            }
+            __viewJustChanged = true;
         }
         __currentView = v;
     },
@@ -8575,6 +9015,14 @@ Object.defineProperty(state, 'view', {
 
 function canGoBack() {
     return __viewHistory.length > 0;
+}
+
+// One-shot read: true only for the single render() that follows a real
+// state.view change, then resets — see __viewJustChanged above.
+function __consumeViewChangeFlag() {
+    const changed = __viewJustChanged;
+    __viewJustChanged = false;
+    return changed;
 }
 
 // Pops the real previous screen and navigates to it, without re-pushing
@@ -8807,11 +9255,21 @@ async function loadLeaderboard(type) {
             }
         });
 
+        const currentUserId = state.profile ? state.profile.id : null;
         const leaderboard = state.allUsers.map(function(user) {
             const score = scoreMap[user.id];
+            const isCurrentUser = user.id === currentUserId;
+            // Real name/username was saved on the score row at submit time;
+            // fall back to the profile record if that's missing.
+            const rawName = (score && score.username) || user.username || user.full_name || 'Candidate';
             return {
                 user_id: user.id,
                 candidate_code: getCandidateCode(user.id),
+                // Everyone else sees a masked username (e.g. "hab***"); the
+                // signed-in candidate sees their own full name so they can
+                // find themselves on the board.
+                display_name: isCurrentUser ? rawName : maskUsername(rawName),
+                is_current_user: isCurrentUser,
                 score: score ? score.score : 0,
                 has_attempted: !!score,
                 subject_scores: score ? score.subject_scores || null : null,
@@ -9130,6 +9588,8 @@ async function loadSettings() {
             mockSubjectCount: settings.mock_settings?.subject_count || 4,
             underConstruction: settings.under_construction || false,
             constructionReopenTime: settings.construction_reopen_time || null,
+            activationEnabled: settings.activation_enabled === true,
+            activationAutoEnableDate: settings.activation_auto_enable_date || null,
             faqImages: settings.faq_images || {},
         };
         state.settingsCache = result;
@@ -10210,12 +10670,14 @@ async function signUp(fullName, username, email, password) {
             state.signupEmail = "";
             state.signupPassword = "";
             state.signupConfirm = "";
-            showToast("Account created! You need to be activated by admin.", "success");
+            showToast(isActivationSystemOn() ? "Account created! You need to be activated by admin." : "Account created!", "success");
             setupRealtimeNotifications();
             startLastSeenHeartbeat();
             addLog(data.user.id, username, 'login', 'Signed up and logged in');
             registerDeviceSession();
-            state.showActivationBanner = true;
+            if (isActivationSystemOn()) {
+                state.showActivationBanner = true;
+            }
             render();
         }
     } catch (err) {
@@ -10949,6 +11411,42 @@ async function loadMockAttempts(mockExamId) {
     }
 }
 
+// Admin-only: load EVERY mock registration and EVERY mock attempt, for
+// EVERY user — unlike loadMockRegistrations()/loadMockAttempts() above,
+// which (when a user is signed in) filter to that signed-in user's own
+// rows only. The Admin Panel needs the full picture across all
+// candidates to show total attempts, unique users, and each user's score.
+async function loadAdminMockData() {
+    if (state.admin.mockAdminDataLoading) return;
+    state.admin.mockAdminDataLoading = true;
+    try {
+        const [regRes, attRes] = await Promise.all([
+            supabase.from('mock_registrations').select('*'),
+            supabase.from('mock_attempts').select('*'),
+        ]);
+        if (regRes.error) {
+            console.warn("Load admin mock registrations error:", regRes.error);
+            state.admin.mockRegistrationsAll = [];
+        } else {
+            state.admin.mockRegistrationsAll = regRes.data || [];
+        }
+        if (attRes.error) {
+            console.warn("Load admin mock attempts error:", attRes.error);
+            state.admin.mockAttemptsAll = [];
+        } else {
+            state.admin.mockAttemptsAll = attRes.data || [];
+        }
+        state.admin.mockAdminDataLoaded = true;
+    } catch (e) {
+        console.warn("Load admin mock data exception:", e);
+        state.admin.mockRegistrationsAll = [];
+        state.admin.mockAttemptsAll = [];
+        state.admin.mockAdminDataLoaded = true;
+    }
+    state.admin.mockAdminDataLoading = false;
+    render();
+}
+
 async function registerForMock(mockExamId, subjects) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
     
@@ -11368,13 +11866,19 @@ function doSubmitMock(autoSubmit) {
     });
     
     const subjectCount = state.settingsCache.mockSubjectCount || 4;
-    let totalScore = Object.values(subjectScores).reduce(function(a, b) { return a + b; }, 0);
-    const maxPossible = subjectCount * 100;
-    if (totalScore > maxPossible) totalScore = maxPossible;
+    // Overall mock score is the AVERAGE of the per-subject scores, expressed
+    // out of 100 — not an aggregate/sum across subjects. A candidate scoring
+    // 100/100 in every subject should see 100 overall, not e.g. 400.
+    const subjectScoreValues = Object.values(subjectScores);
+    let totalScore = subjectScoreValues.length
+        ? Math.round(subjectScoreValues.reduce(function(a, b) { return a + b; }, 0) / subjectScoreValues.length)
+        : 0;
+    if (totalScore > 100) totalScore = 100;
+    if (totalScore < 0) totalScore = 0;
 
     state.mockScore = totalScore;
     state.mockSubjectScores = subjectScores;
-    state.mockTotal = subjectCount * 100;
+    state.mockTotal = 100;
     state.mockSubmittedAt = new Date().toISOString();
     const answersObj = {};
     state.mockQuestions.forEach(function(q, i) {
@@ -13088,6 +13592,34 @@ async function startExam() {
     saveSessionSnapshot();
 }
 
+// Every Topic Practice session must always contain exactly this many
+// questions, no matter how many were actually uploaded for the topic.
+const TOPIC_SESSION_SIZE = 50;
+
+// Builds a shuffled question set of exactly targetCount questions from
+// whatever was uploaded for the topic. If fewer were uploaded, the
+// uploaded set is reshuffled and re-used (looped) to top up to the
+// target; if more were uploaded, a random subset is used instead. The
+// person never sees how many were actually uploaded — only this fixed
+// count is ever used to build a session.
+function buildFixedLengthQuestionSet(sourceQuestions, targetCount) {
+    if (!sourceQuestions || sourceQuestions.length === 0) return [];
+    if (sourceQuestions.length >= targetCount) {
+        return shuffleArray(sourceQuestions.slice()).slice(0, targetCount);
+    }
+    const result = [];
+    let cycle = 0;
+    while (result.length < targetCount) {
+        cycle++;
+        const remaining = targetCount - result.length;
+        const batch = shuffleArray(sourceQuestions.slice()).slice(0, Math.min(remaining, sourceQuestions.length));
+        batch.forEach(function(q) {
+            result.push(cycle === 1 ? q : Object.assign({}, q, { id: q.id + '__dup' + cycle + '_' + result.length }));
+        });
+    }
+    return result;
+}
+
 async function startTopicPractice() {
     if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
 
@@ -13100,8 +13632,7 @@ async function startTopicPractice() {
     render();
     
     const settings = await loadSettings();
-    const perTopic = settings.subjectQuestionsPerSubject || 25;
-    const questions = await window.OfflineDB.getTopicQuestionsOffline(state.topicId, perTopic);
+    const questions = await window.OfflineDB.getTopicQuestionsOffline(state.topicId, TOPIC_SESSION_SIZE);
     state.isLoading = false;
 
     if (questions.length === 0) {
@@ -13110,7 +13641,7 @@ async function startTopicPractice() {
     }
 
     const s = SUBJECTS.find(function(x) { return x.id === state.topicSubject; });
-    const qsAll = shuffleArray(questions).map(function(q) {
+    const qsAll = buildFixedLengthQuestionSet(questions, TOPIC_SESSION_SIZE).map(function(q) {
         return Object.assign({}, q, { subject_name: s.name, subject_id: state.topicSubject });
     });
     notifyTrialCapIfNeeded(qsAll.length);
@@ -15341,41 +15872,56 @@ function render() {
         html = renderApp();
     }
     
+    // One-shot entrance animation for modals/overlays — only on the render
+    // where a flag genuinely flips closed -> open, never on the repeat
+    // renders typing/tapping inside the modal triggers. See the
+    // .modal-anim-on note in <style>.
+    window.__prevModalOpen = window.__prevModalOpen || {};
+    function __justOpened(key, isOpenNow) {
+        const now = !!isOpenNow;
+        const was = !!window.__prevModalOpen[key];
+        window.__prevModalOpen[key] = now;
+        return now && !was;
+    }
+    function __modalWrap(key, isOpenNow, htmlStr) {
+        return '<div class="' + (__justOpened(key, isOpenNow) ? 'modal-anim-on' : '') + '">' + htmlStr + '</div>';
+    }
+
     if (state.showSubmitModal && state.submitModalData) {
-        html += renderSubmitModal();
+        html += __modalWrap('submit', true, renderSubmitModal());
     }
     if (state.showExamAwayModal) {
-        html += renderExamAwayModal();
+        html += __modalWrap('examAway', true, renderExamAwayModal());
     }
     if (state.showCalculator) {
-        html += renderCalculator();
+        html += __modalWrap('calc', true, renderCalculator());
     }
     if (state.showReset) {
-        html += renderResetModal();
+        html += __modalWrap('reset', true, renderResetModal());
     }
     if (state.showFlagModal) {
-        html += renderFlagModal();
+        html += __modalWrap('flag', true, renderFlagModal());
     }
     if (state.showPassageModal) {
-        html += renderPassageModal();
+        html += __modalWrap('passage', true, renderPassageModal());
     }
     if (state.showNotifyModal) {
-        html += renderNotifyModal();
+        html += __modalWrap('notify', true, renderNotifyModal());
     }
     if (state.showGotoModal) {
-        html += renderGotoModal();
+        html += __modalWrap('goto', true, renderGotoModal());
     }
     if (state.showAvatarUpload) {
-        html += renderAvatarUploadModal();
+        html += __modalWrap('avatar', true, renderAvatarUploadModal());
     }
     if (state.showFundWallet) {
-        html += renderFundWalletModal();
+        html += __modalWrap('fundWallet', true, renderFundWalletModal());
     }
     if (state.showActivationBanner) {
         html += renderActivationBanner();
     }
     if (state.showFaqImageUpload) {
-        html += renderFaqImageUploadModal();
+        html += __modalWrap('faqImg', true, renderFaqImageUploadModal());
     }
     
     const urlParams = new URLSearchParams(window.location.search);
@@ -15388,7 +15934,9 @@ function render() {
     if (state.showLogin && !state.authUser) {
         const overlay = document.createElement('div');
         overlay.innerHTML = renderLoginModal();
-        root.appendChild(overlay.firstElementChild);
+        const node = overlay.firstElementChild;
+        if (node && __justOpened('login', true)) node.classList.add('modal-anim-on');
+        root.appendChild(node);
     } else if (state.showLogin && state.authUser) {
         // Guard against a stale showLogin flag surviving a race where the
         // app briefly thought no one was signed in (see checkAuthSession /
@@ -15401,7 +15949,9 @@ function render() {
     if (state.showSignup) {
         const overlay = document.createElement('div');
         overlay.innerHTML = renderSignupModal();
-        root.appendChild(overlay.firstElementChild);
+        const node = overlay.firstElementChild;
+        if (node && __justOpened('signup', true)) node.classList.add('modal-anim-on');
+        root.appendChild(node);
     }
 
     SCROLL_PRESERVE_SELECTORS.forEach(function(sel) {
@@ -15802,7 +16352,7 @@ function renderApp() {
     // pinned at the very bottom. Giving them the view-picker flex layout
     // (see CSS) guarantees the button always docks flush at the true
     // bottom without ever overlapping the choices above it.
-    const PICKER_SCREEN_VIEWS = ['cbt', 'exam', 'literature-cbt'];
+    const PICKER_SCREEN_VIEWS = ['cbt', 'exam', 'literature-cbt', 'topic-list'];
     // These four modes keep the SAME state.view value for both the timed
     // question screen AND the after-submit Result/Review screen (mock is
     // the only mode that switches to a distinct 'mock-result' view). Once
@@ -15888,7 +16438,7 @@ function renderApp() {
               rightContent + '</div>'
         ) +
         '</div>' +
-        '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + (PICKER_SCREEN_VIEWS.indexOf(state.view) !== -1 ? ' view-picker' : '') + '"><div class="view-content">' + renderView() + '</div></div>' +
+        '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + (PICKER_SCREEN_VIEWS.indexOf(state.view) !== -1 ? ' view-picker' : '') + '"><div class="view-content' + (__consumeViewChangeFlag() ? ' view-enter' : '') + '">' + renderView() + '</div></div>' +
         (isExamTaking ? '' : renderBottomNav()) +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
         (state.viewingImage ? (
@@ -16098,20 +16648,19 @@ const atMax = mySubjectIds.length === 4;
     const modes = [
         { view: 'cbt', label: 'JAMB CBT', sub: 'Full timed practice', icon: 'monitor', tint: '#35618C' },
         { view: 'exam', label: 'Past Questions', sub: '2021 – 2026', icon: 'clipboard', tint: '#A65640' },
-        { view: 'mockexam', label: 'Mock Arena', sub: 'Create or join', icon: 'target', tint: '#6E5296' },
         { view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
         { view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#3E7C74' },
         { view: 'revise', label: 'Revise Weak', sub: 'Retry missed Qs', icon: 'rotate', tint: '#0F6B3F' },
         { view: 'topic', label: 'Topic Practice', sub: 'Read notes or take a CBT', icon: 'list', tint: '#7C5CFC' },
-        { view: 'history', label: 'Result Analysis', sub: 'Your performance', icon: 'clock', tint: '#7A6A46' },
         { view: 'documents', label: 'Study Materials', sub: 'Past Q & files', icon: 'folder', tint: '#46527A' },
     ];
-    let modeGrid = '<div class="mode-grid-v2">';
+    let modeGrid = '<div class="ph-mode-list">';
     modes.forEach(function(m) {
         modeGrid += (
-            '<button class="mode-card-v2" data-action="set-view" data-view="' + m.view + '">' +
-            '<span class="mcv2-icon" style="background:' + m.tint + '1A;color:' + m.tint + '">' + svg(m.icon, 20) + '</span>' +
-            '<span class="mcv2-text"><span class="mcv2-label">' + esc(m.label) + '</span><span class="mcv2-sub">' + esc(m.sub) + '</span></span>' +
+            '<button class="ph-mode-card" data-action="set-view" data-view="' + m.view + '">' +
+            '<span class="ph-mode-icon" style="background:' + m.tint + '1A;color:' + m.tint + '">' + svg(m.icon, 22) + '</span>' +
+            '<span class="ph-mode-text"><span class="ph-mode-label">' + esc(m.label) + '</span><span class="ph-mode-sub">' + esc(m.sub) + '</span></span>' +
+            '<span class="ph-mode-chevron">' + svg('chevleft', 16).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>' +
             '</button>'
         );
     });
@@ -16132,7 +16681,7 @@ const atMax = mySubjectIds.length === 4;
         '</div>' +
         '<div class="myc-subject-strip">' + subjectCards + addTile + '</div>' +
         pickerHtml +
-        '<div class="section-hdr" style="margin-top:18px"><h2>Practice Modes</h2></div>' +
+        '<div class="section-hdr" style="margin-top:22px;margin-bottom:14px"><h2>Practice Modes</h2></div>' +
         modeGrid
     );
 }
@@ -16180,14 +16729,15 @@ function renderLearningHub() {
         { key: 'history', label: 'Result Analysis', blurb: 'Your exam results & performance', icon: 'clock', color: '#8E44AD' },
     ];
     let cards = '';
-    tools.forEach(function(t) {
+    tools.forEach(function(t, i) {
         cards += (
-            '<button class="acct-menu-item" data-action="set-view" data-view="' + t.key + '">' +
+            '<button class="acct-menu-item" style="animation-delay:' + (i * 0.05).toFixed(2) + 's" data-action="set-view" data-view="' + t.key + '">' +
             '<span class="amicon" style="background:' + t.color + '20;color:' + t.color + '">' + svg(t.icon, 20) + '</span>' +
             '<div class="amii-text">' +
             '<p class="amii-title">' + esc(t.label) + '</p>' +
             '<p class="amii-sub">' + esc(t.blurb) + '</p>' +
             '</div>' +
+            '<span class="amii-chevron">' + svg('chevright', 16) + '</span>' +
             '</button>'
         );
     });
@@ -16199,109 +16749,31 @@ function renderLearningHub() {
 }
 
 // ============================================================
-//  HOME PAGE — DAILY BRAIN TEASER (small educational game)
-//  Fully local: no Supabase, no network call, works offline.
-//  A new question rotates in once a day (seeded by the date so it's
-//  the same question all day, and different the next day), and the
-//  answered/streak state is remembered in localStorage. Deliberately
-//  tiny — this is dashboard flavor, not a full quiz feature.
+//  FREE ACCESS ANNOUNCEMENT (Home screen, shown while Activation is OFF)
 // ============================================================
-const BRAIN_TEASER_KEY = "myutme_daily_brainteaser_v1";
-const BRAIN_TEASERS = [
-    { q: "Opposite of 'ancient'?", options: ["Modern", "Old", "Historic", "Antique"], correct: 0 },
-    { q: "7 × 8 = ?", options: ["54", "56", "58", "64"], correct: 1 },
-    { q: "Plural of 'analysis'?", options: ["Analysises", "Analyses", "Analysis's", "Analysi"], correct: 1 },
-    { q: "Which is a prime number?", options: ["21", "27", "31", "33"], correct: 2 },
-    { q: "'Ubiquitous' means...", options: ["Rare", "Present everywhere", "Very old", "Hidden"], correct: 1 },
-    { q: "Capital of Nigeria?", options: ["Lagos", "Kano", "Abuja", "Ibadan"], correct: 2 },
-    { q: "Synonym for 'meticulous'?", options: ["Careless", "Careful", "Fast", "Lazy"], correct: 1 },
-    { q: "15% of 200 = ?", options: ["20", "25", "30", "35"], correct: 2 },
-    { q: "Largest planet in our solar system?", options: ["Earth", "Saturn", "Jupiter", "Mars"], correct: 2 },
-    { q: "Chemical symbol for Gold?", options: ["Gd", "Go", "Au", "Ag"], correct: 2 },
-    { q: "Antonym of 'benevolent'?", options: ["Kind", "Malevolent", "Generous", "Gentle"], correct: 1 },
-    { q: "Next in sequence: 2, 4, 8, 16, ?", options: ["18", "24", "32", "30"], correct: 2 },
-    { q: "Author of 'Things Fall Apart'?", options: ["Wole Soyinka", "Chinua Achebe", "Chimamanda Adichie", "Cyprian Ekwensi"], correct: 1 },
-    { q: "'Frugal' most nearly means...", options: ["Wasteful", "Thrifty", "Wealthy", "Generous"], correct: 1 },
-    { q: "Square root of 144?", options: ["11", "12", "13", "14"], correct: 1 },
-    { q: "The powerhouse of the cell is the...", options: ["Nucleus", "Ribosome", "Mitochondria", "Cytoplasm"], correct: 2 },
-    { q: "Which word is spelled correctly?", options: ["Recieve", "Receive", "Receeve", "Receve"], correct: 1 },
-    { q: "Train travels 60km in 30 mins. Its speed is...", options: ["60km/h", "90km/h", "120km/h", "30km/h"], correct: 2 },
-    { q: "'Candid' means...", options: ["Frank and honest", "Colorful", "Confused", "Quiet"], correct: 0 },
-    { q: "Smallest prime number?", options: ["0", "1", "2", "3"], correct: 2 },
-];
+function renderFreeAccessAnnouncement() {
+    if (isActivationSystemOn()) return '';
 
-function todayStr() {
-    const d = new Date();
-    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
-}
-function dateStrOffset(days) {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
-}
-function seededTeaserIndex(dateStr) {
-    let hash = 0;
-    for (let i = 0; i < dateStr.length; i++) hash = (hash * 31 + dateStr.charCodeAt(i)) >>> 0;
-    return hash % BRAIN_TEASERS.length;
-}
-
-function getBrainTeaserState() {
-    const today = todayStr();
-    let bt = null;
-    try { bt = JSON.parse(storage.get(BRAIN_TEASER_KEY) || "null"); } catch (e) { bt = null; }
-
-    if (!bt || bt.date !== today) {
-        const carriedStreak = (bt && bt.lastCorrectDate === dateStrOffset(-1)) ? bt.streak : 0;
-        bt = {
-            date: today,
-            qIndex: seededTeaserIndex(today),
-            answered: false,
-            correctIdx: null,
-            streak: carriedStreak || 0,
-            lastCorrectDate: bt ? bt.lastCorrectDate : null,
-        };
-        storage.set(BRAIN_TEASER_KEY, JSON.stringify(bt));
+    const rawDate = state.settingsCache.activationAutoEnableDate;
+    let dateText = '';
+    if (rawDate) {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+            dateText = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) +
+                ' at ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+        }
     }
-    return bt;
-}
 
-function answerBrainTeaser(idx) {
-    const bt = getBrainTeaserState();
-    if (bt.answered) return;
-    const q = BRAIN_TEASERS[bt.qIndex];
-    bt.answered = true;
-    bt.correctIdx = idx;
-    if (idx === q.correct) {
-        bt.streak = (bt.streak || 0) + 1;
-        bt.lastCorrectDate = todayStr();
-    }
-    storage.set(BRAIN_TEASER_KEY, JSON.stringify(bt));
-    render();
-}
+    const message = dateText
+        ? '🎉 Good news — MyUTME is completely FREE right now, no activation required! Activation will be required again from ' + dateText + ' for unlimited access — enjoy full access while it lasts!'
+        : '🎉 Good news — MyUTME is completely FREE right now, no activation required! Activation will be required again soon for unlimited access — enjoy full access while it lasts!';
 
-function renderHomeBrainTeaser() {
-    const bt = getBrainTeaserState();
-    const q = BRAIN_TEASERS[bt.qIndex];
-    let inner;
-    if (bt.answered) {
-        const isCorrect = bt.correctIdx === q.correct;
-        inner = (
-            '<p class="bt-emoji">' + (isCorrect ? '🎉' : '🤔') + '</p>' +
-            '<p class="bt-result">' + (isCorrect ? 'Correct!' : ('Answer: ' + String.fromCharCode(65 + q.correct))) + '</p>' +
-            '<p class="bt-streak">' + (bt.streak > 1 ? ('🔥 ' + bt.streak + '-day streak') : 'New one tomorrow') + '</p>'
-        );
-    } else {
-        let opts = '';
-        q.options.forEach(function(o, i) {
-            opts += '<button class="bt-opt" data-action="brainteaser-answer" data-idx="' + i + '" title="' + esc(o) + '">' + String.fromCharCode(65 + i) + '</button>';
-        });
-        inner = (
-            '<p class="bt-label">🧠 Daily Teaser</p>' +
-            '<p class="bt-q">' + esc(q.q) + '</p>' +
-            '<div class="bt-opts">' + opts + '</div>'
-        );
-    }
-    return '<div class="home-brainteaser">' + inner + '</div>';
+    return (
+        '<div class="free-announce-banner">' +
+        '<span class="fab-icon">📢</span>' +
+        '<div class="fab-track"><span class="fab-text">' + esc(message) + '</span></div>' +
+        '</div>'
+    );
 }
 
 function renderHome() {
@@ -16355,14 +16827,16 @@ function renderHome() {
         });
     }
     return (
+        renderFreeAccessAnnouncement() +
         '<div class="home-hero">' +
         '<div class="glow3"></div><div class="glow4"></div>' +
-        renderHomeBrainTeaser() +
+        '<div class="hero-spark s1"></div><div class="hero-spark s2"></div><div class="hero-spark s3"></div>' +
+        '<div class="home-hero-badge"><div class="hhb-ring r1"></div><div class="hhb-ring r2"></div><div class="hhb-icon">🎓</div></div>' +
         '<p class="hi">' + greeting + ',</p>' +
         '<p class="name">' + esc(firstName) + ' 👋</p>' +
         '<div class="cd-row">' +
         '<span class="cd-emoji">🎯</span>' +
-        '<div><span class="n">' + cd.days + ' days</span><br><span class="l">Until JAMB ' + cd.year + '</span></div>' +
+        '<div><span class="n">Less than ' + cd.approxDays + ' days</span><br><span class="l">to JAMB ' + cd.year + '</span></div>' +
         '</div>' +
         '</div>' +
         qaHtml +
@@ -16388,7 +16862,7 @@ function renderHomeExtras() {
     ];
     const dayIndex = Math.floor(Date.now() / 86400000) % tips.length;
     const tipHtml = (
-        '<div class="card" style="display:flex;gap:10px;align-items:flex-start;padding:14px;margin-bottom:16px;border-left:3px solid var(--gold)">' +
+        '<div class="card" style="display:flex;gap:10px;align-items:flex-start;padding:14px;margin-bottom:16px;border-left:3px solid var(--gold);animation:homeItemIn .5s ease both;animation-delay:.82s">' +
         '<span style="font-size:20px;line-height:1">💡</span>' +
         '<div><p style="font-size:11px;color:var(--muted);margin:0 0 3px;text-transform:uppercase;letter-spacing:0.03em">Tip of the day</p>' +
         '<p style="font-size:13px;margin:0">' + esc(tips[dayIndex]) + '</p></div>' +
@@ -16777,19 +17251,20 @@ function renderCbtExam() {
 
         const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
 
+        // Only show the breakdown that's actually relevant to this
+        // result: a per-subject split when several subjects were
+        // combined, nothing extra when it was a single subject (the
+        // score above already says everything there is to say).
         const resultRows = isFullCbt
             ? Object.keys(subjectScores).map(function(sid) {
                 const subj = SUBJECTS.find(function(s) { return s.id === sid; });
                 return { label: subj ? subj.name : sid, value: subjectScores[sid] + ' / 100' };
-            }).concat([{ label: 'Aggregate Score', value: totalScore + ' / ' + maxScore, total: true }])
-            : [
-                { label: 'Score', value: score + ' / ' + state.cbtQuestions.length },
-                { label: 'Percentage', value: totalScore + ' / ' + maxScore, total: true },
-            ];
+            })
+            : [];
 
         const slipHtml = renderResultBlock({
-            title: isFullCbt ? 'Full Mock UTME' : 'Subject Practice',
             candidateName: candidateName,
+            subtitle: isFullCbt ? 'Full Mock UTME' : 'Subject Practice',
             score: totalScore,
             maxScore: maxScore,
             rows: resultRows,
@@ -17065,19 +17540,15 @@ function renderExamExam() {
         });
 
         const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
-        const examPct = state.examQuestions.length > 0 ? Math.round((score / state.examQuestions.length) * 100) : 0;
 
         return (
-            '<h2 class="title">Exam — Result</h2>' +
+            '<h2 class="title">Past Questions — Result</h2>' +
             renderResultBlock({
-                title: 'Exam Result',
                 candidateName: candidateName,
+                subtitle: (state.examQuestions[0] && state.examQuestions[0].subject_name || '') + (state.examYear ? ' · ' + state.examYear : ''),
                 score: score,
                 maxScore: state.examQuestions.length,
-                rows: [
-                    { label: 'Score', value: score + ' / ' + state.examQuestions.length },
-                    { label: 'Percentage', value: examPct + '%', total: true },
-                ],
+                rows: [],
             }) +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="exam-exit">Back to Home</button>' +
             '<button class="btn btn-outline" style="margin-bottom:10px" data-action="download-exam-pdf">' + svg('download', 14) + ' Download PDF</button>' +
@@ -17214,33 +17685,34 @@ function renderTopicsListPage() {
         topicsHtml =
             '<p style="font-size:11px;color:var(--faint);margin-top:6px">No topics have been added for this subject yet.</p>';
     } else {
-        topicsHtml = '<p class="section-label" style="margin-top:12px">Choose a topic</p>';
+        topicsHtml = '<p class="section-label" style="margin:2px 0 12px">Choose a topic</p><div class="topic-item-list">';
         state.topicsList.forEach(function(t, i) {
             const sel = state.topicId === t.id;
             const color = SUBJECT_PALETTE[i % SUBJECT_PALETTE.length];
             topicsHtml += (
-                '<button class="lb-row" style="width:100%;text-align:left;border-left:4px solid ' + color +
-                (sel ? ';border-color:' + color + ';background:' + color + '14' : '') +
-                '" data-action="select-topic" data-topic="' + t.id + '">' +
-                '<div class="left" style="display:flex;align-items:center;gap:10px">' +
-                '<span style="width:9px;height:9px;border-radius:50%;background:' + color + ';flex:none"></span>' +
-                '<span>' + esc(t.name) + '</span></div>' +
-                '<span style="font-size:10px;color:var(--muted)">' + (t.question_count || 0) +
-                ' Qs' + (sel ? ' · selected' : '') + '</span>' +
+                '<button class="topic-item-card' + (sel ? ' selected' : '') + '" style="--tc:' + color + '" data-action="select-topic" data-topic="' + t.id + '">' +
+                '<span class="topic-item-left">' +
+                '<span class="topic-item-dot"></span>' +
+                '<span class="topic-item-name">' + esc(t.name) + '</span>' +
+                '</span>' +
+                (sel ? '<span class="topic-item-meta">Selected</span>' : '') +
                 '</button>'
             );
         });
+        topicsHtml += '</div>';
     }
 
     const ready = !!(state.topicSubject && state.topicId);
 
     return (
-        '<button class="back-link" data-action="set-view" data-view="topic">' + svg("chevleft", 14) + ' Subjects</button>' +
-        '<div class="feature-icon" style="background:#7C5CFC">' + svg("list", 30) + '</div>' +
-        '<h2 class="title">' + esc(subjName) + '</h2>' +
-        '<p class="sub">Pick a topic to practice</p>' +
+        '<button class="back-link" data-action="set-view" data-view="topic" style="flex-shrink:0">' + svg("chevleft", 14) + ' Subjects</button>' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-bottom:6px">' +
+        '<div class="feature-icon" style="background:#7C5CFC;width:32px;height:32px;border-radius:10px;margin-bottom:0">' + svg("list", 16) + '</div>' +
+        '<div><h2 class="title" style="margin:0;font-size:14px">' + esc(subjName) + '</h2><p class="sub" style="margin:0;font-size:10.5px;padding:0">Pick a topic to practice</p></div>' +
+        '</div>' +
+        '<div class="picker-scroll">' +
         topicsHtml +
-        '<div class="picker-footer-spacer"></div>' +
+        '</div>' +
         '<div class="picker-footer">' +
         '<button class="btn ' + (ready ? "btn-green" : "btn-outline") + '" data-action="start-topic-practice"' + (
             ready ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Start Topic Practice</button>' +
@@ -17322,13 +17794,18 @@ function renderTopicExam() {
             );
         });
 
+        const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
+        const topicName = state.topicsList.find(function(t) { return t.id === state.topicId; })?.name || 'Topic Practice';
+
         return (
             '<h2 class="title">Topic Practice — Result</h2>' +
-            '<div class="card" style="text-align:center;padding:20px;margin-bottom:12px">' +
-            '<p style="font-family:var(--font-mono);font-size:40px;margin:0;color:' + GREEN + '">' + score +
-            ' / ' + state.topicQuestions.length + '</p>' +
-            '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Questions answered correctly</p>' +
-            '</div>' +
+            renderResultBlock({
+                candidateName: candidateName,
+                subtitle: topicName,
+                score: score,
+                maxScore: state.topicQuestions.length,
+                rows: [],
+            }) +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="topic-exit">Back to Home</button>' +
             '<button class="btn btn-outline" style="margin-bottom:10px" data-action="download-topic-pdf">' + svg('download', 14) + ' Download PDF</button>' +
             '<button class="btn btn-outline" data-action="topic-toggle-review">' +
@@ -17467,19 +17944,15 @@ function renderLitExam() {
         });
 
         const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
-        const litPct = state.litQuestions.length > 0 ? Math.round((score / state.litQuestions.length) * 100) : 0;
 
         return (
             '<h2 class="title">Novel (CBT) — Result</h2>' +
             renderResultBlock({
-                title: 'Novel (CBT) Result',
                 candidateName: candidateName,
+                subtitle: 'Novel (CBT)',
                 score: score,
                 maxScore: state.litQuestions.length,
-                rows: [
-                    { label: 'Score', value: score + ' / ' + state.litQuestions.length },
-                    { label: 'Percentage', value: litPct + '%', total: true },
-                ],
+                rows: [],
             }) +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="lit-exit">Back to Home</button>' +
             '<button class="btn btn-outline" style="margin-bottom:10px" data-action="download-lit-pdf">' + svg('download', 14) + ' Download PDF</button>' +
@@ -19830,11 +20303,16 @@ function renderProfile() {
         );
     }
     
-    // Build status pill
+    // Build status pill — while the Activation System is OFF, activation
+    // status is not shown to anyone (except the Admin badge, which reflects
+    // role, not activation).
+    const activationOn = isActivationSystemOn();
     let statusPill = '';
     let expiryText = '';
     if (isAdmin()) {
         statusPill = '<span class="acct-status-pill on">👑 Admin</span>';
+    } else if (!activationOn) {
+        statusPill = '';
     } else if (isActive) {
         if (expiry) {
             expiryText = daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left';
@@ -19886,7 +20364,7 @@ function renderProfile() {
     // and simply switches to an "Activated" state (green check badge,
     // filled icon, no "Go" button) so the card is a permanent, reliable
     // status indicator instead of vanishing.
-    const showActivateCard = !isAdmin();
+    const showActivateCard = !isAdmin() && activationOn;
     const activateCardHtml = showActivateCard ? (
         '<div class="activate-feature-card' + (isActive ? ' is-activated' : '') + '"' +
         (isActive ? '' : ' data-action="set-view" data-view="activate"') + '>' +
@@ -20085,6 +20563,7 @@ function renderActivationSignboard() {
     // Persistent, non-dismissable "not activated" indicator. Unlike a modal,
     // this never blocks the screen — it's a slim strip the user can act on
     // whenever they're ready, and it stays visible until the account is active.
+    if (!isActivationSystemOn()) return '';
     return (
         '<div class="act-signboard" data-action="set-view" data-view="activate" style="cursor:pointer">' +
         '<div class="as-icons">' +
@@ -20101,7 +20580,7 @@ function renderActivationSignboard() {
 }
 
 function renderActivationBanner() {
-    if (!state.showActivationBanner) return '';
+    if (!state.showActivationBanner || !isActivationSystemOn()) return '';
     return (
         '<div class="actban-overlay" data-action="dismiss-activation-banner">' +
         '<div class="actban-modal" data-action="prevent-close">' +
@@ -20991,7 +21470,7 @@ function renderMockResult() {
 
     if (state.mockResultReleased) {
         const score = state.mockScore;
-        const maxScore = (state.settingsCache.mockSubjectCount || 4) * 100;
+        const maxScore = 100;
         const questions = state.mockQuestions || [];
         const answers = state.mockAnswers || [];
         const subjectScores = state.mockSubjectScores || {};
@@ -21035,20 +21514,21 @@ function renderMockResult() {
         });
 
         const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
+        // Relevant distribution for a mock is the per-subject split —
+        // the aggregate is already shown as the big score above, so it
+        // isn't repeated in the table.
         const subjRowsForTable = Object.keys(subjectScores).map(function(sid) {
             const subj = SUBJECTS.find(function(s) { return s.id === sid; });
             return { label: subj ? subj.name : sid, value: (subjectScores[sid] || 0) + ' / 100' };
-        }).concat([{ label: 'Aggregate Score', value: score + ' / ' + maxScore, total: true }]);
+        });
 
         return (
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + (exam ? esc(exam.title) : 'Mock Exam') + '</h2>' +
-            '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">📅 ' + (exam ? new Date(exam.scheduled_date)
-                .toLocaleString() : '') + '</p>' +
-            (submittedAt ? '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">⏱️ Submitted: ' + submittedAt
+            (submittedAt ? '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Submitted: ' + submittedAt
                 .toLocaleString() + '</p>' : '') +
             renderResultBlock({
-                title: exam ? exam.title : 'Mock Exam',
                 candidateName: candidateName,
+                subtitle: exam ? new Date(exam.scheduled_date).toLocaleDateString() : '',
                 score: score,
                 maxScore: maxScore,
                 rows: subjRowsForTable,
@@ -21086,8 +21566,9 @@ function renderStudyCircle() {
 }
 
 // Leaderboard is Mock Exam only. Other modes don't have a leaderboard.
-// Identity is masked — no real name/username is ever shown, only a
-// stable, non-identifying candidate code (see getCandidateCode()).
+// Identity is partially masked — other candidates see a partly-starred
+// username (see maskUsername()); the signed-in candidate always sees
+// their own full name/username on their own row.
 function renderLeaderboard() {
     if (state.loadingLeaderboard) {
         return (
@@ -21105,14 +21586,15 @@ function renderLeaderboard() {
     } else {
         displayData.forEach(function(entry, i) {
             const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-            const isCurrentUser = entry.user_id === state.profile.id;
+            const isCurrentUser = entry.is_current_user || entry.user_id === state.profile.id;
             rows += (
                 '<div class="lb-row" style="' + (isCurrentUser ? 'border-color:var(--gold);' : '') + '">' +
                 '<div class="left">' +
                 '<span class="rank">' + medal + '</span>' +
-                '<span style="font-size:12px">' + esc(entry.candidate_code) + (isCurrentUser ? ' (you)' : '') + '</span>' +
+                '<span style="font-size:12px' + (isCurrentUser ? ';font-weight:800;color:var(--gold-dark)' : '') + '">' +
+                esc(entry.display_name || entry.candidate_code) + (isCurrentUser ? ' (You)' : '') + '</span>' +
                 '</div>' +
-                '<span class="score" style="font-size:13px">' + entry.score + '</span>' +
+                '<span class="score" style="font-size:13px">' + entry.score + '<span style="font-size:9px;color:var(--faint)">/100</span></span>' +
                 '</div>'
             );
         });
@@ -21120,7 +21602,7 @@ function renderLeaderboard() {
 
     return (
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-        '<p class="sub" style="font-size:12px;margin-bottom:10px">See how you rank against other candidates. Candidates are shown by code, not name, to protect their privacy.</p>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:10px">See how you rank against other candidates. Usernames are partially hidden to protect privacy — you\'ll see your own name in full.</p>' +
         '<div style="margin-bottom:10px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">' +
         '<span>Rank</span><span>Candidate</span><span>Score</span>' +
         '</div>' +
@@ -21194,6 +21676,17 @@ function renderNotifications() {
 //  ACTIVATE
 // ============================================================
 function renderActivate() {
+    // The Activation System is currently switched off in the Admin Panel —
+    // nothing here is relevant, so send the user back home instead of
+    // showing any activation-related content.
+    if (!isActivationSystemOn() && !isAdmin()) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
+            '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('shield', 30) + '</div>' +
+            '<h2 class="title" style="font-size:18px">Full Access, No Activation Needed</h2>' +
+            '<p class="sub" style="font-size:12px">Every feature is unlocked right now — there\'s nothing to activate.</p>'
+        );
+    }
     const isActive = isUserActive();
     const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
 
@@ -23341,6 +23834,23 @@ function renderAdminSettings() {
         '</div>' +
         
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
+        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔐 Activation System</p>' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+        '<label style="font-size:13px;color:var(--ink)">' +
+        '<input type="checkbox" id="admin-activation-enabled" ' + (s.activationEnabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--green);vertical-align:middle;margin-right:4px" />' +
+        'Activation System ON</label>' +
+        '</div>' +
+        '<p style="font-size:9px;color:var(--faint);margin:0 0 8px">' +
+        (s.activationEnabled
+            ? 'Activation is ON — non-activated users see activation prompts and restrictions as normal.'
+            : 'Activation is OFF — every user has full access, and no activation status, prompts, or restrictions are shown to anyone.') +
+        '</p>' +
+        '<label class="field-label">Automatic Activation Date' + (s.activationEnabled ? ' <span style="font-weight:400">(only used while OFF)</span>' : '') + '</label>' +
+        '<input class="field" id="admin-activation-auto-date" type="datetime-local" value="' + (s.activationAutoEnableDate || '') + '"' + (s.activationEnabled ? ' disabled' : '') + ' style="margin-bottom:4px;font-size:13px' + (s.activationEnabled ? ';opacity:0.5' : '') + '" />' +
+        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">Leave empty for no scheduled auto-activation. When this date arrives, activation turns back ON automatically for every account.</p>' +
+        '</div>' +
+        
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
         '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔧 Maintenance Mode</p>' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
         '<label style="font-size:13px;color:var(--ink)">' +
@@ -23926,12 +24436,35 @@ function renderAdminMock() {
         loadMockExams();
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading mock data...</p></div>';
     }
+    if (!state.admin.mockAdminDataLoaded) {
+        loadAdminMockData();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading mock data...</p></div>';
+    }
 
     if (state.admin.viewingMockAttempts) {
         return renderMockAttemptsView();
     }
 
+    const allAttempts = state.admin.mockAttemptsAll || [];
+    const allRegistrations = state.admin.mockRegistrationsAll || [];
+    const submittedAttempts = allAttempts.filter(function(a) { return a.is_submitted; });
+    const totalAttemptsAllMocks = submittedAttempts.length;
+    const uniqueUsersAllMocks = new Set(submittedAttempts.map(function(a) { return a.user_id; })).size;
+
     let html = (
+        '<div class="card" style="margin-bottom:12px;display:flex;gap:8px">' +
+        '<div style="flex:1;text-align:center">' +
+        '<p style="font-size:20px;font-weight:800;margin:0;color:var(--green)">' + totalAttemptsAllMocks + '</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:2px 0 0">Total Attempts</p>' +
+        '</div>' +
+        '<div style="flex:1;text-align:center;border-left:1px solid var(--line)">' +
+        '<p style="font-size:20px;font-weight:800;margin:0;color:var(--green)">' + uniqueUsersAllMocks + '</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:2px 0 0">Users Attempted</p>' +
+        '</div>' +
+        '</div>'
+    );
+
+    html += (
         '<div class="card" style="margin-bottom:12px">' +
         '<p style="font-size:13px;font-weight:600;margin:0 0 10px">🎯 Schedule New Mock Exam</p>' +
         '<label class="field-label">Mock Title</label>' +
@@ -23970,11 +24503,13 @@ function renderAdminMock() {
         html += '<p style="font-size:12px;color:var(--faint);text-align:center;font-size:13px">No mock exams scheduled.</p>';
     } else {
         state.mockExams.forEach(function(exam) {
-            const regCount = state.mockRegistrations.filter(function(r) { return r.mock_exam_id === exam.id; })
+            const regCount = allRegistrations.filter(function(r) { return r.mock_exam_id === exam.id; })
             .length;
-            const submittedCount = state.mockAttempts.filter(function(a) {
+            const examAttempts = allAttempts.filter(function(a) {
                 return a.mock_exam_id === exam.id && a.is_submitted;
-            }).length;
+            });
+            const submittedCount = examAttempts.length;
+            const uniqueUserCount = new Set(examAttempts.map(function(a) { return a.user_id; })).size;
 
             html += (
                 '<div class="card" style="margin-bottom:6px;padding:10px">' +
@@ -23982,11 +24517,17 @@ function renderAdminMock() {
                 '<p style="font-size:10px;color:var(--muted);margin:2px 0">📅 ' + new Date(exam.scheduled_date)
                 .toLocaleString() + '</p>' +
                 '<p style="font-size:10px;color:var(--muted);margin:0">👥 ' + regCount +
-                ' registered · ' + submittedCount + ' submitted</p>' +
+                ' registered · ' + uniqueUserCount + ' users attempted · ' + submittedCount + ' submissions</p>' +
+                '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:8px">' +
+                '<span style="font-size:10px;font-weight:700;flex:1">Results Release</span>' +
+                '<span style="font-size:9px;color:' + (exam.results_released ? 'var(--green)' : 'var(--faint)') + '">' +
+                (exam.results_released ? 'ON' : 'OFF') + '</span>' +
+                '<div class="toggle-switch' + (exam.results_released ? ' active' : '') +
+                '" data-action="admin-toggle-results-release" data-examid="' + exam.id +
+                '" title="' + (exam.results_released ? 'ON — tap to turn off' : 'OFF — tap to turn on') + '">' +
+                '<div class="slider"></div></div>' +
+                '</div>' +
                 '<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">' +
-                (exam.results_released ? '<span style="font-size:10px;color:var(--green)">✅ Results Released</span>' :
-                    '<button class="mini-btn primary" data-action="admin-release-results" data-examid="' +
-                    exam.id + '" style="font-size:9px">Release Results</button>') +
                 '<button class="mini-btn danger" data-action="admin-delete-mock" data-examid="' + exam.id +
                 '" style="font-size:9px">Delete</button>' +
                 '<button class="mini-btn" data-action="admin-view-mock-attempts" data-examid="' + exam.id +
@@ -24020,6 +24561,83 @@ function renderAdminMock() {
 
     return html;
 }
+
+// ============================================================
+//  ADMIN MOCK — INDIVIDUAL ATTEMPTS VIEW
+// ============================================================
+// Shows, for one specific mock exam: total attempts, unique users, and a
+// per-user breakdown (name, username, score/100, per-subject scores,
+// submission time) — plus a Results Release toggle scoped to this exam.
+function renderMockAttemptsView() {
+    const examId = state.admin.viewingMockAttempts;
+    const exam = state.mockExams.find(function(e) { return e.id === examId; });
+    const allAttempts = state.admin.mockAttemptsAll || [];
+    const examAttempts = allAttempts.filter(function(a) { return a.mock_exam_id === examId; });
+    const submitted = examAttempts.filter(function(a) { return a.is_submitted; });
+    const uniqueUsers = new Set(submitted.map(function(a) { return a.user_id; })).size;
+
+    // Highest score first — a natural leaderboard-style order for review.
+    const sorted = submitted.slice().sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
+
+    let rows = '';
+    if (sorted.length === 0) {
+        rows = '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No submitted attempts for this mock yet.</p></div>';
+    } else {
+        sorted.forEach(function(attempt, i) {
+            const user = (state.allUsers || []).find(function(u) { return u.id === attempt.user_id; });
+            const displayName = user ? (user.full_name || user.username || 'Unknown') : 'Unknown user';
+            const username = user ? user.username : '';
+            const submittedAt = attempt.submitted_at ? formatTimeAgo(attempt.submitted_at) : '—';
+            const score = attempt.score != null ? attempt.score : 0;
+            const subjScores = attempt.subject_scores || {};
+            let subjHtml = '';
+            Object.keys(subjScores).forEach(function(sid) {
+                const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+                subjHtml += '<span style="display:inline-block;margin:2px 6px 0 0;font-size:9px;color:var(--muted)">' +
+                    (subj ? esc(subj.name) : esc(sid)) + ': ' + subjScores[sid] + '/100</span>';
+            });
+            const medal = i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : '';
+            rows += (
+                '<div class="admin-user-row" style="cursor:default;align-items:flex-start">' +
+                '<div class="user-info">' +
+                '<span class="user-name">' + medal + esc(displayName) + '</span>' +
+                '<span class="user-email">' + (username ? '@' + esc(username) + ' · ' : '') + 'Submitted ' + esc(submittedAt) + '</span>' +
+                (subjHtml ? '<div style="margin-top:4px">' + subjHtml + '</div>' : '') +
+                '</div>' +
+                '<span class="user-status active" style="font-size:12px;font-weight:800">' + score +
+                '<span style="font-size:9px;font-weight:600">/100</span></span>' +
+                '</div>'
+            );
+        });
+    }
+
+    return (
+        '<div class="admin-view-mode-header">' +
+        '<span class="mode-title" style="font-size:14px">📝 ' + esc(exam ? exam.title : 'Mock Attempts') + '</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-mock-attempts-back">← Back</button>' +
+        '</div>' +
+        '<div class="card" style="margin-bottom:10px;display:flex;gap:8px">' +
+        '<div style="flex:1;text-align:center">' +
+        '<p style="font-size:18px;font-weight:800;margin:0;color:var(--green)">' + submitted.length + '</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:2px 0 0">Total Attempts</p>' +
+        '</div>' +
+        '<div style="flex:1;text-align:center;border-left:1px solid var(--line)">' +
+        '<p style="font-size:18px;font-weight:800;margin:0;color:var(--green)">' + uniqueUsers + '</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:2px 0 0">Users Attempted</p>' +
+        '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:8px 10px;background:var(--card-bg);border:1px solid var(--line);border-radius:10px">' +
+        '<span style="font-size:11px;font-weight:700;flex:1">Results Release for this mock</span>' +
+        '<span style="font-size:9px;color:' + (exam && exam.results_released ? 'var(--green)' : 'var(--faint)') + '">' +
+        (exam && exam.results_released ? 'ON' : 'OFF') + '</span>' +
+        '<div class="toggle-switch' + (exam && exam.results_released ? ' active' : '') +
+        '" data-action="admin-toggle-results-release" data-examid="' + examId + '"><div class="slider"></div></div>' +
+        '</div>' +
+        '<p class="section-label">Individual Attempts</p>' +
+        '<div style="max-height:480px;overflow-y:auto">' + rows + '</div>'
+    );
+}
+
 // ============================================================
 //  ADMIN FLAGGED
 // ============================================================
@@ -26745,7 +27363,7 @@ document.addEventListener('click', function(e) {
             modeLabel: 'Mock Exam',
             dateInput: state.mockSubmittedAt,
             totalScore: state.mockScore,
-            maxScore: (state.settingsCache.mockSubjectCount || 4) * 100,
+            maxScore: 100,
             subjectScores: state.mockSubjectScores,
             questions: questions,
             answers: answers,
@@ -26778,7 +27396,7 @@ document.addEventListener('click', function(e) {
         }
         state.mockScore = attempt.score || 0;
         state.mockSubjectScores = attempt.subject_scores || {};
-        state.mockTotal = (state.settingsCache.mockSubjectCount || 4) * 100;
+        state.mockTotal = 100;
         state.mockExamId = examId;
         state.mockQuestions = [];
         state.mockAnswers = [];
@@ -26811,7 +27429,8 @@ document.addEventListener('click', function(e) {
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
         else if (state.adminTab === 'reminders') { state.dailyReminderLoaded = false; state.subReminderLoaded = false; loadDailyReminderSettings(); loadSubReminderSettings(); loadUnsubscribedUsers(); }
         else if (state.adminTab === 'mock') { state.mockLoaded = false; state.liveExamsLoaded = false;
-        loadMockExams(); loadLiveExams(); if (state.authUser) { loadMockRegistrations();
+        state.admin.mockAdminDataLoaded = false;
+        loadMockExams(); loadLiveExams(); loadAdminMockData(); if (state.authUser) { loadMockRegistrations();
             loadMockAttempts(); } }
         else if (state.adminTab === 'settings') {
             loadSettings().then(function(s) {
@@ -27366,6 +27985,10 @@ document.addEventListener('click', function(e) {
         const calcEnabled = document.getElementById('admin-calc-enabled')?.checked !== false;
         const underConstruction = document.getElementById('admin-under-construction')?.checked !== false;
         const reopenTime = document.getElementById('admin-reopen-time')?.value || null;
+        const activationEnabled = document.getElementById('admin-activation-enabled')?.checked === true;
+        // The auto-enable date field is disabled once activation is ON, so
+        // only honor it while OFF — otherwise clear it out.
+        const activationAutoEnableDate = activationEnabled ? null : (document.getElementById('admin-activation-auto-date')?.value || null);
         
         state.admin.questionsPerSubject = cbtQs;
         state.admin.cbtTimeLimit = Math.max(1, cbtTime);
@@ -27389,6 +28012,8 @@ document.addEventListener('click', function(e) {
             { setting_key: 'calculator_enabled', setting_value: calcEnabled },
             { setting_key: 'under_construction', setting_value: underConstruction },
             { setting_key: 'construction_reopen_time', setting_value: reopenTime },
+            { setting_key: 'activation_enabled', setting_value: activationEnabled },
+            { setting_key: 'activation_auto_enable_date', setting_value: activationAutoEnableDate },
         ];
 
         Promise.all(updates.map(function(u) {
@@ -27410,6 +28035,9 @@ document.addEventListener('click', function(e) {
                 mockSubjectCount: mockSubjectCount,
                 underConstruction: underConstruction,
                 constructionReopenTime: reopenTime,
+                activationEnabled: activationEnabled,
+                activationAutoEnableDate: activationAutoEnableDate,
+                faqImages: state.settingsCache.faqImages || {},
             };
             showToast('Settings saved!', 'success');
             render();
@@ -27542,16 +28170,20 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    if (action === 'admin-release-results') {
+    if (action === 'admin-toggle-results-release') {
         const examId = el.getAttribute('data-examid');
-        if (!confirm('Release results for this mock exam?')) return;
-        supabase.from('mock_exams').update({ results_released: true }).eq('id', examId).then(function() {
-            showToast('Results released!', 'success');
+        const exam = state.mockExams.find(function(e) { return e.id === examId; });
+        const turningOn = !(exam && exam.results_released);
+        if (!confirm(turningOn
+            ? 'Release results for this mock exam? Users who attempted it will be able to view their scores.'
+            : 'Turn OFF results for this mock exam? Users will no longer be able to view their scores until you turn it back on.')) return;
+        supabase.from('mock_exams').update({ results_released: turningOn }).eq('id', examId).then(function() {
+            showToast(turningOn ? 'Results released!' : 'Results turned off.', 'success');
             loadMockExams();
             render();
-        }).catch(function(err) { 
-            console.error('Release results error:', err);
-            showNetworkAwareError('Error releasing results.', err); 
+        }).catch(function(err) {
+            console.error('Toggle results release error:', err);
+            showNetworkAwareError('Error updating results release.', err);
         });
         return;
     }
@@ -28345,11 +28977,6 @@ if (action === 'browse-filter') {
             snapshot: flaggableQuestionsCache[qid] || null,
         };
         render();
-        return;
-    }
-
-    if (action === 'brainteaser-answer') {
-        answerBrainTeaser(parseInt(el.getAttribute('data-idx'), 10));
         return;
     }
 
@@ -29191,6 +29818,7 @@ async function init() {
     }
 
     await loadSettings();
+    checkActivationAutoEnable();
     // Failsafe: checkAuthSession() has its own internal timeouts/retries,
     // but if the device's network is bad enough that even those stall
     // (e.g. requests that never resolve or reject), this guarantees the
@@ -29355,6 +29983,12 @@ async function init() {
         checkAndDeactivateExpiredUsers();
     }, 5 * 60 * 1000); // Every 5 minutes
 
+    // Check for a due "auto turn Activation ON" date on init and periodically
+    checkActivationAutoEnable();
+    setInterval(function() {
+        checkActivationAutoEnable();
+    }, 5 * 60 * 1000); // Every 5 minutes
+
     loadAllUsers();
     loadLeaderboard('cbt');
     loadNotifications();
@@ -29383,6 +30017,7 @@ async function init() {
         if (examViews.indexOf(state.view) !== -1) return;
         loadSettings().then(function(s) {
             state.settingsCache = s;
+            checkActivationAutoEnable();
             render();
         });
     }, 60000);
@@ -29412,6 +30047,37 @@ function refreshApp() {
     // this is a single-file app, so "refresh" means reload the page.
     setTimeout(function() { location.reload(); }, 350);
 }
+
+// ============================================================
+//  COPY PROTECTION (JS layer)
+//  Backs up the CSS user-select rules with real event interception, so
+//  Ctrl+C / long-press "Copy" / right-click "Copy" can't pull protected
+//  content (questions, options, explanations, passages, etc.) even if a
+//  selection somehow happens. The same allow-list as the CSS applies:
+//  form fields, contenteditable areas, and code/reference snippets stay
+//  fully copyable, plus anything explicitly marked with .copyable.
+// ============================================================
+const COPY_PROTECTION_ALLOWLIST = 'input, textarea, select, [contenteditable="true"], [contenteditable=""], pre, code, .copyable';
+
+function isCopyProtectionExempt(target) {
+    return !!(target && target.closest && target.closest(COPY_PROTECTION_ALLOWLIST));
+}
+
+document.addEventListener('copy', function(e) {
+    if (!isCopyProtectionExempt(e.target)) e.preventDefault();
+});
+document.addEventListener('cut', function(e) {
+    if (!isCopyProtectionExempt(e.target)) e.preventDefault();
+});
+// Right-click / long-press context menu is only blocked inside actual
+// protected app content, not app-wide, so things like external links
+// (Privacy Policy, WhatsApp, etc.) keep their normal browser menu.
+document.addEventListener('contextmenu', function(e) {
+    if (isCopyProtectionExempt(e.target)) return;
+    if (e.target && e.target.closest && e.target.closest('#app-inner') && !e.target.closest('a[href]')) {
+        e.preventDefault();
+    }
+});
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
