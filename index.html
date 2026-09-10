@@ -6918,13 +6918,13 @@
     .home-hero .cd-row .l{font-size:9.5px;color:rgba(255,255,255,0.68);text-transform:uppercase;letter-spacing:0.04em}
     .home-hero .hi, .home-hero .name{max-width:calc(100% - 88px)}
     .hero-spark{position:absolute;border-radius:999px;background:var(--gold);opacity:0;z-index:1;pointer-events:none}
-    .hero-spark.s1{top:22%;right:34%;width:5px;height:5px;animation:sparkleTwinkle 3.2s ease-in-out infinite;animation-delay:.2s}
-    .hero-spark.s2{top:62%;right:22%;width:4px;height:4px;background:#fff;animation:sparkleTwinkle 2.6s ease-in-out infinite;animation-delay:1s}
-    .hero-spark.s3{top:40%;right:8%;width:3px;height:3px;animation:sparkleTwinkle 3.6s ease-in-out infinite;animation-delay:1.8s}
+    .hero-spark.s1{display:none}
+    .hero-spark.s2{display:none}
+    .hero-spark.s3{display:none}
     .home-hero-badge{position:absolute;top:14px;right:14px;width:60px;height:60px;z-index:2;display:flex;align-items:center;justify-content:center;animation:heroFadeUp .55s ease both,badgeBob 3.6s ease-in-out infinite;animation-delay:0s,.6s}
     .home-hero-badge .hhb-ring{position:absolute;border-radius:999px;border:1.5px solid rgba(228,169,58,0.55);top:50%;left:50%;transform:translate(-50%,-50%)}
-    .home-hero-badge .hhb-ring.r1{width:60px;height:60px;animation:ringPulse 2.6s ease-out infinite}
-    .home-hero-badge .hhb-ring.r2{width:60px;height:60px;animation:ringPulse 2.6s ease-out infinite;animation-delay:1.3s}
+    .home-hero-badge .hhb-ring.r1{width:60px;height:60px;opacity:0}
+    .home-hero-badge .hhb-ring.r2{width:60px;height:60px;opacity:0}
     .home-hero-badge .hhb-icon{position:relative;z-index:1;width:42px;height:42px;border-radius:999px;background:rgba(255,255,255,0.16);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,0.18)}
 
     @keyframes heroDropIn{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -6934,7 +6934,7 @@
     @keyframes badgeBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
     @keyframes ringPulse{0%{transform:translate(-50%,-50%) scale(0.7);opacity:0.9}100%{transform:translate(-50%,-50%) scale(1.55);opacity:0}}
     @keyframes sparkleTwinkle{0%,100%{opacity:0;transform:scale(0.4)}50%{opacity:1;transform:scale(1)}}
-    @keyframes homeItemIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes homeItemIn{from{opacity:1;transform:translateY(0)}to{opacity:1;transform:translateY(0)}}
 
     .quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;padding:2px 2px 4px}
     .quick-actions::-webkit-scrollbar{display:none}
@@ -8506,10 +8506,9 @@ let state = {
 
     // User-selectable question counts (25/30/35/40) for every mode except
     // Mock Exam, which stays admin-controlled.
-    cbtQuestionCount: 25,
-    examQuestionCount: 25,
-    litQuestionCount: 25,
-
+    cbtQuestionCount: 40,
+    examQuestionCount: 40,
+    litQuestionCount: 40,
     // CBT
     cbtSelected: [],
     cbtMode: "full",
@@ -15805,7 +15804,17 @@ window.addEventListener('popstate', function() {
     // browser's default back navigation proceed normally.
 });
 
+let __renderScheduled = false;
 function render() {
+    if (__renderScheduled) return;
+    __renderScheduled = true;
+    requestAnimationFrame(function() {
+        __renderScheduled = false;
+        renderNow();
+    });
+}
+
+function renderNow() {
     if (state.phase === "splash") {
         root.innerHTML = renderSplash();
         return;
@@ -15929,7 +15938,10 @@ function render() {
         html += renderPasswordResetForm();
     }
     
-    root.innerHTML = html;
+   if (html !== window.__lastRenderedHtml) {
+        window.__lastRenderedHtml = html;
+        root.innerHTML = html;
+    }
 
     if (state.showLogin && !state.authUser) {
         const overlay = document.createElement('div');
@@ -16752,28 +16764,10 @@ function renderLearningHub() {
 //  FREE ACCESS ANNOUNCEMENT (Home screen, shown while Activation is OFF)
 // ============================================================
 function renderFreeAccessAnnouncement() {
-    if (isActivationSystemOn()) return '';
-
-    const rawDate = state.settingsCache.activationAutoEnableDate;
-    let dateText = '';
-    if (rawDate) {
-        const d = new Date(rawDate);
-        if (!isNaN(d.getTime())) {
-            dateText = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) +
-                ' at ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-        }
-    }
-
-    const message = dateText
-        ? '🎉 Good news — MyUTME is completely FREE right now, no activation required! Activation will be required again from ' + dateText + ' for unlimited access — enjoy full access while it lasts!'
-        : '🎉 Good news — MyUTME is completely FREE right now, no activation required! Activation will be required again soon for unlimited access — enjoy full access while it lasts!';
-
-    return (
-        '<div class="free-announce-banner">' +
-        '<span class="fab-icon">📢</span>' +
-        '<div class="fab-track"><span class="fab-text">' + esc(message) + '</span></div>' +
-        '</div>'
-    );
+    // Scrolling "free access" marquee removed from the Home screen — the
+    // app should simply work with no banner shown, whether Activation is
+    // ON or OFF.
+    return '';
 }
 
 function renderHome() {
@@ -23737,9 +23731,9 @@ function renderQuestionCountPicker(id, current) {
 // (CBT, Exam, Novel). Unlike the admin picker above, this updates state
 // directly and re-renders — it isn't tied to a form/save button.
 function renderUserQuestionCountPicker(stateKey, current) {
-    const val = current || 25;
+    const val = current || 40;
     let chips = '';
-    [25, 30, 35, 40].forEach(function(n) {
+    [25, 30, 35, 40, 45, 50].forEach(function(n) {
         chips += '<button type="button" class="qcount-chip' + (val === n ? ' selected' : '') + '" data-action="select-question-count" data-key="' + stateKey + '" data-value="' + n + '">' + n + '</button>';
     });
     return (
@@ -23823,8 +23817,8 @@ function renderAdminSettings() {
         '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🎯 Mock Exam</p>' +
         '<label class="field-label">Number of subjects</label>' +
         '<input class="field" id="admin-mock-subject-count" type="number" value="' + (s.mockSubjectCount || 4) + '" style="margin-bottom:6px;font-size:13px" />' +
-        '<label class="field-label">Questions per subject</label>' +
-        '<input class="field" id="admin-mock-questions" type="number" value="' + (s.mockQuestionsPerSubject || 40) + '" style="margin-bottom:6px;font-size:13px" />' +
+        '<label class="field-label">Questions per subject (25–40)</label>' +
+        renderQuestionCountPicker('admin-mock-questions', s.mockQuestionsPerSubject || 40) +
         '<label class="field-label">Time limit</label>' +
         '<div class="time-selector" style="margin:2px 0 4px">' +
         '<div class="time-input-group"><input type="number" id="admin-mock-hours" min="0" max="6" value="' + mockHours + '" style="width:45px" /><label>h</label></div>' +
@@ -23840,14 +23834,11 @@ function renderAdminSettings() {
         '<input type="checkbox" id="admin-activation-enabled" ' + (s.activationEnabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--green);vertical-align:middle;margin-right:4px" />' +
         'Activation System ON</label>' +
         '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 8px">' +
+        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' +
         (s.activationEnabled
-            ? 'Activation is ON — non-activated users see activation prompts and restrictions as normal.'
-            : 'Activation is OFF — every user has full access, and no activation status, prompts, or restrictions are shown to anyone.') +
+            ? 'Activation is ON — all activation features, prompts, and restrictions are enabled for every user.'
+            : 'Activation is OFF — all activation features, prompts, and restrictions are disabled. The app works freely for everyone.') +
         '</p>' +
-        '<label class="field-label">Automatic Activation Date' + (s.activationEnabled ? ' <span style="font-weight:400">(only used while OFF)</span>' : '') + '</label>' +
-        '<input class="field" id="admin-activation-auto-date" type="datetime-local" value="' + (s.activationAutoEnableDate || '') + '"' + (s.activationEnabled ? ' disabled' : '') + ' style="margin-bottom:4px;font-size:13px' + (s.activationEnabled ? ';opacity:0.5' : '') + '" />' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">Leave empty for no scheduled auto-activation. When this date arrives, activation turns back ON automatically for every account.</p>' +
         '</div>' +
         
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
@@ -26185,7 +26176,7 @@ document.addEventListener('click', function(e) {
 
     if (action === 'select-question-count') {
         const key = el.getAttribute('data-key');
-        const value = parseInt(el.getAttribute('data-value'), 10) || 25;
+        const value = parseInt(el.getAttribute('data-value'), 10) || 40;
         state[key] = value;
         render();
         return;
@@ -27986,9 +27977,8 @@ document.addEventListener('click', function(e) {
         const underConstruction = document.getElementById('admin-under-construction')?.checked !== false;
         const reopenTime = document.getElementById('admin-reopen-time')?.value || null;
         const activationEnabled = document.getElementById('admin-activation-enabled')?.checked === true;
-        // The auto-enable date field is disabled once activation is ON, so
-        // only honor it while OFF — otherwise clear it out.
-        const activationAutoEnableDate = activationEnabled ? null : (document.getElementById('admin-activation-auto-date')?.value || null);
+        // Activation is now a pure ON/OFF toggle — no scheduled auto-enable date.
+        const activationAutoEnableDate = null;
         
         state.admin.questionsPerSubject = cbtQs;
         state.admin.cbtTimeLimit = Math.max(1, cbtTime);
