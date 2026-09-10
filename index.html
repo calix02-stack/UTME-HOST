@@ -8732,18 +8732,14 @@ let state = {
         syllabusText: "",
         syllabusFile: null,
         mockTitle: "",
-        mockScheduledDate: "",
-        mockScheduledHour: "",
-        mockScheduledMinute: "",
-        mockScheduledAmPm: "",
-        mockRegistrationDeadline: "",
-        mockRegDeadlineHour: "",
-        mockRegDeadlineMinute: "",
-        mockRegDeadlineAmPm: "",
-        mockEndDate: "",
-        mockEndHour: "",
-        mockEndMinute: "",
-        mockEndAmPm: "",
+        // Simple scheduling — a single datetime-local field for the start,
+        // plus a duration (hours/minutes) instead of a separate manual end
+        // date and a registration-deadline picker with AM/PM dropdowns.
+        // Registration stays open until the exam itself starts/ends, so no
+        // separate deadline is needed.
+        mockScheduled: "",
+        mockDurationHours: 12,
+        mockDurationMinutes: 0,
         viewModeQuestions: false,
         viewModeType: "",
         viewModeSubject: "",
@@ -8769,6 +8765,14 @@ let state = {
         mockRegistrationsAll: [],
         mockAdminDataLoaded: false,
         mockAdminDataLoading: false,
+        // Same idea as above, but for Mock Arena (user-created "live_exams")
+        // so the Admin Panel can correlate registrations/attempts/results
+        // for exams created by regular users, not just admin-scheduled ones.
+        viewingLiveExamAttempts: null,
+        liveExamAttemptsAll: [],
+        liveExamRegistrationsAll: [],
+        liveAdminDataLoaded: false,
+        liveAdminDataLoading: false,
         flaggedFilter: "unresolved",
         flaggedLoaded: false,
         flaggedLoading: false,
@@ -8844,7 +8848,7 @@ let state = {
     liveExamView: 'browse',
     liveExamTab: 'ongoing',
     liveExamCreateStep: 'type',
-    liveExamCreateForm: { title: '', examType: '', subject: '', startOffsetMinutes: 10, numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true },
+    liveExamCreateForm: { title: '', examType: '', subject: '', subjects: [], mode: '1', startOffsetMinutes: 10, numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true },
     liveExamJoinCodeInput: '',
     mockExamSource: 'admin',
 
@@ -11304,8 +11308,21 @@ async function createLiveExam() {
     if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
     const f = state.liveExamCreateForm;
     const examTypeMeta = LIVE_EXAM_TYPES.find(function(t) { return t.key === f.examType; });
-if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam type.', 'error'); return; }
-    if (!f.subject) { showToast('Select a subject.', 'error'); return; }
+    if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam type.', 'error'); return; }
+
+    // Two ways to build the exam's subject list:
+    //  - JAMB Style (mode '4'): English is compulsory + exactly 3 electives
+    //    chosen by the creator, just like a real UTME mock (4 subjects/400).
+    //  - Single Subject (mode '1', or any non-'jamb' type like LHM): just
+    //    the one subject already stored in f.subject.
+    let subjectIds;
+    if (f.examType === 'jamb' && f.mode === '4') {
+        if (!f.subjects || f.subjects.length !== 3) { showToast('Select exactly 3 elective subjects (English is compulsory).', 'error'); return; }
+        subjectIds = ['eng'].concat(f.subjects);
+    } else {
+        if (!f.subject) { showToast('Select a subject.', 'error'); return; }
+        subjectIds = [f.subject];
+    }
     if (!f.title.trim()) { showToast('Enter a title.', 'error'); return; }
     // Start time is chosen as "minutes from now" (no clock picker), so it's always
     // computed fresh off the current clock at submit time — nothing can go stale.
@@ -11324,7 +11341,11 @@ if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam typ
         title: f.title.trim(),
         join_code: code,
         exam_type: f.examType,
-        subject_id: f.subject,
+        // subject_id kept as the primary/first subject for backward
+        // compatibility with anything still reading a single value;
+        // subject_ids carries the full list (1 or 4 subjects).
+        subject_id: subjectIds[0],
+        subject_ids: subjectIds,
         num_questions: numQuestions,
         questions_per_subject: numQuestions,
         time_limit_minutes: durationMinutes,
@@ -11332,6 +11353,7 @@ if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam typ
         scheduled_date: scheduledDate.toISOString(),
         registration_deadline: scheduledDate.toISOString(),
         end_date: endDate.toISOString(),
+        results_released: true,
     }]).select().single();
 
     if (error) { showNetworkAwareError('Error creating exam: ' + error.message, error); return; }
@@ -11339,7 +11361,7 @@ if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam typ
         state.lastCreatedJoinCode = code;
     }
     showToast('🎉 Live exam created!', 'success');
-    state.liveExamCreateForm = { title: '', examType: '', subject: '', startOffsetMinutes: 10, numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true };
+    state.liveExamCreateForm = { title: '', examType: '', subject: '', subjects: [], mode: '1', startOffsetMinutes: 10, numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true };
     state.liveExamCreateStep = 'type';
     state.liveExamView = 'browse';
     loadLiveExams();
@@ -11351,11 +11373,16 @@ async function joinLiveExamNow(examId) {
     if (!exam) { showToast('Exam not found.', 'error'); return; }
     const already = state.liveExamRegistrations.find(function(r) { return r.live_exam_id === examId; });
     if (already) { showToast('You already joined this exam.', ''); return; }
+    // JAMB-style exams carry a fixed list of 4 subjects (English + 3
+    // electives) chosen by the creator; single-subject exams still just
+    // have the one subject_id. Fall back to subject_id if subject_ids
+    // wasn't set (older rows created before this feature existed).
+    const examSubjects = (exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids.slice() : [exam.subject_id];
     const { error } = await supabase.from('live_exam_registrations').insert([{
         user_id: state.authUser.id,
         username: state.profile.name,
         live_exam_id: examId,
-        subjects: [exam.subject_id],
+        subjects: examSubjects,
     }]);
     if (error) { showNetworkAwareError('Error joining: ' + error.message, error); return; }
     showToast('Joined! Come back when it starts.', 'success');
@@ -11495,6 +11522,42 @@ async function loadAdminMockData() {
         state.admin.mockAdminDataLoaded = true;
     }
     state.admin.mockAdminDataLoading = false;
+    render();
+}
+
+// Admin-only: same as loadAdminMockData() above, but for Mock Arena exams
+// that regular users create themselves (the `live_exams` table). Without
+// this, the Admin Panel only ever shows admin-scheduled mocks' results and
+// attempts — user-created mocks show up in the list but with no way to see
+// who attempted them or to release/hide their results.
+async function loadAdminLiveExamData() {
+    if (state.admin.liveAdminDataLoading) return;
+    state.admin.liveAdminDataLoading = true;
+    try {
+        const [regRes, attRes] = await Promise.all([
+            supabase.from('live_exam_registrations').select('*'),
+            supabase.from('live_exam_attempts').select('*'),
+        ]);
+        if (regRes.error) {
+            console.warn("Load admin live exam registrations error:", regRes.error);
+            state.admin.liveExamRegistrationsAll = [];
+        } else {
+            state.admin.liveExamRegistrationsAll = regRes.data || [];
+        }
+        if (attRes.error) {
+            console.warn("Load admin live exam attempts error:", attRes.error);
+            state.admin.liveExamAttemptsAll = [];
+        } else {
+            state.admin.liveExamAttemptsAll = attRes.data || [];
+        }
+        state.admin.liveAdminDataLoaded = true;
+    } catch (e) {
+        console.warn("Load admin live exam data exception:", e);
+        state.admin.liveExamRegistrationsAll = [];
+        state.admin.liveExamAttemptsAll = [];
+        state.admin.liveAdminDataLoaded = true;
+    }
+    state.admin.liveAdminDataLoading = false;
     render();
 }
 
@@ -21390,7 +21453,11 @@ function renderMockExamPicker() {
             const scheduled = new Date(exam.scheduled_date);
             const endDate = new Date(exam.end_date);
             const st = status(exam);
-            const subj = exam.source === 'live' ? SUBJECTS.find(function(s) { return s.id === exam.subject_id; }) : null;
+            const liveSubjIds = exam.source === 'live' ? ((exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids : [exam.subject_id]) : null;
+            const liveSubjNames = liveSubjIds ? liveSubjIds.map(function(sid) {
+                const sj = SUBJECTS.find(function(s) { return s.id === sid; });
+                return sj ? sj.name : sid;
+            }) : null;
             const regList = exam.source === 'live' ? state.liveExamRegistrations : state.mockRegistrations;
             const attemptsList = exam.source === 'live' ? state.liveExamAttempts : state.mockAttempts;
             const reg = regList.find(function(r) { return r.live_exam_id === exam.id || r.mock_exam_id === exam.id; });
@@ -21401,7 +21468,7 @@ function renderMockExamPicker() {
             let actionHtml = "";
             if (reg) {
                 if (attempt && attempt.is_submitted) {
-                    actionHtml = (exam.source === 'admin' ? exam.results_released : true)
+                    actionHtml = (exam.results_released !== false)
                         ? '<button class="btn btn-outline" data-action="view-mock-result" data-examid="' + exam.id + '" data-source="' + exam.source + '" style="padding:8px">View Result</button>'
                         : '<p style="font-size:11px;color:var(--muted);text-align:center">✅ Submitted — waiting for results</p>';
                 } else if (st === 'ongoing') {
@@ -21419,7 +21486,8 @@ function renderMockExamPicker() {
 
             let liveMeta = '';
             if (exam.source === 'live') {
-                liveMeta = '<p style="font-size:11px;color:var(--muted);margin:2px 0">📘 ' + (subj ? esc(subj.name) : esc(exam.subject_id)) + ' · ' + (exam.num_questions || '-') + ' questions · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>';
+                const subjLabel = liveSubjNames.length > 1 ? liveSubjNames.join(', ') : liveSubjNames[0];
+                liveMeta = '<p style="font-size:11px;color:var(--muted);margin:2px 0">📘 ' + esc(subjLabel) + ' · ' + (exam.num_questions || '-') + ' questions' + (liveSubjNames.length > 1 ? '/subject' : '') + ' · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>';
                 if (st === 'ongoing') {
                     liveMeta += '<p style="font-size:11px;color:var(--danger);margin:2px 0">⏰ Ends ' + endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</p>';
                 }
@@ -21483,16 +21551,51 @@ function renderLiveExamCreateWizard() {
         );
     }
 
+    if (step === 'mode') {
+        // Only the JAMB exam type offers a choice — LHM is always a single
+        // fixed subject and skips this step entirely (see live-select-type).
+        const mode = f.mode || '1';
+        return (
+            '<button class="back-link" data-action="live-create-step" data-step="type">' + svg("chevleft", 14) + ' Back</button>' +
+            '<h2 class="title">Choose Mode</h2>' +
+            '<p class="sub">A single subject, or a full JAMB-style mock?</p>' +
+            '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+            '<button class="cbt-mode-btn' + (mode === '1' ? ' active' : '') + '" style="flex:1" data-action="live-select-mode" data-mode="1"><span class="icon">📘</span><span class="label">1 Subject</span><span class="desc">Pick a single subject</span></button>' +
+            '<button class="cbt-mode-btn' + (mode === '4' ? ' active' : '') + '" style="flex:1" data-action="live-select-mode" data-mode="4"><span class="icon">🎓</span><span class="label">JAMB Style</span><span class="desc">English + 3 electives</span></button>' +
+            '</div>' +
+            '<button class="btn btn-green" data-action="live-create-step" data-step="subject">Next</button>'
+        );
+    }
+
     if (step === 'subject') {
+        const mode = f.examType === 'jamb' ? (f.mode || '1') : '1';
+        const backStep = f.examType === 'jamb' ? 'mode' : 'type';
+
+        if (mode === '4') {
+            const selected = f.subjects || [];
+            let chips = "";
+            SUBJECTS.filter(function(s) { return s.id !== 'eng' && s.id !== 'lhm' && hasCourseAccess(s.id); }).forEach(function(s) {
+                const sel = selected.indexOf(s.id) !== -1;
+                chips += '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="live-toggle-subject" data-subject="' + s.id + '">' + subjectBadge(s) + '<span class="sname">' + esc(s.name) + '</span></button>';
+            });
+            return (
+                '<button class="back-link" data-action="live-create-step" data-step="' + backStep + '">' + svg("chevleft", 14) + ' Back</button>' +
+                '<h2 class="title">Choose Subjects</h2>' +
+                '<p class="sub">English is compulsory — pick 3 more electives (' + selected.length + '/3)</p>' +
+                '<div class="subject-grid">' + chips + '</div>' +
+                '<button class="btn btn-green" style="margin-top:10px" data-action="live-create-step" data-step="details"' + (selected.length === 3 ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Next</button>'
+            );
+        }
+
         let chips = "";
         SUBJECTS.filter(function(s) { return s.id !== 'lhm' && hasCourseAccess(s.id); }).forEach(function(s) {
             const sel = f.subject === s.id;
             chips += '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="live-select-subject" data-subject="' + s.id + '">' + subjectBadge(s) + '<span class="sname">' + esc(s.name) + '</span></button>';
         });
         return (
-            '<button class="back-link" data-action="live-create-step" data-step="type">' + svg("chevleft", 14) + ' Back</button>' +
+            '<button class="back-link" data-action="live-create-step" data-step="' + backStep + '">' + svg("chevleft", 14) + ' Back</button>' +
             '<h2 class="title">Choose Subject</h2>' +
-            '<p class="sub">Live exam covers one subject only</p>' +
+            '<p class="sub">This exam covers one subject</p>' +
             '<div class="subject-grid">' + chips + '</div>' +
             '<button class="btn btn-green" style="margin-top:10px" data-action="live-create-step" data-step="details"' + (f.subject ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Next</button>'
         );
@@ -21511,6 +21614,12 @@ function renderLiveExamCreateWizard() {
         '<button class="back-link" data-action="live-create-step" data-step="' + detailsBackStep + '">' + svg("chevleft", 14) + ' Back</button>' +
         '<h2 class="title">Exam Details</h2>' +
         (f.examType === 'lhm' ? '<p class="sub">The Lekki Headmaster</p>' : '') +
+        (f.examType === 'jamb' && f.mode === '4'
+            ? '<p class="sub">🎓 JAMB Style — ' + ['eng'].concat(f.subjects || []).map(function(sid) {
+                const sj = SUBJECTS.find(function(s) { return s.id === sid; });
+                return sj ? sj.name : sid;
+            }).join(', ') + '</p>'
+            : '') +
         '<div class="card">' +
         '<label class="field-label">Title</label>' +
         '<input class="field" id="live-title" value="' + esc(f.title) + '" placeholder="e.g. Friday Physics Sprint" style="margin-bottom:10px" />' +
@@ -21519,7 +21628,7 @@ function renderLiveExamCreateWizard() {
         '<label class="field-label">Starts in</label>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' + startChips + '</div>' +
         '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + previewLabel + '</p>' +
-        '<label class="field-label">Number of questions (1–100)</label>' +
+        '<label class="field-label">' + (f.examType === 'jamb' && f.mode === '4' ? 'Number of questions per subject (1–100)' : 'Number of questions (1–100)') + '</label>' +
         '<input class="field" id="live-num-questions" type="number" min="1" max="100" value="' + (f.numQuestions || 40) + '" style="margin-bottom:10px" />' +
         '<label class="field-label">Duration</label>' +
         '<div class="time-selector" style="margin:2px 0 10px">' +
@@ -24611,16 +24720,36 @@ function renderAdminMock() {
         loadAdminMockData();
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading mock data...</p></div>';
     }
+    if (!state.liveExamsLoaded) {
+        loadLiveExams();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading mock data...</p></div>';
+    }
+    if (!state.admin.liveAdminDataLoaded) {
+        loadAdminLiveExamData();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading mock data...</p></div>';
+    }
 
     if (state.admin.viewingMockAttempts) {
         return renderMockAttemptsView();
     }
+    if (state.admin.viewingLiveExamAttempts) {
+        return renderLiveExamAttemptsView();
+    }
 
     const allAttempts = state.admin.mockAttemptsAll || [];
     const allRegistrations = state.admin.mockRegistrationsAll || [];
+    const liveAllAttempts = state.admin.liveExamAttemptsAll || [];
+    const liveAllRegistrations = state.admin.liveExamRegistrationsAll || [];
     const submittedAttempts = allAttempts.filter(function(a) { return a.is_submitted; });
-    const totalAttemptsAllMocks = submittedAttempts.length;
-    const uniqueUsersAllMocks = new Set(submittedAttempts.map(function(a) { return a.user_id; })).size;
+    const liveSubmittedAttempts = liveAllAttempts.filter(function(a) { return a.is_submitted; });
+    // Combined across BOTH admin-scheduled mocks and user-created Mock Arena
+    // exams — this is the "correlate with mock in admin panel" fix: the top
+    // stat strip used to only ever count admin-scheduled mocks.
+    const totalAttemptsAllMocks = submittedAttempts.length + liveSubmittedAttempts.length;
+    const uniqueUsersAllMocks = new Set(
+        submittedAttempts.map(function(a) { return a.user_id; })
+            .concat(liveSubmittedAttempts.map(function(a) { return a.user_id; }))
+    ).size;
 
     let html = (
         '<div class="card" style="margin-bottom:12px;display:flex;gap:8px">' +
@@ -24635,41 +24764,34 @@ function renderAdminMock() {
         '</div>'
     );
 
+    // Simplified creation form — matches the same "tap to pick" style used
+    // in the user-facing Mock Arena wizard (chip-based question count, a
+    // single start date/time field, a duration instead of a manual end
+    // date/time). Registration Deadline has been removed entirely: it was
+    // never actually enforced anywhere, and just added extra AM/PM fields
+    // to fill in. Registration now simply stays open until the exam starts.
+    const mockDurH = state.admin.mockDurationHours != null ? state.admin.mockDurationHours : 12;
+    const mockDurM = state.admin.mockDurationMinutes != null ? state.admin.mockDurationMinutes : 0;
     html += (
         '<div class="card" style="margin-bottom:12px">' +
         '<p style="font-size:13px;font-weight:600;margin:0 0 10px">🎯 Schedule New Mock Exam</p>' +
         '<label class="field-label">Mock Title</label>' +
         '<input class="field" id="admin-mock-title" placeholder="e.g. Mock Exam 2026" value="' + esc(state.admin
             .mockTitle) + '" style="margin-bottom:10px;font-size:13px" />' +
-        '<label class="field-label">Scheduled Date & Time</label>' +
-        renderTimeOfDayPicker(
-            'admin-mock-scheduled-date', state.admin.mockScheduledDate,
-            'admin-mock-scheduled-hour', state.admin.mockScheduledHour,
-            'admin-mock-scheduled-minute', state.admin.mockScheduledMinute,
-            'admin-mock-scheduled-ampm', state.admin.mockScheduledAmPm
-        ) +
-        '<label class="field-label">Registration Deadline (1 hour before mock by default)</label>' +
-        renderTimeOfDayPicker(
-            'admin-mock-reg-date', state.admin.mockRegistrationDeadline,
-            'admin-mock-reg-hour', state.admin.mockRegDeadlineHour,
-            'admin-mock-reg-minute', state.admin.mockRegDeadlineMinute,
-            'admin-mock-reg-ampm', state.admin.mockRegDeadlineAmPm
-        ) +
-        '<label class="field-label">End Date & Time (12 hours after scheduled by default)</label>' +
-        renderTimeOfDayPicker(
-            'admin-mock-end-date', state.admin.mockEndDate,
-            'admin-mock-end-hour', state.admin.mockEndHour,
-            'admin-mock-end-minute', state.admin.mockEndMinute,
-            'admin-mock-end-ampm', state.admin.mockEndAmPm
-        ) +
+        '<label class="field-label">Starts</label>' +
+        '<input class="field" id="admin-mock-scheduled" type="datetime-local" value="' + esc(state.admin.mockScheduled || '') + '" style="margin-bottom:10px;font-size:13px" />' +
+        '<label class="field-label">Duration</label>' +
+        '<div class="time-selector" style="margin:2px 0 10px">' +
+        '<div class="time-input-group"><input type="number" id="admin-mock-duration-hours" min="0" max="24" value="' + mockDurH + '" style="width:50px" /><label>h</label></div>' +
+        '<div class="time-input-group"><input type="number" id="admin-mock-duration-minutes" min="0" max="59" value="' + mockDurM + '" style="width:50px" /><label>m</label></div>' +
+        '</div>' +
         '<label class="field-label">Questions per subject</label>' +
-        '<input class="field" id="admin-mock-qs" type="number" value="' + (state.admin.mockQuestionsPerSubject ||
-            40) + '" style="margin-bottom:10px;font-size:13px" />' +
-        '<button class="btn btn-green" data-action="admin-schedule-mock" style="padding:10px">Schedule Mock Exam</button>' +
+        renderQuestionCountPicker('admin-mock-qs', state.admin.mockQuestionsPerSubject || 40) +
+        '<button class="btn btn-green" style="margin-top:6px;padding:10px" data-action="admin-schedule-mock">Schedule Mock Exam</button>' +
         '</div>'
     );
 
-    html += '<p class="section-label">Scheduled Mocks</p>';
+    html += '<p class="section-label">Scheduled Mocks (Admin-Created)</p>';
     if (state.mockExams.length === 0) {
         html += '<p style="font-size:12px;color:var(--faint);text-align:center;font-size:13px">No mock exams scheduled.</p>';
     } else {
@@ -24710,21 +24832,41 @@ function renderAdminMock() {
     }
 
     html += '<p class="section-label" style="margin-top:14px">Mock Arena Exams (User-Created)</p>';
-    if (!state.liveExamsLoaded) {
-        loadLiveExams();
-        html += '<p style="font-size:12px;color:var(--faint)">Loading...</p>';
-    } else if (state.liveExams.length === 0) {
+    if (state.liveExams.length === 0) {
         html += '<p style="font-size:12px;color:var(--faint);text-align:center;font-size:13px">No Mock Arena exams created yet.</p>';
     } else {
         state.liveExams.forEach(function(exam) {
-            const subj = SUBJECTS.find(function(s) { return s.id === exam.subject_id; });
+            const subjIds = (exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids : [exam.subject_id];
+            const subjNames = subjIds.map(function(sid) {
+                const sj = SUBJECTS.find(function(s) { return s.id === sid; });
+                return sj ? sj.name : sid;
+            }).join(', ');
+            const regCount = liveAllRegistrations.filter(function(r) { return r.live_exam_id === exam.id; }).length;
+            const examAttempts = liveAllAttempts.filter(function(a) { return a.live_exam_id === exam.id && a.is_submitted; });
+            const submittedCount = examAttempts.length;
+            const uniqueUserCount = new Set(examAttempts.map(function(a) { return a.user_id; })).size;
+            const released = exam.results_released !== false;
+
             html += (
                 '<div class="card" style="margin-bottom:6px;padding:10px">' +
                 '<p style="font-weight:600;margin:0;font-size:13px">' + esc(exam.title) + '</p>' +
-                '<p style="font-size:10px;color:var(--muted);margin:2px 0">👤 ' + esc(exam.creator_username || '') + ' · 📘 ' + (subj ? esc(subj.name) : esc(exam.subject_id || '')) + '</p>' +
-                '<p style="font-size:10px;color:var(--muted);margin:0">📅 ' + new Date(exam.scheduled_date).toLocaleString() + ' · ' + (exam.num_questions || '-') + ' Qs · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>' +
+                '<p style="font-size:10px;color:var(--muted);margin:2px 0">👤 ' + esc(exam.creator_username || '') + ' · 📘 ' + esc(subjNames) + '</p>' +
+                '<p style="font-size:10px;color:var(--muted);margin:0">📅 ' + new Date(exam.scheduled_date).toLocaleString() + ' · ' + (exam.num_questions || '-') + ' Qs' + (subjIds.length > 1 ? '/subject' : '') + ' · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>' +
                 '<p style="font-size:10px;color:var(--muted);margin:0">' + (exam.is_public === false ? '🔒 Private · code ' + esc(exam.join_code) : '🌍 Public') + '</p>' +
-                '<button class="mini-btn danger" style="margin-top:6px" data-action="admin-delete-live-exam" data-examid="' + exam.id + '">Delete</button>' +
+                '<p style="font-size:10px;color:var(--muted);margin:2px 0 0">👥 ' + regCount + ' registered · ' + uniqueUserCount + ' users attempted · ' + submittedCount + ' submissions</p>' +
+                '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:8px">' +
+                '<span style="font-size:10px;font-weight:700;flex:1">Results Release</span>' +
+                '<span style="font-size:9px;color:' + (released ? 'var(--green)' : 'var(--faint)') + '">' +
+                (released ? 'ON' : 'OFF') + '</span>' +
+                '<div class="toggle-switch' + (released ? ' active' : '') +
+                '" data-action="admin-toggle-live-results-release" data-examid="' + exam.id +
+                '" title="' + (released ? 'ON — tap to turn off' : 'OFF — tap to turn on') + '">' +
+                '<div class="slider"></div></div>' +
+                '</div>' +
+                '<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">' +
+                '<button class="mini-btn danger" data-action="admin-delete-live-exam" data-examid="' + exam.id + '" style="font-size:9px">Delete</button>' +
+                '<button class="mini-btn" data-action="admin-view-live-exam-attempts" data-examid="' + exam.id + '" style="font-size:9px">View Attempts (' + submittedCount + ')</button>' +
+                '</div>' +
                 '</div>'
             );
         });
@@ -24803,6 +24945,84 @@ function renderMockAttemptsView() {
         (exam && exam.results_released ? 'ON' : 'OFF') + '</span>' +
         '<div class="toggle-switch' + (exam && exam.results_released ? ' active' : '') +
         '" data-action="admin-toggle-results-release" data-examid="' + examId + '"><div class="slider"></div></div>' +
+        '</div>' +
+        '<p class="section-label">Individual Attempts</p>' +
+        '<div style="max-height:480px;overflow-y:auto">' + rows + '</div>'
+    );
+}
+
+// Same idea as renderMockAttemptsView() above, but for a Mock Arena exam
+// created by a regular user (live_exams / live_exam_attempts). This is what
+// lets the Admin Panel actually correlate with mocks created by users —
+// before this, the Admin Panel could only list these exams and delete them,
+// with no visibility into who attempted them or their scores.
+function renderLiveExamAttemptsView() {
+    const examId = state.admin.viewingLiveExamAttempts;
+    const exam = state.liveExams.find(function(e) { return e.id === examId; });
+    const allAttempts = state.admin.liveExamAttemptsAll || [];
+    const examAttempts = allAttempts.filter(function(a) { return a.live_exam_id === examId; });
+    const submitted = examAttempts.filter(function(a) { return a.is_submitted; });
+    const uniqueUsers = new Set(submitted.map(function(a) { return a.user_id; })).size;
+    const subjIds = exam ? ((exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids : [exam.subject_id]) : [];
+    const maxScore = Math.max(100, subjIds.length * 100);
+    const released = exam ? exam.results_released !== false : true;
+
+    // Highest score first — a natural leaderboard-style order for review.
+    const sorted = submitted.slice().sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
+
+    let rows = '';
+    if (sorted.length === 0) {
+        rows = '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No submitted attempts for this exam yet.</p></div>';
+    } else {
+        sorted.forEach(function(attempt, i) {
+            const user = (state.allUsers || []).find(function(u) { return u.id === attempt.user_id; });
+            const displayName = user ? (user.full_name || user.username || 'Unknown') : 'Unknown user';
+            const username = user ? user.username : '';
+            const submittedAt = attempt.submitted_at ? formatTimeAgo(attempt.submitted_at) : '—';
+            const score = attempt.score != null ? attempt.score : 0;
+            const subjScores = attempt.subject_scores || {};
+            let subjHtml = '';
+            Object.keys(subjScores).forEach(function(sid) {
+                const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+                subjHtml += '<span style="display:inline-block;margin:2px 6px 0 0;font-size:9px;color:var(--muted)">' +
+                    (subj ? esc(subj.name) : esc(sid)) + ': ' + subjScores[sid] + '/100</span>';
+            });
+            const medal = i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : '';
+            rows += (
+                '<div class="admin-user-row" style="cursor:default;align-items:flex-start">' +
+                '<div class="user-info">' +
+                '<span class="user-name">' + medal + esc(displayName) + '</span>' +
+                '<span class="user-email">' + (username ? '@' + esc(username) + ' · ' : '') + 'Submitted ' + esc(submittedAt) + '</span>' +
+                (subjHtml ? '<div style="margin-top:4px">' + subjHtml + '</div>' : '') +
+                '</div>' +
+                '<span class="user-status active" style="font-size:12px;font-weight:800">' + score +
+                '<span style="font-size:9px;font-weight:600">/' + maxScore + '</span></span>' +
+                '</div>'
+            );
+        });
+    }
+
+    return (
+        '<div class="admin-view-mode-header">' +
+        '<span class="mode-title" style="font-size:14px">👤 ' + esc(exam ? exam.title : 'Mock Arena Attempts') + '</span>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-live-exam-attempts-back">← Back</button>' +
+        '</div>' +
+        '<div class="card" style="margin-bottom:10px;display:flex;gap:8px">' +
+        '<div style="flex:1;text-align:center">' +
+        '<p style="font-size:18px;font-weight:800;margin:0;color:var(--green)">' + submitted.length + '</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:2px 0 0">Total Attempts</p>' +
+        '</div>' +
+        '<div style="flex:1;text-align:center;border-left:1px solid var(--line)">' +
+        '<p style="font-size:18px;font-weight:800;margin:0;color:var(--green)">' + uniqueUsers + '</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:2px 0 0">Users Attempted</p>' +
+        '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:8px 10px;background:var(--card-bg);border:1px solid var(--line);border-radius:10px">' +
+        '<span style="font-size:11px;font-weight:700;flex:1">Results Release for this exam</span>' +
+        '<span style="font-size:9px;color:' + (released ? 'var(--green)' : 'var(--faint)') + '">' +
+        (released ? 'ON' : 'OFF') + '</span>' +
+        '<div class="toggle-switch' + (released ? ' active' : '') +
+        '" data-action="admin-toggle-live-results-release" data-examid="' + examId + '"><div class="slider"></div></div>' +
         '</div>' +
         '<p class="section-label">Individual Attempts</p>' +
         '<div style="max-height:480px;overflow-y:auto">' + rows + '</div>'
@@ -27420,26 +27640,54 @@ document.addEventListener('click', function(e) {
     const typeMeta = LIVE_EXAM_TYPES.find(function(t) { return t.key === type; });
     if (!typeMeta || !typeMeta.enabled) { showToast('This exam type is coming soon.', ''); return; }
     state.liveExamCreateForm.examType = type;
+    state.liveExamCreateForm.subject = '';
+    state.liveExamCreateForm.subjects = [];
+    state.liveExamCreateForm.mode = '1';
     if (type === 'lhm') {
         // LHM (The Lekki Headmaster) is a single fixed subject — no need to
         // make the creator pick a subject, jump straight to the exam details.
         state.liveExamCreateForm.subject = 'lhm';
         state.liveExamCreateStep = 'details';
     } else {
-        state.liveExamCreateForm.subject = '';
-        state.liveExamCreateStep = 'subject';
+        // JAMB can be either a single subject or the full 4-subject
+        // (English + 3 electives) style — ask which mode first.
+        state.liveExamCreateStep = 'mode';
     }
     render();
     return;
 }
+    if (action === 'live-select-mode') {
+        state.liveExamCreateForm.mode = el.getAttribute('data-mode') || '1';
+        state.liveExamCreateForm.subject = '';
+        state.liveExamCreateForm.subjects = [];
+        render();
+        return;
+    }
     if (action === 'live-select-subject') {
         state.liveExamCreateForm.subject = el.getAttribute('data-subject');
         render();
         return;
     }
+    if (action === 'live-toggle-subject') {
+        const id = el.getAttribute('data-subject');
+        const f = state.liveExamCreateForm;
+        if (!f.subjects) f.subjects = [];
+        const i = f.subjects.indexOf(id);
+        if (i !== -1) f.subjects.splice(i, 1);
+        else if (f.subjects.length < 3) f.subjects.push(id);
+        render();
+        return;
+    }
     if (action === 'live-create-step') {
         const step = el.getAttribute('data-step');
-        if (step === 'details' && !state.liveExamCreateForm.subject) { showToast('Select a subject first.', 'error'); return; }
+        const f = state.liveExamCreateForm;
+        if (step === 'details') {
+            if (f.examType === 'jamb' && f.mode === '4') {
+                if (!(f.subjects && f.subjects.length === 3)) { showToast('Select exactly 3 elective subjects first.', 'error'); return; }
+            } else if (!f.subject) {
+                showToast('Select a subject first.', 'error'); return;
+            }
+        }
         state.liveExamCreateStep = step;
         render();
         return;
@@ -27581,7 +27829,7 @@ document.addEventListener('click', function(e) {
             modeLabel: 'Mock Exam',
             dateInput: state.mockSubmittedAt,
             totalScore: state.mockScore,
-            maxScore: 100,
+            maxScore: state.mockTotal || 100,
             subjectScores: state.mockSubjectScores,
             questions: questions,
             answers: answers,
@@ -27608,7 +27856,7 @@ document.addEventListener('click', function(e) {
             showToast('Could not find this exam. Try refreshing.', 'error');
             return;
         }
-        if (source === 'admin' && !exam.results_released) {
+        if (exam.results_released === false) {
             showToast('Results have not been released by the admin yet.', 'error');
             return;
         }
@@ -28324,59 +28572,35 @@ document.addEventListener('click', function(e) {
 
     if (action === 'admin-schedule-mock') {
         const title = document.getElementById('admin-mock-title')?.value?.trim() || '';
-        const scheduled = combineDateAndTimeOfDay(
-            state.admin.mockScheduledDate, state.admin.mockScheduledHour,
-            state.admin.mockScheduledMinute, state.admin.mockScheduledAmPm
-        );
-        const regDeadline = combineDateAndTimeOfDay(
-            state.admin.mockRegistrationDeadline, state.admin.mockRegDeadlineHour,
-            state.admin.mockRegDeadlineMinute, state.admin.mockRegDeadlineAmPm
-        );
-        const endDate = combineDateAndTimeOfDay(
-            state.admin.mockEndDate, state.admin.mockEndHour,
-            state.admin.mockEndMinute, state.admin.mockEndAmPm
-        );
+        const scheduledRaw = document.getElementById('admin-mock-scheduled')?.value || '';
+        const durH = parseInt(document.getElementById('admin-mock-duration-hours')?.value || 0) || 0;
+        const durM = parseInt(document.getElementById('admin-mock-duration-minutes')?.value || 0) || 0;
         const qs = parseInt(document.getElementById('admin-mock-qs')?.value || 25);
 
         if (!title) { showToast('Enter a title.', 'error'); return; }
-        if (!scheduled) { showToast('Select a scheduled date, hour, minute and AM/PM.', 'error'); return; }
+        if (!scheduledRaw) { showToast('Select a start date & time.', 'error'); return; }
 
-        let regDeadlineFinal = regDeadline;
-        if (!regDeadlineFinal) {
-            const date = new Date(scheduled);
-            date.setHours(date.getHours() - 1);
-            regDeadlineFinal = date.toISOString().slice(0, 16);
-        }
-
-        let endDateFinal = endDate;
-        if (!endDateFinal) {
-            const date = new Date(scheduled);
-            date.setHours(date.getHours() + 12);
-            endDateFinal = date.toISOString().slice(0, 16);
-        }
+        const scheduledDate = new Date(scheduledRaw);
+        if (isNaN(scheduledDate.getTime())) { showToast('Select a valid start date & time.', 'error'); return; }
+        // No separate "registration deadline" field anymore — it was never
+        // actually enforced anywhere in the app, so registration simply
+        // stays open right up until the exam starts.
+        const durationMinutes = Math.max(1, durH * 60 + durM) || (12 * 60);
+        const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60000);
 
         supabase.from('mock_exams').insert([{
             title: title,
-            scheduled_date: new Date(scheduled).toISOString(),
-            registration_deadline: new Date(regDeadlineFinal).toISOString(),
-            end_date: new Date(endDateFinal).toISOString(),
+            scheduled_date: scheduledDate.toISOString(),
+            registration_deadline: scheduledDate.toISOString(),
+            end_date: endDate.toISOString(),
             is_active: true,
             results_released: false,
         }]).then(function() {
             showToast('Mock exam scheduled!', 'success');
             state.admin.mockTitle = '';
-            state.admin.mockScheduledDate = '';
-            state.admin.mockScheduledHour = '';
-            state.admin.mockScheduledMinute = '';
-            state.admin.mockScheduledAmPm = '';
-            state.admin.mockRegistrationDeadline = '';
-            state.admin.mockRegDeadlineHour = '';
-            state.admin.mockRegDeadlineMinute = '';
-            state.admin.mockRegDeadlineAmPm = '';
-            state.admin.mockEndDate = '';
-            state.admin.mockEndHour = '';
-            state.admin.mockEndMinute = '';
-            state.admin.mockEndAmPm = '';
+            state.admin.mockScheduled = '';
+            state.admin.mockDurationHours = 12;
+            state.admin.mockDurationMinutes = 0;
             state.admin.mockQuestionsPerSubject = qs;
             loadMockExams();
             render();
@@ -28400,6 +28624,27 @@ document.addEventListener('click', function(e) {
             render();
         }).catch(function(err) {
             console.error('Toggle results release error:', err);
+            showNetworkAwareError('Error updating results release.', err);
+        });
+        return;
+    }
+
+    if (action === 'admin-toggle-live-results-release') {
+        const examId = el.getAttribute('data-examid');
+        const exam = state.liveExams.find(function(e) { return e.id === examId; });
+        // undefined/missing counts as "released" (matches the default used
+        // everywhere else this field is read), so flip from that baseline.
+        const currentlyOn = !exam || exam.results_released !== false;
+        const nextOn = !currentlyOn;
+        if (!confirm(nextOn
+            ? 'Release results for this Mock Arena exam? Users who attempted it will be able to view their scores.'
+            : 'Turn OFF results for this Mock Arena exam? Users will no longer be able to view their scores until you turn it back on.')) return;
+        supabase.from('live_exams').update({ results_released: nextOn }).eq('id', examId).then(function() {
+            showToast(nextOn ? 'Results released!' : 'Results turned off.', 'success');
+            loadLiveExams();
+            render();
+        }).catch(function(err) {
+            console.error('Toggle live results release error:', err);
             showNetworkAwareError('Error updating results release.', err);
         });
         return;
@@ -28432,6 +28677,19 @@ document.addEventListener('click', function(e) {
 
     if (action === 'admin-mock-attempts-back') {
         state.admin.viewingMockAttempts = null;
+        render();
+        return;
+    }
+
+    if (action === 'admin-view-live-exam-attempts') {
+        const examId = el.getAttribute('data-examid');
+        state.admin.viewingLiveExamAttempts = examId;
+        render();
+        return;
+    }
+
+    if (action === 'admin-live-exam-attempts-back') {
+        state.admin.viewingLiveExamAttempts = null;
         render();
         return;
     }
@@ -29795,24 +30053,6 @@ document.addEventListener('change', function(e) {
         render();
     } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'nb-set-save-target') {
         state.notebookSaveTargetId = e.target.value;
-    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-scheduled-hour') {
-        state.admin.mockScheduledHour = e.target.value;
-    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-scheduled-minute') {
-        state.admin.mockScheduledMinute = e.target.value;
-    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-scheduled-ampm') {
-        state.admin.mockScheduledAmPm = e.target.value;
-    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-reg-hour') {
-        state.admin.mockRegDeadlineHour = e.target.value;
-    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-reg-minute') {
-        state.admin.mockRegDeadlineMinute = e.target.value;
-    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-reg-ampm') {
-        state.admin.mockRegDeadlineAmPm = e.target.value;
-    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-end-hour') {
-        state.admin.mockEndHour = e.target.value;
-    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-end-minute') {
-        state.admin.mockEndMinute = e.target.value;
-    } else if (e.target.getAttribute && e.target.getAttribute('data-action') === 'admin-mock-end-ampm') {
-        state.admin.mockEndAmPm = e.target.value;
     }
 });
 
@@ -29824,9 +30064,9 @@ document.addEventListener('input', function(e) {
     else if (id === 'doc-name-input') state.admin.docName = e.target.value;
     else if (id === 'doc-category-input') state.admin.docCategory = e.target.value;
     else if (id === 'admin-mock-title') state.admin.mockTitle = e.target.value;
-    else if (id === 'admin-mock-scheduled-date') state.admin.mockScheduledDate = e.target.value;
-    else if (id === 'admin-mock-reg-date') state.admin.mockRegistrationDeadline = e.target.value;
-    else if (id === 'admin-mock-end-date') state.admin.mockEndDate = e.target.value;
+    else if (id === 'admin-mock-scheduled') state.admin.mockScheduled = e.target.value;
+    else if (id === 'admin-mock-duration-hours') state.admin.mockDurationHours = parseInt(e.target.value) || 0;
+    else if (id === 'admin-mock-duration-minutes') state.admin.mockDurationMinutes = parseInt(e.target.value) || 0;
     else if (id === 'admin-mock-qs') state.admin.mockQuestionsPerSubject = parseInt(e.target.value) || 25;
     else if (id === 'login-email') state.loginEmail = e.target.value;
     else if (id === 'login-password') state.loginPassword = e.target.value;
