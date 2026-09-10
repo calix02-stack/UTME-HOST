@@ -2747,6 +2747,7 @@
     }
     .exam-icon-row .exam-square-btn:active { transform: scale(0.93); }
     .exam-icon-row .exam-square-btn.enabled { background: var(--green); color: #fff; border-color: var(--green); }
+    .exam-icon-row .exam-square-btn.with-label { width: 54px; height: 42px; }
     .exam-icon-row .exam-pill-group { display: flex; gap: 8px; }
     .exam-icon-row .exam-pill-btn {
         display: flex;
@@ -8031,7 +8032,7 @@ function renderExamIconRow(cfg) {
             ? '<button class="exam-square-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg('calcsigns', 20) + '</button>'
             : '<button class="exam-square-btn" data-action="toggle-calculator" aria-label="Calculator" style="opacity:0.35;cursor:not-allowed" title="Calculator disabled">' + svg('calcsigns', 20) + '</button>'
         ) +
-        (showPassageIcon ? '<button class="exam-square-btn" data-action="show-passage" title="View Passage" aria-label="View Passage">📖</button>' : '') +
+        (showPassageIcon ? '<button class="exam-square-btn with-label" data-action="show-passage" title="View Passage" aria-label="View Passage" style="flex-direction:column;gap:1px;line-height:1"><span style="font-size:16px">📖</span><span style="font-size:8px;font-weight:700;letter-spacing:0.2px">Passage</span></button>' : '') +
         '</div>' +
         '<div class="exam-pill-group">' +
         '<button class="exam-pill-btn' + (cfg.marked ? ' marked' : '') + '" data-action="toggle-mark-review" data-mode="' + (cfg.mode || '') + '" title="Mark for Review">' +
@@ -8698,6 +8699,7 @@ let state = {
     // Leaderboard
     leaderboardTab: "overall",
     leaderboardData: [],
+    subjectLeaderboardPool: [],
     subjectLeaderboardData: [],
     subjectLeaderboardSubject: null,
     allUsers: [],
@@ -9251,20 +9253,46 @@ async function loadLeaderboard(type) {
         }
 
         const scores = data || [];
-        const scoreMap = {};
+
+        // "Overall" only makes sense for the full 4-subject mock (English +
+        // 3 electives = /400). A 1-subject mock only ever scores /100, so it
+        // can never be fairly compared to a /400 total and must not feed the
+        // Overall board — a candidate who has never sat a 4-subject mock
+        // simply doesn't appear there at all.
+        const overallMap = {};
         scores.forEach(function(s) {
-            if (!scoreMap[s.user_id] || s.score > scoreMap[s.user_id].score) {
-                scoreMap[s.user_id] = s;
+            if ((s.subject_count || 1) !== 4) return;
+            if (!overallMap[s.user_id] || s.score > overallMap[s.user_id].score) {
+                overallMap[s.user_id] = s;
             }
+        });
+
+        // Per-subject leaderboard entries, on the other hand, should reflect
+        // the best that candidate has ever scored in that subject — whether
+        // it came from a full 4-subject mock or a 1-subject mock — not just
+        // whichever attempt happened to have the best overall total.
+        const subjectBestMap = {}; // user_id -> { subjectId: bestScore }
+        const usernameMap = {}; // user_id -> last-known username on any row
+        scores.forEach(function(s) {
+            if (s.username) usernameMap[s.user_id] = s.username;
+            const subjScores = s.subject_scores || null;
+            if (!subjScores) return;
+            if (!subjectBestMap[s.user_id]) subjectBestMap[s.user_id] = {};
+            Object.keys(subjScores).forEach(function(sid) {
+                const val = subjScores[sid];
+                if (subjectBestMap[s.user_id][sid] === undefined || val > subjectBestMap[s.user_id][sid]) {
+                    subjectBestMap[s.user_id][sid] = val;
+                }
+            });
         });
 
         const currentUserId = state.profile ? state.profile.id : null;
         const leaderboard = state.allUsers.map(function(user) {
-            const score = scoreMap[user.id];
+            const overall = overallMap[user.id];
             const isCurrentUser = user.id === currentUserId;
             // Real name/username was saved on the score row at submit time;
             // fall back to the profile record if that's missing.
-            const rawName = (score && score.username) || user.username || user.full_name || 'Candidate';
+            const rawName = (overall && overall.username) || usernameMap[user.id] || user.username || user.full_name || 'Candidate';
             return {
                 user_id: user.id,
                 candidate_code: getCandidateCode(user.id),
@@ -9273,14 +9301,34 @@ async function loadLeaderboard(type) {
                 // find themselves on the board.
                 display_name: isCurrentUser ? rawName : maskUsername(rawName),
                 is_current_user: isCurrentUser,
-                score: score ? score.score : 0,
-                has_attempted: !!score,
-                subject_scores: score ? score.subject_scores || null : null,
+                // Overall (/400) score — only set when the candidate has
+                // actually completed a 4-subject mock.
+                score: overall ? overall.score : 0,
+                has_attempted: !!overall,
+                // Best-ever per-subject scores, pooled across every mock
+                // attempt (4-subject or 1-subject) this candidate has made.
+                subject_scores: subjectBestMap[user.id] || null,
             };
         }).filter(function(entry) { return entry.has_attempted; });
 
         leaderboard.sort(function(a, b) { return b.score - a.score; });
         state.leaderboardData = leaderboard;
+
+        // The By-Subject picker/drill-down should include every candidate
+        // who has a real subject score anywhere, even if they've never
+        // completed a full 4-subject mock (and so don't show on Overall).
+        const subjectLeaderboardPool = state.allUsers.map(function(user) {
+            const isCurrentUser = user.id === currentUserId;
+            const rawName = usernameMap[user.id] || user.username || user.full_name || 'Candidate';
+            return {
+                user_id: user.id,
+                candidate_code: getCandidateCode(user.id),
+                display_name: isCurrentUser ? rawName : maskUsername(rawName),
+                is_current_user: isCurrentUser,
+                subject_scores: subjectBestMap[user.id] || null,
+            };
+        }).filter(function(entry) { return entry.subject_scores; });
+        state.subjectLeaderboardPool = subjectLeaderboardPool;
     } catch (e) {
         console.warn("Load leaderboard exception:", extractErrorMessage(e), e);
         showNetworkAwareError("Couldn't load the leaderboard right now.", e);
@@ -20086,7 +20134,6 @@ function renderHistory() {
             '<p style="font-size:11px;color:var(--muted);margin:0 0 4px">' + entry.answered_count + ' of ' + entry.total_questions + ' answered</p>' +
             '<div class="h-subject-scores">' + subjectScoreHtml + '</div>' +
             '<div class="h-actions">' +
-            '<button class="btn btn-outline btn-sm" data-action="history-print" data-id="' + esc(entryKey) + '" aria-label="Print result" style="flex:1;font-size:10px;padding:4px 8px">' + svg("print", 12) + ' Print</button>' +
             '<button class="btn btn-outline btn-sm" data-action="history-share" data-id="' + esc(entryKey) + '" aria-label="Share result" style="flex:1;font-size:10px;padding:4px 8px">' + svg("share", 12) + ' Share</button>' +
             '</div>' +
             '</div>'
@@ -21654,19 +21701,19 @@ function renderLeaderboard() {
     if (tab === 'overall') {
         let rows = "";
         if (displayData.length === 0) {
-            rows = '<div class="lb-empty">No Mock Exam scores yet. Complete a Mock Exam to appear on the leaderboard!</div>';
+            rows = '<div class="lb-empty">No Overall scores yet. Complete a full 4-subject Mock Exam (English + 3 electives) to appear here — 1-subject mocks only count toward the By Subject board.</div>';
         } else {
             const sorted = displayData.slice().sort(function(a, b) { return b.score - a.score; });
             sorted.forEach(function(entry, i) {
                 const isCurrentUser = entry.is_current_user || entry.user_id === state.profile.id;
-                const subjCount = entry.subject_scores ? Object.keys(entry.subject_scores).length : 0;
-                const outOf = subjCount > 0 ? subjCount * 100 : 100;
-                rows += renderLbRow(i + 1, entry.display_name || entry.candidate_code, isCurrentUser, entry.score, outOf);
+                // Overall only ever contains 4-subject mock attempts now, so
+                // the total is always out of 400 (English + 3 electives).
+                rows += renderLbRow(i + 1, entry.display_name || entry.candidate_code, isCurrentUser, entry.score, 400);
             });
         }
         return (
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-            '<p class="sub" style="font-size:12px;margin-bottom:10px">See how you rank against other candidates. Usernames are partially hidden to protect privacy — you\'ll see your own name in full.</p>' +
+            '<p class="sub" style="font-size:12px;margin-bottom:10px">See how you rank against other candidates. Usernames are partially hidden to protect privacy — you\'ll see your own name in full. Ranked by 4-subject Mock score (out of 400) — 1-subject mocks don\'t count here.</p>' +
             tabsHtml +
             '<div style="margin-bottom:10px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">' +
             '<span>Rank</span><span>Candidate</span><span>Score</span>' +
@@ -21677,12 +21724,16 @@ function renderLeaderboard() {
     }
 
     // ---------- BY SUBJECT TAB ----------
+    // Uses the full pool (every candidate with a real subject score, from
+    // either a 4-subject or 1-subject mock) rather than displayData, which
+    // is scoped to Overall (/400, 4-subject-only) attempts.
+    const subjectPool = state.subjectLeaderboardPool || [];
     const selectedSid = state.subjectLeaderboardSubject;
 
     if (!selectedSid) {
         // Subject picker list — one row per subject, tap to drill in.
         let subjRows = SUBJECTS.map(function(s) {
-            const attemptCount = displayData.filter(function(e) { return e.subject_scores && (s.id in e.subject_scores); }).length;
+            const attemptCount = subjectPool.filter(function(e) { return e.subject_scores && (s.id in e.subject_scores); }).length;
             return (
                 '<button type="button" class="row-btn" data-action="view-subject-leaderboard" data-subjectid="' + s.id + '" ' +
                 'style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:12px;margin-bottom:6px;border:1px solid var(--line);border-radius:10px;background:var(--card);text-align:left">' +
@@ -21702,7 +21753,7 @@ function renderLeaderboard() {
     // Drilled into one subject's leaderboard.
     const subj = SUBJECTS.find(function(s) { return s.id === selectedSid; });
     const currentUserId = state.profile ? state.profile.id : null;
-    const entries = displayData
+    const entries = subjectPool
         .filter(function(e) { return e.subject_scores && (selectedSid in e.subject_scores); })
         .map(function(e) {
             return {
@@ -28822,106 +28873,6 @@ if (action === 'browse-filter') {
     // HISTORY
     if (action === 'download-analytics-pdf') {
         downloadAnalyticsSummaryPdf();
-        return;
-    }
-
-    if (action === 'history-print') {
-        const id = el.getAttribute('data-id');
-        const entry = state.historyEntries.find(function(e) { return (e.id && String(e.id) === id) || e.client_submission_id === id; });
-        if (!entry) { showToast('Entry not found.', 'error'); return; }
-
-        const win = window.open('', '_blank');
-        if (!win) { showToast('Please allow popups to print.', 'error'); return; }
-
-        const pct = entry.max_score ? Math.round((entry.total_score / entry.max_score) * 100) : 0;
-        const studentName = state.profile.name || 'Guest';
-        const studentEmail = state.profile.email || '';
-
-        let subjRows = '';
-        const subjectScores = entry.subject_scores || {};
-        Object.keys(subjectScores).forEach(function(sid) {
-            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
-            subjRows += (
-                '<tr>' +
-                '<td class="s-name">' + esc(subj ? subj.name : sid) + '</td>' +
-                '<td class="s-score">' + subjectScores[sid] + '</td>' +
-                '</tr>'
-            );
-        });
-
-        const modeLabel = entry.mode === 'cbt-full' ? 'CBT Full' :
-                         entry.mode === 'cbt-single' ? 'CBT Single' :
-                         entry.mode === 'novel' ? 'Novel CBT' :
-                         entry.mode === 'mock' ? 'Mock Exam' :
-                         entry.mode === 'exam' ? 'Exam' :
-                         entry.mode === 'topic' ? 'Topic Practice' :
-                         entry.mode || 'Unknown';
-
-        const printHtml =
-            '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>MyUTME Result Slip</title>' +
-            '<style>' +
-            '* { box-sizing: border-box; margin:0; padding:0; }' +
-            'body{font-family:Georgia,"Times New Roman",serif;background:#F4F1EA;padding:32px 16px;color:#13291D;}' +
-            '.sheet{max-width:480px;margin:0 auto;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.12);border:1px solid #E1EBE3;}' +
-            '.header{background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%);padding:28px 24px 22px;text-align:center;color:#fff;}' +
-            '.header .brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px;}' +
-            '.header .brand-name{font-family:Georgia,serif;font-size:26px;letter-spacing:-0.02em;}' +
-            '.header .brand-name b{color:#E4A93A;font-weight:400;}' +
-            '.header .tagline{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.75);margin-top:2px;}' +
-            '.header .slip-label{margin-top:16px;display:inline-block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;background:rgba(255,255,255,0.15);padding:4px 14px;border-radius:999px;}' +
-            '.body{padding:24px;}' +
-            '.student-row{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;margin-bottom:16px;border-bottom:1.5px dashed #E1EBE3;}' +
-            '.student-row .label{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#8A9990;margin-bottom:2px;}' +
-            '.student-row .value{font-size:15px;font-weight:700;color:#13291D;}' +
-            '.student-row .value.small{font-size:12px;font-weight:400;color:#5B6B60;}' +
-            '.exam-title{font-size:16px;font-weight:700;margin-bottom:2px;}' +
-            '.exam-mode{font-size:12px;color:#5B6B60;margin-bottom:4px;}' +
-            '.exam-date{font-size:12px;color:#5B6B60;margin-bottom:20px;}' +
-            '.score-block{text-align:center;background:#F4F1EA;border-radius:14px;padding:20px;margin-bottom:20px;}' +
-            '.score-block .big{font-family:"Courier New",monospace;font-size:44px;font-weight:700;color:#0F6B3F;}' +
-            '.score-block .of{font-size:16px;color:#8A9990;font-weight:400;}' +
-            '.score-block .pct{margin-top:4px;font-size:13px;color:#5B6B60;}' +
-            '.score-block .pct b{color:#E4A93A;background:#fff;padding:2px 10px;border-radius:999px;}' +
-            'table{width:100%;border-collapse:collapse;margin-bottom:16px;}' +
-            'table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#8A9990;padding:0 0 8px;border-bottom:1px solid #E1EBE3;}' +
-            'table td{padding:9px 0;font-size:13px;border-bottom:1px solid #F0EEE7;}' +
-            'table .s-score{text-align:right;font-weight:700;color:#0F6B3F;font-family:"Courier New",monospace;}' +
-            '.meta-row{display:flex;justify-content:space-between;font-size:11px;color:#8A9990;margin-top:4px;}' +
-            '.footer{text-align:center;padding:16px 24px 24px;font-size:10px;color:#8A9990;border-top:1px dashed #E1EBE3;}' +
-            '.footer .verified{color:#0F6B3F;font-weight:700;margin-bottom:4px;}' +
-            '@media print{body{background:#fff;padding:0;}.sheet{box-shadow:none;border-radius:0;border:none;max-width:100%;}}' +
-            '</style></head><body>' +
-            '<div class="sheet">' +
-            '<div class="header">' +
-            '<div class="brand">' + logoSvg(40) + '<span class="brand-name">My<b>UTME</b></span></div>' +
-            '<div class="tagline">JAMB CBT Practice</div>' +
-            '<div class="slip-label">Result Slip</div>' +
-            '</div>' +
-            '<div class="body">' +
-            '<div class="student-row">' +
-            '<div><div class="label">Candidate</div><div class="value">' + esc(studentName) + '</div>' +
-            (studentEmail ? '<div class="value small">' + esc(studentEmail) + '</div>' : '') + '</div>' +
-            '<div style="text-align:right"><div class="label">Date</div><div class="value small">' + formatDate(entry.submitted_at) + '</div></div>' +
-            '</div>' +
-            '<div class="exam-title">' + esc(entry.exam_title || entry.mode) + '</div>' +
-            '<div class="exam-mode">' + esc(modeLabel) + '</div>' +
-            '<div class="exam-date">' + entry.answered_count + ' of ' + entry.total_questions + ' questions answered</div>' +
-            '<div class="score-block">' +
-            '<div class="big">' + entry.total_score + ' <span class="of">/ ' + entry.max_score + '</span></div>' +
-            '<div class="pct">Overall score: <b>' + pct + '%</b></div>' +
-            '</div>' +
-            (subjRows ? '<table><tr><th>Subject</th><th style="text-align:right">Score</th></tr>' + subjRows + '</table>' : '') +
-            '</div>' +
-            '<div class="footer">' +
-            '<div class="verified">✓ Generated by MyUTME</div>' +
-            'This is a practice result slip, not an official JAMB document.' +
-            '</div>' +
-            '</div>' +
-            '</body></html>';
-
-        win.document.write(printHtml);
-        win.document.close();
-        setTimeout(function() { win.print(); }, 300);
         return;
     }
 
