@@ -1568,34 +1568,35 @@
 
     /* Flashcards mode — swipeable/tappable flip card */
     .flashcard-progress-track {
-        height: 4px;
+        height: 6px;
         background: var(--line);
-        border-radius: 2px;
+        border-radius: 999px;
         overflow: hidden;
-        margin-bottom: 12px;
+        margin-bottom: 16px;
     }
     .flashcard-progress-fill {
         height: 100%;
-        background: var(--green);
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--green) 0%, var(--gold) 100%);
         transition: width 0.25s ease;
     }
     .flashcard-stage {
-        perspective: 1400px;
-        margin: 4px 0 10px;
+        perspective: 1800px;
+        margin: 6px 0 14px;
         touch-action: pan-y;
     }
     .flashcard {
         position: relative;
         width: 100%;
-        min-height: 240px;
+        min-height: min(62vh, 440px);
         cursor: pointer;
     }
     .flashcard-inner {
         position: relative;
         width: 100%;
         height: 100%;
-        min-height: 240px;
-        transition: transform 0.45s cubic-bezier(.4,.2,.2,1);
+        min-height: min(62vh, 440px);
+        transition: transform 0.5s cubic-bezier(.4,.2,.2,1);
         transform-style: preserve-3d;
     }
     .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
@@ -1604,38 +1605,61 @@
         inset: 0;
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
-        border-radius: 16px;
-        border: 1.5px solid var(--line);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--line);
         background: var(--card-bg);
-        padding: 22px 18px;
+        box-shadow: var(--shadow-lg);
+        padding: 32px 24px 44px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
-        min-height: 240px;
+        min-height: min(62vh, 440px);
         overflow-y: auto;
     }
+    .flashcard-face::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 5px;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        background: linear-gradient(90deg, var(--green) 0%, var(--gold) 100%);
+    }
     .flashcard-face .fc-label {
-        font-size: 10px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 10.5px;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--faint);
-        margin-bottom: 10px;
-        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: var(--green);
+        background: var(--green-light);
+        padding: 5px 14px;
+        border-radius: 999px;
+        margin-bottom: 16px;
+        font-weight: 800;
+    }
+    .flashcard-face.fc-back .fc-label {
+        color: var(--gold-dark);
+        background: rgba(228, 169, 58, 0.16);
     }
     .flashcard-face .fc-text {
-        font-size: 16px;
-        font-weight: 600;
-        line-height: 1.45;
+        font-family: var(--font-serif);
+        font-size: 19px;
+        font-weight: 700;
+        line-height: 1.5;
         margin: 0;
+        letter-spacing: 0.01em;
     }
     .flashcard-face .fc-explain {
-        font-size: 12px;
+        font-size: 12.5px;
         color: var(--muted);
-        margin-top: 10px;
-        font-weight: 400;
-        line-height: 1.4;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--line);
+        font-weight: 500;
+        line-height: 1.5;
+        width: 100%;
     }
     .flashcard-face.fc-back {
         transform: rotateY(180deg);
@@ -1645,29 +1669,31 @@
         width: 100%;
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        margin-top: 12px;
+        gap: 8px;
+        margin-top: 16px;
         text-align: left;
     }
     .fc-option {
         display: flex;
         align-items: flex-start;
-        gap: 8px;
-        padding: 7px 10px;
-        border-radius: 10px;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
         background: var(--bg);
         border: 1px solid var(--line);
-        font-size: 12.5px;
-        line-height: 1.4;
+        box-shadow: var(--shadow-sm);
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.45;
     }
     .fc-opt-letter {
         flex-shrink: 0;
-        width: 18px;
-        height: 18px;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
         background: var(--line);
         color: var(--muted);
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 800;
         display: flex;
         align-items: center;
@@ -1676,6 +1702,7 @@
     .fc-option-correct {
         background: var(--explanation-bg);
         border-color: var(--green);
+        box-shadow: var(--shadow-md);
     }
     .fc-option-correct .fc-opt-letter {
         background: var(--green);
@@ -1683,45 +1710,52 @@
     }
     .fc-option-correct .fc-opt-text {
         font-weight: 700;
-        color: var(--green);
+        color: var(--green-dark);
     }
     .flashcard-hint {
         text-align: center;
-        font-size: 13px;
-        font-weight: 600;
+        font-size: 13.5px;
+        font-weight: 700;
         color: var(--faint);
-        margin: 8px 0 12px;
+        margin: 10px 0 14px;
     }
     .flashcard-hint.fc-tap-hint {
         color: var(--green);
     }
     .fc-tap-badge {
         position: absolute;
-        bottom: 12px;
+        bottom: 16px;
         left: 50%;
         transform: translateX(-50%);
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 700;
         color: #fff;
-        background: var(--green);
-        padding: 5px 12px;
+        background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+        padding: 7px 16px;
         border-radius: 999px;
         white-space: nowrap;
+        box-shadow: var(--shadow-md);
         animation: fcPulse 1.8s ease-in-out infinite;
     }
     @keyframes fcPulse {
-        0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
-        50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+        0%, 100% { opacity: 0.9; transform: translateX(-50%) scale(1); }
+        50% { opacity: 1; transform: translateX(-50%) scale(1.06); }
     }
     .flashcard-actions {
         display: flex;
-        gap: 8px;
-        margin-bottom: 10px;
+        gap: 10px;
+        margin-bottom: 12px;
     }
-    .flashcard-actions .btn { flex: 1; }
+    .flashcard-actions .btn {
+        flex: 1;
+        padding: 14px 12px;
+        font-size: 14px;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
     .flashcard-nav {
         display: flex;
         justify-content: space-between;
@@ -14267,6 +14301,35 @@ function renderNow() {
     const activeSelStart = (activeEl && typeof activeEl.selectionStart === 'number') ? activeEl.selectionStart : null;
     const activeSelEnd = (activeEl && typeof activeEl.selectionEnd === 'number') ? activeEl.selectionEnd : null;
 
+    // Various background tasks (periodic settings refresh, session checks,
+    // notifications, etc.) call render() while the login/signup/reset
+    // modal is open. Those modals are rebuilt from state.loginEmail,
+    // state.loginPassword, etc. — but browser/keyboard autofill doesn't
+    // always fire the 'input' event that keeps that state in sync with
+    // what's actually on screen. Without this, an unrelated background
+    // render would rebuild the modal from stale (often empty) state and
+    // visibly wipe out whatever the user had just typed or autofilled.
+    // Pulling the live DOM values into state right before rebuilding
+    // means a rebuild can never lose what's currently shown.
+    (function syncAuthFieldsFromDom() {
+        const map = {
+            'login-email': 'loginEmail',
+            'login-password': 'loginPassword',
+            'signup-fullname': 'signupFullName',
+            'signup-username': 'signupUsername',
+            'signup-email': 'signupEmail',
+            'signup-password': 'signupPassword',
+            'signup-confirm': 'signupConfirm',
+            'reset-email': 'resetEmail',
+            'reset-new-password': 'resetPassword',
+            'reset-confirm-password': 'resetConfirm'
+        };
+        Object.keys(map).forEach(function(id) {
+            const elx = document.getElementById(id);
+            if (elx) state[map[id]] = elx.value;
+        });
+    })();
+
     const settings = state.settingsCache;
     if (settings.underConstruction && !isAdmin()) {
         let html = renderUnderConstruction();
@@ -14358,6 +14421,16 @@ function renderNow() {
     }
 
     if (state.showLogin && !state.authUser) {
+        // renderNow() can run again (background settings poll, session
+        // checks, etc.) without the underlying `html` string changing, in
+        // which case root.innerHTML above is left untouched — but this
+        // block used to unconditionally append a BRAND NEW modal node
+        // every single time regardless. That stacked a second, empty,
+        // duplicate-id modal directly on top of the one the user was
+        // actively typing into, which is what made the form look like it
+        // had just wiped itself. Remove any existing auth modal first so
+        // there is ever only one in the DOM.
+        document.querySelectorAll('.auth-overlay').forEach(function(n) { n.remove(); });
         const overlay = document.createElement('div');
         overlay.innerHTML = renderLoginModal();
         const node = overlay.firstElementChild;
@@ -14373,6 +14446,7 @@ function renderNow() {
         state.showLogin = false;
     }
     if (state.showSignup) {
+        document.querySelectorAll('.auth-overlay').forEach(function(n) { n.remove(); });
         const overlay = document.createElement('div');
         overlay.innerHTML = renderSignupModal();
         const node = overlay.firstElementChild;
@@ -27618,6 +27692,9 @@ async function init() {
     setInterval(function() {
         const examViews = ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'];
         if (examViews.indexOf(state.view) !== -1) return;
+        // Also skip while the login/signup/reset modal is open — this
+        // background refresh's render() was interrupting people mid-login.
+        if (state.showLogin || state.showSignup || state.showReset) return;
         loadSettings().then(function(s) {
             state.settingsCache = s;
             checkActivationAutoEnable();
