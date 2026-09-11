@@ -7045,7 +7045,6 @@ const PAYSTACK_VERIFY_URL = SUPABASE_URL + "/functions/v1/verify-paystack-paymen
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const SEND_PUSH_URL = SUPABASE_URL + "/functions/v1/send-push-notification";
 const SEND_DAILY_REMINDER_URL = SUPABASE_URL + "/functions/v1/send-daily-reminder";
-const SEND_SUB_REMINDER_URL = SUPABASE_URL + "/functions/v1/send-subscription-reminder";
 const ADMIN_WHATSAPP_NUMBER = "2347072853151";
 const SUPPORT_WHATSAPP_NUMBER = "2348071826114"; // displayed as 08071826114, wa.me needs country code without leading 0
 const SUPPORT_WHATSAPP_DISPLAY = "08071826114";
@@ -8300,10 +8299,6 @@ let state = {
 
     dailyReminderLoaded: false,
     dailyReminderSettings: [],
-    subReminderLoaded: false,
-    subReminderSettings: null,
-    unsubscribedUsersLoaded: false,
-    unsubscribedUsers: [],
 
     mockExams: [],
     mockRegistrations: [],
@@ -8601,87 +8596,6 @@ async function sendDailyReminderNow(slot) {
     } catch (e) {
         showToast('Error sending reminder now.', 'error');
     }
-}
-
-// ============================================================
-//  SUBSCRIPTION REMINDER (auto-nudges users without an active plan)
-// ============================================================
-async function loadSubReminderSettings() {
-    try {
-        const { data, error } = await supabase
-            .from('subscription_reminder_settings')
-            .select('*')
-            .eq('id', 1)
-            .maybeSingle();
-        if (error) {
-            console.warn('Load subscription reminder settings error:', error.message);
-            state.subReminderSettings = null;
-        } else {
-            state.subReminderSettings = data || null;
-        }
-    } catch (e) {
-        console.warn('Load subscription reminder settings exception:', e);
-        state.subReminderSettings = null;
-    }
-    state.subReminderLoaded = true;
-    render();
-}
-
-async function saveSubReminderSettings(updates) {
-    try {
-        const { error } = await supabase
-            .from('subscription_reminder_settings')
-            .update(updates)
-            .eq('id', 1);
-        if (error) {
-            showNetworkAwareError('Could not save subscription reminder.', error);
-            return;
-        }
-        showToast('✅ Subscription reminder saved.', 'success');
-        loadSubReminderSettings();
-    } catch (e) {
-        showToast('Error saving subscription reminder.', 'error');
-    }
-}
-
-async function sendSubReminderNow() {
-    try {
-        showToast('Sending now…', 'success');
-        const res = await fetch(SEND_SUB_REMINDER_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-            body: JSON.stringify({ force: true }),
-        });
-        const data = await res.json();
-        if (!data.ok) {
-            showToast('Send failed: ' + (data.error || 'unknown'), 'error');
-            return;
-        }
-        showToast('📲 Sent to ' + data.sent + ' device(s)' + (data.failed ? (', ' + data.failed + ' failed') : '') + '.', 'success');
-    } catch (e) {
-        showToast('Error sending subscription reminder now.', 'error');
-    }
-}
-
-async function loadUnsubscribedUsers() {
-    try {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, email, is_active')
-            .eq('is_active', false)
-            .order('username');
-        if (error) {
-            console.warn('Load unsubscribed users error:', error.message);
-            state.unsubscribedUsers = [];
-        } else {
-            state.unsubscribedUsers = data || [];
-        }
-    } catch (e) {
-        console.warn('Load unsubscribed users exception:', e);
-        state.unsubscribedUsers = [];
-    }
-    state.unsubscribedUsersLoaded = true;
-    render();
 }
 
 async function loadFlaggedCount() {
@@ -22298,10 +22212,8 @@ function renderAdminNotifications() {
 //  ADMIN DAILY REMINDERS + SUBSCRIPTION REMINDER
 // ============================================================
 function renderAdminReminders() {
-    if (!state.dailyReminderLoaded || !state.subReminderLoaded || !state.unsubscribedUsersLoaded) {
+    if (!state.dailyReminderLoaded) {
         loadDailyReminderSettings();
-        loadSubReminderSettings();
-        loadUnsubscribedUsers();
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading reminders...</p></div>';
     }
 
@@ -22337,61 +22249,6 @@ function renderAdminReminders() {
             '</div>'
         );
     });
-
-    // --- Subscription reminder for unsubscribed users ---
-    const sub = state.subReminderSettings;
-    out += '<p class="section-label" style="margin-top:16px">💳 Subscription Reminder</p>' +
-        '<p style="font-size:11px;color:var(--faint);margin:-4px 0 10px">Sent automatically only to users without an active subscription.</p>';
-
-    if (!sub) {
-        out += '<div class="card"><p style="font-size:12px;color:var(--danger)">⚠️ Not set up yet — run the SQL setup for subscription_reminder_settings.</p></div>';
-    } else {
-        const hh2 = String(sub.hour_local).padStart(2, '0');
-        const mm2 = String(sub.minute_local).padStart(2, '0');
-        out += (
-            '<div class="card" style="margin-bottom:10px">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-            '<span style="font-weight:700;font-size:13px">Daily nudge</span>' +
-            '<div class="toggle-switch' + (sub.enabled ? ' active' : '') + '" data-action="toggle-sub-reminder"></div>' +
-            '</div>' +
-            '<div style="display:flex;gap:8px;margin-bottom:8px">' +
-            '<div style="flex:1"><label class="field-label">Hour (0-23)</label>' +
-            '<input type="number" min="0" max="23" class="field" id="sub-reminder-hour" value="' + sub.hour_local + '" /></div>' +
-            '<div style="flex:1"><label class="field-label">Minute</label>' +
-            '<input type="number" min="0" max="59" class="field" id="sub-reminder-minute" value="' + sub.minute_local + '" /></div>' +
-            '</div>' +
-            '<label class="field-label">Message</label>' +
-            '<textarea class="field" id="sub-reminder-message" rows="2" style="margin-bottom:8px">' + esc(sub.message) + '</textarea>' +
-            '<div style="display:flex;gap:6px">' +
-            '<button class="btn btn-green" style="flex:1;padding:9px;font-size:12px" data-action="save-sub-reminder">Save</button>' +
-            '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="send-sub-reminder-now">📲 Send Now</button>' +
-            '</div>' +
-            '<p style="font-size:9px;color:var(--faint);margin:6px 0 0">Currently set for ' + hh2 + ':' + mm2 + ' Nigeria time' + (sub.last_sent_date ? ' · last sent ' + sub.last_sent_date : '') + '</p>' +
-            '</div>'
-        );
-    }
-
-    // --- Recipient preview list ---
-    const unsub = state.unsubscribedUsers || [];
-    out += (
-        '<div class="card">' +
-        '<p style="font-weight:700;font-size:13px;margin:0 0 8px">👀 Will receive this: ' + unsub.length + ' user' + (unsub.length !== 1 ? 's' : '') + '</p>'
-    );
-    if (unsub.length === 0) {
-        out += '<p style="font-size:12px;color:var(--faint);margin:0">No unsubscribed users right now — everyone has an active plan.</p>';
-    } else {
-        out += '<div style="max-height:220px;overflow-y:auto">';
-        unsub.forEach(function(u) {
-            out += (
-                '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line);font-size:12px">' +
-                '<span>' + esc(u.full_name || u.username || 'User') + '</span>' +
-                '<span style="color:var(--faint)">@' + esc(u.username || '') + '</span>' +
-                '</div>'
-            );
-        });
-        out += '</div>';
-    }
-    out += '</div>';
 
     return out;
 }
@@ -23417,6 +23274,51 @@ document.addEventListener('click', function(e) {
     if (action === 'start-flashcards') {
         const sid = el.getAttribute('data-subject');
         startFlashcards(sid);
+        return;
+    }
+    if (action === 'flashcard-flip') {
+        state.flashcardFlipped = !state.flashcardFlipped;
+        render();
+        return;
+    }
+    if (action === 'flashcard-mark') {
+        const knewIt = el.getAttribute('data-know') === '1';
+        const q = state.flashcardQuestions[state.flashcardIndex];
+        if (q) {
+            saveFlashcardProgress(q.id, knewIt);
+            if (knewIt) { state.flashcardKnew++; } else { state.flashcardDidntKnow++; }
+        }
+        state.flashcardIndex++;
+        state.flashcardFlipped = false;
+        render();
+        return;
+    }
+    if (action === 'flashcard-skip') {
+        state.flashcardIndex++;
+        state.flashcardFlipped = false;
+        render();
+        return;
+    }
+    if (action === 'flashcard-prev') {
+        if (state.flashcardIndex > 0) { state.flashcardIndex--; }
+        state.flashcardFlipped = false;
+        render();
+        return;
+    }
+    if (action === 'flashcard-restart') {
+        state.flashcardIndex = 0;
+        state.flashcardFlipped = false;
+        state.flashcardKnew = 0;
+        state.flashcardDidntKnow = 0;
+        render();
+        return;
+    }
+    if (action === 'flashcards-back-to-subjects') {
+        state.flashcardSubject = null;
+        state.flashcardQuestions = [];
+        state.flashcardIndex = 0;
+        state.flashcardFlipped = false;
+        render();
         return;
     }
 
@@ -25288,7 +25190,7 @@ document.addEventListener('click', function(e) {
         if (state.adminTab === 'analytics' && !state.analyticsLoading) { state.analyticsLoaded = false; loadAnalyticsData(); }
         if (state.adminTab === 'documents') state.docsLoaded = false;
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
-        else if (state.adminTab === 'reminders') { state.dailyReminderLoaded = false; state.subReminderLoaded = false; loadDailyReminderSettings(); loadSubReminderSettings(); loadUnsubscribedUsers(); }
+        else if (state.adminTab === 'reminders') { state.dailyReminderLoaded = false; loadDailyReminderSettings(); }
         else if (state.adminTab === 'mock') { state.mockLoaded = false; state.liveExamsLoaded = false;
         state.admin.mockAdminDataLoaded = false;
         loadMockExams(); loadLiveExams(); loadAdminMockData(); if (state.authUser) { loadMockRegistrations();
@@ -26246,34 +26148,6 @@ document.addEventListener('click', function(e) {
     if (action === 'send-daily-reminder-now') {
         const slot = el.getAttribute('data-slot');
         sendDailyReminderNow(slot);
-        return;
-    }
-
-    if (action === 'toggle-sub-reminder') {
-        const sub = state.subReminderSettings;
-        if (!sub) return;
-        saveSubReminderSettings({ enabled: !sub.enabled });
-        return;
-    }
-
-    if (action === 'save-sub-reminder') {
-        const hour = parseInt(document.getElementById('sub-reminder-hour')?.value, 10);
-        const minute = parseInt(document.getElementById('sub-reminder-minute')?.value, 10);
-        const message = document.getElementById('sub-reminder-message')?.value?.trim() || '';
-        if (isNaN(hour) || hour < 0 || hour > 23 || isNaN(minute) || minute < 0 || minute > 59) {
-            showToast('Enter a valid hour (0-23) and minute (0-59).', 'error');
-            return;
-        }
-        if (!message) {
-            showToast('Message cannot be empty.', 'error');
-            return;
-        }
-        saveSubReminderSettings({ hour_local: hour, minute_local: minute, message: message });
-        return;
-    }
-
-    if (action === 'send-sub-reminder-now') {
-        sendSubReminderNow();
         return;
     }
 
