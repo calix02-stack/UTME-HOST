@@ -1431,7 +1431,7 @@
     }
 
 
-    /* JAMB-style result slip — shown after a Full Mock UTME session. */
+    /* JAMB-style result slip — shown after a CBT Full or Mock Exam session. */
     .utme-slip {
         border-radius: var(--radius-lg);
         overflow: hidden;
@@ -10066,6 +10066,12 @@ async function checkAuthSession(retriesLeft) {
             try { state.readNotifs = JSON.parse(readNotifs) || []; } catch (e) { state.readNotifs = []; }
         }
         state.authReady = true;
+        // On a poor (but not dead) connection this can resolve well after
+        // the app's own 15s boot failsafe has already given up and opened
+        // the app — without this, whatever this check found (logged in or
+        // out) would never actually reach the screen. Always paint the
+        // real result the moment it's known, however late it arrives.
+        render();
     } catch (e) {
         console.warn("Auth session check:", e);
         // A person who was previously logged in on this device shouldn't be
@@ -10076,10 +10082,11 @@ async function checkAuthSession(retriesLeft) {
         // logged out — this is what fixes the "opens logged out, then
         // flips back" glitch on reopening the app.
         if (retriesLeft > 0 && storage.get('wasEverLoggedIn') === 'true') {
-            setTimeout(function() { checkAuthSession(retriesLeft - 1); render(); }, 1200);
+            setTimeout(function() { checkAuthSession(retriesLeft - 1); }, 1200);
             return;
         }
         state.authReady = true;
+        render();
     }
 }
 
@@ -11452,10 +11459,15 @@ function doSubmitMock(autoSubmit) {
         }
     });
 
-    // Each subject is scored out of 100: correct / questions-in-that-subject * 100.
+    // Each subject is scored out of 100: correct / questions-per-subject * 100.
+    // Use the configured questions-per-subject (40 by default) as the
+    // denominator rather than however many questions actually loaded for
+    // that subject — if a subject came up short a few questions (data gap,
+    // offline cache, etc.) the score must still be out of the intended 40,
+    // never inflated/deflated by dividing by a smaller/larger actual count.
+    const mockQPerSubject = state.settingsCache.mockQuestionsPerSubject || subjectTotals[Object.keys(subjectTotals)[0]] || 40;
     const subjectScores = {}; Object.keys(rawSubjectCounts).forEach(function(sid) {
-        const qCount = subjectTotals[sid] || 1;
-        subjectScores[sid] = Math.round((rawSubjectCounts[sid] / qCount) * 100);
+        subjectScores[sid] = Math.round((rawSubjectCounts[sid] / (mockQPerSubject || 1)) * 100);
     });
 
     const subjectCount = Object.keys(subjectScores).length || (state.settingsCache.mockSubjectCount || 4);
@@ -13383,8 +13395,12 @@ function updateReviewScheduleForQuestion(questionId, wasCorrect) {
         else interval = Math.round(prev.interval * ease);
         ease = Math.max(1.3, ease + 0.1);
     } else {
+        // A missed question must stay due for review RIGHT NOW — not get
+        // pushed a day into the future. Scheduling it forward here was
+        // making wrong answers silently vanish from the "Due Now" list,
+        // which looked like missed questions were being skipped.
         reps = 0;
-        interval = 1;
+        interval = 0;
         ease = Math.max(1.3, ease - 0.2);
     }
 
@@ -14052,14 +14068,14 @@ function renderPasswordResetForm() {
         '<label>New password</label>' +
         '<div class="af-input-wrap has-toggle">' +
         '<span class="af-ic">' + svg('lock', 18) + '</span>' +
-        '<input id="reset-new-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="At least 6 characters" value="' + esc(state.resetPassword) + '" />' +
+        '<input id="reset-new-password" type="' + (isShowing ? 'text' : 'password') + '" autocomplete="new-password" placeholder="At least 6 characters" value="' + esc(state.resetPassword) + '" />' +
         '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + svg(isShowing ? 'eyeoff' : 'eye', 18) + '</button>' +
         '</div></div>' +
         '<div class="field-group">' +
         '<label>Confirm password</label>' +
         '<div class="af-input-wrap has-toggle">' +
         '<span class="af-ic">' + svg('lock', 18) + '</span>' +
-        '<input id="reset-confirm-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="Re-enter password" value="' + esc(state.resetConfirm) + '" />' +
+        '<input id="reset-confirm-password" type="' + (isShowing ? 'text' : 'password') + '" autocomplete="new-password" placeholder="Re-enter password" value="' + esc(state.resetConfirm) + '" />' +
         '<button class="password-toggle" data-action="toggle-password" data-field="reset-form">' + svg(isShowing ? 'eyeoff' : 'eye', 18) + '</button>' +
         '</div></div>' +
         (state.resetError ? '<div class="af-error">⚠️ ' + esc(state.resetError) + '</div>' : '') +
@@ -14563,6 +14579,10 @@ function renderUnderConstruction() {
 // ============================================================
 function renderInstallPromoCard() {
     if (isStandaloneApp()) return '';
+    // Only show once the browser has actually signaled it's installable
+    // (or on iOS Safari, where "install" means Add to Home Screen) — no
+    // point showing a big obvious button that can't do anything yet.
+    if (!state.pwaInstallAvailable) return '';
     return (
         '<div class="install-promo-card">' +
         '<div class="ipc-icon">' + svg('rocket', 22).replace('stroke="currentColor"', 'stroke="#fff"') + '</div>' +
@@ -15304,6 +15324,7 @@ function renderHome() {
         });
     }
     return (
+        renderInstallPromoCard() +
         renderFreeAccessAnnouncement() +
         '<div class="home-hero">' +
         '<div class="glow3"></div><div class="glow4"></div>' +
@@ -15655,16 +15676,20 @@ function renderCbtExam() {
             }
         });
         const isFullCbt = state.cbtMode === "full";
+        // Score each subject out of the number of questions the candidate
+        // actually chose (state.cbtQuestionCount) rather than however many
+        // happened to load for that subject — keeps the percentage correct
+        // even if one subject came up a question or two short.
+        const cbtQPerSubject = state.cbtQuestionCount || rawSubjectTotals[Object.keys(rawSubjectTotals)[0]] || 25;
         const subjectScores = {};
         Object.keys(rawSubjectCounts).forEach(function(sid) {
-            const totalForSubject = rawSubjectTotals[sid] || 1;
-            subjectScores[sid] = Math.round((rawSubjectCounts[sid] / totalForSubject) * 100);
+            subjectScores[sid] = Math.round((rawSubjectCounts[sid] / (cbtQPerSubject || 1)) * 100);
         });
         const subjectCount = Object.keys(subjectScores).length;
         const maxScore = isFullCbt ? subjectCount * 100 : 100;
         const totalScore = isFullCbt
             ? Object.values(subjectScores).reduce(function(a, b) { return a + b; }, 0)
-            : Math.round((score / (state.cbtQuestions.length || 1)) * 100);
+            : Math.round((score / (state.cbtQuestionCount || state.cbtQuestions.length || 1)) * 100);
 
         if (state.authUser && state.cbtSubmitted && !state.cbtHistorySaved) {
             state.cbtHistorySaved = true;
@@ -15687,7 +15712,7 @@ function renderCbtExam() {
                 total_questions: state.cbtQuestions.length,
                 answered_count: state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
                 submitted_at: new Date().toISOString(),
-                exam_title: isFullCbt ? 'Full Mock UTME' : (subjectName || 'Subject Practice'),
+                exam_title: isFullCbt ? 'CBT Full' : (subjectName || 'Subject Practice'),
             });
             const cbtTimeLimitMin = isFullCbt ? state.settingsCache.cbtTimeLimit : state.settingsCache.subjectTimeLimit;
             saveAnalyticsTimeSample(isFullCbt ? 'cbt-full' : 'cbt-single', (cbtTimeLimitMin || 0) * 60 - state.cbtTimeLeft, state.cbtQuestions.length);
@@ -15741,14 +15766,14 @@ function renderCbtExam() {
 
         const slipHtml = renderResultBlock({
             candidateName: candidateName,
-            subtitle: isFullCbt ? 'Full Mock UTME' : 'Subject Practice',
+            subtitle: isFullCbt ? 'CBT Full' : 'Subject Practice',
             score: totalScore,
             maxScore: maxScore,
             rows: resultRows,
         });
 
         return (
-            '<h2 class="title">' + (isFullCbt ? 'Full Mock UTME' : 'Subject') + ' — Result</h2>' +
+            '<h2 class="title">' + (isFullCbt ? 'CBT Full' : 'Subject') + ' — Result</h2>' +
             slipHtml +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="cbt-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="cbt-toggle-review">' +
@@ -17101,7 +17126,8 @@ function renderReviseModeQuestions() {
         const updated = getReviewSchedule()[wq.question_id];
         if (updated && updated.dueAt) {
             const dueDate = new Date(updated.dueAt);
-            nextReviewHtml = '<p class="sr-next-review">📅 Next review: ' + dueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + (updated.interval === 1 ? ' (tomorrow)' : ' (in ' + updated.interval + ' days)') + '</p>';
+            const dueTiming = updated.interval === 0 ? ' (now)' : (updated.interval === 1 ? ' (tomorrow)' : ' (in ' + updated.interval + ' days)');
+            nextReviewHtml = '<p class="sr-next-review">📅 Next review: ' + dueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + dueTiming + '</p>';
         }
     } else if (schedEntry && schedEntry.dueAt) {
         const dueDate = new Date(schedEntry.dueAt);
@@ -23105,7 +23131,7 @@ function renderLoginModal() {
         '<label>Password</label>' +
         '<div class="af-input-wrap has-toggle">' +
         '<span class="af-ic">' + svg('lock', 18) + '</span>' +
-        '<input id="login-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" value="' + esc(state.loginPassword) + '" />' +
+        '<input id="login-password" type="' + (isShowing ? 'text' : 'password') + '" autocomplete="current-password" placeholder="••••••••" value="' + esc(state.loginPassword) + '" />' +
         '<button class="password-toggle" data-action="toggle-password" data-field="login">' +
         svg(isShowing ? 'eyeoff' : 'eye', 18) +
         '</button>' +
@@ -23172,7 +23198,7 @@ function renderSignupModal() {
         '<label>Password <span style="color:var(--muted);font-weight:400">(min 6 characters)</span></label>' +
         '<div class="af-input-wrap has-toggle">' +
         '<span class="af-ic">' + svg('lock', 18) + '</span>' +
-        '<input id="signup-password" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" value="' + esc(state.signupPassword) + '" />' +
+        '<input id="signup-password" type="' + (isShowing ? 'text' : 'password') + '" autocomplete="new-password" placeholder="••••••••" value="' + esc(state.signupPassword) + '" />' +
         '<button class="password-toggle" data-action="toggle-password" data-field="signup">' +
         svg(isShowing ? 'eyeoff' : 'eye', 18) +
         '</button>' +
@@ -23182,7 +23208,7 @@ function renderSignupModal() {
         '<label>Confirm password</label>' +
         '<div class="af-input-wrap has-toggle">' +
         '<span class="af-ic">' + svg('lock', 18) + '</span>' +
-        '<input id="signup-confirm" type="' + (isShowing ? 'text' : 'password') + '" placeholder="••••••••" value="' + esc(state.signupConfirm) + '" />' +
+        '<input id="signup-confirm" type="' + (isShowing ? 'text' : 'password') + '" autocomplete="new-password" placeholder="••••••••" value="' + esc(state.signupConfirm) + '" />' +
         '<button class="password-toggle" data-action="toggle-password" data-field="signup">' +
         svg(isShowing ? 'eyeoff' : 'eye', 18) +
         '</button>' +
@@ -23385,6 +23411,11 @@ document.addEventListener('click', function(e) {
     }
     if (action === 'subj-start-flashcards') {
         const sid = el.getAttribute('data-subjectid');
+        startFlashcards(sid);
+        return;
+    }
+    if (action === 'start-flashcards') {
+        const sid = el.getAttribute('data-subject');
         startFlashcards(sid);
         return;
     }
@@ -23833,8 +23864,17 @@ document.addEventListener('click', function(e) {
             let handledInline = ids.length > 0;
             ids.forEach(function(id) {
                 const inp = document.getElementById(id);
-                if (inp) { inp.type = isShowing ? 'text' : 'password'; }
-                else { handledInline = false; }
+                if (inp) {
+                    // Flipping an <input>'s type from password -> text -> password
+                    // is exactly the moment some browsers re-run their saved-
+                    // password autofill on that field, silently overwriting
+                    // whatever the user had actually typed with an old/saved
+                    // credential. Capture the real value first and force it
+                    // straight back after the type swap so nothing sneaks in.
+                    const currentValue = inp.value;
+                    inp.type = isShowing ? 'text' : 'password';
+                    inp.value = currentValue;
+                } else { handledInline = false; }
             });
             document.querySelectorAll('.password-toggle[data-field="' + field + '"]').forEach(function(btn) {
                 btn.innerHTML = svg(isShowing ? 'eyeoff' : 'eye', 18);
@@ -24220,7 +24260,7 @@ document.addEventListener('click', function(e) {
         });
         const subjectName = (SUBJECTS.find(function(s) { return s.id === state.cbtSelected[0]; }) || {}).name;
         downloadResultBreakdownPdf({
-            title: isFullCbt ? 'Full Mock UTME — Result' : (subjectName ? subjectName + ' — CBT Result' : 'CBT Result'),
+            title: isFullCbt ? 'CBT Full — Result' : (subjectName ? subjectName + ' — CBT Result' : 'CBT Result'),
             modeLabel: isFullCbt ? 'CBT Full' : 'CBT Single',
             totalScore: totalScore,
             maxScore: maxScore,
@@ -27494,14 +27534,26 @@ async function init() {
         upgradeSupabaseClientIfNeeded();
     }
 
-    await loadSettings();
-    checkActivationAutoEnable();
+    // Settings and the auth check don't depend on each other, so let them
+    // run side by side instead of one after the other — on a slow
+    // connection, waiting for settings to finish before even starting the
+    // auth check was pure added dead time before the app could open.
+    // Settings keep loading in the background and re-render whenever they
+    // land, however long that takes; they never block boot.
+    loadSettings().then(function() {
+        checkActivationAutoEnable();
+        render();
+    });
     // Failsafe: checkAuthSession() has its own internal timeouts/retries,
     // but if the device's network is bad enough that even those stall
     // (e.g. requests that never resolve or reject), this guarantees the
-    // app still becomes usable after 15s instead of sitting on the auth
+    // app still becomes usable quickly instead of sitting on the auth
     // spinner forever. Whichever finishes first — the real check or this
-    // failsafe — flips state.authReady and re-renders.
+    // failsafe — flips state.authReady and re-renders. A poor connection
+    // that resolves the real check later than this still gets its result
+    // painted correctly — see the render() calls inside checkAuthSession()
+    // itself, which fire whenever it actually finishes, even after this
+    // failsafe has already opened the app.
     await Promise.race([
         checkAuthSession(),
         new Promise(function(resolve) {
@@ -27512,7 +27564,7 @@ async function init() {
                     render();
                 }
                 resolve();
-            }, 15000);
+            }, 8000);
         })
     ]);
     // Restore session snapshot after auth is ready
