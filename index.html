@@ -7063,15 +7063,32 @@ async function sendBulkEmail(subject, message, userIds) {
                 adminEmail: (state.profile && state.profile.email) || (state.authUser && state.authUser.email) || '',
             }),
         });
-        const data = await res.json();
-        if (!data.ok) {
-            showToast('Email send failed: ' + (data.error || 'unknown error'), 'error');
+
+        // Read as text first — if the function crashed or the URL is wrong,
+        // the response body might not be JSON at all (an HTML error page,
+        // an empty body, etc.), and res.json() would throw an unhelpful
+        // "Unexpected token" error that hid the real problem.
+        const rawText = await res.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseErr) {
+            console.warn('Bulk email: non-JSON response', res.status, rawText);
+            showToast('Email send failed (HTTP ' + res.status + '): ' + rawText.slice(0, 120), 'error');
+            return;
+        }
+
+        if (!res.ok || !data.ok) {
+            showToast('Email send failed (HTTP ' + res.status + '): ' + (data.error || 'unknown error'), 'error');
             return;
         }
         showToast('📧 Email sent to ' + data.sent + ' user(s)' + (data.failed ? (', ' + data.failed + ' failed') : '') + '.', 'success');
     } catch (e) {
+        // This branch only fires when the request never got a response at
+        // all — DNS failure, no internet, CORS block, etc. e.message has
+        // the real reason (e.g. "Failed to fetch").
         console.warn('Bulk email exception:', e);
-        showToast('Email request failed. Check your connection and try again.', 'error');
+        showToast('Email request failed: ' + (e && e.message ? e.message : 'unknown error'), 'error');
     }
 }
 
