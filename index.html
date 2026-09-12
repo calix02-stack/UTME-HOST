@@ -7044,6 +7044,37 @@ async function sendRealPushNotification(title, body, userIds) {
     }
 }
 
+// Sends an email to every user (or a specific list of user ids) by calling
+// the "send-bulk-email" Supabase Edge Function, which looks up addresses in
+// `profiles` and relays through Resend. See the deploy instructions for that
+// function — it must be created in the Supabase project before this works.
+async function sendBulkEmail(subject, message, userIds) {
+    try {
+        const res = await fetch(SEND_EMAIL_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+                subject: subject,
+                message: message,
+                user_ids: (userIds && userIds.length) ? userIds : null,
+                adminEmail: (state.profile && state.profile.email) || (state.authUser && state.authUser.email) || '',
+            }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+            showToast('Email send failed: ' + (data.error || 'unknown error'), 'error');
+            return;
+        }
+        showToast('📧 Email sent to ' + data.sent + ' user(s)' + (data.failed ? (', ' + data.failed + ' failed') : '') + '.', 'success');
+    } catch (e) {
+        console.warn('Bulk email exception:', e);
+        showToast('Email request failed. Check your connection and try again.', 'error');
+    }
+}
+
 function updateAppBadge() {
     try {
         if (!navigator.setAppBadge) return;
@@ -7078,6 +7109,7 @@ const PAYSTACK_PUBLIC_KEY = "pk_live_58e6b5b2ecc81730786fb95ec444a77422a4b2b4";
 const PAYSTACK_VERIFY_URL = SUPABASE_URL + "/functions/v1/verify-paystack-payment";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const SEND_PUSH_URL = SUPABASE_URL + "/functions/v1/send-push-notification";
+const SEND_EMAIL_URL = SUPABASE_URL + "/functions/v1/send-bulk-email";
 const SEND_DAILY_REMINDER_URL = SUPABASE_URL + "/functions/v1/send-daily-reminder";
 const ADMIN_WHATSAPP_NUMBER = "2347072853151";
 const SUPPORT_WHATSAPP_NUMBER = "2348071826114"; // displayed as 08071826114, wa.me needs country code without leading 0
@@ -14066,6 +14098,9 @@ function renderNotifyModal() {
         '<input id="notify-title-input" class="field" placeholder="Notification title" style="margin-bottom:6px" />' +
         '<label class="field-label">Body</label>' +
         '<textarea id="notify-body-input" class="field" rows="3" placeholder="Notification message..." style="margin-bottom:10px"></textarea>' +
+        '<label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;margin-bottom:12px;cursor:pointer">' +
+        '<input type="checkbox" id="notify-also-email" style="width:16px;height:16px" /> Also send as email' +
+        '</label>' +
         '<div class="btn-group">' +
         '<button class="btn btn-green" data-action="notify-send">Send</button>' +
         '<button class="btn btn-outline" data-action="notify-close">Cancel</button>' +
@@ -22277,6 +22312,17 @@ function renderAdminNotifications() {
             '') +
         '<button class="btn btn-green" data-action="admin-send-notification" style="padding:10px">Send Notification</button>' +
         '</div>' +
+
+        '<div class="card" style="margin-bottom:10px">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 10px">📧 Send Broadcast Email</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:-2px 0 10px">Sends an actual email to every registered user\'s address on file. Separate from the in-app/push notification above.</p>' +
+        '<label class="field-label">Subject</label>' +
+        '<input class="field" id="admin-email-subject" placeholder="Email subject" style="margin-bottom:10px;font-size:13px" />' +
+        '<label class="field-label">Message</label>' +
+        '<textarea class="field" id="admin-email-body" rows="5" placeholder="Write your message here... (plain text or simple HTML)" style="margin-bottom:10px;font-size:13px"></textarea>' +
+        '<button class="btn btn-green" data-action="admin-send-email" style="padding:10px">Send Email to All Users</button>' +
+        '</div>' +
+
         '<p class="section-label">Sent Notifications</p>' +
         notifList
     );
@@ -26112,6 +26158,24 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'admin-send-email') {
+        const subject = document.getElementById('admin-email-subject')?.value?.trim() || '';
+        const message = document.getElementById('admin-email-body')?.value?.trim() || '';
+
+        if (!subject || !message) {
+            showToast('Fill in both subject and message.', 'error');
+            return;
+        }
+        if (!window.confirm('Send this email to every registered user? This can\'t be undone.')) return;
+
+        showToast('Sending email…', '');
+        sendBulkEmail(subject, message, null).then(function() {
+            document.getElementById('admin-email-subject').value = '';
+            document.getElementById('admin-email-body').value = '';
+        });
+        return;
+    }
+
     if (action === 'admin-notify-user' || action === 'admin-notify-user-btn') {
         const userId = el.getAttribute('data-userid');
         const username = el.getAttribute('data-username') || 'User';
@@ -26171,6 +26235,8 @@ document.addEventListener('click', function(e) {
             return { title: title, body: body, target_user_id: id, created_at: new Date().toISOString() };
         });
 
+        const alsoEmail = document.getElementById('notify-also-email')?.checked || false;
+
         supabase.from('notifications').insert(rows).then(function() {
             showToast('✅ Notification sent to ' + userIds.length + ' user' + (userIds.length > 1 ? 's' : '') + '!', 'success');
             state.showNotifyModal = false;
@@ -26181,6 +26247,7 @@ document.addEventListener('click', function(e) {
             state.notifs = [];
             loadNotifications();
             render();
+            if (alsoEmail) sendBulkEmail(title, body, userIds);
             setTimeout(function() {
                 render();
             }, 1000);
