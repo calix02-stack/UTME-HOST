@@ -7055,6 +7055,7 @@ async function sendBulkEmail(subject, message, userIds) {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                'apikey': SUPABASE_ANON_KEY,
             },
             body: JSON.stringify({
                 subject: subject,
@@ -7127,6 +7128,7 @@ const PAYSTACK_VERIFY_URL = SUPABASE_URL + "/functions/v1/verify-paystack-paymen
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const SEND_PUSH_URL = SUPABASE_URL + "/functions/v1/send-push-notification";
 const SEND_EMAIL_URL = SUPABASE_URL + "/functions/v1/send-bulk-email";
+const ADMIN_GET_USERS_URL = SUPABASE_URL + "/functions/v1/admin-get-users";
 const SEND_DAILY_REMINDER_URL = SUPABASE_URL + "/functions/v1/send-daily-reminder";
 const ADMIN_WHATSAPP_NUMBER = "2347072853151";
 const SUPPORT_WHATSAPP_NUMBER = "2348071826114"; // displayed as 08071826114, wa.me needs country code without leading 0
@@ -8598,20 +8600,50 @@ function goBack(fallbackView) {
 
 async function loadAllUsers() {
     try {
-        const { data, error } = await withNetworkTimeout(
-            supabase
-                .from('profiles')
-                .select('id, username, full_name, email, is_active, activation_expiry, profile_image_url, last_seen')
-                .order('username'),
-            8000, 'Users load'
-        );
-        if (error) {
-            console.warn("Load users error:", extractErrorMessage(error), error);
+        // Previously this queried `profiles` directly from the browser with
+        // the public anon key. Being "admin" in this app is only a
+        // client-side check (does your email match the hardcoded admin
+        // address?) — it has no effect on Supabase's actual Row Level
+        // Security. If `profiles` has a policy like "you can only see your
+        // own row" (a very common default), that query silently came back
+        // with far fewer rows than actually exist, with no error — which
+        // is exactly the wrong user count you were seeing. Routing this
+        // through the admin-get-users Edge Function fixes it at the root:
+        // the function verifies your login server-side, then reads every
+        // row with the service role key, which always bypasses RLS.
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
+        if (!accessToken) {
             state.allUsers = [];
-            state.allUsersError = error.message || 'Unknown error loading users.';
+            state.allUsersError = 'You must be logged in to load users.';
             return [];
         }
-        state.allUsers = data || [];
+
+        const res = await withNetworkTimeout(
+            fetch(ADMIN_GET_USERS_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + accessToken,
+                    'apikey': SUPABASE_ANON_KEY,
+                },
+            }),
+            8000, 'Users load'
+        );
+
+        const rawText = await res.text();
+        let json;
+        try {
+            json = JSON.parse(rawText);
+        } catch (parseErr) {
+            throw new Error('Unexpected response (HTTP ' + res.status + '): ' + rawText.slice(0, 120));
+        }
+
+        if (!res.ok || !json.ok) {
+            throw new Error(json.error || ('HTTP ' + res.status));
+        }
+
+        state.allUsers = json.users || [];
         state.allUsersError = null;
         return state.allUsers;
     } catch (e) {
@@ -22089,6 +22121,7 @@ function renderAdminUsers() {
             ? '<img src="' + esc(user.profile_image_url) + '" style="width:32px;height:32px;border-radius:999px;object-fit:cover" />' 
             : '<div style="width:32px;height:32px;border-radius:999px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + esc(avatarLetter) + '</div>';
         const isOnlineNow = user.last_seen && (Date.now() - new Date(user.last_seen).getTime()) < 5 * 60 * 1000;
+        const joinedLabel = user.created_at ? new Date(user.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
         
         const isSelected = (state.admin.selectedUserIds || []).indexOf(user.id) !== -1;
         rows += (
@@ -22105,6 +22138,7 @@ function renderAdminUsers() {
             '<span class="user-name">' + esc(displayName) + '</span>' +
             '<span class="user-email">@' + esc(user.username) + ' · ' + esc(user.email || '') + '</span>' +
             '<span style="font-size:9px;color:' + (isOnlineNow ? '#22c55e' : 'var(--faint)') + '">' + (isOnlineNow ? '🟢 Online now' : '⚪ Last seen ' + (user.last_seen ? formatTimeAgo(user.last_seen) : 'never')) + '</span>' +
+            (joinedLabel ? '<span style="font-size:9px;color:var(--faint)">📅 Joined ' + joinedLabel + '</span>' : '') +
             '</div>' +
             '</div>' +
             '<span class="user-status ' + (isActive ? 'active' : 'inactive') + '">' +
