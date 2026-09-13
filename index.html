@@ -8273,6 +8273,16 @@ let state = {
     guestResultId: null,
     guestResultCheckLoading: false,
     guestResultCheckData: null,
+
+    // Live Exam Link — same idea as the mock exam link above, but for
+    // Mock Arena "live" exams (?liveexamlink=<liveExamId>). Both a
+    // registered user and a signed-out guest land on a confirm screen
+    // first (rather than being dropped straight in) since live exams are
+    // scheduled/timed events, not an always-open mock.
+    pendingLiveExamLinkId: null,
+    liveExamLinkGuestName: "",
+    liveExamLinkLoading: false,
+    lastCreatedLiveExamId: null,
     guestResultCheckError: null,
 
     // Admin
@@ -10911,6 +10921,7 @@ async function createLiveExam() {
     if (!f.isPublic) {
         state.lastCreatedJoinCode = code;
     }
+    state.lastCreatedLiveExamId = data ? data.id : null;
     showToast('🎉 Live exam created!', 'success');
     state.liveExamCreateForm = { title: '', examType: '', subject: '', subjects: [], mode: '1', startOffsetMinutes: 10, numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true };
     state.liveExamCreateStep = 'type';
@@ -11218,10 +11229,15 @@ async function loadGuestResultCheck(resultId) {
         // Always read the exam's release flag fresh from the DB rather than
         // relying on a cached state.mockExams list, which may have been
         // loaded before the admin released results and never refreshed.
+        // The row came from either a Mock Exam link or a Live Exam link —
+        // only one of these two FK columns is ever set, so check which.
+        const isLive = !!row.live_exam_id;
+        const examTable = isLive ? 'live_exams' : 'mock_exams';
+        const linkedExamId = isLive ? row.live_exam_id : row.mock_exam_id;
         const { data: examRow } = await supabase
-            .from('mock_exams')
+            .from(examTable)
             .select('*')
-            .eq('id', row.mock_exam_id)
+            .eq('id', linkedExamId)
             .maybeSingle();
         const released = !!(examRow && examRow.results_released !== false);
 
@@ -11385,21 +11401,200 @@ async function startGuestMockExam(mockExamId, guestName) {
     }
 }
 
+// ============================================================
+//  LIVE EXAM LINK — ?liveexamlink=<liveExamId>. Same idea as the Mock
+//  Exam link above, but for Mock Arena "live" exams. Unlike the mock link,
+//  this always lands on a confirm screen first (live exams are scheduled,
+//  multi-subject, timed events — not something to drop someone into
+//  silently) and it works whether or not the exam has started yet.
+// ============================================================
+function handleLiveExamLinkFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const linkId = urlParams.get('liveexamlink');
+    if (!linkId) return;
+    try {
+        window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+    } catch (e) { /* ignore */ }
+
+    state.pendingLiveExamLinkId = linkId;
+    state.liveExamLinkGuestName = '';
+    state.view = 'live-exam-link-confirm';
+    loadLiveExamLinkPreview(linkId);
+}
+
+async function loadLiveExamLinkPreview(linkId) {
+    state.liveExamLinkLoading = true;
+    render();
+    try {
+        if (!state.liveExams || state.liveExams.length === 0) {
+            await loadLiveExams();
+        }
+        if (state.authUser) {
+            await loadLiveExamRegistrations();
+        }
+    } catch (e) {
+        console.warn('Live exam link preview error:', e);
+    }
+    state.liveExamLinkLoading = false;
+    render();
+}
+
+function liveExamLinkStatus(exam) {
+    const now = new Date();
+    const sch = new Date(exam.scheduled_date), end = new Date(exam.end_date);
+    if (now > end) return 'completed';
+    if (now >= sch && now <= end) return 'ongoing';
+    return 'upcoming';
+}
+
+// Registered user, exam is ongoing: register them if needed (reusing the
+// exact same joinLiveExamNow used everywhere else, so it gets the same
+// double-tap/duplicate-key protection), then drop them into the real exam.
+async function joinAndStartLiveExamViaLink(examId) {
+    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    const already = (state.liveExamRegistrations || []).find(function(r) { return r.live_exam_id === examId; });
+    if (!already) {
+        await joinLiveExamNow(examId);
+    }
+    state.pendingLiveExamLinkId = null;
+    startMockExam(examId, 'live');
+}
+
+// Registered user, exam hasn't started yet: just reserve their spot so it
+// shows up as "Joined" in their own Mock Arena list — they don't need this
+// link again, they can come back through the app like any other exam.
+async function reserveLiveExamViaLink(examId) {
+    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    await joinLiveExamNow(examId);
+    render();
+}
+
+// Signed-out visitor, exam is ongoing: same in-memory, no-account pattern
+// as startGuestMockExam(), but pulls its subject list / question count /
+// time limit from the live exam's own settings (which may be several
+// subjects, JAMB-style) instead of the global mock settings.
+async function startGuestLiveExam(liveExamId, guestName) {
+    state.isLoading = true;
+    render();
+    try {
+        const exam = (state.liveExams || []).find(function(e) { return e.id === liveExamId; });
+        if (!exam) {
+            state.isLoading = false;
+            showToast('This exam could not be found.', 'error');
+            state.view = 'live-exam-link-confirm';
+            render();
+            return;
+        }
+
+        const subjects = (exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids.slice() : [exam.subject_id];
+        const perSubject = exam.num_questions || exam.questions_per_subject || 40;
+
+        state.engMockPassage = null;
+        state.engMockHasPassage = false;
+        state.engMockPassageRead = true;
+        state.engMockPassageId = null;
+
+        let allQuestions = [];
+        for (const subjectId of subjects) {
+            const allSubjectQuestions = await window.OfflineDB.getQuestionsOffline('mock', subjectId);
+            if (subjectId === 'eng') {
+                let engLoaded = false;
+                const batches = await window.OfflineDB.getPassageBatchesOffline('eng', 'mock');
+                if (batches && batches.length > 0) {
+                    const selectedBatch = shuffleArray(batches.slice())[0];
+                    const qData = allSubjectQuestions
+                        .filter(function(q) { return q.batch_number === selectedBatch; })
+                        .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
+                        .slice(0, perSubject);
+                    if (qData.length > 0) {
+                        const passage = await window.OfflineDB.getPassageOffline(selectedBatch, 'mock');
+                        if (passage) {
+                            state.engMockPassage = passage;
+                            state.engMockHasPassage = true;
+                            state.engMockPassageRead = false;
+                            state.engMockPassageId = passage.id;
+                        }
+                        allQuestions = allQuestions.concat(qData);
+                        engLoaded = true;
+                    }
+                }
+                if (!engLoaded) {
+                    allQuestions = allQuestions.concat(shuffleArray(allSubjectQuestions.slice()).slice(0, perSubject));
+                }
+            } else {
+                allQuestions = allQuestions.concat(shuffleArray(allSubjectQuestions.slice()).slice(0, perSubject));
+            }
+        }
+
+        if (allQuestions.length === 0) {
+            state.isLoading = false;
+            showToast('This exam has no questions available offline yet. Please try again after connecting to the internet.', 'error');
+            state.view = 'live-exam-link-confirm';
+            render();
+            return;
+        }
+
+        state.isGuestMock = true;
+        state.guestMockName = guestName;
+        state.mockExamSource = 'live';
+        state.currentMockAttempt = null;
+        state.mockQuestions = allQuestions;
+        state.mockAnswers = new Array(allQuestions.length).fill(null);
+        state.mockIndex = 0;
+        state.mockFinished = false;
+        state.mockSubmitted = false;
+        const timeLimit = exam.time_limit_minutes || 100;
+        state.mockTimeLeft = timeLimit * 60;
+        state.mockExamId = liveExamId;
+        state.pendingLiveExamLinkId = null;
+        state.isLoading = false;
+
+        buildMockSubjectGroups(allQuestions);
+
+        state.view = 'mock-exam';
+        render();
+
+        if (state.mockTimer) clearInterval(state.mockTimer);
+        state.mockTimer = setInterval(function() {
+            state.mockTimeLeft--;
+            if (state.mockTimeLeft <= 0) {
+                clearInterval(state.mockTimer);
+                state.mockTimer = null;
+                submitMockExam(true);
+            } else {
+                if (!tickTimerDisplay(state.mockTimeLeft)) render();
+            }
+        }, 1000);
+    } catch (e) {
+        console.warn('Start guest live exam error:', e);
+        state.isLoading = false;
+        showNetworkAwareError('Error starting exam: ' + (e.message || 'unknown'), e);
+        state.view = 'live-exam-link-confirm';
+        render();
+    }
+}
+
 // Saves a guest's finished attempt to its own table, completely separate
 // from mock_attempts/mock_scores, then tags it "Unverified" wherever the
 // leaderboard code merges it back in (see loadLeaderboard/loadSubjectLeaderboard).
 // Returns the inserted row (with its id) so the guest can be given a
 // personal "check my result" link — their only way back in, since there's
 // no account/login for them to return through otherwise.
+// Guests can come from either a Mock Exam link (mockExamSource 'admin') or
+// a Live Exam link (mockExamSource 'live') — only one of the two FK columns
+// gets set depending on which, the other stays null.
 function saveGuestMockResult(totalScore, subjectScores, totalQuestions) {
-    return supabase.from('unverified_mock_results').insert([{
-        mock_exam_id: state.mockExamId,
+    const isLive = state.mockExamSource === 'live';
+    const row = {
         guest_name: state.guestMockName || 'Unverified candidate',
         score: totalScore,
         total_questions: totalQuestions,
         subject_scores: subjectScores,
         submitted_at: new Date().toISOString(),
-    }]).select().single();
+    };
+    if (isLive) row.live_exam_id = state.mockExamId;
+    else row.mock_exam_id = state.mockExamId;
+    return supabase.from('unverified_mock_results').insert([row]).select().single();
 }
 
 async function startMockExam(mockExamId, source) {
@@ -15435,6 +15630,7 @@ function renderView() {
     if (v === "mock-result") return renderMockResult();
     if (v === "exam-link-guest") return renderExamLinkGuest();
     if (v === "guest-result-check") return renderGuestResultCheck();
+    if (v === "live-exam-link-confirm") return renderLiveExamLinkConfirm();
     if (v === "cbt-exam") return renderCbtExam();
     if (v === "exam-exam") return renderExamExam();
     if (v === "lit-exam") return renderLitExam();
@@ -19701,6 +19897,9 @@ function renderMockExamPicker() {
                 (reg ? '<span class="mock-status registered" style="margin-left:4px">✅ Joined</span>' : '') +
                 (exam.source === 'live' && exam.is_public === false ? '<span class="mock-status waiting" style="margin-left:4px">🔒 Private</span>' : '') +
                 '<div style="margin-top:8px">' + actionHtml + '</div>' +
+                (exam.source === 'live' && exam.created_by === state.authUser?.id
+                    ? '<button class="mini-btn" style="margin-top:6px;width:100%" data-action="copy-live-exam-link" data-examid="' + exam.id + '">🔗 Copy Shareable Link</button>'
+                    : '') +
                 '</div>'
             );
         });
@@ -19720,6 +19919,12 @@ function renderMockExamPicker() {
             '<p style="font-family:var(--font-mono);font-size:20px;font-weight:700;letter-spacing:0.1em;color:var(--ink);margin:0 0 8px">' + esc(state.lastCreatedJoinCode) + '</p>' +
             '<button class="mini-btn primary" data-action="copy-text" data-copy="' + esc(state.lastCreatedJoinCode) + '">📋 Copy Code</button>' +
             '<button class="mini-btn" style="margin-left:6px" data-action="dismiss-join-code-banner">Dismiss</button>' +
+            '</div>' : '') +
+        (state.lastCreatedLiveExamId ?
+            '<div class="card" style="border-color:var(--green);text-align:center;padding:12px;margin-bottom:12px">' +
+            '<p style="font-size:10px;color:var(--muted);margin:0 0 4px">🔗 Shareable link — anyone can join with it, account or not</p>' +
+            '<button class="mini-btn primary" data-action="copy-live-exam-link" data-examid="' + esc(state.lastCreatedLiveExamId) + '">📋 Copy Link</button>' +
+            '<button class="mini-btn" style="margin-left:6px" data-action="dismiss-live-exam-link-banner">Dismiss</button>' +
             '</div>' : '') +
         tabsHtml +
         cards
@@ -19911,6 +20116,74 @@ function renderGuestResultCheck() {
                 return { label: subj ? subj.name : sid, value: d.subjectScores[sid] + ' / 100' };
             }),
         })
+    );
+}
+
+function renderLiveExamLinkConfirm() {
+    if (state.liveExamLinkLoading || !state.liveExamsLoaded) {
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading exam...</p></div>';
+    }
+    const exam = (state.liveExams || []).find(function(e) { return e.id === state.pendingLiveExamLinkId; });
+    if (!exam) {
+        return (
+            '<div class="card" style="text-align:center;padding:24px">' +
+            '<p style="font-size:40px;margin:0 0 12px">⚠️</p>' +
+            '<h2 class="title" style="font-size:18px">Exam Not Found</h2>' +
+            '<p style="font-size:13px;color:var(--muted);margin:0">This link may be invalid or the exam was deleted.</p>' +
+            '</div>'
+        );
+    }
+
+    const subjIds = (exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids : [exam.subject_id];
+    const subjNames = subjIds.map(function(sid) {
+        const sj = SUBJECTS.find(function(s) { return s.id === sid; });
+        return sj ? sj.name : sid;
+    }).join(', ');
+    const st = liveExamLinkStatus(exam);
+    const scheduled = new Date(exam.scheduled_date);
+    const reg = state.authUser
+        ? (state.liveExamRegistrations || []).find(function(r) { return r.live_exam_id === exam.id; })
+        : null;
+
+    let body = '';
+    if (st === 'completed') {
+        body = '<p style="font-size:13px;color:var(--muted);margin:14px 0 0">This exam has already ended.</p>';
+    } else if (st === 'upcoming') {
+        body = (
+            '<p style="font-size:13px;color:var(--muted);margin:14px 0 0">Starts ' + scheduled.toLocaleString() + '. ' +
+            (state.authUser
+                ? 'Reserve your spot now, or just come back to this link once it starts.'
+                : 'Keep this link and come back once it starts to join as a guest — nothing to do yet.') +
+            '</p>' +
+            (state.authUser
+                ? (reg
+                    ? '<p style="font-size:12px;color:var(--green);font-weight:700;margin-top:10px">✅ You\'re already registered</p>'
+                    : '<button class="btn btn-gold" style="width:100%;padding:12px;margin-top:14px" data-action="reserve-live-exam-link" data-examid="' + exam.id + '">Reserve My Spot</button>')
+                : '')
+        );
+    } else {
+        // ongoing
+        body = state.authUser
+            ? '<button class="btn btn-gold" style="width:100%;padding:12px;margin-top:14px" data-action="confirm-live-exam-link-join" data-examid="' + exam.id + '">' + (reg ? 'Continue Exam' : 'Join & Start Exam') + '</button>'
+            : (
+                '<p style="font-size:12px;color:var(--muted);margin:14px 0 10px">Enter your name to join as a guest. No account or sign-up needed.</p>' +
+                '<input id="liveexamlink-guest-name" type="text" placeholder="Your full name" value="' + esc(state.liveExamLinkGuestName) + '" ' +
+                'style="width:100%;padding:12px;border:1px solid var(--input-border);border-radius:10px;margin-bottom:12px;font-size:14px" />' +
+                '<button class="btn btn-gold" style="width:100%;padding:12px" data-action="start-guest-live-exam">Start Exam</button>' +
+                '<p style="font-size:11px;color:var(--faint);margin-top:14px">Already have an account? ' +
+                '<button data-action="show-login" style="text-decoration:underline;font-weight:700">Log in</button> to have this count toward your verified record.</p>'
+            );
+    }
+
+    return (
+        '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
+        '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
+        '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam.title) + '</h2>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:2px">' + esc(subjNames) + ' · ' + (exam.num_questions || '-') + ' questions' + (subjIds.length > 1 ? '/subject' : '') + ' · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>' +
+        '<p style="font-size:9px;font-weight:800;letter-spacing:0.04em;color:' + (st === 'ongoing' ? 'var(--green)' : st === 'upcoming' ? 'var(--muted)' : 'var(--faint)') + '">' +
+        (st === 'ongoing' ? '● LIVE NOW' : st === 'upcoming' ? '📅 UPCOMING' : '🔒 ENDED') + '</p>' +
+        body +
+        '</div>'
     );
 }
 
@@ -25517,6 +25790,53 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'copy-live-exam-link') {
+        const examId = el.getAttribute('data-examid');
+        const link = window.location.origin + window.location.pathname + '?liveexamlink=' + examId;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link)
+                .then(function() { showToast('Exam link copied — share it with anyone!', 'success'); })
+                .catch(function() { fallbackCopy(link); });
+        } else {
+            fallbackCopy(link);
+        }
+        return;
+    }
+
+    if (action === 'dismiss-live-exam-link-banner') {
+        state.lastCreatedLiveExamId = null;
+        render();
+        return;
+    }
+
+    if (action === 'dismiss-join-code-banner') {
+        state.lastCreatedJoinCode = null;
+        render();
+        return;
+    }
+
+    if (action === 'start-guest-live-exam') {
+        const nameInput = document.getElementById('liveexamlink-guest-name');
+        if (nameInput) state.liveExamLinkGuestName = nameInput.value;
+        const name = (state.liveExamLinkGuestName || '').trim();
+        if (!name) { showToast('Please enter your name.', 'error'); return; }
+        if (!state.pendingLiveExamLinkId) { showToast('This exam link is no longer valid.', 'error'); return; }
+        startGuestLiveExam(state.pendingLiveExamLinkId, name);
+        return;
+    }
+
+    if (action === 'confirm-live-exam-link-join') {
+        const examId = el.getAttribute('data-examid');
+        joinAndStartLiveExamViaLink(examId);
+        return;
+    }
+
+    if (action === 'reserve-live-exam-link') {
+        const examId = el.getAttribute('data-examid');
+        reserveLiveExamViaLink(examId);
+        return;
+    }
+
     if (action === 'refresh-leaderboard') {
         loadLeaderboard('mock');
         showToast('Refreshing leaderboard...', '');
@@ -28244,6 +28564,7 @@ async function init() {
     // paths have everything they need immediately.
     handleExamLinkFromUrl();
     handleExamResultLinkFromUrl();
+    handleLiveExamLinkFromUrl();
 
     // Auto-reconcile per-subject question files — runs on every app open so
     // the offline DB is kept exactly in sync with what's on GitHub: same
