@@ -8257,6 +8257,23 @@ let state = {
     allUsers: [],
     allUsersError: null,
     loadingLeaderboard: false,
+    unverifiedResultsPool: [],
+
+    // Exam Link — lets someone reach a specific Mock Exam via a shared URL
+    // (?examlink=<mockExamId>) without going through the normal browse flow.
+    // A logged-in user is dropped straight into the exam as themselves
+    // (fully verified, normal leaderboard entry). A signed-out visitor is
+    // asked only for a display name — no account is created — and their
+    // result is saved separately and tagged "Unverified" wherever it shows.
+    pendingExamLinkId: null,
+    examLinkGuestName: "",
+    examLinkSubjectId: "math",
+    isGuestMock: false,
+    guestMockName: null,
+    guestResultId: null,
+    guestResultCheckLoading: false,
+    guestResultCheckData: null,
+    guestResultCheckError: null,
 
     // Admin
     adminTab: "overview",
@@ -8827,8 +8844,33 @@ async function loadLeaderboard(type) {
                 display_name: isCurrentUser ? rawName : maskUsername(rawName),
                 is_current_user: isCurrentUser,
                 subject_scores: subjectBestMap[user.id] || null,
+                is_unverified: false,
             };
         }).filter(function(entry) { return entry.subject_scores; });
+
+        // Unverified (exam-link, no-account) attempts — mixed into the
+        // same ranked list per subject, never into Overall, and always
+        // tagged so it's clear they didn't come from a registered account.
+        try {
+            const { data: unverifiedRows } = await withNetworkTimeout(
+                supabase.from('unverified_mock_results').select('*'),
+                8000, 'Unverified results load'
+            );
+            (unverifiedRows || []).forEach(function(row) {
+                if (!row.subject_scores) return;
+                subjectLeaderboardPool.push({
+                    user_id: 'unverified_' + row.id,
+                    candidate_code: row.guest_name || 'Unverified candidate',
+                    display_name: row.guest_name || 'Unverified candidate',
+                    is_current_user: false,
+                    subject_scores: row.subject_scores,
+                    is_unverified: true,
+                });
+            });
+        } catch (uErr) {
+            console.warn('Load unverified results error:', uErr);
+        }
+
         state.subjectLeaderboardPool = subjectLeaderboardPool;
     } catch (e) {
         console.warn("Load leaderboard exception:", extractErrorMessage(e), e);
@@ -10344,6 +10386,9 @@ async function signIn(emailOrUsername, password) {
             render();
             cacheAllDataForOffline();
             restoreSessionSnapshot();
+            if (state.pendingExamLinkId) {
+                enterMockExamViaLink(state.pendingExamLinkId);
+            }
         }
     } catch (err) {
         logAppError("Login", err);
@@ -10663,6 +10708,7 @@ function exitActiveExamDiscarding() {
             state.mockResultReleased = false; state.mockSubjectQuestions = {}; state.mockSubjectOrder = [];
             state.mockCurrentSubject = null; state.engMockPassage = null; state.engMockHasPassage = false;
             state.engMockPassageRead = false; state.engMockPassageId = null;
+            state.isGuestMock = false; state.guestMockName = null;
             break;
         default:
             return;
@@ -11104,6 +11150,234 @@ async function registerForMock(mockExamId, mode, subjects) {
     }
 }
 
+// ============================================================
+//  EXAM LINK — shared URL (?examlink=<mockExamId>) that lets anyone reach
+//  one specific Mock Exam directly. Logged-in users go straight in as
+//  themselves through the normal, untouched startMockExam() path below.
+//  Signed-out visitors are routed to a name-only entry screen instead of
+//  the usual login/signup wall (see 'exam-link-guest' view + startGuestMockExam).
+// ============================================================
+// A guest's personal, no-login "check my result" link — ?examresult=<row-id>
+// from unverified_mock_results. This is the only way a guest can ever see
+// a score that wasn't released yet at submission time, since they have no
+// account to log back into.
+function handleExamResultLinkFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const resultId = urlParams.get('examresult');
+    if (!resultId) return;
+    try {
+        window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+    } catch (e) { /* ignore */ }
+    state.view = 'guest-result-check';
+    loadGuestResultCheck(resultId);
+}
+
+async function loadGuestResultCheck(resultId) {
+    state.guestResultCheckLoading = true;
+    state.guestResultCheckError = null;
+    state.guestResultCheckData = null;
+    render();
+    try {
+        const { data: row, error } = await supabase
+            .from('unverified_mock_results')
+            .select('*')
+            .eq('id', resultId)
+            .maybeSingle();
+
+        if (error || !row) {
+            state.guestResultCheckError = "Couldn't find this result. The link may be invalid.";
+            state.guestResultCheckLoading = false;
+            render();
+            return;
+        }
+
+        // Always read the exam's release flag fresh from the DB rather than
+        // relying on a cached state.mockExams list, which may have been
+        // loaded before the admin released results and never refreshed.
+        const { data: examRow } = await supabase
+            .from('mock_exams')
+            .select('*')
+            .eq('id', row.mock_exam_id)
+            .maybeSingle();
+        const released = !!(examRow && examRow.results_released !== false);
+
+        state.guestResultCheckData = {
+            guestName: row.guest_name,
+            score: row.score,
+            totalQuestions: row.total_questions,
+            subjectScores: row.subject_scores || {},
+            submittedAt: row.submitted_at,
+            examTitle: examRow ? examRow.title : 'Mock Exam',
+            released: released,
+            resultLink: window.location.origin + window.location.pathname + '?examresult=' + resultId,
+        };
+    } catch (e) {
+        console.warn('Load guest result check error:', e);
+        state.guestResultCheckError = "Couldn't load this result right now. Please try again later.";
+    }
+    state.guestResultCheckLoading = false;
+    render();
+}
+
+function handleExamLinkFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const linkId = urlParams.get('examlink');
+    if (!linkId) return;
+
+    // Strip the param from the address bar so refreshing/re-sharing the
+    // current URL later doesn't re-trigger this — the exam itself now runs
+    // entirely off app state, not the URL.
+    try {
+        window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+    } catch (e) { /* ignore */ }
+
+    state.pendingExamLinkId = linkId;
+
+    if (state.authUser) {
+        enterMockExamViaLink(linkId);
+    } else {
+        state.view = 'exam-link-guest';
+        state.examLinkGuestName = '';
+        render();
+    }
+}
+
+// Registered user coming in through the link: silently register them for
+// this exam's fixed subject if they aren't already, then hand off to the
+// real, unmodified startMockExam() — identical to a normal Mock Arena entry.
+async function enterMockExamViaLink(mockExamId) {
+    if (!state.authUser) return;
+    if (!isUserActive()) {
+        state.pendingExamLinkId = null;
+        redirectToActivate('Mock Arena is part of full access. Activate your account below to take this exam.');
+        return;
+    }
+    try {
+        if (!state.mockExams || state.mockExams.length === 0) {
+            await loadMockExams();
+        }
+        await loadMockRegistrations(mockExamId);
+
+        const already = (state.mockRegistrations || []).find(function(r) {
+            return r.mock_exam_id === mockExamId && r.user_id === state.authUser.id;
+        });
+
+        if (!already) {
+            await supabase.from('mock_registrations').insert([{
+                user_id: state.authUser.id,
+                mock_exam_id: mockExamId,
+                subjects: [state.examLinkSubjectId],
+            }]);
+            await loadMockRegistrations(mockExamId);
+        }
+
+        state.pendingExamLinkId = null;
+        startMockExam(mockExamId, 'admin');
+    } catch (e) {
+        console.warn('Exam link entry error:', e);
+        state.pendingExamLinkId = null;
+        showNetworkAwareError('Could not open this exam link.', e);
+        render();
+    }
+}
+
+// Signed-out visitor confirms their name on the 'exam-link-guest' screen —
+// no account, no password, nothing saved beyond this one attempt.
+function beginGuestExamFromLink() {
+    const name = (state.examLinkGuestName || '').trim();
+    if (!name) { showToast('Please enter your name.', 'error'); return; }
+    if (!state.pendingExamLinkId) { showToast('This exam link is no longer valid.', 'error'); return; }
+    startGuestMockExam(state.pendingExamLinkId, name);
+}
+
+// Guest exam-taking: mirrors the "start a fresh attempt" branch of
+// startMockExam() for a single fixed subject, but keeps everything in
+// memory only — no mock_registrations row, no mock_attempts row, no
+// per-user "used question" tracking (a guest only ever sits this once).
+// It reuses the exact same mockQuestions/mockAnswers/mock-exam view/timer
+// that the registered flow uses, so the exam-taking UI itself needs no
+// changes at all — only doSubmitMock() branches differently at the end.
+async function startGuestMockExam(mockExamId, guestName) {
+    state.isLoading = true;
+    render();
+    try {
+        const subjectId = state.examLinkSubjectId || 'math';
+        const settings = await loadSettings();
+        const perSubject = settings.mockQuestionsPerSubject || 40;
+
+        const allSubjectQuestions = await window.OfflineDB.getQuestionsOffline('mock', subjectId);
+        const selectedQuestions = shuffleArray(allSubjectQuestions.slice()).slice(0, perSubject);
+
+        if (selectedQuestions.length === 0) {
+            state.isLoading = false;
+            showToast('This exam has no questions available offline yet. Please try again after connecting to the internet.', 'error');
+            state.view = 'exam-link-guest';
+            render();
+            return;
+        }
+
+        state.engMockPassage = null;
+        state.engMockHasPassage = false;
+        state.engMockPassageRead = true;
+        state.engMockPassageId = null;
+
+        state.isGuestMock = true;
+        state.guestMockName = guestName;
+        state.mockExamSource = 'admin';
+        state.currentMockAttempt = null;
+        state.mockQuestions = selectedQuestions;
+        state.mockAnswers = new Array(selectedQuestions.length).fill(null);
+        state.mockIndex = 0;
+        state.mockFinished = false;
+        state.mockSubmitted = false;
+        const timeLimit = settings.mockTimeLimit || 100;
+        state.mockTimeLeft = timeLimit * 60;
+        state.mockExamId = mockExamId;
+        state.pendingExamLinkId = null;
+        state.isLoading = false;
+
+        buildMockSubjectGroups(selectedQuestions);
+
+        state.view = 'mock-exam';
+        render();
+
+        if (state.mockTimer) clearInterval(state.mockTimer);
+        state.mockTimer = setInterval(function() {
+            state.mockTimeLeft--;
+            if (state.mockTimeLeft <= 0) {
+                clearInterval(state.mockTimer);
+                state.mockTimer = null;
+                submitMockExam(true);
+            } else {
+                if (!tickTimerDisplay(state.mockTimeLeft)) render();
+            }
+        }, 1000);
+    } catch (e) {
+        console.warn('Start guest exam error:', e);
+        state.isLoading = false;
+        showNetworkAwareError('Error starting exam: ' + (e.message || 'unknown'), e);
+        state.view = 'exam-link-guest';
+        render();
+    }
+}
+
+// Saves a guest's finished attempt to its own table, completely separate
+// from mock_attempts/mock_scores, then tags it "Unverified" wherever the
+// leaderboard code merges it back in (see loadLeaderboard/loadSubjectLeaderboard).
+// Returns the inserted row (with its id) so the guest can be given a
+// personal "check my result" link — their only way back in, since there's
+// no account/login for them to return through otherwise.
+function saveGuestMockResult(totalScore, subjectScores, totalQuestions) {
+    return supabase.from('unverified_mock_results').insert([{
+        mock_exam_id: state.mockExamId,
+        guest_name: state.guestMockName || 'Unverified candidate',
+        score: totalScore,
+        total_questions: totalQuestions,
+        subject_scores: subjectScores,
+        submitted_at: new Date().toISOString(),
+    }]).select().single();
+}
+
 async function startMockExam(mockExamId, source) {
     source = source || 'admin';
     state.mockExamSource = source;
@@ -11456,6 +11730,31 @@ function submitMockExam(autoSubmit) {
     render();
 }
 
+// Cached exam lists (state.mockExams / state.liveExams) are loaded once and
+// can go stale for the whole duration of an exam — if the admin flips
+// "release results" ON while someone is mid-exam, the cached row they
+// started with still says OFF. Always re-check the live value in the DB
+// right before deciding whether to show the score, instead of trusting
+// whatever was cached at load time. Falls back to the cached exam (if any)
+// only if the live fetch itself fails, so we never crash on a network blip.
+function fetchExamReleaseStatus(source, examId, cachedExam) {
+    const table = source === 'live' ? 'live_exams' : 'mock_exams';
+    return supabase
+        .from(table)
+        .select('results_released')
+        .eq('id', examId)
+        .maybeSingle()
+        .then(function(res) {
+            if (res.error || !res.data) {
+                return !!(cachedExam && cachedExam.results_released !== false);
+            }
+            return res.data.results_released !== false;
+        })
+        .catch(function() {
+            return !!(cachedExam && cachedExam.results_released !== false);
+        });
+}
+
 function doSubmitMock(autoSubmit) {
     state.mockSubmitted = true;
     if (state.mockTimer) {
@@ -11539,6 +11838,40 @@ function doSubmitMock(autoSubmit) {
         });
         saveAnalyticsTimeSample('mock', state.settingsCache.mockTimeLimit * 60 - state.mockTimeLeft, state.mockQuestions.length);
     }
+
+    // Guest (exam-link, no account) attempt: never touches mock_attempts/
+    // mock_scores at all — there is no attempt row to update because none
+    // was created in startGuestMockExam(). Saved to its own table instead,
+    // then shown on Results the same way a registered attempt would be.
+    if (state.isGuestMock) {
+        // A guest has no account to log back into later, so — unlike the
+        // registered flow — there's no "come back after admin releases
+        // results" path for them by default. Show the score now if this
+        // exam's results are already released; otherwise give them a
+        // personal link (tied to their saved row, not a login) they can
+        // use to check back once you release results.
+        // Always re-check the live release flag (see fetchExamReleaseStatus)
+        // rather than the cached list, so a release toggled mid-exam is
+        // reflected immediately instead of only after a fresh page load.
+        const cachedExam = (state.mockExams || []).find(function(e) { return e.id === state.mockExamId; });
+        fetchExamReleaseStatus('admin', state.mockExamId, cachedExam).then(function(released) {
+            state.mockResultReleased = released;
+            state.mockWaitingForResults = !released;
+            saveGuestMockResult(totalScore, subjectScores, state.mockQuestions.length)
+                .then(function(res) {
+                    state.guestResultId = (res && res.data && res.data.id) || null;
+                    state.view = 'mock-result';
+                    render();
+                })
+                .catch(function(err) {
+                    console.warn('Guest submit error:', err);
+                    state.view = 'mock-result';
+                    render();
+                });
+        });
+        return;
+    }
+
     supabase
         .from(attemptsTable)
         .update({
@@ -11561,7 +11894,16 @@ function doSubmitMock(autoSubmit) {
                     subject_scores: subjectScores,
                 });
             }
-            state.mockWaitingForResults = true;
+            // Check the live release flag instead of assuming "waiting" —
+            // if the admin already turned results on (even mid-exam), show
+            // the score immediately rather than making the user leave and
+            // come back via "view results" to see it.
+            const cachedExam = (examsList || []).find(function(e) { return e.id === state.mockExamId; });
+            return fetchExamReleaseStatus(source, state.mockExamId, cachedExam);
+        })
+        .then(function(released) {
+            state.mockResultReleased = released;
+            state.mockWaitingForResults = !released;
             state.view = 'mock-result';
             render();
         })
@@ -15067,6 +15409,8 @@ function renderView() {
 
     if (v === "mock-exam") return renderMockExam();
     if (v === "mock-result") return renderMockResult();
+    if (v === "exam-link-guest") return renderExamLinkGuest();
+    if (v === "guest-result-check") return renderGuestResultCheck();
     if (v === "cbt-exam") return renderCbtExam();
     if (v === "exam-exam") return renderExamExam();
     if (v === "lit-exam") return renderLitExam();
@@ -19486,13 +19830,106 @@ function renderLiveExamJoinCode() {
         '</div>'
     );
 }
+function renderGuestResultCheck() {
+    if (state.guestResultCheckLoading) {
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Checking your result...</p></div>';
+    }
+    if (state.guestResultCheckError) {
+        return (
+            '<div class="card" style="text-align:center;padding:24px">' +
+            '<p style="font-size:40px;margin:0 0 12px">⚠️</p>' +
+            '<h2 class="title" style="font-size:18px">Result Not Found</h2>' +
+            '<p style="font-size:13px;color:var(--muted);margin:0">' + esc(state.guestResultCheckError) + '</p>' +
+            '</div>'
+        );
+    }
+    const d = state.guestResultCheckData;
+    if (!d) return '<div class="loading-spinner"><div class="spinner"></div><p>Checking your result...</p></div>';
+
+    if (!d.released) {
+        return (
+            '<div class="card" style="text-align:center;padding:24px">' +
+            '<p style="font-size:40px;margin:0 0 12px">⏳</p>' +
+            '<h2 class="title" style="font-size:18px">Results Not Released Yet</h2>' +
+            '<p style="font-size:13px;color:var(--muted);margin:0 0 14px">Hi ' + esc(d.guestName) + ', your score for "' + esc(d.examTitle) + '" is saved and waiting for the admin to release results.</p>' +
+            '<div style="padding:12px;background:var(--bg);border-radius:10px;text-align:left">' +
+            '<p style="font-size:11px;font-weight:700;margin:0 0 6px">Keep this link to check back later:</p>' +
+            '<p style="font-size:11px;color:var(--muted);word-break:break-all;margin:0 0 8px">' + esc(d.resultLink) + '</p>' +
+            '<button class="btn btn-outline" style="width:100%;padding:8px;font-size:12px" data-action="copy-guest-result-link" data-link="' + esc(d.resultLink) + '">Copy Link</button>' +
+            '</div>' +
+            '</div>'
+        );
+    }
+
+    let subjRows = "";
+    Object.keys(d.subjectScores).forEach(function(sid) {
+        const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+        subjRows += (
+            '<div class="subj-score">' +
+            '<span>' + (subj ? subj.name : sid) + '</span>' +
+            '<span style="color:var(--green)">' + d.subjectScores[sid] + '/100</span>' +
+            '</div>'
+        );
+    });
+    const maxScore = Math.max(100, Object.keys(d.subjectScores).length * 100);
+    return (
+        '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(d.examTitle) + '</h2>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 4px">' + esc(d.guestName) +
+        ' <span style="font-size:9px;font-weight:800;color:var(--danger);border:1px solid var(--danger);border-radius:6px;padding:1px 5px;margin-left:4px">UNVERIFIED</span></p>' +
+        (d.submittedAt ? '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Submitted: ' + new Date(d.submittedAt).toLocaleString() + '</p>' : '') +
+        renderResultBlock({
+            candidateName: d.guestName,
+            subtitle: '',
+            score: d.score,
+            maxScore: maxScore,
+            rows: Object.keys(d.subjectScores).map(function(sid) {
+                const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+                return { label: subj ? subj.name : sid, value: d.subjectScores[sid] + ' / 100' };
+            }),
+        })
+    );
+}
+
+function renderExamLinkGuest() {
+    const exam = (state.mockExams || []).find(function(e) { return e.id === state.pendingExamLinkId; });
+    const subj = SUBJECTS.find(function(s) { return s.id === (state.examLinkSubjectId || 'math'); });
+    return (
+        '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
+        '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
+        '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:18px">' +
+        (subj ? esc(subj.name) + ' — ' : '') +
+        'Enter your name to begin. No account or sign-up needed.</p>' +
+        '<input id="examlink-guest-name" type="text" placeholder="Your full name" value="' + esc(state.examLinkGuestName) + '" ' +
+        'style="width:100%;padding:12px;border:1px solid var(--input-border);border-radius:10px;margin-bottom:12px;font-size:14px" />' +
+        '<button class="btn btn-gold" style="width:100%;padding:12px" data-action="start-guest-exam-link">Start Exam</button>' +
+        '<p style="font-size:11px;color:var(--faint);margin-top:14px">Already have an account? ' +
+        '<button data-action="show-login" style="text-decoration:underline;font-weight:700">Log in</button> to have this count toward your verified record.</p>' +
+        '</div>'
+    );
+}
+
 function renderMockResult() {
     if (state.mockWaitingForResults) {
+        const resultLink = (state.isGuestMock && state.guestResultId)
+            ? window.location.origin + window.location.pathname + '?examresult=' + state.guestResultId
+            : null;
         return (
             '<div class="card" style="text-align:center;padding:24px">' +
             '<p style="font-size:40px;margin:0 0 12px">⏳</p>' +
             '<h2 class="title" style="font-size:18px">Waiting for Results</h2>' +
-            '<p style="font-size:13px;color:var(--muted);margin:0">Your mock has been submitted. Results will be released by the admin.</p>' +
+            '<p style="font-size:13px;color:var(--muted);margin:0">' +
+            (state.isGuestMock
+                ? 'Your exam has been submitted and your score is saved. Results haven\'t been released yet.'
+                : 'Your mock has been submitted. Results will be released by the admin.') +
+            '</p>' +
+            (resultLink
+                ? '<div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:10px;text-align:left">' +
+                  '<p style="font-size:11px;font-weight:700;margin:0 0 6px">Save this link to check your result later:</p>' +
+                  '<p style="font-size:11px;color:var(--muted);word-break:break-all;margin:0 0 8px">' + esc(resultLink) + '</p>' +
+                  '<button class="btn btn-outline" style="width:100%;padding:8px;font-size:12px" data-action="copy-guest-result-link" data-link="' + esc(resultLink) + '">Copy Link</button>' +
+                  '</div>'
+                : '') +
             '<button class="btn btn-green" style="margin-top:16px;padding:10px" data-action="mock-exit">Back to Home</button>' +
             '</div>'
         );
@@ -19570,19 +20007,25 @@ function renderStudyCircle() {
 // their own full name/username on their own row.
 // Shared row renderer for both the Overall and By-Subject leaderboards.
 // rank 1-3 get medals, 4-10 get a subtle highlight, 11+ are plain rows.
-function renderLbRow(rank, displayName, isCurrentUser, score, outOf) {
+function renderLbRow(rank, displayName, isCurrentUser, score, outOf, isUnverified) {
     const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
     const isTop10 = rank <= 10;
     let borderStyle = '';
     if (isCurrentUser) borderStyle = 'border-color:var(--gold);';
     else if (rank <= 3) borderStyle = 'border-color:var(--gold);background:rgba(255,199,0,0.06);';
     else if (isTop10) borderStyle = 'background:rgba(255,199,0,0.03);';
+    // Entries that came in through an exam link without an account are
+    // ranked right alongside everyone else, but always carry this tag so
+    // it's clear the result isn't from a verified/registered candidate.
+    const unverifiedTag = isUnverified
+        ? '<span style="font-size:9px;font-weight:800;color:var(--danger);border:1px solid var(--danger);border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle">UNVERIFIED</span>'
+        : '';
     return (
         '<div class="lb-row" style="' + borderStyle + '">' +
         '<div class="left">' +
         '<span class="rank">' + medal + '</span>' +
         '<span style="font-size:12px' + (isCurrentUser ? ';font-weight:800;color:var(--gold-dark)' : '') + '">' +
-        esc(displayName) + (isCurrentUser ? ' (You)' : '') + '</span>' +
+        esc(displayName) + (isCurrentUser ? ' (You)' : '') + unverifiedTag + '</span>' +
         '</div>' +
         '<span class="score" style="font-size:13px">' + score + '<span style="font-size:9px;color:var(--faint)">/' + outOf + '</span></span>' +
         '</div>'
@@ -19669,6 +20112,7 @@ function renderLeaderboard() {
                 display_name: e.display_name || e.candidate_code,
                 is_current_user: e.is_current_user || e.user_id === currentUserId,
                 score: e.subject_scores[selectedSid],
+                is_unverified: !!e.is_unverified,
             };
         })
         .sort(function(a, b) { return b.score - a.score; });
@@ -19678,14 +20122,14 @@ function renderLeaderboard() {
         subjLbRows = '<div class="lb-empty">No one has attempted ' + esc(subj ? subj.name : 'this subject') + ' yet.</div>';
     } else {
         entries.forEach(function(entry, i) {
-            subjLbRows += renderLbRow(i + 1, entry.display_name, entry.is_current_user, entry.score, 100);
+            subjLbRows += renderLbRow(i + 1, entry.display_name, entry.is_current_user, entry.score, 100, entry.is_unverified);
         });
     }
 
     return (
         '<button type="button" class="btn btn-outline btn-sm" style="margin-bottom:10px" data-action="back-subject-leaderboard">‹ All Subjects</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 ' + esc(subj ? subj.name : 'Subject') + ' Leaderboard</h2>' +
-        '<p class="sub" style="font-size:12px;margin-bottom:10px">Best score per candidate. Retaking this subject updates your score here, higher or lower.</p>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:10px">Best score per candidate. Retaking this subject updates your score here, higher or lower. Entries marked <b>UNVERIFIED</b> were taken via a shared exam link without an account.</p>' +
         '<div style="margin-bottom:10px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">' +
         '<span>Rank</span><span>Candidate</span><span>Score</span>' +
         '</div>' +
@@ -22581,6 +23025,8 @@ function renderAdminMock() {
                 '" style="font-size:9px">Delete</button>' +
                 '<button class="mini-btn" data-action="admin-view-mock-attempts" data-examid="' + exam.id +
                 '" style="font-size:9px">View Attempts (' + submittedCount + ')</button>' +
+                '<button class="mini-btn" data-action="admin-copy-exam-link" data-examid="' + exam.id +
+                '" style="font-size:9px">🔗 Copy Exam Link</button>' +
                 '</div>' +
                 '</div>'
             );
@@ -25015,6 +25461,38 @@ document.addEventListener('click', function(e) {
     }
 
     // LEADERBOARD (Mock Exam only)
+    if (action === 'copy-guest-result-link') {
+        const link = el.getAttribute('data-link');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link)
+                .then(function() { showToast('Link copied — save it to check your result later!', 'success'); })
+                .catch(function() { fallbackCopy(link); });
+        } else {
+            fallbackCopy(link);
+        }
+        return;
+    }
+
+    if (action === 'admin-copy-exam-link') {
+        const examId = el.getAttribute('data-examid');
+        const link = window.location.origin + window.location.pathname + '?examlink=' + examId;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link)
+                .then(function() { showToast('Exam link copied!', 'success'); })
+                .catch(function() { fallbackCopy(link); });
+        } else {
+            fallbackCopy(link);
+        }
+        return;
+    }
+
+    if (action === 'start-guest-exam-link') {
+        const nameInput = document.getElementById('examlink-guest-name');
+        if (nameInput) state.examLinkGuestName = nameInput.value;
+        beginGuestExamFromLink();
+        return;
+    }
+
     if (action === 'refresh-leaderboard') {
         loadLeaderboard('mock');
         showToast('Refreshing leaderboard...', '');
@@ -25281,6 +25759,8 @@ document.addEventListener('click', function(e) {
         state.engMockHasPassage = false;
         state.engMockPassageRead = false;
         state.engMockPassageId = null;
+        state.isGuestMock = false;
+        state.guestMockName = null;
         state.view = 'home';
         clearSessionSnapshot();
         render();
@@ -27527,6 +28007,7 @@ document.addEventListener('input', function(e) {
     else if (id === 'reset-email') state.resetEmail = e.target.value;
     else if (id === 'reset-new-password') state.resetPassword = e.target.value;
     else if (id === 'reset-confirm-password') state.resetConfirm = e.target.value;
+    else if (id === 'examlink-guest-name') state.examLinkGuestName = e.target.value;
     else if (id === 'admin-view-search') {
         state.admin.searchQuery = e.target.value;
         render();
@@ -27732,6 +28213,13 @@ async function init() {
         console.warn('seedOfflineDataIfNeeded is not defined — skipping offline seed.');
     }
     render();
+
+    // Exam Link: ?examlink=<mockExamId> in the URL. Checked after auth
+    // state is known and offline questions are seeded, so both the
+    // registered (straight into startMockExam) and guest (name prompt)
+    // paths have everything they need immediately.
+    handleExamLinkFromUrl();
+    handleExamResultLinkFromUrl();
 
     // Auto-reconcile per-subject question files — runs on every app open so
     // the offline DB is kept exactly in sync with what's on GitHub: same
