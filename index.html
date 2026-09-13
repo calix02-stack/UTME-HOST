@@ -8409,6 +8409,7 @@ let state = {
     liveExams: [],
     liveExamsLoaded: false,
     liveExamRegistrations: [],
+    joiningLiveExamId: null,
     liveExamAttempts: [],
     liveExamView: 'browse',
     liveExamTab: 'ongoing',
@@ -10919,6 +10920,12 @@ async function createLiveExam() {
 
 async function joinLiveExamNow(examId) {
     if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    // Guard against double-taps / fast double submits (common on mobile,
+    // especially with a slow connection): without this, two clicks before
+    // liveExamRegistrations reloads both pass the "already joined" check
+    // below and both fire an insert, and the second one blows up on the
+    // live_exam_id_user_id unique constraint.
+    if (state.joiningLiveExamId === examId) return;
     const exam = state.liveExams.find(function(e) { return e.id === examId; });
     if (!exam) { showToast('Exam not found.', 'error'); return; }
     const already = state.liveExamRegistrations.find(function(r) { return r.live_exam_id === examId; });
@@ -10928,13 +10935,30 @@ async function joinLiveExamNow(examId) {
     // have the one subject_id. Fall back to subject_id if subject_ids
     // wasn't set (older rows created before this feature existed).
     const examSubjects = (exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids.slice() : [exam.subject_id];
+    state.joiningLiveExamId = examId;
     const { error } = await supabase.from('live_exam_registrations').insert([{
         user_id: state.authUser.id,
         username: state.profile.name,
         live_exam_id: examId,
         subjects: examSubjects,
     }]);
-    if (error) { showNetworkAwareError('Error joining: ' + error.message, error); return; }
+    state.joiningLiveExamId = null;
+    if (error) {
+        // A unique-constraint violation here just means this user is
+        // already registered for this exam (double-tap, stale cache, or a
+        // registration made from another device/tab) — that's a success
+        // case for the user, not an error, so don't surface a raw DB
+        // message. Just refresh the cache and confirm they're in.
+        const isDuplicate = error.code === '23505' ||
+            (error.message && error.message.indexOf('live_exam_registrations_live_exam_id_user_id') !== -1);
+        if (isDuplicate) {
+            showToast('You already joined this exam.', '');
+            await loadLiveExamRegistrations();
+            return;
+        }
+        showNetworkAwareError('Error joining: ' + error.message, error);
+        return;
+    }
     showToast('Joined! Come back when it starts.', 'success');
     await loadLiveExamRegistrations();
 }
