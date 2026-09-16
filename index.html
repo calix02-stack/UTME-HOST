@@ -8267,12 +8267,20 @@ let state = {
     // result is saved separately and tagged "Unverified" wherever it shows.
     pendingExamLinkId: null,
     examLinkGuestName: "",
-    examLinkSubjectId: "math",
+    // Subject for an exam-link attempt now comes from the exam's own
+    // subject_id (set by the admin when the mock was created) rather than
+    // a single hardcoded default — see enterMockExamViaLink/startGuestMockExam.
     isGuestMock: false,
     guestMockName: null,
     guestResultId: null,
     guestResultCheckLoading: false,
     guestResultCheckData: null,
+    // Name typed on the exam-link entry screen — used as the leaderboard
+    // display name for a *registered* user coming in through a mock exam
+    // link (a guest's name is stored separately, in guestMockName). Reset
+    // to null on any normal (non-link) Mock Arena entry so it never leaks
+    // into an unrelated attempt.
+    mockDisplayName: null,
 
     // Live Exam Link — same idea as the mock exam link above, but for
     // Mock Arena "live" exams (?liveexamlink=<liveExamId>). Both a
@@ -8311,6 +8319,8 @@ let state = {
         syllabusText: "",
         syllabusFile: null,
         mockTitle: "",
+        mockSubjectId: null,
+        lastBulkMockLinks: null,
         // Simple scheduling — a single datetime-local field for the start,
         // plus a duration (hours/minutes) instead of a separate manual end
         // date and a registration-deadline picker with AM/PM dropdowns.
@@ -11272,20 +11282,85 @@ function handleExamLinkFromUrl() {
     } catch (e) { /* ignore */ }
 
     state.pendingExamLinkId = linkId;
+    // Everyone — registered or not — confirms a name to show on the
+    // leaderboard for this attempt. A logged-in user's real name is
+    // pre-filled (and still saved to their verified record either way);
+    // they can still edit it before starting.
+    state.examLinkGuestName = state.authUser ? (state.profile.fullName || state.profile.name || '') : '';
+    state.view = 'exam-link-guest';
+    render();
 
+    // If this exam link was already completed (by this account, or on this
+    // device as a guest), skip the name prompt entirely and go straight to
+    // the saved result instead of letting them start a fresh attempt.
+    resumeExamLinkIfAlreadyDone(linkId);
+}
+
+// Checks whether this exam link has already been sat — either by the
+// logged-in account (a submitted mock_attempts row) or, for a guest, by
+// this same browser/device (tracked locally, since a guest has no account
+// to look this up against). If so, jumps straight to the result screen
+// instead of re-prompting for a name or re-attempting registration, which
+// is what used to surface as a confusing "duplicate"/"exam not found" error
+// when someone reopened a link they'd already used.
+async function resumeExamLinkIfAlreadyDone(mockExamId) {
     if (state.authUser) {
-        enterMockExamViaLink(linkId);
-    } else {
-        state.view = 'exam-link-guest';
-        state.examLinkGuestName = '';
-        render();
+        try {
+            if (!state.mockExams || state.mockExams.length === 0) {
+                await loadMockExams();
+            }
+            await loadMockAttempts(mockExamId);
+            const existing = (state.mockAttempts || []).find(function(a) {
+                return a.mock_exam_id === mockExamId && a.user_id === state.authUser.id && a.is_submitted;
+            });
+            if (existing) {
+                showMockResultFromAttempt(mockExamId, existing);
+            }
+        } catch (e) {
+            console.warn('Resume exam link (registered) check error:', e);
+        }
+        return;
     }
+    try {
+        const savedResultId = storage.get('examlink_guest_result_' + mockExamId);
+        if (savedResultId) {
+            state.pendingExamLinkId = null;
+            state.isGuestMock = true;
+            state.view = 'guest-result-check';
+            loadGuestResultCheck(savedResultId);
+        }
+    } catch (e) { /* ignore */ }
+}
+
+// Populates the Mock Result screen straight from an already-submitted
+// attempt row, without re-running the exam — used when someone reopens an
+// exam link they've already completed.
+function showMockResultFromAttempt(mockExamId, attempt) {
+    state.pendingExamLinkId = null;
+    state.mockExamSource = 'admin';
+    state.mockExamId = mockExamId;
+    state.mockScore = attempt.score || 0;
+    state.mockSubjectScores = attempt.subject_scores || {};
+    state.mockSubmittedAt = attempt.submitted_at;
+    const subjCount = Object.keys(attempt.subject_scores || {}).length || 1;
+    state.mockTotal = subjCount * 100;
+    state.mockSubmitted = true;
+    const cachedExam = (state.mockExams || []).find(function(e) { return e.id === mockExamId; });
+    fetchExamReleaseStatus('admin', mockExamId, cachedExam).then(function(released) {
+        state.mockResultReleased = released;
+        state.mockWaitingForResults = !released;
+        state.view = 'mock-result';
+        render();
+    });
 }
 
 // Registered user coming in through the link: silently register them for
-// this exam's fixed subject if they aren't already, then hand off to the
-// real, unmodified startMockExam() — identical to a normal Mock Arena entry.
-async function enterMockExamViaLink(mockExamId) {
+// this exam's fixed subject (read from the exam's own subject_id — set by
+// the admin when the mock was created) if they aren't already, then hand
+// off to the real, unmodified startMockExam() — identical to a normal Mock
+// Arena entry. displayName is whatever they confirmed on the exam-link
+// entry screen and is what shows on the leaderboard for this attempt.
+async function enterMockExamViaLink(mockExamId, displayName) {
     if (!state.authUser) return;
     if (!isUserActive()) {
         state.pendingExamLinkId = null;
@@ -11297,6 +11372,20 @@ async function enterMockExamViaLink(mockExamId) {
             await loadMockExams();
         }
         await loadMockRegistrations(mockExamId);
+        await loadMockAttempts(mockExamId);
+
+        // Already completed this one? Show the result instead of trying to
+        // start a new attempt (this used to surface a confusing error).
+        const existingAttempt = (state.mockAttempts || []).find(function(a) {
+            return a.mock_exam_id === mockExamId && a.user_id === state.authUser.id && a.is_submitted;
+        });
+        if (existingAttempt) {
+            showMockResultFromAttempt(mockExamId, existingAttempt);
+            return;
+        }
+
+        const exam = (state.mockExams || []).find(function(e) { return e.id === mockExamId; });
+        const subjectId = (exam && exam.subject_id) || 'math';
 
         const already = (state.mockRegistrations || []).find(function(r) {
             return r.mock_exam_id === mockExamId && r.user_id === state.authUser.id;
@@ -11306,12 +11395,13 @@ async function enterMockExamViaLink(mockExamId) {
             await supabase.from('mock_registrations').insert([{
                 user_id: state.authUser.id,
                 mock_exam_id: mockExamId,
-                subjects: [state.examLinkSubjectId],
+                subjects: [subjectId],
             }]);
             await loadMockRegistrations(mockExamId);
         }
 
         state.pendingExamLinkId = null;
+        state.mockDisplayName = (displayName || '').trim() || state.profile.name;
         startMockExam(mockExamId, 'admin');
     } catch (e) {
         console.warn('Exam link entry error:', e);
@@ -11321,13 +11411,19 @@ async function enterMockExamViaLink(mockExamId) {
     }
 }
 
-// Signed-out visitor confirms their name on the 'exam-link-guest' screen —
-// no account, no password, nothing saved beyond this one attempt.
+// Name confirmed on the 'exam-link-guest' screen — shown to both a
+// signed-out visitor (no account, nothing saved beyond this one attempt)
+// and a logged-in user (whose account still records the attempt as usual;
+// only the leaderboard display name is theirs to set here).
 function beginGuestExamFromLink() {
     const name = (state.examLinkGuestName || '').trim();
     if (!name) { showToast('Please enter your name.', 'error'); return; }
     if (!state.pendingExamLinkId) { showToast('This exam link is no longer valid.', 'error'); return; }
-    startGuestMockExam(state.pendingExamLinkId, name);
+    if (state.authUser) {
+        enterMockExamViaLink(state.pendingExamLinkId, name);
+    } else {
+        startGuestMockExam(state.pendingExamLinkId, name);
+    }
 }
 
 // Guest exam-taking: mirrors the "start a fresh attempt" branch of
@@ -11341,7 +11437,11 @@ async function startGuestMockExam(mockExamId, guestName) {
     state.isLoading = true;
     render();
     try {
-        const subjectId = state.examLinkSubjectId || 'math';
+        if (!state.mockExams || state.mockExams.length === 0) {
+            await loadMockExams();
+        }
+        const linkedExam = (state.mockExams || []).find(function(e) { return e.id === mockExamId; });
+        const subjectId = (linkedExam && linkedExam.subject_id) || 'math';
         const settings = await loadSettings();
         const perSubject = settings.mockQuestionsPerSubject || 40;
 
@@ -12079,6 +12179,12 @@ function doSubmitMock(autoSubmit) {
             saveGuestMockResult(totalScore, subjectScores, state.mockQuestions.length)
                 .then(function(res) {
                     state.guestResultId = (res && res.data && res.data.id) || null;
+                    // Remember locally that this device already sat this
+                    // exact exam link, so reopening the same link later goes
+                    // straight to the saved result instead of restarting.
+                    if (state.guestResultId && state.mockExamId) {
+                        storage.set('examlink_guest_result_' + state.mockExamId, state.guestResultId);
+                    }
                     state.view = 'mock-result';
                     render();
                 })
@@ -12106,7 +12212,7 @@ function doSubmitMock(autoSubmit) {
             if (state.authUser) {
                 saveScore('mock', {
                     user_id: state.authUser.id,
-                    username: state.profile.name,
+                    username: state.mockDisplayName || state.profile.name,
                     score: totalScore,
                     total_questions: state.mockQuestions.length,
                     subject_count: subjectCount,
@@ -20115,7 +20221,9 @@ function renderGuestResultCheck() {
                 const subj = SUBJECTS.find(function(s) { return s.id === sid; });
                 return { label: subj ? subj.name : sid, value: d.subjectScores[sid] + ' / 100' };
             }),
-        })
+        }) +
+        '<button class="btn btn-outline" style="width:100%;margin-top:10px;padding:10px" data-action="guest-result-share">📤 Share Result</button> ' +
+        '<button class="btn btn-outline" style="width:100%;margin-top:8px;padding:8px;font-size:12px" data-action="copy-guest-result-link" data-link="' + esc(d.resultLink) + '">Copy Result Link</button>'
     );
 }
 
@@ -20189,19 +20297,23 @@ function renderLiveExamLinkConfirm() {
 
 function renderExamLinkGuest() {
     const exam = (state.mockExams || []).find(function(e) { return e.id === state.pendingExamLinkId; });
-    const subj = SUBJECTS.find(function(s) { return s.id === (state.examLinkSubjectId || 'math'); });
+    const subj = exam ? SUBJECTS.find(function(s) { return s.id === exam.subject_id; }) : null;
+    const isAuthed = !!state.authUser;
     return (
         '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
         '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
         '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
         '<p class="sub" style="font-size:12px;margin-bottom:18px">' +
         (subj ? esc(subj.name) + ' — ' : '') +
-        'Enter your name to begin. No account or sign-up needed.</p>' +
-        '<input id="examlink-guest-name" type="text" placeholder="Your full name" value="' + esc(state.examLinkGuestName) + '" ' +
+        'Enter the name to show on the leaderboard.' +
+        (isAuthed ? '' : ' No account or sign-up needed.') + '</p>' +
+        '<input id="examlink-guest-name" type="text" placeholder="Your name" value="' + esc(state.examLinkGuestName) + '" ' +
         'style="width:100%;padding:12px;border:1px solid var(--input-border);border-radius:10px;margin-bottom:12px;font-size:14px" />' +
         '<button class="btn btn-gold" style="width:100%;padding:12px" data-action="start-guest-exam-link">Start Exam</button>' +
-        '<p style="font-size:11px;color:var(--faint);margin-top:14px">Already have an account? ' +
-        '<button data-action="show-login" style="text-decoration:underline;font-weight:700">Log in</button> to have this count toward your verified record.</p>' +
+        (isAuthed
+            ? '<p style="font-size:11px;color:var(--faint);margin-top:14px">Logged in as ' + esc(state.profile.name || '') + ' — this still counts toward your verified record.</p>'
+            : '<p style="font-size:11px;color:var(--faint);margin-top:14px">Already have an account? ' +
+              '<button data-action="show-login" style="text-decoration:underline;font-weight:700">Log in</button> to have this count toward your verified record.</p>') +
         '</div>'
     );
 }
@@ -20251,7 +20363,7 @@ function renderMockResult() {
             );
         });
 
-        const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
+        const candidateName = state.mockDisplayName || state.profile.fullName || state.profile.name || 'Candidate';
         // Relevant distribution for a mock is the per-subject split —
         // the aggregate is already shown as the big score above, so it
         // isn't repeated in the table.
@@ -20271,7 +20383,8 @@ function renderMockResult() {
                 maxScore: maxScore,
                 rows: subjRowsForTable,
             }) +
-            '<button class="btn btn-green" style="margin-top:10px;padding:10px" data-action="mock-exit">Back to Home</button>'
+            '<button class="btn btn-outline" style="margin-top:10px;padding:10px" data-action="mock-result-share">📤 Share Result</button>' +
+            '<button class="btn btn-green" style="margin-top:8px;padding:10px" data-action="mock-exit">Back to Home</button>'
         );
     }
 
@@ -22543,10 +22656,11 @@ function renderAdminTopicManagement() {
 // number input. Keeps a hidden input with the same `id` so existing code
 // that reads the value via document.getElementById(id).value at save time
 // keeps working unchanged — only the UI in front of it changes.
-function renderQuestionCountPicker(id, current) {
-    const val = current || 25;
+function renderQuestionCountPicker(id, current, min) {
+    min = min || 25;
+    const val = current || min;
     let chips = '';
-    for (let n = 25; n <= 40; n++) {
+    for (let n = min; n <= 40; n++) {
         chips += '<button type="button" class="qcount-chip' + (val === n ? ' selected' : '') + '" data-action="pick-question-count" data-target="' + id + '" data-value="' + n + '">' + n + '</button>';
     }
     return (
@@ -23269,12 +23383,22 @@ function renderAdminMock() {
     // to fill in. Registration now simply stays open until the exam starts.
     const mockDurH = state.admin.mockDurationHours != null ? state.admin.mockDurationHours : 12;
     const mockDurM = state.admin.mockDurationMinutes != null ? state.admin.mockDurationMinutes : 0;
+    // Every JAMB subject except the standalone novel ("The Lekki Headmaster")
+    // is a valid mock-exam subject — each exam link is fixed to exactly one.
+    const mockableSubjects = SUBJECTS.filter(function(s) { return s.id !== 'lhm'; });
+    const selectedMockSubject = state.admin.mockSubjectId || mockableSubjects[0].id;
+    const subjectOptions = mockableSubjects.map(function(s) {
+        return '<option value="' + s.id + '"' + (s.id === selectedMockSubject ? ' selected' : '') + '>' + esc(s.name) + '</option>';
+    }).join('');
     html += (
         '<div class="card" style="margin-bottom:12px">' +
         '<p style="font-size:13px;font-weight:600;margin:0 0 10px">🎯 Schedule New Mock Exam</p>' +
         '<label class="field-label">Mock Title</label>' +
         '<input class="field" id="admin-mock-title" placeholder="e.g. Mock Exam 2026" value="' + esc(state.admin
             .mockTitle) + '" style="margin-bottom:10px;font-size:13px" />' +
+        '<label class="field-label">Subject</label>' +
+        '<select class="field" id="admin-mock-subject" style="margin-bottom:4px;font-size:13px">' + subjectOptions + '</select>' +
+        '<p style="font-size:9px;color:var(--faint);margin:0 0 10px">Each exam link is fixed to one subject. Use "Create for All Subjects" below to get a separate exam + link per subject in one go.</p>' +
         '<label class="field-label">Starts</label>' +
         '<input class="field" id="admin-mock-scheduled" type="datetime-local" value="' + esc(state.admin.mockScheduled || '') + '" style="margin-bottom:10px;font-size:13px" />' +
         '<label class="field-label">Duration</label>' +
@@ -23282,11 +23406,34 @@ function renderAdminMock() {
         '<div class="time-input-group"><input type="number" id="admin-mock-duration-hours" min="0" max="24" value="' + mockDurH + '" style="width:50px" /><label>h</label></div>' +
         '<div class="time-input-group"><input type="number" id="admin-mock-duration-minutes" min="0" max="59" value="' + mockDurM + '" style="width:50px" /><label>m</label></div>' +
         '</div>' +
-        '<label class="field-label">Questions per subject</label>' +
-        renderQuestionCountPicker('admin-mock-qs', state.admin.mockQuestionsPerSubject || 40) +
-        '<button class="btn btn-green" style="margin-top:6px;padding:10px" data-action="admin-schedule-mock">Schedule Mock Exam</button>' +
+        '<label class="field-label">Questions per subject (20–40)</label>' +
+        renderQuestionCountPicker('admin-mock-qs', state.admin.mockQuestionsPerSubject || 40, 20) +
+        '<button class="btn btn-green" style="margin-top:6px;padding:10px" data-action="admin-schedule-mock">Schedule Mock Exam (' + esc(SUBJECTS.find(function(s){return s.id===selectedMockSubject;}).name) + ')</button>' +
+        '<button class="btn btn-outline" style="margin-top:8px;padding:10px" data-action="admin-schedule-mock-all-subjects">📚 Create for All Subjects (' + mockableSubjects.length + ')</button>' +
         '</div>'
     );
+
+    // Right after a bulk "all subjects" creation, show every resulting link
+    // in one place so the admin doesn't have to hunt through the list below
+    // and copy each one individually.
+    if (state.admin.lastBulkMockLinks && state.admin.lastBulkMockLinks.length) {
+        const allLinksText = state.admin.lastBulkMockLinks.map(function(l) { return l.title + ': ' + l.link; }).join('\n');
+        html += (
+            '<div class="card" style="margin-bottom:12px">' +
+            '<p style="font-size:13px;font-weight:600;margin:0 0 8px">🔗 Links for your new mock exams</p>' +
+            state.admin.lastBulkMockLinks.map(function(l) {
+                return (
+                    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
+                    '<span style="flex:1;font-size:11px;word-break:break-all">' + esc(l.title) + '</span>' +
+                    '<button class="mini-btn" data-action="admin-copy-bulk-link" data-link="' + esc(l.link) + '" style="font-size:9px;white-space:nowrap">Copy</button>' +
+                    '</div>'
+                );
+            }).join('') +
+            '<button class="btn btn-outline" style="width:100%;margin-top:4px;padding:8px;font-size:12px" data-action="admin-copy-all-bulk-links" data-links="' + esc(allLinksText) + '">Copy All Links</button>' +
+            '<button class="btn btn-outline" style="width:100%;margin-top:6px;padding:6px;font-size:11px" data-action="admin-dismiss-bulk-links">Dismiss</button>' +
+            '</div>'
+        );
+    }
 
     html += '<p class="section-label">Scheduled Mocks (Admin-Created)</p>';
     if (state.mockExams.length === 0) {
@@ -23300,10 +23447,13 @@ function renderAdminMock() {
             });
             const submittedCount = examAttempts.length;
             const uniqueUserCount = new Set(examAttempts.map(function(a) { return a.user_id; })).size;
+            const examSubj = SUBJECTS.find(function(s) { return s.id === exam.subject_id; });
 
             html += (
                 '<div class="card" style="margin-bottom:6px;padding:10px">' +
-                '<p style="font-weight:600;margin:0;font-size:13px">' + esc(exam.title) + '</p>' +
+                '<p style="font-weight:600;margin:0;font-size:13px">' + esc(exam.title) +
+                (examSubj ? ' <span style="font-weight:600;font-size:10px;color:var(--green)">· ' + esc(examSubj.name) + '</span>' : ' <span style="font-weight:600;font-size:10px;color:var(--danger)">· No subject set</span>') +
+                '</p>' +
                 '<p style="font-size:10px;color:var(--muted);margin:2px 0">📅 ' + new Date(exam.scheduled_date)
                 .toLocaleString() + '</p>' +
                 '<p style="font-size:10px;color:var(--muted);margin:0">👥 ' + regCount +
@@ -25914,6 +26064,10 @@ document.addEventListener('click', function(e) {
         const examId = el.getAttribute('data-examid');
         const source = el.getAttribute('data-source') || 'admin';
         if (!state.authUser) { showToast('Please login first.', 'error'); return; }
+        // Normal in-app entry (not via a shared exam link) always uses the
+        // account's real name — clear any leftover link display name so it
+        // never bleeds into this attempt.
+        state.mockDisplayName = null;
         startMockExam(examId, source);
         return;
     }
@@ -26086,6 +26240,45 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'mock-result-share') {
+        const score = state.mockScore;
+        const maxScore = state.mockTotal || 100;
+        const subjectScores = state.mockSubjectScores || {};
+        const examsList = state.mockExamSource === 'live' ? state.liveExams : state.mockExams;
+        const exam = (examsList || []).find(function(e) { return e.id === state.mockExamId; });
+        const candidateName = state.mockDisplayName || state.profile.fullName || state.profile.name || 'Candidate';
+        const rows = Object.keys(subjectScores).map(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            return { label: subj ? subj.name : sid, value: (subjectScores[sid] || 0) + ' / 100' };
+        });
+        shareResultCardImage({
+            title: exam ? exam.title : 'Mock Exam',
+            subtitle: candidateName + (state.mockSubmittedAt ? ' · ' + formatDate(state.mockSubmittedAt) : ''),
+            score: score,
+            maxScore: maxScore,
+            rows: rows,
+        });
+        return;
+    }
+
+    if (action === 'guest-result-share') {
+        const d = state.guestResultCheckData;
+        if (!d) { showToast('Result not loaded yet.', 'error'); return; }
+        const rows = Object.keys(d.subjectScores || {}).map(function(sid) {
+            const subj = SUBJECTS.find(function(s) { return s.id === sid; });
+            return { label: subj ? subj.name : sid, value: d.subjectScores[sid] + ' / 100' };
+        });
+        const maxScore = Math.max(100, Object.keys(d.subjectScores || {}).length * 100);
+        shareResultCardImage({
+            title: d.examTitle || 'Mock Exam',
+            subtitle: d.guestName + (d.submittedAt ? ' · ' + formatDate(d.submittedAt) : ''),
+            score: d.score,
+            maxScore: maxScore,
+            rows: rows,
+        });
+        return;
+    }
+
     if (action === 'mock-exit') {
         if (state.mockTimer) { clearInterval(state.mockTimer);
             state.mockTimer = null; }
@@ -26105,6 +26298,8 @@ document.addEventListener('click', function(e) {
         state.engMockPassageId = null;
         state.isGuestMock = false;
         state.guestMockName = null;
+        state.mockDisplayName = null;
+        state.guestResultId = null;
         state.view = 'home';
         clearSessionSnapshot();
         render();
@@ -26864,12 +27059,14 @@ document.addEventListener('click', function(e) {
 
     if (action === 'admin-schedule-mock') {
         const title = document.getElementById('admin-mock-title')?.value?.trim() || '';
+        const subjectId = document.getElementById('admin-mock-subject')?.value || '';
         const scheduledRaw = document.getElementById('admin-mock-scheduled')?.value || '';
         const durH = parseInt(document.getElementById('admin-mock-duration-hours')?.value || 0) || 0;
         const durM = parseInt(document.getElementById('admin-mock-duration-minutes')?.value || 0) || 0;
         const qs = parseInt(document.getElementById('admin-mock-qs')?.value || 25);
 
         if (!title) { showToast('Enter a title.', 'error'); return; }
+        if (!subjectId) { showToast('Select a subject.', 'error'); return; }
         if (!scheduledRaw) { showToast('Select a start date & time.', 'error'); return; }
 
         const scheduledDate = new Date(scheduledRaw);
@@ -26882,13 +27079,70 @@ document.addEventListener('click', function(e) {
 
         supabase.from('mock_exams').insert([{
             title: title,
+            subject_id: subjectId,
             scheduled_date: scheduledDate.toISOString(),
             registration_deadline: scheduledDate.toISOString(),
             end_date: endDate.toISOString(),
             is_active: true,
             results_released: false,
-        }]).then(function() {
+        }]).then(function(res) {
+            if (res.error) throw res.error;
             showToast('Mock exam scheduled!', 'success');
+            state.admin.mockTitle = '';
+            state.admin.mockScheduled = '';
+            state.admin.mockDurationHours = 12;
+            state.admin.mockDurationMinutes = 0;
+            state.admin.mockQuestionsPerSubject = qs;
+            state.admin.lastBulkMockLinks = null;
+            loadMockExams();
+            render();
+        }).catch(function(e) { 
+            console.error('Schedule mock error:', e);
+            // A missing subject_id column on mock_exams is the most likely
+            // cause of an insert failing right after this feature was added.
+            const missingColumn = e && e.message && /subject_id/i.test(e.message);
+            showNetworkAwareError(missingColumn
+                ? 'Error scheduling mock: the mock_exams table needs a "subject_id" column added in Supabase.'
+                : 'Error scheduling mock: ' + (e.message || 'unknown'), e);
+        });
+        return;
+    }
+
+    if (action === 'admin-schedule-mock-all-subjects') {
+        const titleBase = document.getElementById('admin-mock-title')?.value?.trim() || 'Mock Exam';
+        const scheduledRaw = document.getElementById('admin-mock-scheduled')?.value || '';
+        const durH = parseInt(document.getElementById('admin-mock-duration-hours')?.value || 0) || 0;
+        const durM = parseInt(document.getElementById('admin-mock-duration-minutes')?.value || 0) || 0;
+        const qs = parseInt(document.getElementById('admin-mock-qs')?.value || 25);
+
+        if (!scheduledRaw) { showToast('Select a start date & time.', 'error'); return; }
+        const scheduledDate = new Date(scheduledRaw);
+        if (isNaN(scheduledDate.getTime())) { showToast('Select a valid start date & time.', 'error'); return; }
+        const durationMinutes = Math.max(1, durH * 60 + durM) || (12 * 60);
+        const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60000);
+
+        const mockableSubjects = SUBJECTS.filter(function(s) { return s.id !== 'lhm'; });
+        if (!confirm('Create ' + mockableSubjects.length + ' separate mock exams — one per subject — all starting at the same time? You\'ll get one exam link per subject.')) return;
+
+        const rows = mockableSubjects.map(function(s) {
+            return {
+                title: titleBase + ' — ' + s.name,
+                subject_id: s.id,
+                scheduled_date: scheduledDate.toISOString(),
+                registration_deadline: scheduledDate.toISOString(),
+                end_date: endDate.toISOString(),
+                is_active: true,
+                results_released: false,
+            };
+        });
+
+        supabase.from('mock_exams').insert(rows).select().then(function(res) {
+            if (res.error) throw res.error;
+            const created = res.data || [];
+            state.admin.lastBulkMockLinks = created.map(function(e) {
+                return { title: e.title, link: window.location.origin + window.location.pathname + '?examlink=' + e.id };
+            });
+            showToast('Created ' + created.length + ' mock exams — one per subject!', 'success');
             state.admin.mockTitle = '';
             state.admin.mockScheduled = '';
             state.admin.mockDurationHours = 12;
@@ -26896,10 +27150,39 @@ document.addEventListener('click', function(e) {
             state.admin.mockQuestionsPerSubject = qs;
             loadMockExams();
             render();
-        }).catch(function(e) { 
-            console.error('Schedule mock error:', e);
-            showNetworkAwareError('Error scheduling mock: ' + (e.message || 'unknown'), e); 
+        }).catch(function(e) {
+            console.error('Bulk schedule mock error:', e);
+            const missingColumn = e && e.message && /subject_id/i.test(e.message);
+            showNetworkAwareError(missingColumn
+                ? 'Error creating exams: the mock_exams table needs a "subject_id" column added in Supabase.'
+                : 'Error creating exams: ' + (e.message || 'unknown'), e);
         });
+        return;
+    }
+
+    if (action === 'admin-copy-bulk-link') {
+        const link = el.getAttribute('data-link');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(function() { showToast('Link copied!', 'success'); }).catch(function() { fallbackCopy(link); });
+        } else {
+            fallbackCopy(link);
+        }
+        return;
+    }
+
+    if (action === 'admin-copy-all-bulk-links') {
+        const links = el.getAttribute('data-links');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(links).then(function() { showToast('All links copied!', 'success'); }).catch(function() { fallbackCopy(links); });
+        } else {
+            fallbackCopy(links);
+        }
+        return;
+    }
+
+    if (action === 'admin-dismiss-bulk-links') {
+        state.admin.lastBulkMockLinks = null;
+        render();
         return;
     }
 
@@ -28341,6 +28624,7 @@ document.addEventListener('input', function(e) {
     else if (id === 'admin-mock-duration-hours') state.admin.mockDurationHours = parseInt(e.target.value) || 0;
     else if (id === 'admin-mock-duration-minutes') state.admin.mockDurationMinutes = parseInt(e.target.value) || 0;
     else if (id === 'admin-mock-qs') state.admin.mockQuestionsPerSubject = parseInt(e.target.value) || 25;
+    else if (id === 'admin-mock-subject') { state.admin.mockSubjectId = e.target.value; render(); }
     else if (id === 'login-email') state.loginEmail = e.target.value;
     else if (id === 'login-password') state.loginPassword = e.target.value;
     else if (id === 'signup-fullname') state.signupFullName = e.target.value;
