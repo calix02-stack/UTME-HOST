@@ -12021,7 +12021,7 @@ async function startMockExam(mockExamId, source) {
         console.warn('Start exam error:', e);
         state.isLoading = false;
         showNetworkAwareError('Error starting exam: ' + (e.message || 'unknown'), e);
-        state.view = 'mockexam';
+        state.view = 'mock-exam';
         render();
     }
 }
@@ -12250,6 +12250,23 @@ function doSubmitMock(autoSubmit) {
                     render();
                 });
         });
+        return;
+    }
+
+    // currentMockAttempt can be missing if this submit is firing after a
+    // session was restored from a snapshot rather than freshly started
+    // (see saveSessionSnapshot/restore above) — .eq('id', undefined...id)
+    // used to throw a TypeError here *synchronously*, before the view was
+    // ever switched to 'mock-result'. That left mockSubmitted permanently
+    // true with state.view stuck on 'mock-exam' and no further render()
+    // call coming, i.e. exactly the frozen "still on the exam, but any tap
+    // errors" state being reported. Fall back to the results screen with a
+    // "waiting" state instead of crashing the submit flow.
+    if (!state.currentMockAttempt || !state.currentMockAttempt.id) {
+        console.warn('doSubmitMock: missing currentMockAttempt, skipping remote update');
+        state.mockWaitingForResults = true;
+        state.view = 'mock-result';
+        render();
         return;
     }
 
@@ -19814,6 +19831,20 @@ function renderMockExam() {
     }
     
     if (!state.mockQuestions || state.mockQuestions.length === 0) return renderHome();
+    // Guard against the gap between "submitted = true" (set synchronously)
+    // and "view = 'mock-result'" (set only after the async Supabase write
+    // resolves). Every other exam mode's question-render function checks
+    // its own Finished/Submitted flag before drawing the live question UI;
+    // this one didn't, so if that write was slow, failed, or threw before
+    // switching state.view, the user was left staring at (and able to tap
+    // into) the live timed question screen for an exam that was already
+    // submitted — producing stray clicks/errors instead of the results page.
+    if (state.mockFinished || state.mockSubmitted) {
+        return '<div class="exam-shell"><div class="exam-shell-scroll">' +
+            '<div class="card" style="padding:24px;text-align:center">' +
+            '<p style="color:var(--muted)">Finishing up your submission…</p>' +
+            '</div></div></div>';
+    }
 
     const totalQ = state.mockQuestions.length;
     const answeredCount = state.mockAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
