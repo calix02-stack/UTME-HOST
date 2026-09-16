@@ -9,6 +9,34 @@ const APP_SHELL = [
   "./icon-512.png",
 ];
 
+// How long to wait for the network before treating it as a failure and
+// falling back to cache. Plain fetch() only rejects on a hard error (DNS
+// failure, "no route" when mobile data is off, etc). When data is ON but
+// there's no real signal, the browser thinks a connection is possible and
+// just waits — fetch() never rejects, so a bare .catch(() => cache) never
+// runs and the page hangs on load. Racing fetch() against a timer makes a
+// hang behave exactly like a hard failure.
+const FETCH_TIMEOUT_MS = 8000;
+
+function fetchWithTimeout(request, timeoutMs = FETCH_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Network request timed out"));
+    }, timeoutMs);
+
+    fetch(request).then(
+      (response) => {
+        clearTimeout(timer);
+        resolve(response);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
@@ -36,7 +64,8 @@ self.addEventListener("fetch", (event) => {
   // App shell (the HTML page itself, whether navigated to directly or
   // requested as "./" / "./index.html") — always try the network first so
   // a fresh deploy is picked up on the very next load, not the one after.
-  // Falls back to cache only when the network is unreachable (offline).
+  // Falls back to cache only when the network is unreachable (offline) —
+  // including "unreachable" meaning "took too long," see fetchWithTimeout.
   const isAppShell =
     event.request.mode === "navigate" ||
     url.pathname.endsWith(".html") ||
@@ -49,15 +78,15 @@ self.addEventListener("fetch", (event) => {
   // the network first — a cache-first strategy here would keep silently
   // serving an old (or since-deleted) file's contents forever, since the
   // app would never even see a 404 from the real server. Falls back to the
-  // last-known-good cached copy only when there's truly no network, so
-  // offline use still works.
+  // last-known-good cached copy only when there's truly no network (or the
+  // network hangs past FETCH_TIMEOUT_MS), so offline use still works.
   const isQuestionDataFile =
     /^\/?questions-[^/]+\.json$/.test(url.pathname) ||
     url.pathname.endsWith("questions-seed.json");
 
   if (isAppShell || isQuestionDataFile) {
     event.respondWith(
-      fetch(event.request)
+      fetchWithTimeout(event.request)
         .then((networkResponse) => {
           // Cache successful responses only — never cache a 404/500 so a
           // later real network check isn't shadowed by a bad cached entry.
@@ -70,10 +99,11 @@ self.addEventListener("fetch", (event) => {
         // Question data files are fetched with a cache-busting "?_=<time>"
         // query string (see offline-db.js) so every check is a real trip to
         // the network/CDN, not a stale cached copy. That means the exact
-        // URL is different every time, so when truly offline we look up the
-        // last successfully cached copy while ignoring the query string —
-        // otherwise this fallback could never find anything and offline use
-        // would break entirely.
+        // URL is different every time, so when truly offline (or the
+        // network hung and we timed out) we look up the last successfully
+        // cached copy while ignoring the query string — otherwise this
+        // fallback could never find anything and offline use would break
+        // entirely.
         .catch(() => caches.match(event.request, { ignoreSearch: true }))
     );
     return;
@@ -83,7 +113,7 @@ self.addEventListener("fetch", (event) => {
   // is fine since these rarely change and don't need to be instantly fresh.
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
+      const fetchPromise = fetchWithTimeout(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const clone = networkResponse.clone();
