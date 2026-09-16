@@ -8486,6 +8486,11 @@ let state = {
         syllabusFile: null,
         mockTitle: "",
         mockSubjectId: null,
+        // Which subjects "Create for All Subjects" should create an exam
+        // for — null means "everything" (default, matches old behaviour)
+        // until the admin actually touches a checkbox, at which point this
+        // becomes the explicit list of subject ids to include.
+        mockAllSubjectsSelected: null,
         lastBulkMockLinks: null,
         // Simple scheduling — a single datetime-local field for the start,
         // plus a duration (hours/minutes) instead of a separate manual end
@@ -23670,7 +23675,31 @@ function renderAdminMock() {
         '<label class="field-label">Questions per subject (20–40)</label>' +
         renderQuestionCountPicker('admin-mock-qs', state.admin.mockQuestionsPerSubject || 40, 20) +
         '<button class="btn btn-green" style="margin-top:6px;padding:10px" data-action="admin-schedule-mock">Schedule Mock Exam (' + esc(SUBJECTS.find(function(s){return s.id===selectedMockSubject;}).name) + ')</button>' +
-        '<button class="btn btn-outline" style="margin-top:8px;padding:10px" data-action="admin-schedule-mock-all-subjects">📚 Create for All Subjects (' + mockableSubjects.length + ')</button>' +
+        '</div>'
+    );
+
+    // "Create for All Subjects" now lets the admin pick which subjects to
+    // include instead of always creating one exam per subject — a null
+    // selection means "everything" (same as the old always-all behaviour)
+    // until a checkbox is actually touched.
+    const allSubjectIds = mockableSubjects.map(function(s) { return s.id; });
+    const bulkSelected = state.admin.mockAllSubjectsSelected === null
+        ? allSubjectIds
+        : state.admin.mockAllSubjectsSelected;
+    const bulkChips = mockableSubjects.map(function(s) {
+        const isSel = bulkSelected.indexOf(s.id) !== -1;
+        return '<button type="button" class="qcount-chip' + (isSel ? ' active' : '') + '" data-action="toggle-bulk-mock-subject" data-subject="' + s.id + '">' + esc(s.name) + '</button>';
+    }).join('');
+    html += (
+        '<div class="card" style="margin-bottom:12px">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 6px">📚 Create for All Subjects</p>' +
+        '<p style="font-size:9px;color:var(--faint);margin:0 0 10px">Pick which subjects get their own exam + link — uses the same title, start time, duration and question count as above.</p>' +
+        '<div style="display:flex;gap:6px;margin-bottom:10px">' +
+        '<button type="button" class="btn btn-outline btn-sm" style="flex:1" data-action="bulk-mock-select-all">Select all</button>' +
+        '<button type="button" class="btn btn-outline btn-sm" style="flex:1" data-action="bulk-mock-select-none">Select none</button>' +
+        '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">' + bulkChips + '</div>' +
+        '<button class="btn btn-outline" style="padding:10px" data-action="admin-schedule-mock-all-subjects">📚 Create for Selected Subjects (' + bulkSelected.length + ')</button>' +
         '</div>'
     );
 
@@ -27395,6 +27424,29 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'toggle-bulk-mock-subject') {
+        const subjectId = el.getAttribute('data-subject');
+        const allSubjectIds = SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).map(function(s) { return s.id; });
+        const current = state.admin.mockAllSubjectsSelected === null ? allSubjectIds.slice() : state.admin.mockAllSubjectsSelected.slice();
+        const idx = current.indexOf(subjectId);
+        if (idx === -1) current.push(subjectId); else current.splice(idx, 1);
+        state.admin.mockAllSubjectsSelected = current;
+        render();
+        return;
+    }
+
+    if (action === 'bulk-mock-select-all') {
+        state.admin.mockAllSubjectsSelected = SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).map(function(s) { return s.id; });
+        render();
+        return;
+    }
+
+    if (action === 'bulk-mock-select-none') {
+        state.admin.mockAllSubjectsSelected = [];
+        render();
+        return;
+    }
+
     if (action === 'admin-schedule-mock-all-subjects') {
         const titleBase = document.getElementById('admin-mock-title')?.value?.trim() || 'Mock Exam';
         const scheduledRaw = document.getElementById('admin-mock-scheduled')?.value || '';
@@ -27408,8 +27460,13 @@ document.addEventListener('click', function(e) {
         const durationMinutes = Math.max(1, durH * 60 + durM) || (12 * 60);
         const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60000);
 
-        const mockableSubjects = SUBJECTS.filter(function(s) { return s.id !== 'lhm'; });
-        if (!confirm('Create ' + mockableSubjects.length + ' separate mock exams — one per subject — all starting at the same time? You\'ll get one exam link per subject.')) return;
+        const allMockableSubjects = SUBJECTS.filter(function(s) { return s.id !== 'lhm'; });
+        const selectedIds = state.admin.mockAllSubjectsSelected === null
+            ? allMockableSubjects.map(function(s) { return s.id; })
+            : state.admin.mockAllSubjectsSelected;
+        const mockableSubjects = allMockableSubjects.filter(function(s) { return selectedIds.indexOf(s.id) !== -1; });
+        if (!mockableSubjects.length) { showToast('Select at least one subject.', 'error'); return; }
+        if (!confirm('Create ' + mockableSubjects.length + ' separate mock exams — one per selected subject — all starting at the same time? You\'ll get one exam link per subject.')) return;
 
         const rows = mockableSubjects.map(function(s) {
             return {
@@ -27429,12 +27486,13 @@ document.addEventListener('click', function(e) {
             state.admin.lastBulkMockLinks = created.map(function(e) {
                 return { title: e.title, link: window.location.origin + window.location.pathname + '?examlink=' + e.id };
             });
-            showToast('Created ' + created.length + ' mock exams — one per subject!', 'success');
+            showToast('Created ' + created.length + ' mock exams — one per selected subject!', 'success');
             state.admin.mockTitle = '';
             state.admin.mockScheduled = '';
             state.admin.mockDurationHours = 12;
             state.admin.mockDurationMinutes = 0;
             state.admin.mockQuestionsPerSubject = qs;
+            state.admin.mockAllSubjectsSelected = null;
             loadMockExams();
             render();
         }).catch(function(e) {
