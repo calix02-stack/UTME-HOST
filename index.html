@@ -6967,6 +6967,7 @@ function retryStaleLoadsAfterReconnect() {
         loadLiveExamRegistrations();
         loadLiveExamAttempts();
         syncPendingSubmissions();
+        syncPendingAttemptSubmissions();
     }
     if (state.view === 'revise') loadWeakQuestions();
     if (state.view === 'transactions') loadWalletTransactions();
@@ -9465,6 +9466,70 @@ function queuePendingSubmission(entry) {
     if (!Array.isArray(state.historyEntries)) state.historyEntries = [];
     state.historyEntries.unshift(Object.assign({}, entry, { _pending: true }));
 }
+// ------------------------------------------------------------
+// PENDING ATTEMPT SYNC — separate from the exam_history queue above.
+// This one covers the actual mock_attempts/live_exam_attempts row update
+// that marks an exam is_submitted:true. Previously that update had no
+// error handling at all: if it failed (RLS block, dropped connection,
+// timeout), doSubmitMock() would still move on to the results screen as
+// if everything saved, while the DB row silently stayed is_submitted:false.
+// That produced exactly two symptoms downstream: the exam kept showing
+// "Join Exam"/"Continue" instead of "View Result" the next time the list
+// loaded (because the cached attempt still read is_submitted:false), and
+// the admin dashboard's attempt counter — which only counts rows where
+// is_submitted is true — showed 0 even though the candidate had finished.
+// Now a failed save is queued locally and retried automatically instead
+// of being silently lost.
+function pendingAttemptSyncKey() {
+    return 'pendingAttemptSync_' + (state.authUser ? state.authUser.id : 'guest');
+}
+function loadPendingAttemptSyncs() {
+    try {
+        const raw = storage.get(pendingAttemptSyncKey());
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+}
+function savePendingAttemptSyncs(list) {
+    storage.set(pendingAttemptSyncKey(), JSON.stringify(list || []));
+}
+function queuePendingAttemptSync(table, attemptId, payload) {
+    const pending = loadPendingAttemptSyncs();
+    // Replace any existing queued sync for the same row instead of stacking
+    // duplicates (e.g. the exam-left auto-submit firing more than once).
+    const filtered = pending.filter(function(p) { return !(p.table === table && p.id === attemptId); });
+    filtered.push({ table: table, id: attemptId, payload: payload, queuedAt: Date.now() });
+    savePendingAttemptSyncs(filtered);
+}
+let attemptSyncInFlight = false;
+async function syncPendingAttemptSubmissions() {
+    if (attemptSyncInFlight) return;
+    if (!state.authUser || !isOnline()) return;
+    const pending = loadPendingAttemptSyncs();
+    if (pending.length === 0) return;
+    attemptSyncInFlight = true;
+    const stillPending = [];
+    for (let i = 0; i < pending.length; i++) {
+        const item = pending[i];
+        try {
+            const { error } = await supabase.from(item.table).update(item.payload).eq('id', item.id);
+            if (error) throw error;
+        } catch (e) {
+            console.warn('Pending attempt sync still failing for', item.table, item.id, e);
+            stillPending.push(item);
+        }
+    }
+    savePendingAttemptSyncs(stillPending);
+    attemptSyncInFlight = false;
+    if (stillPending.length < pending.length) {
+        // At least one finally went through — refresh caches so the exam
+        // card flips from "Continue"/"Join Exam" to "View Result" and the
+        // admin attempt count picks it up without needing a manual reload.
+        loadMockAttempts();
+        loadLiveExamAttempts();
+        render();
+    }
+}
 let submissionSyncInFlight = false;
 // Called on reconnect (see retryStaleLoadsAfterReconnect() and the
 // 'online' listener in init()) as well as once at startup — pushes any
@@ -11600,9 +11665,16 @@ function liveExamLinkStatus(exam) {
 // double-tap/duplicate-key protection), then drop them into the real exam.
 async function joinAndStartLiveExamViaLink(examId) {
     if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
-    const already = (state.liveExamRegistrations || []).find(function(r) { return r.live_exam_id === examId; });
+    let already = (state.liveExamRegistrations || []).find(function(r) { return r.live_exam_id === examId; });
     if (!already) {
         await joinLiveExamNow(examId);
+        // joinLiveExamNow() already toasts its own error (e.g. an RLS
+        // rejection) and returns without throwing, so check the cache it
+        // updates rather than assuming the join went through — starting
+        // the exam on an unregistered account just fails a step later
+        // inside startMockExam() with a more confusing message.
+        already = (state.liveExamRegistrations || []).find(function(r) { return r.live_exam_id === examId; });
+        if (!already) return;
     }
     state.pendingLiveExamLinkId = null;
     startMockExam(examId, 'live');
@@ -12274,18 +12346,28 @@ function doSubmitMock(autoSubmit) {
         return;
     }
 
-    supabase
-        .from(attemptsTable)
-        .update({
-            answers: answersObj,
-            score: totalScore,
-            is_submitted: true,
-            submitted_at: state.mockSubmittedAt,
-            time_taken: state.settingsCache.mockTimeLimit * 60 - state.mockTimeLeft,
-            subject_scores: subjectScores,
-        })
-        .eq('id', state.currentMockAttempt.id)
-        .then(function() {
+    const attemptUpdatePayload = {
+        answers: answersObj,
+        score: totalScore,
+        is_submitted: true,
+        submitted_at: state.mockSubmittedAt,
+        time_taken: state.settingsCache.mockTimeLimit * 60 - state.mockTimeLeft,
+        subject_scores: subjectScores,
+    };
+    const attemptId = state.currentMockAttempt.id;
+
+    // The update below used to be fire-and-forget: .then() without ever
+    // checking res.error, so a failed write (RLS rejection, dropped
+    // connection, timeout) looked exactly like a successful one from here
+    // on — the candidate landed on the results screen as normal while the
+    // DB row silently kept is_submitted:false. That's what made a finished
+    // exam keep showing "Join Exam"/"Continue" afterwards and made the
+    // admin attempt counter read 0. Now the response is checked, retried
+    // once immediately, and — if it still fails — queued for automatic
+    // background retry (see syncPendingAttemptSubmissions) instead of
+    // being treated as done.
+    attemptSubmitWithRetry(attemptsTable, attemptId, attemptUpdatePayload)
+        .then(function(saved) {
             if (state.authUser) {
                 saveScore('mock', {
                     user_id: state.authUser.id,
@@ -12295,6 +12377,10 @@ function doSubmitMock(autoSubmit) {
                     subject_count: subjectCount,
                     subject_scores: subjectScores,
                 });
+            }
+            state.mockSubmitSaveFailed = !saved;
+            if (!saved) {
+                showToast("Your answers are saved on this device and will finish submitting once we reconnect.", '');
             }
             // Check the live release flag instead of assuming "waiting" —
             // if the admin already turned results on (even mid-exam), show
@@ -12315,6 +12401,33 @@ function doSubmitMock(autoSubmit) {
             state.view = 'mock-result';
             render();
         });
+}
+
+// Tries the attempt-submit update, retries once after a short delay if it
+// fails, and queues it for background retry (rather than dropping it) if
+// it's still failing after that. Resolves true if the row was actually
+// saved to the DB, false if it's only queued locally — callers use that to
+// decide whether to tell the candidate their submission is still syncing.
+function attemptSubmitWithRetry(table, attemptId, payload) {
+    function attempt() {
+        return supabase.from(table).update(payload).eq('id', attemptId);
+    }
+    return attempt().then(function(res) {
+        if (!res.error) return true;
+        console.warn('Attempt submit failed, retrying once:', res.error);
+        return new Promise(function(resolve) { setTimeout(resolve, 1200); })
+            .then(attempt)
+            .then(function(res2) {
+                if (!res2.error) return true;
+                console.warn('Attempt submit failed again, queuing for later:', res2.error);
+                queuePendingAttemptSync(table, attemptId, payload);
+                return false;
+            });
+    }).catch(function(err) {
+        console.warn('Attempt submit threw, queuing for later:', err);
+        queuePendingAttemptSync(table, attemptId, payload);
+        return false;
+    });
 }
 
 // ============================================================
@@ -29166,6 +29279,7 @@ async function init() {
         cacheAllDataForOffline();
         checkAndDeactivateExpiredUsers();
         syncPendingSubmissions();
+        syncPendingAttemptSubmissions();
         render();
     });
     window.addEventListener('offline', function() {
