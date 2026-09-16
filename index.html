@@ -7536,6 +7536,170 @@ function shareResultCardImage(opts) {
     }, 'image/png');
 }
 
+// opts: { title, subtitle, entries: [{rank, name, meta, score, maxScore}] }
+// Draws a shareable leaderboard image — used by the Admin Panel to let an
+// admin export the exact ranked leaderboard for one specific exam/subject
+// (see shareLeaderboardImage below), same visual language as the
+// candidate-facing result card above.
+function buildLeaderboardCanvas(opts) {
+    const allEntries = opts.entries || [];
+    // Cap what actually gets drawn so the image stays a reasonable size
+    // even when hundreds of people attempted — the list is already sorted
+    // highest score first, so this keeps the part people care about.
+    const MAX_ROWS = 50;
+    const entries = allEntries.slice(0, MAX_ROWS);
+    const truncatedCount = allEntries.length - entries.length;
+
+    const dpr = Math.max(2, window.devicePixelRatio || 1);
+    const W = 680;
+    const padX = 30;
+    const INK = '#13291D';
+    const MUTED = '#5B6B60';
+    const LINE = '#E7EAE8';
+    const GOLD = '#C4901F';
+    const GREEN = '#0F6B3F';
+    const sans = "'Poppins', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+    const mono = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+
+    const headH = 78;
+    const rowH = 46;
+    const rowsH = Math.max(entries.length, 1) * rowH;
+    const footH = truncatedCount > 0 ? 30 : 0;
+    const H = headH + rowsH + footH + 20;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    // Top rule
+    ctx.fillStyle = INK;
+    ctx.fillRect(0, 0, W, 3);
+
+    let y = 3;
+
+    // Header
+    y += 30;
+    ctx.fillStyle = INK;
+    ctx.font = '700 20px ' + sans;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('🏆 ' + (opts.title || 'Leaderboard'), padX, y);
+    if (opts.subtitle) {
+        y += 22;
+        ctx.fillStyle = MUTED;
+        ctx.font = '600 13px ' + sans;
+        ctx.fillText(opts.subtitle, padX, y);
+    }
+    y += 20;
+    ctx.strokeStyle = LINE;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(W - padX, y); ctx.stroke();
+
+    // Rows
+    if (entries.length === 0) {
+        y += rowH / 2 + 6;
+        ctx.fillStyle = MUTED;
+        ctx.font = '600 14px ' + sans;
+        ctx.textAlign = 'center';
+        ctx.fillText('No submitted attempts yet.', W / 2, y);
+    } else {
+        entries.forEach(function(en, i) {
+            y += rowH;
+            const rank = en.rank != null ? en.rank : i + 1;
+            const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
+            const baseY = y - rowH / 2 + 6;
+
+            // Rank / medal
+            ctx.textAlign = 'left';
+            ctx.font = '700 15px ' + mono;
+            ctx.fillStyle = medal ? GOLD : MUTED;
+            ctx.fillText(medal || ('#' + rank), padX, baseY);
+
+            // Name + meta
+            ctx.fillStyle = INK;
+            ctx.font = '700 15px ' + sans;
+            ctx.fillText(en.name || 'Unknown', padX + 46, baseY - 7);
+            if (en.meta) {
+                ctx.fillStyle = MUTED;
+                ctx.font = '600 11px ' + sans;
+                ctx.fillText(en.meta, padX + 46, baseY + 10);
+            }
+
+            // Score
+            ctx.textAlign = 'right';
+            ctx.fillStyle = GREEN;
+            ctx.font = '700 17px ' + mono;
+            const scoreText = String(en.score);
+            const scoreW = ctx.measureText(scoreText).width;
+            ctx.fillText(scoreText, W - padX, baseY);
+            if (en.maxScore != null) {
+                ctx.fillStyle = MUTED;
+                ctx.font = '600 12px ' + mono;
+                ctx.fillText('/' + en.maxScore, W - padX - scoreW - 4, baseY);
+            }
+
+            ctx.strokeStyle = LINE;
+            ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(W - padX, y); ctx.stroke();
+        });
+    }
+
+    if (truncatedCount > 0) {
+        y += footH;
+        ctx.fillStyle = MUTED;
+        ctx.font = '600 italic 12px ' + sans;
+        ctx.textAlign = 'center';
+        ctx.fillText('+ ' + truncatedCount + ' more not shown', W / 2, y - 8);
+    }
+
+    // Bottom rule
+    ctx.fillStyle = INK;
+    ctx.fillRect(0, H - 3, W, 3);
+
+    return canvas;
+}
+
+// Renders a leaderboard to a PNG and shares/downloads it — same
+// share-or-download fallback pattern as shareResultCardImage above.
+function shareLeaderboardImage(opts) {
+    let canvas;
+    try {
+        canvas = buildLeaderboardCanvas(opts);
+    } catch (e) {
+        console.warn('Leaderboard image render error:', e);
+        showToast('Could not generate the leaderboard image.', 'error');
+        return;
+    }
+    canvas.toBlob(function(blob) {
+        if (!blob) { showToast('Could not generate the leaderboard image.', 'error'); return; }
+        const fileName = 'leaderboard-' + Date.now() + '.png';
+        const file = new File([blob], fileName, { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({
+                files: [file],
+                title: opts.title || 'Leaderboard',
+            }).catch(function() {});
+            return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function() { URL.revokeObjectURL(url); }, 4000);
+        showToast('Leaderboard image saved — you can share it from your gallery.', 'success');
+    }, 'image/png');
+}
+
 // Stable, non-identifying label shown on the Leaderboard instead of a
 // candidate's real name/username, e.g. "JAMB-4F2A1C".
 function getCandidateCode(userId) {
@@ -8348,6 +8512,11 @@ let state = {
         cbtSubjectCount: 3,
         mockSubjectCount: 4,
         viewingMockAttempts: null,
+        // Which status bucket ('ongoing' | 'upcoming' | 'completed') the
+        // admin exams list (both Scheduled Mocks and Mock Arena Exams) is
+        // currently filtered to — avoids one long scrolling wall of every
+        // exam ever created.
+        examStatusTab: "ongoing",
         // ALL mock attempts/registrations across every user (not just the
         // logged-in admin's own) — used to build Admin Panel mock stats.
         mockAttemptsAll: [],
@@ -10881,19 +11050,10 @@ async function createLiveExam() {
     const examTypeMeta = LIVE_EXAM_TYPES.find(function(t) { return t.key === f.examType; });
     if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam type.', 'error'); return; }
 
-    // Two ways to build the exam's subject list:
-    //  - JAMB Style (mode '4'): English is compulsory + exactly 3 electives
-    //    chosen by the creator, just like a real UTME mock (4 subjects/400).
-    //  - Single Subject (mode '1', or any non-'jamb' type like LHM): just
-    //    the one subject already stored in f.subject.
-    let subjectIds;
-    if (f.examType === 'jamb' && f.mode === '4') {
-        if (!f.subjects || f.subjects.length !== 3) { showToast('Select exactly 3 elective subjects (English is compulsory).', 'error'); return; }
-        subjectIds = ['eng'].concat(f.subjects);
-    } else {
-        if (!f.subject) { showToast('Select a subject.', 'error'); return; }
-        subjectIds = [f.subject];
-    }
+    // Every exam is single-subject now — the old JAMB Style (English + 3
+    // electives) option has been removed.
+    if (!f.subject) { showToast('Select a subject.', 'error'); return; }
+    const subjectIds = [f.subject];
     if (!f.title.trim()) { showToast('Enter a title.', 'error'); return; }
     // Start time is chosen as "minutes from now" (no clock picker), so it's always
     // computed fresh off the current clock at submit time — nothing can go stale.
@@ -10914,7 +11074,7 @@ async function createLiveExam() {
         exam_type: f.examType,
         // subject_id kept as the primary/first subject for backward
         // compatibility with anything still reading a single value;
-        // subject_ids carries the full list (1 or 4 subjects).
+        // subject_ids carries the same single-subject list.
         subject_id: subjectIds[0],
         subject_ids: subjectIds,
         num_questions: numQuestions,
@@ -11159,20 +11319,14 @@ async function loadAdminLiveExamData() {
 async function registerForMock(mockExamId, mode, subjects) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
 
-    let allSubjects;
-    if (mode === '1') {
-        if (subjects.length !== 1) {
-            showToast('Please select exactly 1 subject.', 'error');
-            return;
-        }
-        allSubjects = subjects.slice();
-    } else {
-        if (subjects.length !== 3) {
-            showToast('Please select exactly 3 subjects (English is compulsory).', 'error');
-            return;
-        }
-        allSubjects = ['eng', ...subjects];
+    // Registration is always for a single subject now — the old "4
+    // Subjects" (English + 3 electives) option has been removed so
+    // candidates just pick the one subject they want to attempt.
+    if (!subjects || subjects.length !== 1) {
+        showToast('Please select a subject.', 'error');
+        return;
     }
+    const allSubjects = subjects.slice();
 
     try {
         await supabase
@@ -14454,35 +14608,18 @@ function downloadAnalyticsSummaryPdf() {
 // ============================================================
 function renderMockRegisterModal() {
     if (!state.showMockRegisterModal) return '';
-    const mode = state.mockRegMode || '4'; // '4' = English + 3 electives, '1' = single subject
     const selected = state.mockSelectedSubjects || [];
-    const electiveSubjects = SUBJECTS.filter(function(s) { return s.id !== 'eng'; });
 
-    let chips = "";
-    if (mode === '4') {
-        chips = electiveSubjects.map(function(s) {
-            const isSel = selected.indexOf(s.id) !== -1;
-            return '<button type="button" class="qcount-chip' + (isSel ? ' active' : '') + '" data-action="toggle-mock-subject" data-subject="' + s.id + '">' + esc(s.name) + '</button>';
-        }).join('');
-    } else {
-        chips = SUBJECTS.map(function(s) {
-            const isSel = selected.indexOf(s.id) !== -1;
-            return '<button type="button" class="qcount-chip' + (isSel ? ' active' : '') + '" data-action="toggle-mock-subject" data-subject="' + s.id + '">' + esc(s.name) + '</button>';
-        }).join('');
-    }
+    const chips = SUBJECTS.map(function(s) {
+        const isSel = selected.indexOf(s.id) !== -1;
+        return '<button type="button" class="qcount-chip' + (isSel ? ' active' : '') + '" data-action="toggle-mock-subject" data-subject="' + s.id + '">' + esc(s.name) + '</button>';
+    }).join('');
 
     return (
         '<div class="submit-overlay" data-action="mock-reg-cancel">' +
         '<div class="submit-modal" data-action="prevent-close">' +
         '<p style="font-weight:700;font-size:14px;margin-bottom:8px">Register for Mock Exam</p>' +
-        '<label class="field-label">Number of subjects</label>' +
-        '<div style="display:flex;gap:8px;margin-bottom:10px">' +
-        '<button type="button" class="btn ' + (mode === '4' ? 'btn-green' : 'btn-outline') + '" style="flex:1;padding:8px" data-action="mock-reg-mode" data-mode="4">4 Subjects</button>' +
-        '<button type="button" class="btn ' + (mode === '1' ? 'btn-green' : 'btn-outline') + '" style="flex:1;padding:8px" data-action="mock-reg-mode" data-mode="1">1 Subject</button>' +
-        '</div>' +
-        (mode === '4'
-            ? '<p style="font-size:11px;color:var(--muted);margin-bottom:6px">English is compulsory — pick 3 more electives (' + selected.length + '/3)</p>'
-            : '<p style="font-size:11px;color:var(--muted);margin-bottom:6px">Pick exactly 1 subject (' + selected.length + '/1)</p>') +
+        '<p style="font-size:11px;color:var(--muted);margin-bottom:6px">Pick the subject you want to attempt (' + selected.length + '/1)</p>' +
         '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">' + chips + '</div>' +
         '<div style="display:flex;gap:8px">' +
         '<button type="button" class="btn btn-outline" style="flex:1" data-action="mock-reg-cancel">Cancel</button>' +
@@ -15095,12 +15232,24 @@ function renderNow() {
         return;
     }
 
+    // Views a signed-out visitor must be allowed to reach WITHOUT hitting
+    // the "Create account" gate — the exam-link entry/confirm screens, and
+    // (once they've actually started) the exam-taking/result views for a
+    // guest attempt (tracked via state.isGuestMock). Without this
+    // allow-list, every signed-out click on a shared exam link — even
+    // though handleExamLinkFromUrl()/handleLiveExamLinkFromUrl() correctly
+    // set state.view to the guest entry screen — got overridden right back
+    // to the login/signup gate below, which is the bug where a shared exam
+    // link opened "Create account" instead of the exam.
+    const GUEST_ALLOWED_VIEWS = ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check'];
+    const onGuestAllowedView = GUEST_ALLOWED_VIEWS.indexOf(state.view) !== -1 || state.isGuestMock;
+
     let html;
     if (state.showFaq) {
         html = renderFaqPage();
     } else if (!state.authReady) {
         html = renderAuthChecking();
-    } else if (!state.authUser) {
+    } else if (!state.authUser && !onGuestAllowedView) {
         html = renderAuthGate();
     } else {
         html = renderApp();
@@ -20003,7 +20152,18 @@ function renderMockExamPicker() {
                 (reg ? '<span class="mock-status registered" style="margin-left:4px">✅ Joined</span>' : '') +
                 (exam.source === 'live' && exam.is_public === false ? '<span class="mock-status waiting" style="margin-left:4px">🔒 Private</span>' : '') +
                 '<div style="margin-top:8px">' + actionHtml + '</div>' +
-                (exam.source === 'live' && exam.created_by === state.authUser?.id
+                // Shareable link button: shown for EVERY admin-created exam
+                // (any user can share it — it's not tied to who made it),
+                // and for a user-created Mock Arena exam only to the user
+                // who created it (their own private-by-default exam).
+                // Previously this only ever showed for
+                // exam.source === 'live' && created_by === the current
+                // user, which meant an admin-created exam's link was never
+                // shown to regular users at all, even though the exam is
+                // fully joinable via that link.
+                (exam.source === 'admin'
+                    ? '<button class="mini-btn" style="margin-top:6px;width:100%" data-action="admin-copy-exam-link" data-examid="' + exam.id + '">🔗 Copy Shareable Link</button>'
+                    : exam.source === 'live' && exam.created_by === state.authUser?.id
                     ? '<button class="mini-btn" style="margin-top:6px;width:100%" data-action="copy-live-exam-link" data-examid="' + exam.id + '">🔗 Copy Shareable Link</button>'
                     : '') +
                 '</div>'
@@ -20060,42 +20220,8 @@ function renderLiveExamCreateWizard() {
         );
     }
 
-    if (step === 'mode') {
-        // Only the JAMB exam type offers a choice — LHM is always a single
-        // fixed subject and skips this step entirely (see live-select-type).
-        const mode = f.mode || '1';
-        return (
-            '<button class="back-link" data-action="live-create-step" data-step="type">' + svg("chevleft", 14) + ' Back</button>' +
-            '<h2 class="title">Choose Mode</h2>' +
-            '<p class="sub">A single subject, or a full JAMB-style mock?</p>' +
-            '<div style="display:flex;gap:8px;margin-bottom:14px">' +
-            '<button class="cbt-mode-btn' + (mode === '1' ? ' active' : '') + '" style="flex:1" data-action="live-select-mode" data-mode="1"><span class="icon">📘</span><span class="label">1 Subject</span><span class="desc">Pick a single subject</span></button>' +
-            '<button class="cbt-mode-btn' + (mode === '4' ? ' active' : '') + '" style="flex:1" data-action="live-select-mode" data-mode="4"><span class="icon">🎓</span><span class="label">JAMB Style</span><span class="desc">English + 3 electives</span></button>' +
-            '</div>' +
-            '<button class="btn btn-green" data-action="live-create-step" data-step="subject">Next</button>'
-        );
-    }
-
     if (step === 'subject') {
-        const mode = f.examType === 'jamb' ? (f.mode || '1') : '1';
-        const backStep = f.examType === 'jamb' ? 'mode' : 'type';
-
-        if (mode === '4') {
-            const selected = f.subjects || [];
-            let chips = "";
-            SUBJECTS.filter(function(s) { return s.id !== 'eng' && s.id !== 'lhm' && hasCourseAccess(s.id); }).forEach(function(s) {
-                const sel = selected.indexOf(s.id) !== -1;
-                chips += '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="live-toggle-subject" data-subject="' + s.id + '">' + subjectBadge(s) + '<span class="sname">' + esc(s.name) + '</span></button>';
-            });
-            return (
-                '<button class="back-link" data-action="live-create-step" data-step="' + backStep + '">' + svg("chevleft", 14) + ' Back</button>' +
-                '<h2 class="title">Choose Subjects</h2>' +
-                '<p class="sub">English is compulsory — pick 3 more electives (' + selected.length + '/3)</p>' +
-                '<div class="subject-grid">' + chips + '</div>' +
-                '<button class="btn btn-green" style="margin-top:10px" data-action="live-create-step" data-step="details"' + (selected.length === 3 ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Next</button>'
-            );
-        }
-
+        const backStep = 'type';
         let chips = "";
         SUBJECTS.filter(function(s) { return s.id !== 'lhm' && hasCourseAccess(s.id); }).forEach(function(s) {
             const sel = f.subject === s.id;
@@ -20123,12 +20249,6 @@ function renderLiveExamCreateWizard() {
         '<button class="back-link" data-action="live-create-step" data-step="' + detailsBackStep + '">' + svg("chevleft", 14) + ' Back</button>' +
         '<h2 class="title">Exam Details</h2>' +
         (f.examType === 'lhm' ? '<p class="sub">The Lekki Headmaster</p>' : '') +
-        (f.examType === 'jamb' && f.mode === '4'
-            ? '<p class="sub">🎓 JAMB Style — ' + ['eng'].concat(f.subjects || []).map(function(sid) {
-                const sj = SUBJECTS.find(function(s) { return s.id === sid; });
-                return sj ? sj.name : sid;
-            }).join(', ') + '</p>'
-            : '') +
         '<div class="card">' +
         '<label class="field-label">Title</label>' +
         '<input class="field" id="live-title" value="' + esc(f.title) + '" placeholder="e.g. Friday Physics Sprint" style="margin-bottom:10px" />' +
@@ -20137,7 +20257,7 @@ function renderLiveExamCreateWizard() {
         '<label class="field-label">Starts in</label>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' + startChips + '</div>' +
         '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + previewLabel + '</p>' +
-        '<label class="field-label">' + (f.examType === 'jamb' && f.mode === '4' ? 'Number of questions per subject (1–100)' : 'Number of questions (1–100)') + '</label>' +
+        '<label class="field-label">Number of questions (1–100)</label>' +
         '<input class="field" id="live-num-questions" type="number" min="1" max="100" value="' + (f.numQuestions || 40) + '" style="margin-bottom:10px" />' +
         '<label class="field-label">Duration</label>' +
         '<div class="time-selector" style="margin:2px 0 10px">' +
@@ -23322,6 +23442,17 @@ function combineDateAndTimeOfDay(dateVal, hour12, minute, ampm) {
 // ============================================================
 //  ADMIN MOCK
 // ============================================================
+// Same ongoing/upcoming/completed classification used on the user-facing
+// Mock Arena page — reused here so the Admin Panel can split its exam
+// lists into the same buckets instead of one long unbroken scroll.
+function adminExamStatus(e) {
+    const now = new Date();
+    const sch = new Date(e.scheduled_date), end = new Date(e.end_date);
+    if (now > end) return 'completed';
+    if (now >= sch && now <= end) return 'ongoing';
+    return 'upcoming';
+}
+
 function renderAdminMock() {
     if (!state.mockLoaded) {
         loadMockExams();
@@ -23435,11 +23566,30 @@ function renderAdminMock() {
         );
     }
 
+    // Ongoing / Created (upcoming) / Finished (completed) tabs — shared
+    // across both exam lists below — so the admin can jump straight to
+    // what's live right now instead of scrolling past every past exam.
+    const examStatusTab = state.admin.examStatusTab || 'ongoing';
+    const statusCounts = { ongoing: 0, upcoming: 0, completed: 0 };
+    state.mockExams.concat(state.liveExams).forEach(function(e) {
+        statusCounts[adminExamStatus(e)]++;
+    });
+    html += '<div class="leaderboard-tabs" style="margin-bottom:10px">';
+    [['ongoing', '🟢 Ongoing'], ['upcoming', '📅 Created'], ['completed', '🔒 Finished']].forEach(function(t) {
+        html += '<button class="leaderboard-tab' + (examStatusTab === t[0] ? ' active' : '') +
+            '" data-action="admin-exam-status-tab" data-tab="' + t[0] + '">' + t[1] +
+            ' (' + statusCounts[t[0]] + ')</button>';
+    });
+    html += '</div>';
+
+    const statusEmptyLabel = { ongoing: 'ongoing', upcoming: 'created (upcoming)', completed: 'finished' }[examStatusTab];
+
     html += '<p class="section-label">Scheduled Mocks (Admin-Created)</p>';
-    if (state.mockExams.length === 0) {
-        html += '<p style="font-size:12px;color:var(--faint);text-align:center;font-size:13px">No mock exams scheduled.</p>';
+    const filteredMockExams = state.mockExams.filter(function(e) { return adminExamStatus(e) === examStatusTab; });
+    if (filteredMockExams.length === 0) {
+        html += '<p style="font-size:12px;color:var(--faint);text-align:center;font-size:13px">No ' + statusEmptyLabel + ' mock exams.</p>';
     } else {
-        state.mockExams.forEach(function(exam) {
+        filteredMockExams.forEach(function(exam) {
             const regCount = allRegistrations.filter(function(r) { return r.mock_exam_id === exam.id; })
             .length;
             const examAttempts = allAttempts.filter(function(a) {
@@ -23481,10 +23631,11 @@ function renderAdminMock() {
     }
 
     html += '<p class="section-label" style="margin-top:14px">Mock Arena Exams (User-Created)</p>';
-    if (state.liveExams.length === 0) {
-        html += '<p style="font-size:12px;color:var(--faint);text-align:center;font-size:13px">No Mock Arena exams created yet.</p>';
+    const filteredLiveExams = state.liveExams.filter(function(e) { return adminExamStatus(e) === examStatusTab; });
+    if (filteredLiveExams.length === 0) {
+        html += '<p style="font-size:12px;color:var(--faint);text-align:center;font-size:13px">No ' + statusEmptyLabel + ' Mock Arena exams.</p>';
     } else {
-        state.liveExams.forEach(function(exam) {
+        filteredLiveExams.forEach(function(exam) {
             const subjIds = (exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids : [exam.subject_id];
             const subjNames = subjIds.map(function(sid) {
                 const sj = SUBJECTS.find(function(s) { return s.id === sid; });
@@ -23578,6 +23729,9 @@ function renderMockAttemptsView() {
         '<span class="mode-title" style="font-size:14px">📝 ' + esc(exam ? exam.title : 'Mock Attempts') + '</span>' +
         '<button class="btn btn-outline btn-sm" data-action="admin-mock-attempts-back">← Back</button>' +
         '</div>' +
+        (sorted.length > 0 ?
+            '<button class="btn btn-outline" style="width:100%;margin-bottom:10px;padding:9px;font-size:12px" data-action="admin-share-mock-leaderboard" data-examid="' + examId + '">📤 Share Leaderboard as Image</button>'
+            : '') +
         '<div class="card" style="margin-bottom:10px;display:flex;gap:8px">' +
         '<div style="flex:1;text-align:center">' +
         '<p style="font-size:18px;font-weight:800;margin:0;color:var(--green)">' + submitted.length + '</p>' +
@@ -23656,6 +23810,9 @@ function renderLiveExamAttemptsView() {
         '<span class="mode-title" style="font-size:14px">👤 ' + esc(exam ? exam.title : 'Mock Arena Attempts') + '</span>' +
         '<button class="btn btn-outline btn-sm" data-action="admin-live-exam-attempts-back">← Back</button>' +
         '</div>' +
+        (sorted.length > 0 ?
+            '<button class="btn btn-outline" style="width:100%;margin-bottom:10px;padding:9px;font-size:12px" data-action="admin-share-live-leaderboard" data-examid="' + examId + '">📤 Share Leaderboard as Image</button>'
+            : '') +
         '<div class="card" style="margin-bottom:10px;display:flex;gap:8px">' +
         '<div style="flex:1;text-align:center">' +
         '<p style="font-size:18px;font-weight:800;margin:0;color:var(--green)">' + submitted.length + '</p>' +
@@ -26012,14 +26169,12 @@ document.addEventListener('click', function(e) {
     // MOCK
     if (action === 'toggle-mock-subject') {
         const id = el.getAttribute('data-subject');
-        const mode = state.mockRegMode || '4';
-        const max = mode === '1' ? 1 : 3;
+        // Registration is always single-subject now.
         const i = state.mockSelectedSubjects.indexOf(id);
         if (i !== -1) {
             state.mockSelectedSubjects.splice(i, 1);
-        } else if (state.mockSelectedSubjects.length < max) {
-            if (mode === '1') state.mockSelectedSubjects = [id];
-            else state.mockSelectedSubjects.push(id);
+        } else {
+            state.mockSelectedSubjects = [id];
         }
         render();
         return;
@@ -26030,16 +26185,9 @@ document.addEventListener('click', function(e) {
         const source = el.getAttribute('data-source') || 'admin';
         if (!state.authUser) { showToast('Please login first.', 'error'); return; }
         state.mockRegPending = { examId: examId, source: source };
-        state.mockRegMode = '4';
+        state.mockRegMode = '1';
         state.mockSelectedSubjects = [];
         state.showMockRegisterModal = true;
-        render();
-        return;
-    }
-
-    if (action === 'mock-reg-mode') {
-        state.mockRegMode = el.getAttribute('data-mode') || '4';
-        state.mockSelectedSubjects = [];
         render();
         return;
     }
@@ -26084,6 +26232,11 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
+    if (action === 'admin-exam-status-tab') {
+        state.admin.examStatusTab = el.getAttribute('data-tab');
+        render();
+        return;
+    }
     if (action === 'live-select-type') {
     const type = el.getAttribute('data-type');
     const typeMeta = LIVE_EXAM_TYPES.find(function(t) { return t.key === type; });
@@ -26098,44 +26251,24 @@ document.addEventListener('click', function(e) {
         state.liveExamCreateForm.subject = 'lhm';
         state.liveExamCreateStep = 'details';
     } else {
-        // JAMB can be either a single subject or the full 4-subject
-        // (English + 3 electives) style — ask which mode first.
-        state.liveExamCreateStep = 'mode';
+        // Every exam is single-subject now — the old "JAMB Style"
+        // (English + 3 electives) mode has been removed, so go straight to
+        // the subject picker instead of asking which mode first.
+        state.liveExamCreateStep = 'subject';
     }
     render();
     return;
 }
-    if (action === 'live-select-mode') {
-        state.liveExamCreateForm.mode = el.getAttribute('data-mode') || '1';
-        state.liveExamCreateForm.subject = '';
-        state.liveExamCreateForm.subjects = [];
-        render();
-        return;
-    }
     if (action === 'live-select-subject') {
         state.liveExamCreateForm.subject = el.getAttribute('data-subject');
-        render();
-        return;
-    }
-    if (action === 'live-toggle-subject') {
-        const id = el.getAttribute('data-subject');
-        const f = state.liveExamCreateForm;
-        if (!f.subjects) f.subjects = [];
-        const i = f.subjects.indexOf(id);
-        if (i !== -1) f.subjects.splice(i, 1);
-        else if (f.subjects.length < 3) f.subjects.push(id);
         render();
         return;
     }
     if (action === 'live-create-step') {
         const step = el.getAttribute('data-step');
         const f = state.liveExamCreateForm;
-        if (step === 'details') {
-            if (f.examType === 'jamb' && f.mode === '4') {
-                if (!(f.subjects && f.subjects.length === 3)) { showToast('Select exactly 3 elective subjects first.', 'error'); return; }
-            } else if (!f.subject) {
-                showToast('Select a subject first.', 'error'); return;
-            }
+        if (step === 'details' && !f.subject) {
+            showToast('Select a subject first.', 'error'); return;
         }
         state.liveExamCreateStep = step;
         render();
@@ -27266,6 +27399,69 @@ document.addEventListener('click', function(e) {
     if (action === 'admin-live-exam-attempts-back') {
         state.admin.viewingLiveExamAttempts = null;
         render();
+        return;
+    }
+
+    // Exports the exact ranked leaderboard currently shown for one
+    // admin-scheduled mock exam (i.e. one subject) as a shareable PNG.
+    if (action === 'admin-share-mock-leaderboard') {
+        const examId = el.getAttribute('data-examid');
+        const exam = state.mockExams.find(function(e) { return e.id === examId; });
+        const allAttempts = state.admin.mockAttemptsAll || [];
+        const sorted = allAttempts.filter(function(a) { return a.mock_exam_id === examId && a.is_submitted; })
+            .sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
+        const examSubj = exam ? SUBJECTS.find(function(s) { return s.id === exam.subject_id; }) : null;
+        const entries = sorted.map(function(attempt, i) {
+            const user = (state.allUsers || []).find(function(u) { return u.id === attempt.user_id; });
+            const displayName = user ? (user.full_name || user.username || 'Unknown') : 'Unknown user';
+            const username = user ? user.username : '';
+            return {
+                rank: i + 1,
+                name: displayName,
+                meta: username ? '@' + username : '',
+                score: attempt.score != null ? attempt.score : 0,
+                maxScore: 100
+            };
+        });
+        shareLeaderboardImage({
+            title: exam ? exam.title : 'Mock Exam Leaderboard',
+            subtitle: (examSubj ? examSubj.name : 'Mock Exam') + (exam ? ' · ' + new Date(exam.scheduled_date).toLocaleDateString() : ''),
+            entries: entries
+        });
+        return;
+    }
+
+    // Same as above, but for a Mock Arena exam created by a user — this is
+    // the "exact subject leaderboard" for that specific exam/subject.
+    if (action === 'admin-share-live-leaderboard') {
+        const examId = el.getAttribute('data-examid');
+        const exam = state.liveExams.find(function(e) { return e.id === examId; });
+        const allAttempts = state.admin.liveExamAttemptsAll || [];
+        const sorted = allAttempts.filter(function(a) { return a.live_exam_id === examId && a.is_submitted; })
+            .sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
+        const subjIds = exam ? ((exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids : [exam.subject_id]) : [];
+        const subjNames = subjIds.map(function(sid) {
+            const sj = SUBJECTS.find(function(s) { return s.id === sid; });
+            return sj ? sj.name : sid;
+        }).join(', ');
+        const maxScore = Math.max(100, subjIds.length * 100);
+        const entries = sorted.map(function(attempt, i) {
+            const user = (state.allUsers || []).find(function(u) { return u.id === attempt.user_id; });
+            const displayName = user ? (user.full_name || user.username || 'Unknown') : 'Unknown user';
+            const username = user ? user.username : '';
+            return {
+                rank: i + 1,
+                name: displayName,
+                meta: username ? '@' + username : '',
+                score: attempt.score != null ? attempt.score : 0,
+                maxScore: maxScore
+            };
+        });
+        shareLeaderboardImage({
+            title: exam ? exam.title : 'Mock Arena Leaderboard',
+            subtitle: (subjNames || 'Mock Arena') + (exam ? ' · ' + new Date(exam.scheduled_date).toLocaleDateString() : ''),
+            entries: entries
+        });
         return;
     }
 
