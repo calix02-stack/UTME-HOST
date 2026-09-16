@@ -8420,6 +8420,7 @@ let state = {
     subjectLeaderboardSubject: null,
     allUsers: [],
     allUsersError: null,
+    allUsersLoaded: false,
     loadingLeaderboard: false,
     unverifiedResultsPool: [],
 
@@ -8823,6 +8824,7 @@ async function loadAllUsers() {
         if (!accessToken) {
             state.allUsers = [];
             state.allUsersError = 'You must be logged in to load users.';
+            state.allUsersLoaded = true;
             return [];
         }
 
@@ -8852,11 +8854,13 @@ async function loadAllUsers() {
 
         state.allUsers = json.users || [];
         state.allUsersError = null;
+        state.allUsersLoaded = true;
         return state.allUsers;
     } catch (e) {
         console.warn("Load users exception:", extractErrorMessage(e), e);
         state.allUsers = [];
         state.allUsersError = (e && e.message) || 'Network or connection error.';
+        state.allUsersLoaded = true;
         return [];
     }
 }
@@ -23465,6 +23469,10 @@ function adminExamStatus(e) {
 function renderAdminMock() {
     if (!state.mockLoaded) {
         loadMockExams();
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading mock data...</p></div>';
+    }
+    if (!state.allUsersLoaded) {
+        loadAllUsers().then(render);
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading mock data...</p></div>';
     }
     if (!state.admin.mockAdminDataLoaded) {
