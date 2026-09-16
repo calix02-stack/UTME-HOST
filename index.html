@@ -8427,23 +8427,23 @@ let state = {
     // (?examlink=<mockExamId>) without going through the normal browse flow.
     // A logged-in user is dropped straight into the exam as themselves
     // (fully verified, normal leaderboard entry). A signed-out visitor is
-    // asked only for a display name — no account is created — and their
-    // result is saved separately and tagged "Unverified" wherever it shows.
+    // shown a register/log-in screen instead — anonymous "guest" attempts
+    // are no longer supported for this link (see 'exam-link-guest' view).
     pendingExamLinkId: null,
-    examLinkGuestName: "",
     // Subject for an exam-link attempt now comes from the exam's own
     // subject_id (set by the admin when the mock was created) rather than
-    // a single hardcoded default — see enterMockExamViaLink/startGuestMockExam.
+    // a single hardcoded default — see enterMockExamViaLink().
+    // isGuestMock/guestMockName below are still used by the separate Live
+    // Exam Link ("Mock Arena") guest flow further down.
     isGuestMock: false,
     guestMockName: null,
     guestResultId: null,
     guestResultCheckLoading: false,
     guestResultCheckData: null,
-    // Name typed on the exam-link entry screen — used as the leaderboard
-    // display name for a *registered* user coming in through a mock exam
-    // link (a guest's name is stored separately, in guestMockName). Reset
-    // to null on any normal (non-link) Mock Arena entry so it never leaks
-    // into an unrelated attempt.
+    // Display name for a signed-in user coming in through a mock exam
+    // link — simply their own account name. Reset to null on any normal
+    // (non-link) Mock Arena entry so it never leaks into an unrelated
+    // attempt.
     mockDisplayName: null,
 
     // Live Exam Link — same idea as the mock exam link above, but for
@@ -8471,7 +8471,7 @@ let state = {
         questionsPerSubject: 40,
         cbtTimeLimit: 100,
         subjectTimeLimit: 25,
-        mockTimeLimit: 100,
+        mockTimeLimit: 30,
         mockQuestionsPerSubject: 40,
         editingQuestionId: null,
         docSubject: "",
@@ -8661,7 +8661,7 @@ myEnrollmentsLoading: false,
         subjectQuestionsPerSubject: 40,
         subjectTimeLimit: 25,
         mockQuestionsPerSubject: 40,
-        mockTimeLimit: 100,
+        mockTimeLimit: 30,
         calculatorEnabled: true,
         examTimeLimit: 100,
         novelTimeLimit: 100,
@@ -9361,7 +9361,7 @@ async function loadSettings() {
             subjectQuestionsPerSubject: settings.subject_settings?.questions_per_subject || 40,
             subjectTimeLimit: settings.subject_settings?.time_limit_minutes || 25,
             mockQuestionsPerSubject: settings.mock_settings?.questions_per_subject || 40,
-            mockTimeLimit: settings.mock_settings?.time_limit_minutes || 100,
+            mockTimeLimit: settings.mock_settings?.time_limit_minutes || 30,
             calculatorEnabled: settings.calculator_enabled !== false,
             examTimeLimit: settings.exam_settings?.time_limit_minutes || 100,
             novelTimeLimit: settings.novel_settings?.time_limit_minutes || 100,
@@ -10470,6 +10470,9 @@ async function signUp(fullName, username, email, password) {
                 state.showActivationBanner = true;
             }
             render();
+            if (state.pendingExamLinkId) {
+                enterMockExamViaLink(state.pendingExamLinkId);
+            }
         }
     } catch (err) {
         logAppError("Signup", err);
@@ -11353,13 +11356,15 @@ async function registerForMock(mockExamId, mode, subjects) {
 //  EXAM LINK — shared URL (?examlink=<mockExamId>) that lets anyone reach
 //  one specific Mock Exam directly. Logged-in users go straight in as
 //  themselves through the normal, untouched startMockExam() path below.
-//  Signed-out visitors are routed to a name-only entry screen instead of
-//  the usual login/signup wall (see 'exam-link-guest' view + startGuestMockExam).
+//  Signed-out visitors are routed to a register/log-in screen instead —
+//  there is no anonymous "guest" attempt anymore (see 'exam-link-guest'
+//  view). Once they have an account and are logged in, signUp()/signIn()
+//  automatically resume pendingExamLinkId and move them into the exam.
 // ============================================================
 // A guest's personal, no-login "check my result" link — ?examresult=<row-id>
-// from unverified_mock_results. This is the only way a guest can ever see
-// a score that wasn't released yet at submission time, since they have no
-// account to log back into.
+// from unverified_mock_results. This still serves anyone who sat an exam
+// as a guest before this change, or a guest attempt taken via a Live Exam
+// link, which are unaffected by this update.
 function handleExamResultLinkFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     const resultId = urlParams.get('examresult');
@@ -11436,54 +11441,24 @@ function handleExamLinkFromUrl() {
     } catch (e) { /* ignore */ }
 
     state.pendingExamLinkId = linkId;
-    // Everyone — registered or not — confirms a name to show on the
-    // leaderboard for this attempt. A logged-in user's real name is
-    // pre-filled (and still saved to their verified record either way);
-    // they can still edit it before starting.
-    state.examLinkGuestName = state.authUser ? (state.profile.fullName || state.profile.name || '') : '';
-    state.view = 'exam-link-guest';
-    render();
 
-    // If this exam link was already completed (by this account, or on this
-    // device as a guest), skip the name prompt entirely and go straight to
-    // the saved result instead of letting them start a fresh attempt.
-    resumeExamLinkIfAlreadyDone(linkId);
-}
-
-// Checks whether this exam link has already been sat — either by the
-// logged-in account (a submitted mock_attempts row) or, for a guest, by
-// this same browser/device (tracked locally, since a guest has no account
-// to look this up against). If so, jumps straight to the result screen
-// instead of re-prompting for a name or re-attempting registration, which
-// is what used to surface as a confusing "duplicate"/"exam not found" error
-// when someone reopened a link they'd already used.
-async function resumeExamLinkIfAlreadyDone(mockExamId) {
     if (state.authUser) {
-        try {
-            if (!state.mockExams || state.mockExams.length === 0) {
-                await loadMockExams();
-            }
-            await loadMockAttempts(mockExamId);
-            const existing = (state.mockAttempts || []).find(function(a) {
-                return a.mock_exam_id === mockExamId && a.user_id === state.authUser.id && a.is_submitted;
-            });
-            if (existing) {
-                showMockResultFromAttempt(mockExamId, existing);
-            }
-        } catch (e) {
-            console.warn('Resume exam link (registered) check error:', e);
-        }
+        // Already signed in — no name prompt, no anonymous path. Go
+        // straight into the exam (enterMockExamViaLink() itself checks for
+        // an already-submitted attempt and shows the saved result instead
+        // of starting a new one if this link was already used).
+        state.view = 'exam-link-guest';
+        render();
+        enterMockExamViaLink(linkId);
         return;
     }
-    try {
-        const savedResultId = storage.get('examlink_guest_result_' + mockExamId);
-        if (savedResultId) {
-            state.pendingExamLinkId = null;
-            state.isGuestMock = true;
-            state.view = 'guest-result-check';
-            loadGuestResultCheck(savedResultId);
-        }
-    } catch (e) { /* ignore */ }
+
+    // Not signed in: taking a mock exam anonymously is no longer allowed.
+    // Show the register/log-in screen — signUp()/signIn() pick
+    // pendingExamLinkId back up and move the person into the exam
+    // automatically once they have an account and are logged in.
+    state.view = 'exam-link-guest';
+    render();
 }
 
 // Populates the Mock Result screen straight from an already-submitted
@@ -11508,13 +11483,13 @@ function showMockResultFromAttempt(mockExamId, attempt) {
     });
 }
 
-// Registered user coming in through the link: silently register them for
+// Signed-in user coming in through the link: silently register them for
 // this exam's fixed subject (read from the exam's own subject_id — set by
 // the admin when the mock was created) if they aren't already, then hand
 // off to the real, unmodified startMockExam() — identical to a normal Mock
-// Arena entry. displayName is whatever they confirmed on the exam-link
-// entry screen and is what shows on the leaderboard for this attempt.
-async function enterMockExamViaLink(mockExamId, displayName) {
+// Arena entry. The leaderboard display name is simply their own account
+// name — anonymous, no-account attempts are no longer supported here.
+async function enterMockExamViaLink(mockExamId) {
     if (!state.authUser) return;
     if (!isUserActive()) {
         state.pendingExamLinkId = null;
@@ -11555,102 +11530,12 @@ async function enterMockExamViaLink(mockExamId, displayName) {
         }
 
         state.pendingExamLinkId = null;
-        state.mockDisplayName = (displayName || '').trim() || state.profile.name;
+        state.mockDisplayName = state.profile.fullName || state.profile.name;
         startMockExam(mockExamId, 'admin');
     } catch (e) {
         console.warn('Exam link entry error:', e);
         state.pendingExamLinkId = null;
         showNetworkAwareError('Could not open this exam link.', e);
-        render();
-    }
-}
-
-// Name confirmed on the 'exam-link-guest' screen — shown to both a
-// signed-out visitor (no account, nothing saved beyond this one attempt)
-// and a logged-in user (whose account still records the attempt as usual;
-// only the leaderboard display name is theirs to set here).
-function beginGuestExamFromLink() {
-    const name = (state.examLinkGuestName || '').trim();
-    if (!name) { showToast('Please enter your name.', 'error'); return; }
-    if (!state.pendingExamLinkId) { showToast('This exam link is no longer valid.', 'error'); return; }
-    if (state.authUser) {
-        enterMockExamViaLink(state.pendingExamLinkId, name);
-    } else {
-        startGuestMockExam(state.pendingExamLinkId, name);
-    }
-}
-
-// Guest exam-taking: mirrors the "start a fresh attempt" branch of
-// startMockExam() for a single fixed subject, but keeps everything in
-// memory only — no mock_registrations row, no mock_attempts row, no
-// per-user "used question" tracking (a guest only ever sits this once).
-// It reuses the exact same mockQuestions/mockAnswers/mock-exam view/timer
-// that the registered flow uses, so the exam-taking UI itself needs no
-// changes at all — only doSubmitMock() branches differently at the end.
-async function startGuestMockExam(mockExamId, guestName) {
-    state.isLoading = true;
-    render();
-    try {
-        if (!state.mockExams || state.mockExams.length === 0) {
-            await loadMockExams();
-        }
-        const linkedExam = (state.mockExams || []).find(function(e) { return e.id === mockExamId; });
-        const subjectId = (linkedExam && linkedExam.subject_id) || 'math';
-        const settings = await loadSettings();
-        const perSubject = settings.mockQuestionsPerSubject || 40;
-
-        const allSubjectQuestions = await window.OfflineDB.getQuestionsOffline('mock', subjectId);
-        const selectedQuestions = shuffleArray(allSubjectQuestions.slice()).slice(0, perSubject);
-
-        if (selectedQuestions.length === 0) {
-            state.isLoading = false;
-            showToast('This exam has no questions available offline yet. Please try again after connecting to the internet.', 'error');
-            state.view = 'exam-link-guest';
-            render();
-            return;
-        }
-
-        state.engMockPassage = null;
-        state.engMockHasPassage = false;
-        state.engMockPassageRead = true;
-        state.engMockPassageId = null;
-
-        state.isGuestMock = true;
-        state.guestMockName = guestName;
-        state.mockExamSource = 'admin';
-        state.currentMockAttempt = null;
-        state.mockQuestions = selectedQuestions;
-        state.mockAnswers = new Array(selectedQuestions.length).fill(null);
-        state.mockIndex = 0;
-        state.mockFinished = false;
-        state.mockSubmitted = false;
-        const timeLimit = settings.mockTimeLimit || 100;
-        state.mockTimeLeft = timeLimit * 60;
-        state.mockExamId = mockExamId;
-        state.pendingExamLinkId = null;
-        state.isLoading = false;
-
-        buildMockSubjectGroups(selectedQuestions);
-
-        state.view = 'mock-exam';
-        render();
-
-        if (state.mockTimer) clearInterval(state.mockTimer);
-        state.mockTimer = setInterval(function() {
-            state.mockTimeLeft--;
-            if (state.mockTimeLeft <= 0) {
-                clearInterval(state.mockTimer);
-                state.mockTimer = null;
-                submitMockExam(true);
-            } else {
-                if (!tickTimerDisplay(state.mockTimeLeft)) render();
-            }
-        }, 1000);
-    } catch (e) {
-        console.warn('Start guest exam error:', e);
-        state.isLoading = false;
-        showNetworkAwareError('Error starting exam: ' + (e.message || 'unknown'), e);
-        state.view = 'exam-link-guest';
         render();
     }
 }
@@ -11724,9 +11609,11 @@ async function reserveLiveExamViaLink(examId) {
 }
 
 // Signed-out visitor, exam is ongoing: same in-memory, no-account pattern
-// as startGuestMockExam(), but pulls its subject list / question count /
-// time limit from the live exam's own settings (which may be several
-// subjects, JAMB-style) instead of the global mock settings.
+// used by the Live Exam Link guest flow (separate from the Mock Exam
+// link above, which no longer allows anonymous attempts), but pulls its
+// subject list / question count / time limit from the live exam's own
+// settings (which may be several subjects, JAMB-style) instead of the
+// global mock settings.
 async function startGuestLiveExam(liveExamId, guestName) {
     state.isLoading = true;
     render();
@@ -11938,7 +11825,7 @@ async function startMockExam(mockExamId, source) {
                     
                     const settings = await loadSettings();
                     const liveExamMeta = source === 'live' ? state.liveExams.find(function(e) { return e.id === mockExamId; }) : null;
-                    const timeLimit = (liveExamMeta && liveExamMeta.time_limit_minutes) || settings.mockTimeLimit || 100;
+                    const timeLimit = (liveExamMeta && liveExamMeta.time_limit_minutes) || settings.mockTimeLimit || 30;
                     state.mockTimeLeft = Math.max(0, (timeLimit * 60) - (existing.time_taken || 0));
                     state.mockQuestions = allQuestions;
                     state.mockIndex = 0;
@@ -12102,7 +11989,7 @@ async function startMockExam(mockExamId, source) {
         state.mockIndex = 0;
         state.mockFinished = false;
         state.mockSubmitted = false;
-        const timeLimit = (liveExamMeta && liveExamMeta.time_limit_minutes) || settings.mockTimeLimit || 100;
+        const timeLimit = (liveExamMeta && liveExamMeta.time_limit_minutes) || settings.mockTimeLimit || 30;
         state.mockTimeLeft = timeLimit * 60;
         state.mockExamId = mockExamId;
         state.isLoading = false;
@@ -12312,9 +12199,11 @@ function doSubmitMock(autoSubmit) {
         saveAnalyticsTimeSample('mock', state.settingsCache.mockTimeLimit * 60 - state.mockTimeLeft, state.mockQuestions.length);
     }
 
-    // Guest (exam-link, no account) attempt: never touches mock_attempts/
-    // mock_scores at all — there is no attempt row to update because none
-    // was created in startGuestMockExam(). Saved to its own table instead,
+    // Guest (Live Exam Link, no account) attempt: never touches
+    // mock_attempts/mock_scores at all — there is no attempt row to update
+    // because none was created in startGuestLiveExam(). (The Mock Exam
+    // link no longer supports anonymous guests, so this branch is only
+    // ever reached from a Live Exam Link.) Saved to its own table instead,
     // then shown on Results the same way a registered attempt would be.
     if (state.isGuestMock) {
         // A guest has no account to log back into later, so — unlike the
@@ -20419,21 +20308,36 @@ function renderExamLinkGuest() {
     const exam = (state.mockExams || []).find(function(e) { return e.id === state.pendingExamLinkId; });
     const subj = exam ? SUBJECTS.find(function(s) { return s.id === exam.subject_id; }) : null;
     const isAuthed = !!state.authUser;
+
+    // Logged-in users never actually linger on this screen — the moment
+    // handleExamLinkFromUrl() sees an authUser it calls
+    // enterMockExamViaLink() straight away, which takes them either into
+    // the exam or to their saved result. This is just the brief loading
+    // state in between.
+    if (isAuthed) {
+        return (
+            '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
+            '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
+            '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
+            '<p class="sub" style="font-size:12px;margin-bottom:2px">' + (subj ? esc(subj.name) : '') + '</p>' +
+            '<p style="font-size:12px;color:var(--muted);margin-top:14px">Opening your exam…</p>' +
+            '</div>'
+        );
+    }
+
+    // Signed-out visitor: no name field, no anonymous attempt — they need
+    // an account before they can sit the exam. Give them both paths and
+    // let them pick the one that applies.
     return (
         '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
         '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
         '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
         '<p class="sub" style="font-size:12px;margin-bottom:18px">' +
         (subj ? esc(subj.name) + ' — ' : '') +
-        'Enter the name to show on the leaderboard.' +
-        (isAuthed ? '' : ' No account or sign-up needed.') + '</p>' +
-        '<input id="examlink-guest-name" type="text" placeholder="Your name" value="' + esc(state.examLinkGuestName) + '" ' +
-        'style="width:100%;padding:12px;border:1px solid var(--input-border);border-radius:10px;margin-bottom:12px;font-size:14px" />' +
-        '<button class="btn btn-gold" style="width:100%;padding:12px" data-action="start-guest-exam-link">Start Exam</button>' +
-        (isAuthed
-            ? '<p style="font-size:11px;color:var(--faint);margin-top:14px">Logged in as ' + esc(state.profile.name || '') + ' — this still counts toward your verified record.</p>'
-            : '<p style="font-size:11px;color:var(--faint);margin-top:14px">Already have an account? ' +
-              '<button data-action="show-login" style="text-decoration:underline;font-weight:700">Log in</button> to have this count toward your verified record.</p>') +
+        'Create a free account to take this exam and save your result.</p>' +
+        '<button class="btn btn-gold" style="width:100%;padding:12px" data-action="show-signup">Create Account</button>' +
+        '<p style="font-size:11px;color:var(--faint);margin-top:14px">Already have an account? ' +
+        '<button data-action="show-login" style="text-decoration:underline;font-weight:700">Log in</button></p>' +
         '</div>'
     );
 }
@@ -22820,8 +22724,8 @@ function renderAdminSettings() {
     const novelMinutes = (s.novelTimeLimit || 100) % 60;
     const reviseHours = Math.floor((s.reviseTimeLimit || 60) / 60);
     const reviseMinutes = (s.reviseTimeLimit || 60) % 60;
-    const mockHours = Math.floor((s.mockTimeLimit || 100) / 60);
-    const mockMinutes = (s.mockTimeLimit || 100) % 60;
+    const mockHours = Math.floor((s.mockTimeLimit || 30) / 60);
+    const mockMinutes = (s.mockTimeLimit || 30) % 60;
 
     return (
         '<div class="card">' +
@@ -22888,7 +22792,7 @@ function renderAdminSettings() {
         '<div class="time-input-group"><input type="number" id="admin-mock-hours" min="0" max="6" value="' + mockHours + '" style="width:45px" /><label>h</label></div>' +
         '<div class="time-input-group"><input type="number" id="admin-mock-minutes" min="0" max="59" value="' + mockMinutes + '" style="width:45px" /><label>m</label></div>' +
         '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.mockTimeLimit || 100) + ' minutes</p>' +
+        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.mockTimeLimit || 30) + ' minutes</p>' +
         '</div>' +
         
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
@@ -26090,13 +25994,6 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    if (action === 'start-guest-exam-link') {
-        const nameInput = document.getElementById('examlink-guest-name');
-        if (nameInput) state.examLinkGuestName = nameInput.value;
-        beginGuestExamFromLink();
-        return;
-    }
-
     if (action === 'copy-live-exam-link') {
         const examId = el.getAttribute('data-examid');
         const link = window.location.origin + window.location.pathname + '?liveexamlink=' + examId;
@@ -28831,7 +28728,6 @@ document.addEventListener('input', function(e) {
     else if (id === 'reset-email') state.resetEmail = e.target.value;
     else if (id === 'reset-new-password') state.resetPassword = e.target.value;
     else if (id === 'reset-confirm-password') state.resetConfirm = e.target.value;
-    else if (id === 'examlink-guest-name') state.examLinkGuestName = e.target.value;
     else if (id === 'admin-view-search') {
         state.admin.searchQuery = e.target.value;
         render();
