@@ -9372,6 +9372,7 @@ async function loadSettings() {
             mockSubjectCount: settings.mock_settings?.subject_count || 4,
             underConstruction: settings.under_construction || false,
             constructionReopenTime: settings.construction_reopen_time || null,
+            examCreationEnabled: settings.exam_creation_enabled !== false,
             activationEnabled: settings.activation_enabled === true,
             activationAutoEnableDate: settings.activation_auto_enable_date || null,
             faqImages: settings.faq_images || {},
@@ -11049,6 +11050,10 @@ async function loadLiveExamAttempts() {
 
 async function createLiveExam() {
     if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    if (state.settingsCache.examCreationEnabled === false && !isAdmin()) {
+        showToast('Exam creation is currently turned off by the admin.', 'error');
+        return;
+    }
     const f = state.liveExamCreateForm;
     const examTypeMeta = LIVE_EXAM_TYPES.find(function(t) { return t.key === f.examType; });
     if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam type.', 'error'); return; }
@@ -11064,7 +11069,7 @@ async function createLiveExam() {
     if (isNaN(offsetMinutes)) { showToast('Pick a start time.', 'error'); return; }
     const scheduledDate = new Date(Date.now() + offsetMinutes * 60000);
 
-    const numQuestions = Math.max(1, Math.min(100, parseInt(f.numQuestions) || 40));
+    const numQuestions = Math.max(20, Math.min(40, parseInt(f.numQuestions) || 40));
     const durationMinutes = Math.max(1, (parseInt(f.durationHours) || 0) * 60 + (parseInt(f.durationMinutes) || 0));
     const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60000 + 30 * 60000);
 
@@ -12148,12 +12153,20 @@ function doSubmitMock(autoSubmit) {
     });
 
     // Each subject is scored out of 100: correct / questions-per-subject * 100.
-    // Use the configured questions-per-subject (40 by default) as the
-    // denominator rather than however many questions actually loaded for
-    // that subject — if a subject came up short a few questions (data gap,
-    // offline cache, etc.) the score must still be out of the intended 40,
-    // never inflated/deflated by dividing by a smaller/larger actual count.
-    const mockQPerSubject = state.settingsCache.mockQuestionsPerSubject || subjectTotals[Object.keys(subjectTotals)[0]] || 40;
+    // For an admin-scheduled Mock, "questions-per-subject" is the fixed
+    // global admin setting (40 by default) — every admin mock uses that
+    // same count, so the denominator must stay fixed even if a subject came
+    // up short a few questions (data gap, offline cache, etc.), never
+    // inflated/deflated by dividing by a smaller/larger actual count.
+    // For a user-created Mock Arena ("live") exam, the creator explicitly
+    // picks their own question count per exam (20–40), so the denominator
+    // must be THAT exam's configured num_questions instead of the admin's
+    // unrelated global setting — otherwise a 20-question live exam was
+    // being scored out of the admin's 40, capping a perfect run at 50/100.
+    const liveExamForScore = source === 'live' ? (examsList || []).find(function(e) { return e.id === state.mockExamId; }) : null;
+    const mockQPerSubject = source === 'live'
+        ? (liveExamForScore && liveExamForScore.num_questions) || subjectTotals[Object.keys(subjectTotals)[0]] || 40
+        : (state.settingsCache.mockQuestionsPerSubject || subjectTotals[Object.keys(subjectTotals)[0]] || 40);
     const subjectScores = {}; Object.keys(rawSubjectCounts).forEach(function(sid) {
         subjectScores[sid] = Math.round((rawSubjectCounts[sid] / (mockQPerSubject || 1)) * 100);
     });
@@ -15105,6 +15118,26 @@ function renderNow() {
             const elx = document.getElementById(id);
             if (elx) state[map[id]] = elx.value;
         });
+    })();
+
+    // Same problem, same fix, for the Mock Arena "Create Exam" wizard.
+    // Title/duration were only ever read from the DOM at final submit —
+    // any earlier render() (tapping a start-time chip, a subject chip, the
+    // public/private toggle, etc.) rebuilt the title input from the stale,
+    // still-empty state.liveExamCreateForm.title and wiped out whatever had
+    // just been typed. Typing the title LAST (right before hitting Create,
+    // with no re-render in between) happened to dodge the bug, which is
+    // why it looked inconsistent. Pulling the live DOM values into state
+    // before every rebuild fixes it regardless of field order.
+    (function syncLiveExamFormFromDom() {
+        const f = state.liveExamCreateForm;
+        if (!f) return;
+        const titleEl = document.getElementById('live-title');
+        if (titleEl) f.title = titleEl.value;
+        const durHEl = document.getElementById('live-duration-hours');
+        if (durHEl && durHEl.value !== '') f.durationHours = parseInt(durHEl.value, 10) || 0;
+        const durMEl = document.getElementById('live-duration-minutes');
+        if (durMEl && durMEl.value !== '') f.durationMinutes = parseInt(durMEl.value, 10) || 0;
     })();
 
     const settings = state.settingsCache;
@@ -19921,6 +19954,9 @@ function renderMockExamPicker() {
         );
     }
 
+    if (state.liveExamView === 'create' && state.settingsCache.examCreationEnabled === false && !isAdmin()) {
+        state.liveExamView = 'browse';
+    }
     if (state.liveExamView === 'create') return renderLiveExamCreateWizard();
     if (state.liveExamView === 'join-code') return renderLiveExamJoinCode();
 
@@ -19954,6 +19990,8 @@ function renderMockExamPicker() {
     });
     tabsHtml += '</div>';
 
+    const creationOff = state.settingsCache.examCreationEnabled === false && !isAdmin();
+
     let cards = "";
     if (filtered.length === 0) {
         const emptyMeta = {
@@ -19969,7 +20007,9 @@ function renderMockExamPicker() {
             '<p class="' + iconCls + '">' + emptyMeta.icon + '</p>' +
             '<p class="mock-empty-title">' + emptyMeta.title + '</p>' +
             '<p class="mock-empty-sub">' + emptyMeta.sub + '</p>' +
-            '<button class="btn btn-green mock-fun-btn" style="padding:9px 18px" data-action="live-exam-view" data-view="create">➕ Create an Exam</button>' +
+            (creationOff
+                ? '<p style="font-size:11px;color:var(--faint);margin-top:6px">🚫 Exam creation is currently turned off by the admin.</p>'
+                : '<button class="btn btn-green mock-fun-btn" style="padding:9px 18px" data-action="live-exam-view" data-view="create">➕ Create an Exam</button>') +
             '</div>' +
             '</div>'
         );
@@ -20065,7 +20105,9 @@ function renderMockExamPicker() {
         '<h2 class="title">Mock Arena</h2>' +
         '<p class="sub">Create your own, or join anyone\'s exam</p>' +
         '<div style="display:flex;gap:6px;margin-bottom:12px">' +
-        '<button class="btn btn-green mock-fun-btn" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="create">➕ Create</button>' +
+        (creationOff
+            ? '<button class="btn btn-outline" style="flex:1;padding:8px;font-size:12px;opacity:0.5;pointer-events:none">➕ Create (off)</button>'
+            : '<button class="btn btn-green mock-fun-btn" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="create">➕ Create</button>') +
         '<button class="btn btn-outline mock-fun-btn" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="join-code">🔑 Join by Code</button>' +
         '</div>' +
         (state.lastCreatedJoinCode ?
@@ -20146,8 +20188,8 @@ function renderLiveExamCreateWizard() {
         '<label class="field-label">Starts in</label>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' + startChips + '</div>' +
         '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + previewLabel + '</p>' +
-        '<label class="field-label">Number of questions (1–100)</label>' +
-        '<input class="field" id="live-num-questions" type="number" min="1" max="100" value="' + (f.numQuestions || 40) + '" style="margin-bottom:10px" />' +
+        '<label class="field-label">Number of questions (20–40)</label>' +
+        renderLiveExamNumQuestionsPicker(f.numQuestions || 40) +
         '<label class="field-label">Duration</label>' +
         '<div class="time-selector" style="margin:2px 0 10px">' +
         '<div class="time-input-group"><input type="number" id="live-duration-hours" min="0" max="3" value="' + (f.durationHours || 0) + '" style="width:50px" /><label>h</label></div>' +
@@ -22680,6 +22722,24 @@ function renderAdminTopicManagement() {
 // number input. Keeps a hidden input with the same `id` so existing code
 // that reads the value via document.getElementById(id).value at save time
 // keeps working unchanged — only the UI in front of it changes.
+// Tap-to-select question-count strip for the Mock Arena "Create Exam"
+// wizard — 20/25/30/35/40 only, matching the enforced min 20 / max 40 for
+// user-created exams. Writes straight into the nested liveExamCreateForm
+// state object (unlike renderUserQuestionCountPicker, which writes to a
+// top-level state key), and re-renders on tap.
+function renderLiveExamNumQuestionsPicker(current) {
+    const val = current || 40;
+    let chips = '';
+    [20, 25, 30, 35, 40].forEach(function(n) {
+        chips += '<button type="button" class="qcount-chip' + (val === n ? ' selected' : '') + '" data-action="live-select-num-questions" data-value="' + n + '">' + n + '</button>';
+    });
+    return (
+        '<div class="qcount-picker">' +
+        '<div class="qcount-chip-row">' + chips + '</div>' +
+        '</div>'
+    );
+}
+
 function renderQuestionCountPicker(id, current, min) {
     min = min || 25;
     const val = current || min;
@@ -22794,7 +22854,21 @@ function renderAdminSettings() {
         '</div>' +
         '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.mockTimeLimit || 30) + ' minutes</p>' +
         '</div>' +
-        
+
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
+        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🎯 Mock Arena — User Exam Creation</p>' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+        '<label style="font-size:13px;color:var(--ink)">' +
+        '<input type="checkbox" id="admin-exam-creation-enabled" ' + (s.examCreationEnabled !== false ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--green);vertical-align:middle;margin-right:4px" />' +
+        'Allow users to create Mock Arena exams</label>' +
+        '</div>' +
+        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' +
+        (s.examCreationEnabled !== false
+            ? 'ON — any user can create their own Mock Arena exam.'
+            : 'OFF — the "Create an Exam" option is hidden/blocked for everyone. Joining existing exams still works.') +
+        '</p>' +
+        '</div>' +
+
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
         '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔐 Activation System</p>' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
@@ -26118,7 +26192,12 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'live-exam-view') {
-        state.liveExamView = el.getAttribute('data-view');
+        const targetView = el.getAttribute('data-view');
+        if (targetView === 'create' && state.settingsCache.examCreationEnabled === false && !isAdmin()) {
+            showToast('Exam creation is currently turned off by the admin.', 'error');
+            return;
+        }
+        state.liveExamView = targetView;
         if (state.liveExamView === 'create') state.liveExamCreateStep = 'type';
         render();
         return;
@@ -26181,9 +26260,14 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
+    if (action === 'live-select-num-questions') {
+        const value = parseInt(el.getAttribute('data-value'), 10) || 40;
+        state.liveExamCreateForm.numQuestions = value;
+        render();
+        return;
+    }
     if (action === 'submit-create-live-exam') {
         state.liveExamCreateForm.title = document.getElementById('live-title')?.value || '';
-        state.liveExamCreateForm.numQuestions = parseInt(document.getElementById('live-num-questions')?.value || 40);
         state.liveExamCreateForm.durationHours = parseInt(document.getElementById('live-duration-hours')?.value || 0);
         state.liveExamCreateForm.durationMinutes = parseInt(document.getElementById('live-duration-minutes')?.value || 30);
         createLiveExam();
@@ -26201,15 +26285,33 @@ document.addEventListener('click', function(e) {
     if (action === 'admin-delete-live-exam') {
         const examId = el.getAttribute('data-examid');
         if (!confirm('Delete this Mock Arena exam?')) return;
-        supabase.from('live_exam_registrations').delete().eq('live_exam_id', examId).then(function() {
+        // Finished exams were silently failing to delete: guests who sat the
+        // exam get a row in unverified_mock_results (live_exam_id FK) so they
+        // can check their result later, and that row was never cleaned up
+        // here. A finished exam is exactly the kind most likely to have guest
+        // results, so its live_exams row hits a foreign-key violation on
+        // delete — but each step below never checked its `error`, so the
+        // failure was swallowed and the app claimed success anyway even
+        // though the exam was still sitting there untouched.
+        supabase.from('live_exam_registrations').delete().eq('live_exam_id', examId).then(function(res) {
+            if (res.error) return Promise.reject(res.error);
             return supabase.from('live_exam_attempts').delete().eq('live_exam_id', examId);
-        }).then(function() {
+        }).then(function(res) {
+            if (res.error) return Promise.reject(res.error);
+            return supabase.from('unverified_mock_results').delete().eq('live_exam_id', examId);
+        }).then(function(res) {
+            if (res.error) return Promise.reject(res.error);
             return supabase.from('live_exams').delete().eq('id', examId);
-        }).then(function() {
+        }).then(function(res) {
+            if (res.error) return Promise.reject(res.error);
+            state.liveExams = (state.liveExams || []).filter(function(e) { return e.id !== examId; });
             showToast('Live exam deleted.', 'success');
             loadLiveExams();
             render();
-        }).catch(function(err) { showNetworkAwareError('Error deleting.', err); });
+        }).catch(function(err) {
+            console.error('Delete live exam error:', err);
+            showNetworkAwareError('Error deleting exam — it was NOT deleted.', err);
+        });
         return;
     }
 
@@ -26966,6 +27068,7 @@ document.addEventListener('click', function(e) {
         const cbtSubjectCount = parseInt(document.getElementById('admin-cbt-subject-count')?.value || 3);
         const mockSubjectCount = parseInt(document.getElementById('admin-mock-subject-count')?.value || 4);
         const calcEnabled = document.getElementById('admin-calc-enabled')?.checked !== false;
+        const examCreationEnabled = document.getElementById('admin-exam-creation-enabled')?.checked !== false;
         const underConstruction = document.getElementById('admin-under-construction')?.checked !== false;
         const reopenTime = document.getElementById('admin-reopen-time')?.value || null;
         const activationEnabled = document.getElementById('admin-activation-enabled')?.checked === true;
@@ -26992,6 +27095,7 @@ document.addEventListener('click', function(e) {
             { setting_key: 'revise_settings', setting_value: { time_limit_minutes: Math.max(1, reviseTime) } },
             { setting_key: 'mock_settings', setting_value: { questions_per_subject: mockQs, time_limit_minutes: Math.max(1, mockTime), subject_count: mockSubjectCount } },
             { setting_key: 'calculator_enabled', setting_value: calcEnabled },
+            { setting_key: 'exam_creation_enabled', setting_value: examCreationEnabled },
             { setting_key: 'under_construction', setting_value: underConstruction },
             { setting_key: 'construction_reopen_time', setting_value: reopenTime },
             { setting_key: 'activation_enabled', setting_value: activationEnabled },
@@ -27009,6 +27113,7 @@ document.addEventListener('click', function(e) {
                 mockQuestionsPerSubject: mockQs,
                 mockTimeLimit: Math.max(1, mockTime),
                 calculatorEnabled: calcEnabled,
+                examCreationEnabled: examCreationEnabled,
                 examTimeLimit: 0,
                 novelTimeLimit: Math.max(1, novelTime),
                 novelQuestionsPerSubject: Math.max(1, novelQs),
@@ -27258,17 +27363,30 @@ document.addEventListener('click', function(e) {
     if (action === 'admin-delete-mock') {
         const examId = el.getAttribute('data-examid');
         if (!confirm('Delete this mock exam and all associated data?')) return;
-        supabase.from('mock_registrations').delete().eq('mock_exam_id', examId).then(function() {
+        // Same fix as admin-delete-live-exam: clean up unverified_mock_results
+        // (guest attempts, mock_exam_id FK) too, and check each delete's
+        // `error` instead of assuming success — otherwise a finished exam
+        // with guest results hits a foreign-key violation on the final
+        // delete and silently stays in the list while the app still shows
+        // "deleted".
+        supabase.from('mock_registrations').delete().eq('mock_exam_id', examId).then(function(res) {
+            if (res.error) return Promise.reject(res.error);
             return supabase.from('mock_attempts').delete().eq('mock_exam_id', examId);
-        }).then(function() {
+        }).then(function(res) {
+            if (res.error) return Promise.reject(res.error);
+            return supabase.from('unverified_mock_results').delete().eq('mock_exam_id', examId);
+        }).then(function(res) {
+            if (res.error) return Promise.reject(res.error);
             return supabase.from('mock_exams').delete().eq('id', examId);
-        }).then(function() {
+        }).then(function(res) {
+            if (res.error) return Promise.reject(res.error);
+            state.mockExams = (state.mockExams || []).filter(function(e) { return e.id !== examId; });
             showToast('Mock exam deleted.', 'success');
             loadMockExams();
             render();
         }).catch(function(err) { 
             console.error('Delete mock error:', err);
-            showNetworkAwareError('Error deleting mock.', err); 
+            showNetworkAwareError('Error deleting mock — it was NOT deleted.', err); 
         });
         return;
     }
