@@ -8605,6 +8605,7 @@ let state = {
     liveExamsLoaded: false,
     liveExamRegistrations: [],
     joiningLiveExamId: null,
+    registeringMockId: null,
     liveExamAttempts: [],
     liveExamView: 'browse',
     liveExamTab: 'ongoing',
@@ -11425,6 +11426,19 @@ async function registerForMock(mockExamId, mode, subjects) {
         await loadMockRegistrations(mockExamId);
         render();
     } catch (e) {
+        // A unique-constraint violation just means this user is already
+        // registered (double-tap, stale cache, etc.) — treat it as success
+        // rather than surfacing a raw DB error, same as joinLiveExamNow().
+        const isDuplicate = e && (e.code === '23505' ||
+            (e.message && e.message.indexOf('mock_registrations_mock_exam_id_user_id') !== -1));
+        if (isDuplicate) {
+            showToast('You already joined this exam.', '');
+            await loadMockRegistrations(mockExamId);
+            state.showMockRegisterModal = false;
+            state.mockRegPending = null;
+            render();
+            return;
+        }
         console.warn('Register for mock error:', e);
         showNetworkAwareError('Error registering: ' + (e.message || 'unknown'), e);
     }
@@ -11592,7 +11606,14 @@ async function enterMockExamViaLink(mockExamId) {
         }
 
         const exam = (state.mockExams || []).find(function(e) { return e.id === mockExamId; });
-        const subjectId = (exam && exam.subject_id) || 'math';
+        if (!exam) {
+            state.pendingExamLinkId = null;
+            showToast("This exam link isn't valid.", 'error');
+            state.view = 'mockexam';
+            render();
+            return;
+        }
+        const subjectId = exam.subject_id || 'math';
 
         const already = (state.mockRegistrations || []).find(function(r) {
             return r.mock_exam_id === mockExamId && r.user_id === state.authUser.id;
@@ -11608,6 +11629,27 @@ async function enterMockExamViaLink(mockExamId) {
         }
 
         state.pendingExamLinkId = null;
+
+        // The exam has a fixed start time set by the admin — clicking the
+        // shared link early should register the person for it (done above)
+        // but must NOT start it ahead of schedule. Only hand off into the
+        // real exam once "now" has actually reached scheduled_date, exactly
+        // like the normal in-app "Start Exam" button (which only appears
+        // once the exam's status is "ongoing").
+        const scheduledAt = new Date(exam.scheduled_date);
+        if (!isNaN(scheduledAt.getTime()) && new Date() < scheduledAt) {
+            state.liveExamTab = 'upcoming';
+            state.view = 'mockexam';
+            showToast(
+                "You're registered! This exam starts at " +
+                scheduledAt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) +
+                " — come back then.",
+                ''
+            );
+            render();
+            return;
+        }
+
         state.mockDisplayName = state.profile.fullName || state.profile.name;
         startMockExam(mockExamId, 'admin');
     } catch (e) {
@@ -26327,13 +26369,19 @@ document.addEventListener('click', function(e) {
 
     if (action === 'register-mock') {
         const examId = el.getAttribute('data-examid');
-        const source = el.getAttribute('data-source') || 'admin';
         if (!state.authUser) { showToast('Please login first.', 'error'); return; }
-        state.mockRegPending = { examId: examId, source: source };
-        state.mockRegMode = '1';
-        state.mockSelectedSubjects = [];
-        state.showMockRegisterModal = true;
-        render();
+        // Each admin-scheduled mock is already fixed to exactly one subject
+        // (set by the admin at creation time) — registration should just use
+        // that subject directly, the same way joinLiveExamNow() does for
+        // Mock Arena exams. It should never show a picker of every subject
+        // in the app, since the exam itself already decided the subject.
+        if (state.registeringMockId === examId) return;
+        const exam = (state.mockExams || []).find(function(e) { return e.id === examId; });
+        if (!exam) { showToast('Exam not found.', 'error'); return; }
+        state.registeringMockId = examId;
+        registerForMock(examId, '1', [exam.subject_id]).then(function() {
+            state.registeringMockId = null;
+        });
         return;
     }
 
