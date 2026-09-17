@@ -6968,6 +6968,10 @@ function retryStaleLoadsAfterReconnect() {
         loadLiveExamAttempts();
         syncPendingSubmissions();
         syncPendingAttemptSubmissions();
+        syncPendingMockRegistrations();
+        syncPendingMockAttemptCreates();
+        syncPendingLiveExamJoins();
+        syncPendingScores();
     }
     if (state.view === 'revise') loadWeakQuestions();
     if (state.view === 'transactions') loadWalletTransactions();
@@ -9133,7 +9137,10 @@ async function loadSubjectLeaderboard(subjectId) {
     }
 }
 
-async function saveScore(type, data) {
+// `silent`: when true, skip the showUserError toast on failure (the caller
+// is handling the failure itself, e.g. by queuing it for retry — see
+// queuePendingScore/syncPendingScores) and just resolve false instead.
+async function saveScore(type, data, silent) {
     try {
         let table = type === "cbt" ? 'cbt_scores' : type === "mock" ? 'mock_scores' : 'subject_scores';
         let query = supabase.from(table).select('*').eq('user_id', data.user_id);
@@ -9146,8 +9153,8 @@ async function saveScore(type, data) {
 
         if (checkError) {
             console.warn("Check score error:", checkError);
-            showUserError("Check existing score", checkError, "Couldn't save your score right now.");
-            return;
+            if (!silent) showUserError("Check existing score", checkError, "Couldn't save your score right now.");
+            return false;
         }
 
         const existing = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
@@ -9163,8 +9170,8 @@ async function saveScore(type, data) {
             const { error: updateError } = await supabase.from(table).update(updateData).eq('id', existing.id);
             if (updateError) {
                 console.warn("Update score error:", updateError);
-                showUserError("Update score", updateError, "Couldn't save your score right now.");
-                return;
+                if (!silent) showUserError("Update score", updateError, "Couldn't save your score right now.");
+                return false;
             }
         } else {
             const insertData = {
@@ -9181,16 +9188,60 @@ async function saveScore(type, data) {
             const { error: insertError } = await supabase.from(table).insert([insertData]);
             if (insertError) {
                 console.warn("Insert score error:", insertError);
-                showUserError("Save score", insertError, "Couldn't save your score right now.");
-                return;
+                if (!silent) showUserError("Save score", insertError, "Couldn't save your score right now.");
+                return false;
             }
         }
 
         await loadLeaderboard(state.leaderboardTab);
+        return true;
     } catch (e) {
         console.warn("Save score error:", e);
-        showUserError("Save score", e, "Couldn't save your score right now.");
+        if (!silent) showUserError("Save score", e, "Couldn't save your score right now.");
+        return false;
     }
+}
+
+// ------------------------------------------------------------
+// PENDING SCORE SYNC — the leaderboard save above (mock_scores/cbt_scores/
+// subject_scores) has no offline fallback of its own. Rather than let a
+// finished-offline exam silently never reach the leaderboard, queue it here
+// and replay it automatically on reconnect (see retryStaleLoadsAfterReconnect
+// and the 'online' listener). This is separate from the attempt/history
+// queues above — those record the exam itself; this only affects ranking.
+function pendingScoresKey() {
+    return 'pendingScores_' + (state.authUser ? state.authUser.id : 'guest');
+}
+function loadPendingScores() {
+    try {
+        const raw = storage.get(pendingScoresKey());
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+}
+function savePendingScores(list) {
+    storage.set(pendingScoresKey(), JSON.stringify(list || []));
+}
+function queuePendingScore(type, data) {
+    const pending = loadPendingScores();
+    pending.push({ type: type, data: data, queuedAt: Date.now() });
+    savePendingScores(pending);
+}
+let scoreSyncInFlight = false;
+async function syncPendingScores() {
+    if (scoreSyncInFlight) return;
+    if (!state.authUser || !isOnline()) return;
+    const pending = loadPendingScores();
+    if (pending.length === 0) return;
+    scoreSyncInFlight = true;
+    const stillPending = [];
+    for (let i = 0; i < pending.length; i++) {
+        const item = pending[i];
+        const ok = await saveScore(item.type, item.data, true);
+        if (!ok) stillPending.push(item);
+    }
+    savePendingScores(stillPending);
+    scoreSyncInFlight = false;
 }
  
 // loadQuestions removed - now in offline-db.js
@@ -9535,6 +9586,201 @@ async function syncPendingAttemptSubmissions() {
         render();
     }
 }
+// ------------------------------------------------------------
+// PENDING MOCK REGISTRATION / ATTEMPT CREATION — covers a shared exam link
+// (?examlink=<id>) opened while offline. loadMockExams/loadMockRegistrations/
+// loadMockAttempts above already cache what's needed to READ the exam and
+// its questions offline; these two queues cover the two WRITES that used to
+// require a live connection before someone could even start the exam:
+// registering (`mock_registrations` insert) and starting an attempt
+// (`mock_attempts` insert). Both are deferred to local storage and replayed
+// once back online, the same way queuePendingAttemptSync above already
+// defers the final "submitted" update.
+function pendingMockRegistrationsKey() {
+    return 'pendingMockRegistrations_' + (state.authUser ? state.authUser.id : 'guest');
+}
+function loadPendingMockRegistrations() {
+    try {
+        const raw = storage.get(pendingMockRegistrationsKey());
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+}
+function savePendingMockRegistrations(list) {
+    storage.set(pendingMockRegistrationsKey(), JSON.stringify(list || []));
+}
+function queuePendingMockRegistration(mockExamId, subjects) {
+    const pending = loadPendingMockRegistrations();
+    if (pending.some(function(p) { return p.mock_exam_id === mockExamId; })) return;
+    pending.push({ mock_exam_id: mockExamId, subjects: subjects, queuedAt: Date.now() });
+    savePendingMockRegistrations(pending);
+}
+async function syncPendingMockRegistrations() {
+    if (!state.authUser || !isOnline()) return;
+    const pending = loadPendingMockRegistrations();
+    if (pending.length === 0) return;
+    const stillPending = [];
+    for (let i = 0; i < pending.length; i++) {
+        const item = pending[i];
+        try {
+            const { error } = await supabase.from('mock_registrations').insert([{
+                user_id: state.authUser.id,
+                mock_exam_id: item.mock_exam_id,
+                subjects: item.subjects,
+            }]);
+            if (error) {
+                const isDuplicate = error.code === '23505' ||
+                    (error.message && error.message.indexOf('mock_registrations_mock_exam_id_user_id') !== -1);
+                if (!isDuplicate) throw error;
+            }
+        } catch (e) {
+            console.warn('Pending mock registration sync still failing:', e);
+            stillPending.push(item);
+        }
+    }
+    savePendingMockRegistrations(stillPending);
+    if (stillPending.length < pending.length) loadMockRegistrations();
+}
+
+// Same idea as the mock registration queue above, for joining a Live Exam
+// (`live_exam_registrations`) via a shared ?liveexamlink= URL while offline.
+function pendingLiveExamJoinsKey() {
+    return 'pendingLiveExamJoins_' + (state.authUser ? state.authUser.id : 'guest');
+}
+function loadPendingLiveExamJoins() {
+    try {
+        const raw = storage.get(pendingLiveExamJoinsKey());
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+}
+function savePendingLiveExamJoins(list) {
+    storage.set(pendingLiveExamJoinsKey(), JSON.stringify(list || []));
+}
+function queuePendingLiveExamJoin(liveExamId, subjects) {
+    const pending = loadPendingLiveExamJoins();
+    if (pending.some(function(p) { return p.live_exam_id === liveExamId; })) return;
+    pending.push({
+        live_exam_id: liveExamId,
+        subjects: subjects,
+        username: state.profile.name,
+        queuedAt: Date.now(),
+    });
+    savePendingLiveExamJoins(pending);
+}
+function mergeLocalLiveExamRegistrations(serverRows) {
+    const pending = loadPendingLiveExamJoins();
+    const serverIds = new Set((serverRows || []).map(function(r) { return r.live_exam_id; }));
+    const localOnly = pending
+        .filter(function(p) { return !serverIds.has(p.live_exam_id); })
+        .map(function(p) {
+            return {
+                id: 'local-' + p.live_exam_id,
+                user_id: state.authUser ? state.authUser.id : null,
+                username: p.username,
+                live_exam_id: p.live_exam_id,
+                subjects: p.subjects,
+                _pending: true,
+            };
+        });
+    return (serverRows || []).concat(localOnly);
+}
+async function syncPendingLiveExamJoins() {
+    if (!state.authUser || !isOnline()) return;
+    const pending = loadPendingLiveExamJoins();
+    if (pending.length === 0) return;
+    const stillPending = [];
+    for (let i = 0; i < pending.length; i++) {
+        const item = pending[i];
+        try {
+            const { error } = await supabase.from('live_exam_registrations').insert([{
+                user_id: state.authUser.id,
+                username: item.username || state.profile.name,
+                live_exam_id: item.live_exam_id,
+                subjects: item.subjects,
+            }]);
+            if (error) {
+                const isDuplicate = error.code === '23505' ||
+                    (error.message && error.message.indexOf('live_exam_registrations_live_exam_id_user_id') !== -1);
+                if (!isDuplicate) throw error;
+            }
+        } catch (e) {
+            console.warn('Pending live exam join sync still failing:', e);
+            stillPending.push(item);
+        }
+    }
+    savePendingLiveExamJoins(stillPending);
+    if (stillPending.length < pending.length) loadLiveExamRegistrations();
+}
+
+// An attempt started fully offline gets a local id (see
+// enterMockExamViaLink/startMockExam) instead of a real Supabase row, since
+// there's nothing to insert into until we're back online. Queued items carry
+// the FULL row to insert — if the person also finishes and submits the exam
+// before reconnecting, doSubmitMock() updates this same queued payload in
+// place (answers/score/is_submitted) rather than trying to PATCH a row that
+// doesn't exist on the server yet.
+function pendingMockAttemptCreatesKey() {
+    return 'pendingMockAttemptCreates_' + (state.authUser ? state.authUser.id : 'guest');
+}
+function loadPendingMockAttemptCreates() {
+    try {
+        const raw = storage.get(pendingMockAttemptCreatesKey());
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+}
+function savePendingMockAttemptCreates(list) {
+    storage.set(pendingMockAttemptCreatesKey(), JSON.stringify(list || []));
+}
+function queuePendingMockAttemptCreate(table, localId, payload) {
+    const pending = loadPendingMockAttemptCreates();
+    const filtered = pending.filter(function(p) { return p.localId !== localId; });
+    filtered.push({ table: table, localId: localId, payload: payload, queuedAt: Date.now() });
+    savePendingMockAttemptCreates(filtered);
+}
+// Merges new fields (e.g. the final submit) into an attempt that's still
+// only queued locally — used instead of attemptSubmitWithRetry() when
+// state.currentMockAttempt was never actually created on the server.
+function updateQueuedMockAttempt(localId, updates) {
+    const pending = loadPendingMockAttemptCreates();
+    const item = pending.find(function(p) { return p.localId === localId; });
+    if (!item) return false;
+    Object.assign(item.payload, updates);
+    savePendingMockAttemptCreates(pending);
+    return true;
+}
+let mockAttemptCreateSyncInFlight = false;
+async function syncPendingMockAttemptCreates() {
+    if (mockAttemptCreateSyncInFlight) return;
+    if (!state.authUser || !isOnline()) return;
+    const pending = loadPendingMockAttemptCreates();
+    if (pending.length === 0) return;
+    mockAttemptCreateSyncInFlight = true;
+    const stillPending = [];
+    let anySynced = false;
+    for (let i = 0; i < pending.length; i++) {
+        const item = pending[i];
+        try {
+            const { error } = await supabase.from(item.table).insert([item.payload]);
+            if (error) throw error;
+            anySynced = true;
+        } catch (e) {
+            console.warn('Pending mock attempt creation sync still failing:', e);
+            stillPending.push(item);
+        }
+    }
+    savePendingMockAttemptCreates(stillPending);
+    mockAttemptCreateSyncInFlight = false;
+    if (anySynced) {
+        loadMockAttempts();
+        loadMockRegistrations();
+        loadLiveExamAttempts();
+        loadLiveExamRegistrations();
+        if (state.view === 'mock-result' || state.view === 'mock-exam') render();
+    }
+}
+
 let submissionSyncInFlight = false;
 // Called on reconnect (see retryStaleLoadsAfterReconnect() and the
 // 'online' listener in init()) as well as once at startup — pushes any
@@ -11082,13 +11328,16 @@ async function loadLiveExams() {
             supabase.from('live_exams').select('*').order('scheduled_date', { ascending: true }),
             8000, 'Live exams load'
         );
-        if (error) { console.warn('Load live exams error:', error); state.liveExams = []; }
-        else state.liveExams = data || [];
+        if (error) throw error;
+        state.liveExams = data || [];
+        // Same reasoning as loadMockExams(): cache locally so a shared
+        // ?liveexamlink= URL can still be resolved with no connection.
+        saveOfflineCache('liveExams', state.liveExams);
         state.liveExamsLoaded = true;
         render();
     } catch (e) {
         console.warn('Load live exams failed or timed out:', e);
-        state.liveExams = [];
+        state.liveExams = loadOfflineCache('liveExams') || [];
         state.liveExamsLoaded = true;
         render();
     }
@@ -11097,13 +11346,17 @@ async function loadLiveExams() {
 async function loadLiveExamRegistrations() {
     if (!state.authUser) { state.liveExamRegistrations = []; render(); return; }
     try {
-        const { data } = await withNetworkTimeout(
+        const { data, error } = await withNetworkTimeout(
             supabase.from('live_exam_registrations').select('*').eq('user_id', state.authUser.id),
             8000, 'Live exam registrations load'
         );
-        state.liveExamRegistrations = data || [];
+        if (error) throw error;
+        state.liveExamRegistrations = mergeLocalLiveExamRegistrations(data || []);
+        saveOfflineCache('liveExamRegistrations_' + state.authUser.id, data || []);
     } catch (e) {
         console.warn('Load live exam registrations failed or timed out:', e);
+        const cached = loadOfflineCache('liveExamRegistrations_' + state.authUser.id) || [];
+        state.liveExamRegistrations = mergeLocalLiveExamRegistrations(cached);
     }
     render();
 }
@@ -11111,13 +11364,17 @@ async function loadLiveExamRegistrations() {
 async function loadLiveExamAttempts() {
     if (!state.authUser) { state.liveExamAttempts = []; render(); return; }
     try {
-        const { data } = await withNetworkTimeout(
+        const { data, error } = await withNetworkTimeout(
             supabase.from('live_exam_attempts').select('*').eq('user_id', state.authUser.id),
             8000, 'Live exam attempts load'
         );
-        state.liveExamAttempts = data || [];
+        if (error) throw error;
+        state.liveExamAttempts = mergeLocalAttempts(data || [], 'live_exam_attempts', 'live_exam_id', null);
+        saveOfflineCache('liveExamAttempts_' + state.authUser.id, data || []);
     } catch (e) {
         console.warn('Load live exam attempts failed or timed out:', e);
+        const cached = loadOfflineCache('liveExamAttempts_' + state.authUser.id) || [];
+        state.liveExamAttempts = mergeLocalAttempts(cached, 'live_exam_attempts', 'live_exam_id', null);
     }
     render();
 }
@@ -11198,6 +11455,17 @@ async function joinLiveExamNow(examId) {
     // have the one subject_id. Fall back to subject_id if subject_ids
     // wasn't set (older rows created before this feature existed).
     const examSubjects = (exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids.slice() : [exam.subject_id];
+
+    if (!isOnline()) {
+        // No connection: register locally so the person can proceed
+        // immediately, and replay the real insert once back online
+        // (syncPendingLiveExamJoins).
+        queuePendingLiveExamJoin(examId, examSubjects);
+        await loadLiveExamRegistrations();
+        showToast("You're joined — this'll finish syncing once you're back online.", '');
+        return;
+    }
+
     state.joiningLiveExamId = examId;
     const { error } = await supabase.from('live_exam_registrations').insert([{
         user_id: state.authUser.id,
@@ -11217,6 +11485,14 @@ async function joinLiveExamNow(examId) {
         if (isDuplicate) {
             showToast('You already joined this exam.', '');
             await loadLiveExamRegistrations();
+            return;
+        }
+        // The insert itself may have failed because the connection just
+        // dropped mid-request rather than a real server rejection.
+        if (error.offline) {
+            queuePendingLiveExamJoin(examId, examSubjects);
+            await loadLiveExamRegistrations();
+            showToast("You're joined — this'll finish syncing once you're back online.", '');
             return;
         }
         showNetworkAwareError('Error joining: ' + error.message, error);
@@ -11264,22 +11540,45 @@ async function loadMockExams() {
             8000, 'Mock exams load'
         );
 
-        if (error) {
-            console.warn("Load mock exams error:", error);
-            state.mockExams = [];
-            state.mockLoaded = true;
-            render();
-            return;
-        }
+        if (error) throw error;
         state.mockExams = data || [];
         state.mockLoaded = true;
+        // Cache the list locally so a shared exam link (?examlink=<id>) can
+        // still find its exam's title/schedule/subject when opened offline.
+        saveOfflineCache('mockExams', state.mockExams);
         render();
     } catch (e) {
-        console.warn("Load mock exams exception:", e);
-        state.mockExams = [];
+        console.warn("Load mock exams error/exception:", e);
+        // Offline (or the request failed): fall back to whatever was cached
+        // from the last successful load instead of wiping the list to
+        // empty, which previously made every exam link say "not valid".
+        state.mockExams = loadOfflineCache('mockExams') || [];
         state.mockLoaded = true;
         render();
     }
+}
+
+// Local registrations queued while offline (see queuePendingMockRegistration
+// below) haven't reached Supabase yet, so a plain server load would make
+// them disappear from state.mockRegistrations. Mixed in here — the same
+// "_pending" merge pattern loadHistory() already uses for exam history.
+function mergeLocalMockRegistrations(serverRows, mockExamId) {
+    const pending = loadPendingMockRegistrations().filter(function(p) {
+        return !mockExamId || p.mock_exam_id === mockExamId;
+    });
+    const serverIds = new Set((serverRows || []).map(function(r) { return r.mock_exam_id; }));
+    const localOnly = pending
+        .filter(function(p) { return !serverIds.has(p.mock_exam_id); })
+        .map(function(p) {
+            return {
+                id: 'local-' + p.mock_exam_id,
+                user_id: state.authUser ? state.authUser.id : null,
+                mock_exam_id: p.mock_exam_id,
+                subjects: p.subjects,
+                _pending: true,
+            };
+        });
+    return (serverRows || []).concat(localOnly);
 }
 
 async function loadMockRegistrations(mockExamId) {
@@ -11289,19 +11588,36 @@ async function loadMockRegistrations(mockExamId) {
         if (state.authUser) query = query.eq('user_id', state.authUser.id);
 
         const { data, error } = await query;
-        if (error) {
-            console.warn("Load mock registrations error:", error);
-            state.mockRegistrations = [];
-            render();
-            return;
-        }
-        state.mockRegistrations = data || [];
+        if (error) throw error;
+        state.mockRegistrations = mergeLocalMockRegistrations(data || [], mockExamId);
+        if (state.authUser) saveOfflineCache('mockRegistrations_' + state.authUser.id, data || []);
         render();
     } catch (e) {
-        console.warn("Load mock registrations exception:", e);
-        state.mockRegistrations = [];
+        console.warn("Load mock registrations error/exception:", e);
+        // Offline: fall back to the last cached server rows, still merged
+        // with anything queued locally, instead of showing "not registered".
+        const cached = state.authUser ? (loadOfflineCache('mockRegistrations_' + state.authUser.id) || []) : [];
+        state.mockRegistrations = mergeLocalMockRegistrations(cached, mockExamId);
         render();
     }
+}
+
+// Same idea as mergeLocalMockRegistrations, for attempts created offline
+// (see queuePendingMockAttemptCreate below) that haven't reached Supabase
+// yet — without this, reopening the exam link before reconnecting would
+// look like a brand new attempt and hand out a fresh set of questions.
+// Generalized over `table`/`examIdCol` so it covers both the Mock Exam
+// link (mock_attempts/mock_exam_id) and the Live Exam link
+// (live_exam_attempts/live_exam_id) with one implementation.
+function mergeLocalAttempts(serverRows, table, examIdCol, examId) {
+    const pending = loadPendingMockAttemptCreates().filter(function(p) {
+        return p.table === table && (!examId || p.payload[examIdCol] === examId);
+    });
+    const serverIds = new Set((serverRows || []).map(function(r) { return r[examIdCol]; }));
+    const localOnly = pending
+        .filter(function(p) { return !serverIds.has(p.payload[examIdCol]); })
+        .map(function(p) { return Object.assign({}, p.payload, { id: p.localId, _pending: true }); });
+    return (serverRows || []).concat(localOnly);
 }
 
 async function loadMockAttempts(mockExamId) {
@@ -11311,17 +11627,14 @@ async function loadMockAttempts(mockExamId) {
         if (state.authUser) query = query.eq('user_id', state.authUser.id);
 
         const { data, error } = await query;
-        if (error) {
-            console.warn("Load mock attempts error:", error);
-            state.mockAttempts = [];
-            render();
-            return;
-        }
-        state.mockAttempts = data || [];
+        if (error) throw error;
+        state.mockAttempts = mergeLocalAttempts(data || [], 'mock_attempts', 'mock_exam_id', mockExamId);
+        if (state.authUser) saveOfflineCache('mockAttempts_' + state.authUser.id, data || []);
         render();
     } catch (e) {
-        console.warn("Load mock attempts exception:", e);
-        state.mockAttempts = [];
+        console.warn("Load mock attempts error/exception:", e);
+        const cached = state.authUser ? (loadOfflineCache('mockAttempts_' + state.authUser.id) || []) : [];
+        state.mockAttempts = mergeLocalAttempts(cached, 'mock_attempts', 'mock_exam_id', mockExamId);
         render();
     }
 }
@@ -11339,23 +11652,25 @@ async function loadAdminMockData() {
             supabase.from('mock_registrations').select('*'),
             supabase.from('mock_attempts').select('*'),
         ]);
-        if (regRes.error) {
-            console.warn("Load admin mock registrations error:", regRes.error);
-            state.admin.mockRegistrationsAll = [];
-        } else {
-            state.admin.mockRegistrationsAll = regRes.data || [];
-        }
-        if (attRes.error) {
-            console.warn("Load admin mock attempts error:", attRes.error);
-            state.admin.mockAttemptsAll = [];
-        } else {
-            state.admin.mockAttemptsAll = attRes.data || [];
-        }
+        if (regRes.error) throw regRes.error;
+        if (attRes.error) throw attRes.error;
+        state.admin.mockRegistrationsAll = regRes.data || [];
+        state.admin.mockAttemptsAll = attRes.data || [];
         state.admin.mockAdminDataLoaded = true;
+        // Cache what the admin last saw so the board doesn't go blank if
+        // THIS device loses connection — note this only reflects rows that
+        // had already synced to Supabase as of this load. A candidate who
+        // finished an exam offline on their own device won't appear here
+        // until their device reconnects and syncs (see
+        // syncPendingMockAttemptCreates) — there's no way to see another
+        // device's still-local, not-yet-synced data without a server round
+        // trip, offline or not.
+        saveOfflineCache('adminMockRegistrationsAll', state.admin.mockRegistrationsAll);
+        saveOfflineCache('adminMockAttemptsAll', state.admin.mockAttemptsAll);
     } catch (e) {
-        console.warn("Load admin mock data exception:", e);
-        state.admin.mockRegistrationsAll = [];
-        state.admin.mockAttemptsAll = [];
+        console.warn("Load admin mock data error/exception:", e);
+        state.admin.mockRegistrationsAll = loadOfflineCache('adminMockRegistrationsAll') || [];
+        state.admin.mockAttemptsAll = loadOfflineCache('adminMockAttemptsAll') || [];
         state.admin.mockAdminDataLoaded = true;
     }
     state.admin.mockAdminDataLoading = false;
@@ -11375,23 +11690,17 @@ async function loadAdminLiveExamData() {
             supabase.from('live_exam_registrations').select('*'),
             supabase.from('live_exam_attempts').select('*'),
         ]);
-        if (regRes.error) {
-            console.warn("Load admin live exam registrations error:", regRes.error);
-            state.admin.liveExamRegistrationsAll = [];
-        } else {
-            state.admin.liveExamRegistrationsAll = regRes.data || [];
-        }
-        if (attRes.error) {
-            console.warn("Load admin live exam attempts error:", attRes.error);
-            state.admin.liveExamAttemptsAll = [];
-        } else {
-            state.admin.liveExamAttemptsAll = attRes.data || [];
-        }
+        if (regRes.error) throw regRes.error;
+        if (attRes.error) throw attRes.error;
+        state.admin.liveExamRegistrationsAll = regRes.data || [];
+        state.admin.liveExamAttemptsAll = attRes.data || [];
         state.admin.liveAdminDataLoaded = true;
+        saveOfflineCache('adminLiveExamRegistrationsAll', state.admin.liveExamRegistrationsAll);
+        saveOfflineCache('adminLiveExamAttemptsAll', state.admin.liveExamAttemptsAll);
     } catch (e) {
-        console.warn("Load admin live exam data exception:", e);
-        state.admin.liveExamRegistrationsAll = [];
-        state.admin.liveExamAttemptsAll = [];
+        console.warn("Load admin live exam data error/exception:", e);
+        state.admin.liveExamRegistrationsAll = loadOfflineCache('adminLiveExamRegistrationsAll') || [];
+        state.admin.liveExamAttemptsAll = loadOfflineCache('adminLiveExamAttemptsAll') || [];
         state.admin.liveAdminDataLoaded = true;
     }
     state.admin.liveAdminDataLoading = false;
@@ -11588,8 +11897,14 @@ async function enterMockExamViaLink(mockExamId) {
         redirectToActivate('Mock Arena is part of full access. Activate your account below to take this exam.');
         return;
     }
+    const offline = !isOnline();
     try {
-        if (!state.mockExams || state.mockExams.length === 0) {
+        // Offline: loadMockExams/loadMockRegistrations/loadMockAttempts each
+        // already fall back to their cached copies internally, but only if
+        // they're actually called — a stale in-memory state.mockExams from a
+        // different exam link would otherwise short-circuit that. Skip
+        // straight past that memory check when offline so the cache is read.
+        if (offline || !state.mockExams || state.mockExams.length === 0) {
             await loadMockExams();
         }
         await loadMockRegistrations(mockExamId);
@@ -11620,12 +11935,27 @@ async function enterMockExamViaLink(mockExamId) {
         });
 
         if (!already) {
-            await supabase.from('mock_registrations').insert([{
-                user_id: state.authUser.id,
-                mock_exam_id: mockExamId,
-                subjects: [subjectId],
-            }]);
-            await loadMockRegistrations(mockExamId);
+            if (offline) {
+                // Can't reach mock_registrations right now — register the
+                // person locally so they can start immediately, and replay
+                // the real insert once back online (syncPendingMockRegistrations).
+                queuePendingMockRegistration(mockExamId, [subjectId]);
+                await loadMockRegistrations(mockExamId);
+            } else {
+                try {
+                    await supabase.from('mock_registrations').insert([{
+                        user_id: state.authUser.id,
+                        mock_exam_id: mockExamId,
+                        subjects: [subjectId],
+                    }]);
+                } catch (regErr) {
+                    // Insert itself failed mid-flight (dropped connection) —
+                    // don't block them from starting, queue it instead.
+                    console.warn('Live registration insert failed, queuing:', regErr);
+                    queuePendingMockRegistration(mockExamId, [subjectId]);
+                }
+                await loadMockRegistrations(mockExamId);
+            }
         }
 
         state.pendingExamLinkId = null;
@@ -11684,12 +12014,18 @@ function handleLiveExamLinkFromUrl() {
 async function loadLiveExamLinkPreview(linkId) {
     state.liveExamLinkLoading = true;
     render();
+    const offline = !isOnline();
     try {
-        if (!state.liveExams || state.liveExams.length === 0) {
+        if (offline || !state.liveExams || state.liveExams.length === 0) {
             await loadLiveExams();
         }
         if (state.authUser) {
             await loadLiveExamRegistrations();
+            // Needed so joinAndStartLiveExamViaLink()/startMockExam() can
+            // tell "already submitted" / "resume in progress" apart from a
+            // brand-new attempt — without this, an offline attempt queued
+            // earlier on this device wouldn't be recognized here.
+            await loadLiveExamAttempts();
         }
     } catch (e) {
         console.warn('Live exam link preview error:', e);
@@ -12098,16 +12434,45 @@ async function startMockExam(mockExamId, source) {
         };
         insertPayload[examIdCol] = mockExamId;
 
-        const { data: attempt, error: attemptError } = await supabase
-            .from(attemptsTable)
-            .insert([insertPayload])
-            .select()
-            .single();
+        let attempt;
+        if (!isOnline()) {
+            // No connection: there's nothing to insert into yet. Start the
+            // exam with a local placeholder id and queue the real insert for
+            // when we're back online (syncPendingMockAttemptCreates). If the
+            // exam gets finished before that happens, doSubmitMock() updates
+            // this same queued payload in place rather than trying to PATCH
+            // a row that was never created.
+            const localId = 'local-' + (window.crypto && window.crypto.randomUUID
+                ? window.crypto.randomUUID()
+                : (Date.now() + '-' + Math.random().toString(36).slice(2)));
+            attempt = Object.assign({ id: localId }, insertPayload);
+            queuePendingMockAttemptCreate(attemptsTable, localId, attempt);
+        } else {
+            const { data: insertedAttempt, error: attemptError } = await supabase
+                .from(attemptsTable)
+                .insert([insertPayload])
+                .select()
+                .single();
 
-        if (attemptError) {
-            console.error('Attempt error:', attemptError);
-            state.isLoading = false;
-            throw new Error(attemptError.message || 'Failed to start exam');
+            if (attemptError) {
+                console.error('Attempt error:', attemptError);
+                // The request itself may have failed because the connection
+                // just dropped rather than a real server rejection — fall
+                // back to the same local/offline path instead of blocking
+                // the candidate from starting.
+                if (attemptError.offline || !isOnline()) {
+                    const localId = 'local-' + (window.crypto && window.crypto.randomUUID
+                        ? window.crypto.randomUUID()
+                        : (Date.now() + '-' + Math.random().toString(36).slice(2)));
+                    attempt = Object.assign({ id: localId }, insertPayload);
+                    queuePendingMockAttemptCreate(attemptsTable, localId, attempt);
+                } else {
+                    state.isLoading = false;
+                    throw new Error(attemptError.message || 'Failed to start exam');
+                }
+            } else {
+                attempt = insertedAttempt;
+            }
         }
 
         state.currentMockAttempt = attempt;
@@ -12401,6 +12766,7 @@ function doSubmitMock(autoSubmit) {
         subject_scores: subjectScores,
     };
     const attemptId = state.currentMockAttempt.id;
+    const isLocalOnlyAttempt = typeof attemptId === 'string' && attemptId.indexOf('local-') === 0;
 
     // The update below used to be fire-and-forget: .then() without ever
     // checking res.error, so a failed write (RLS rejection, dropped
@@ -12412,17 +12778,40 @@ function doSubmitMock(autoSubmit) {
     // once immediately, and — if it still fails — queued for automatic
     // background retry (see syncPendingAttemptSubmissions) instead of
     // being treated as done.
-    attemptSubmitWithRetry(attemptsTable, attemptId, attemptUpdatePayload)
+    //
+    // If the attempt itself was only ever created locally (started fully
+    // offline — see startMockExam), there's no server row to PATCH yet:
+    // merge the final answers/score straight into the still-queued creation
+    // payload instead, so syncPendingMockAttemptCreates() inserts it already
+    // complete once we're back online.
+    const submitPromise = isLocalOnlyAttempt
+        ? Promise.resolve(updateQueuedMockAttempt(attemptId, attemptUpdatePayload))
+        : attemptSubmitWithRetry(attemptsTable, attemptId, attemptUpdatePayload);
+
+    submitPromise
         .then(function(saved) {
+            // The leaderboard save (mock_scores) isn't reached by the
+            // attempt/history queues above — those record the exam itself,
+            // this only affects ranking. Queue it here (queuePendingScore)
+            // so syncPendingScores() catches it up automatically once we're
+            // back online, instead of it being silently skipped or throwing
+            // a confusing "couldn't save your score" toast right now.
             if (state.authUser) {
-                saveScore('mock', {
+                const scorePayload = {
                     user_id: state.authUser.id,
                     username: state.mockDisplayName || state.profile.name,
                     score: totalScore,
                     total_questions: state.mockQuestions.length,
                     subject_count: subjectCount,
                     subject_scores: subjectScores,
-                });
+                };
+                if (isOnline()) {
+                    saveScore('mock', scorePayload, true).then(function(ok) {
+                        if (!ok) queuePendingScore('mock', scorePayload);
+                    });
+                } else {
+                    queuePendingScore('mock', scorePayload);
+                }
             }
             state.mockSubmitSaveFailed = !saved;
             if (!saved) {
@@ -29367,6 +29756,10 @@ async function init() {
         checkAndDeactivateExpiredUsers();
         syncPendingSubmissions();
         syncPendingAttemptSubmissions();
+        syncPendingMockRegistrations();
+        syncPendingMockAttemptCreates();
+        syncPendingLiveExamJoins();
+        syncPendingScores();
         render();
     });
     window.addEventListener('offline', function() {
