@@ -4271,23 +4271,20 @@
         box-shadow: 0 4px 14px rgba(34,199,115,0.3);
     }
 
+    /* One continuous, vertically-scrolling page. Nothing is clipped: the
+       dashboard grows to its full height and the app's own .view container
+       scrolls. On wide screens sections sit side by side in a grid. */
     .analytics-dash .adash-onepage {
-        column-width: 300px;
-        column-gap: 14px;
-        column-fill: auto;
-        height: calc(100vh - 230px);
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        padding: 2px 2px 10px;
+        display: block;
+        height: auto;
+        overflow: visible;
+        padding: 2px 0 10px;
     }
     .analytics-dash .adash-section {
-        break-inside: avoid-column;
-        -webkit-column-break-inside: avoid;
-        page-break-inside: avoid;
-        margin-bottom: 14px;
+        display: block;
         width: 100%;
-        display: inline-block;
+        margin-bottom: 18px;
+        scroll-margin-top: 58px;
     }
     .analytics-dash .adash-section-label {
         font-size: 11.5px;
@@ -4299,10 +4296,51 @@
         padding-bottom: 6px;
         border-bottom: 1px solid var(--adash-card-border);
     }
+    /* Sticky jump bar: range picker stays visible + chips jump to sections */
+    .analytics-dash .adash-sticky {
+        position: sticky;
+        top: -16px;
+        z-index: 5;
+        margin: -14px -12px 10px;
+        padding: 12px 12px 8px;
+        background: linear-gradient(180deg, #0F2418 0%, #0C1D14 100%);
+        border-radius: 20px 20px 14px 14px;
+        border-bottom: 1px solid var(--adash-card-border);
+        box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+    }
+    .analytics-dash .adash-sticky .adash-range-row { margin-bottom: 8px; }
+    .analytics-dash .adash-jump {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+    .analytics-dash .adash-jump::-webkit-scrollbar { display: none; }
+    .analytics-dash .adash-jump button {
+        flex: 0 0 auto;
+        font-family: inherit;
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 5px 11px;
+        border-radius: 999px;
+        cursor: pointer;
+        white-space: nowrap;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--adash-card-border);
+        color: var(--adash-muted);
+    }
+    .analytics-dash .adash-jump button:active {
+        background: rgba(34,199,115,0.2);
+        color: var(--adash-text);
+    }
     @media (min-width: 1024px) {
         .analytics-dash .adash-onepage {
-            column-width: 340px;
-            height: calc(100vh - 250px);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 0 18px;
+            align-items: start;
         }
     }
 
@@ -4458,6 +4496,135 @@
         margin: 2px 3px 0 0;
     }
     .adash-subj-tag b { color: var(--adash-text); }
+
+    /* ============================================================
+       COLOURFUL LINE-BASED VISUALS (v2)
+       ============================================================ */
+    .adash-card {
+        position: relative;
+        overflow: hidden;
+        background:
+            radial-gradient(120% 100% at 100% 0%, var(--accent-soft, rgba(34,199,115,0.13)) 0%, rgba(255,255,255,0) 60%),
+            rgba(255,255,255,0.035);
+    }
+    .adash-card::before, .adash-kpi::before, .adash-stat::before {
+        content: '';
+        position: absolute;
+        left: 0; right: 0; top: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent, #22C773), transparent 85%);
+        opacity: 0.95;
+        pointer-events: none;
+    }
+    .adash-kpi, .adash-stat {
+        position: relative;
+        overflow: hidden;
+        background:
+            radial-gradient(130% 110% at 100% 0%, var(--accent-soft, rgba(34,199,115,0.13)) 0%, rgba(255,255,255,0) 62%),
+            rgba(255,255,255,0.035);
+    }
+    .adash-kpi-icon { box-shadow: 0 0 14px -2px var(--accent, #22C773); }
+    .adash-kpi-value { letter-spacing: -0.01em; }
+    .adash-card-title { font-size: 12px; }
+    .adash-card-title .sub { margin-left: auto; text-align: right; }
+
+    .analytics-dash .adash-section-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--accent, #F2B84B);
+        border-bottom: none;
+        position: relative;
+        padding-bottom: 9px;
+        font-size: 12.5px;
+    }
+    .analytics-dash .adash-section-label::after {
+        content: '';
+        position: absolute;
+        left: 0; right: 0; bottom: 0;
+        height: 2px;
+        border-radius: 2px;
+        background: linear-gradient(90deg, var(--accent, #F2B84B), transparent);
+    }
+    .analytics-dash .adash-jump button {
+        color: var(--accent, #93A79B);
+        background: var(--accent-soft, rgba(255,255,255,0.06));
+        border-color: var(--accent-soft, rgba(255,255,255,0.09));
+    }
+
+    /* Colourful progress lines (replace circular gauges) */
+    .adash-meter { margin-bottom: 14px; }
+    .adash-meter:last-child { margin-bottom: 0; }
+    .adash-meter-head {
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: 8px; margin-bottom: 7px;
+    }
+    .adash-meter-label { font-size: 11px; font-weight: 700; color: var(--adash-text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .adash-meter-val { font-size: 13px; font-weight: 800; color: var(--c2, #22C773); flex: 0 0 auto; }
+    .adash-meter.big .adash-meter-val {
+        font-size: 26px; line-height: 1; letter-spacing: -0.02em;
+        background: linear-gradient(90deg, var(--c1), var(--c2));
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .adash-track {
+        position: relative; height: 8px; border-radius: 999px;
+        background: rgba(255,255,255,0.07); overflow: hidden;
+    }
+    .adash-meter.big .adash-track { height: 12px; }
+    .adash-track::after {
+        content: ''; position: absolute; inset: 0; pointer-events: none;
+        background: repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), rgba(8,21,14,0.55) calc(25% - 1px), rgba(8,21,14,0.55) 25%);
+    }
+    .adash-fill {
+        display: block; height: 100%; min-width: 6px; border-radius: 999px;
+        box-shadow: 0 0 12px -1px var(--c2, #22C773);
+        transform-origin: left center;
+        animation: adashGrow 0.85s cubic-bezier(.2,.8,.2,1) both;
+    }
+    @keyframes adashGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .adash-meter-sub { font-size: 9.5px; color: var(--adash-faint); margin-top: 6px; }
+
+    /* Stacked multi-colour line + coloured rows (replace donuts) */
+    .adash-total { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+    .adash-total .n { font-size: 26px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+    .adash-total .l { font-size: 9px; letter-spacing: 0.08em; color: var(--adash-muted); font-weight: 700; }
+    .adash-stack { display: flex; gap: 3px; height: 12px; margin-bottom: 15px; }
+    .adash-stack i {
+        display: block; height: 100%; min-width: 5px; border-radius: 999px;
+        box-shadow: 0 0 10px -2px var(--sc, #22C773);
+        animation: adashGrow 0.85s cubic-bezier(.2,.8,.2,1) both;
+        transform-origin: left center;
+    }
+    .adash-lrow { margin-bottom: 10px; }
+    .adash-lrow:last-child { margin-bottom: 0; }
+    .adash-lrow-head { display: flex; align-items: center; gap: 7px; font-size: 11px; margin-bottom: 5px; }
+    .adash-lrow-head .dot { width: 8px; height: 8px; border-radius: 999px; flex: 0 0 auto; box-shadow: 0 0 8px var(--sc); }
+    .adash-lrow-head .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--adash-text); font-weight: 600; }
+    .adash-lrow-head .ct { color: var(--adash-muted); font-weight: 600; font-size: 10px; }
+    .adash-lrow-head .pc { font-weight: 800; min-width: 34px; text-align: right; color: var(--sc); }
+    .adash-lrow .adash-track { height: 5px; }
+    .adash-lrow .adash-track::after { display: none; }
+
+    /* 24-hour heat line */
+    .adash-heat { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; }
+    .adash-heat i { display: block; height: 36px; border-radius: 5px; }
+    .adash-heat-axis { display: flex; justify-content: space-between; font-size: 8.5px; color: var(--adash-faint); margin-top: 6px; }
+    .adash-heat-note { font-size: 10px; color: var(--adash-muted); margin-top: 8px; }
+    .adash-heat-note b { color: var(--adash-text); }
+
+    /* Live log feed */
+    .adash-feed { max-height: 340px; overflow-y: auto; }
+    .adash-feed-row { display: flex; gap: 9px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .adash-feed-row:last-child { border-bottom: none; }
+    .adash-feed-bar { flex: 0 0 3px; border-radius: 3px; background: var(--c); box-shadow: 0 0 8px -1px var(--c); }
+    .adash-feed-main { flex: 1; min-width: 0; }
+    .adash-feed-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .adash-pill { font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 999px; color: var(--c); background: var(--c-soft); white-space: nowrap; }
+    .adash-feed-user { font-size: 11px; font-weight: 700; color: var(--adash-text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .adash-feed-time { margin-left: auto; font-size: 9px; color: var(--adash-faint); white-space: nowrap; }
+    .adash-feed-det { font-size: 10px; color: var(--adash-muted); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .adash-rank { display: inline-block; min-width: 18px; color: var(--adash-faint); font-weight: 800; }
 
     .admin-stat-grid {
         display: grid;
@@ -21577,7 +21744,7 @@ async function loadAnalyticsData() {
         
         const historyRes = await supabase.from('exam_history').select('id, user_id, mode, total_score, max_score, submitted_at').gte('submitted_at', sinceISO);
         const keysRes = await supabase.from('activation_keys').select('*').eq('is_used', true);
-        const logsRes = await supabase.from('activity_logs').select('action, created_at, username').gte('created_at', sinceISO);
+        const logsRes = await supabase.from('activity_logs').select('action, created_at, username').gte('created_at', sinceISO).order('created_at', { ascending: false }).limit(5000);
         const cbtRes = await supabase.from('cbt_scores').select('score, username');
         const mockRes = await supabase.from('mock_scores').select('score, username');
         const subjRes = await supabase.from('subject_scores').select('score, subject_id, username');
@@ -21693,8 +21860,32 @@ async function loadAnalyticsData() {
 }
 const ADASH = {
     green: '#22C773', gold: '#F2B84B', blue: '#4C8DFF', purple: '#A66BFF',
-    red: '#FF6B6B', teal: '#2FE0C6', text: '#F3F8F4', muted: '#93A79B'
+    red: '#FF6B6B', teal: '#2FE0C6', pink: '#FF5FA2', orange: '#FF9F5A',
+    text: '#F3F8F4', muted: '#93A79B'
 };
+// Two-stop gradients so every line/bar has more than one colour
+ADASH.grad = {
+    green:  [ADASH.green,  ADASH.teal],
+    teal:   [ADASH.teal,   ADASH.blue],
+    blue:   [ADASH.blue,   ADASH.purple],
+    purple: [ADASH.purple, ADASH.pink],
+    pink:   [ADASH.pink,   ADASH.orange],
+    gold:   [ADASH.gold,   ADASH.orange],
+    orange: [ADASH.orange, ADASH.red],
+    red:    [ADASH.red,    ADASH.pink]
+};
+ADASH.cycle = [ADASH.green, ADASH.blue, ADASH.purple, ADASH.gold, ADASH.teal, ADASH.pink, ADASH.orange];
+ADASH.gradList = [ADASH.grad.green, ADASH.grad.blue, ADASH.grad.purple, ADASH.grad.gold, ADASH.grad.teal, ADASH.grad.pink, ADASH.grad.orange];
+function adashGradFor(color) {
+    const keys = Object.keys(ADASH.grad);
+    for (let i = 0; i < keys.length; i++) {
+        if (ADASH[keys[i]] === color) return ADASH.grad[keys[i]];
+    }
+    return [color, color];
+}
+let _cardAccentIdx = 0;
+function adashNextAccent() { return ADASH.cycle[(_cardAccentIdx++) % ADASH.cycle.length]; }
+function adashAccentStyle(c) { return '--accent:' + c + ';--accent-soft:' + c + '22;'; }
 let _chartUid = 0;
 
 function trendOf(dataArr) {
@@ -21737,59 +21928,93 @@ function svgSparkline(data, opts) {
     );
 }
 
+function adashSmoothPath(pts, yMin, yMax) {
+    if (pts.length === 0) return '';
+    if (pts.length === 1) return 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+    function cl(y) { return Math.max(yMin, Math.min(yMax, y)); }
+    let d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+    const t = 0.18;
+    for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+        const c1x = p1[0] + (p2[0] - p0[0]) * t, c1y = cl(p1[1] + (p2[1] - p0[1]) * t);
+        const c2x = p2[0] - (p3[0] - p1[0]) * t, c2y = cl(p2[1] - (p3[1] - p1[1]) * t);
+        d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ',' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ',' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+    }
+    return d;
+}
+
 function svgAreaChart(data, opts) {
     opts = opts || {};
     const color = opts.color || ADASH.green;
+    const cols = opts.colors || adashGradFor(color);
+    const c1 = cols[0], c2 = cols[cols.length - 1];
     const prefix = opts.prefix || '';
-    const W = 300, H = 108, padX = 4, padTop = 16, padBottom = 4;
+    const W = 300, H = 118, padX = 8, padTop = 20, padBottom = 6;
     const vals = data.map(function(d) { return d.value; });
+    if (vals.length === 0) return '';
     const max = Math.max.apply(null, vals.concat([1]));
     const innerW = W - padX * 2;
     const innerH = H - padTop - padBottom;
     const stepX = data.length > 1 ? innerW / (data.length - 1) : 0;
     const pts = vals.map(function(v, i) {
-        const x = padX + i * stepX;
-        const y = padTop + innerH - (v / max) * innerH;
-        return [x, y];
+        return [padX + i * stepX, padTop + innerH - (v / max) * innerH];
     });
-    const linePath = pts.map(function(p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
-    const areaPath = linePath + ' L ' + pts[pts.length - 1][0].toFixed(1) + ' ' + (padTop + innerH) +
-        ' L ' + pts[0][0].toFixed(1) + ' ' + (padTop + innerH) + ' Z';
-    const gid = 'adg' + (_chartUid++);
+    const base = padTop + innerH;
+    const linePath = adashSmoothPath(pts, padTop, base);
+    const areaPath = linePath + ' L' + pts[pts.length - 1][0].toFixed(1) + ' ' + base + ' L' + pts[0][0].toFixed(1) + ' ' + base + ' Z';
+    const uid = 'adg' + (_chartUid++);
 
     let grid = '';
     [0, 1, 2].forEach(function(i) {
         const gy = padTop + innerH * (i / 2);
-        grid += '<line x1="' + padX + '" y1="' + gy.toFixed(1) + '" x2="' + (W - padX) + '" y2="' + gy.toFixed(1) + '" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>';
+        grid += '<line x1="' + padX + '" y1="' + gy.toFixed(1) + '" x2="' + (W - padX) + '" y2="' + gy.toFixed(1) + '" stroke="rgba(255,255,255,0.07)" stroke-width="1" stroke-dasharray="3 4"/>';
     });
 
-    let dots = '';
-    let peakLabel = '';
+    // average line
+    const avgV = vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
+    let avgLine = '';
+    if (avgV > 0 && vals.length > 2) {
+        const ay = padTop + innerH - (avgV / max) * innerH;
+        avgLine = '<line x1="' + padX + '" y1="' + ay.toFixed(1) + '" x2="' + (W - padX) + '" y2="' + ay.toFixed(1) + '" stroke="' + c2 + '" stroke-opacity="0.45" stroke-width="1" stroke-dasharray="2 3"/>';
+    }
+
     let peakIdx = 0;
     vals.forEach(function(v, i) { if (v >= vals[peakIdx]) peakIdx = i; });
-    pts.forEach(function(p, i) {
-        dots += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.4" fill="' + color + '" stroke="#0A1911" stroke-width="1.2"/>';
-    });
+    let marks = '';
+    const last = pts[pts.length - 1];
+    marks += '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="6" fill="' + c2 + '" opacity="0.22"/>' +
+             '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3" fill="' + c2 + '" stroke="#0A1911" stroke-width="1.2"/>';
+    let peakLabel = '';
     if (vals[peakIdx] > 0) {
         const pp = pts[peakIdx];
-        peakLabel = '<text x="' + pp[0].toFixed(1) + '" y="' + Math.max(9, pp[1] - 6).toFixed(1) + '" text-anchor="middle" font-size="8.5" font-weight="700" fill="' + color + '">' + prefix + vals[peakIdx] + '</text>';
+        marks += '<circle cx="' + pp[0].toFixed(1) + '" cy="' + pp[1].toFixed(1) + '" r="3.4" fill="#fff" stroke="' + c1 + '" stroke-width="2"/>';
+        const anchor = pp[0] > W - 26 ? 'end' : (pp[0] < 26 ? 'start' : 'middle');
+        peakLabel = '<text x="' + pp[0].toFixed(1) + '" y="' + Math.max(10, pp[1] - 8).toFixed(1) + '" text-anchor="' + anchor + '" font-size="9" font-weight="800" fill="' + c1 + '">' + prefix + vals[peakIdx] + '</text>';
     }
 
     const svgHtml = (
-        '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="106" preserveAspectRatio="none" style="display:block;overflow:visible">' +
-        '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.45"/>' +
-        '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
-        '</linearGradient></defs>' +
+        '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;height:auto;overflow:visible">' +
+        '<defs>' +
+        '<linearGradient id="' + uid + 'f" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + c1 + '" stop-opacity="0.42"/>' +
+        '<stop offset="100%" stop-color="' + c2 + '" stop-opacity="0"/>' +
+        '</linearGradient>' +
+        '<linearGradient id="' + uid + 's" gradientUnits="userSpaceOnUse" x1="' + padX + '" y1="0" x2="' + (W - padX) + '" y2="0">' +
+        '<stop offset="0%" stop-color="' + c1 + '"/>' +
+        '<stop offset="100%" stop-color="' + c2 + '"/>' +
+        '</linearGradient>' +
+        '</defs>' +
         grid +
-        '<path d="' + areaPath + '" fill="url(#' + gid + ')" stroke="none"/>' +
-        '<path d="' + linePath + '" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
-        dots + peakLabel +
+        '<path d="' + areaPath + '" fill="url(#' + uid + 'f)" stroke="none"/>' +
+        avgLine +
+        '<path d="' + linePath + '" fill="none" stroke="url(#' + uid + 's)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.18"/>' +
+        '<path d="' + linePath + '" fill="none" stroke="url(#' + uid + 's)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+        marks + peakLabel +
         '</svg>'
     );
 
     const labelStep = data.length > 10 ? Math.ceil(data.length / 6) : (data.length > 6 ? 2 : 1);
-    let labels = '<div style="display:flex;justify-content:space-between;margin-top:2px;padding:0 2px">';
+    let labels = '<div style="display:flex;justify-content:space-between;margin-top:4px;padding:0 2px">';
     data.forEach(function(d, i) {
         if (i % labelStep === 0 || i === data.length - 1) {
             labels += '<span style="font-size:8px;color:var(--adash-faint)">' + esc(d.label) + '</span>';
@@ -21798,6 +22023,25 @@ function svgAreaChart(data, opts) {
     labels += '</div>';
 
     return '<div>' + svgHtml + labels + '</div>';
+}
+
+// ---- Colourful progress line (replaces circular gauges) -----------------
+function renderAdashMeter(o) {
+    const cols = o.colors || ADASH.grad.green;
+    const c1 = cols[0], c2 = cols[cols.length - 1];
+    const pct = Math.max(0, Math.min(100, Math.round(o.pct || 0)));
+    return (
+        '<div class="adash-meter' + (o.big ? ' big' : '') + '" style="--c1:' + c1 + ';--c2:' + c2 + '">' +
+        '<div class="adash-meter-head">' +
+        '<span class="adash-meter-label">' + (o.icon ? o.icon + ' ' : '') + esc(o.label) + '</span>' +
+        '<span class="adash-meter-val">' + (o.valueText !== undefined ? o.valueText : pct + '%') + '</span>' +
+        '</div>' +
+        '<div class="adash-track">' +
+        (pct > 0 ? '<i class="adash-fill" style="width:' + pct + '%;background:linear-gradient(90deg,' + cols.join(',') + ')"></i>' : '') +
+        '</div>' +
+        (o.sub ? '<div class="adash-meter-sub">' + esc(o.sub) + '</div>' : '') +
+        '</div>'
+    );
 }
 
 function svgGauge(pct, opts) {
@@ -21821,55 +22065,49 @@ function svgGauge(pct, opts) {
     );
 }
 
+// Kept under its old name so every existing call site now renders a
+// multi-colour stacked line + one colourful line per row instead of a donut.
 function svgDonut(segments, opts) {
     opts = opts || {};
-    const size = opts.size || 108;
-    const stroke = opts.stroke || 15;
-    const r = (size - stroke) / 2;
-    const c = size / 2;
-    const circ = 2 * Math.PI * r;
-    const total = segments.reduce(function(a, s) { return a + s.value; }, 0) || 1;
-    let offsetAcc = 0;
-    let circles = '';
+    const total = segments.reduce(function(a, s) { return a + s.value; }, 0);
+    const safeTotal = total || 1;
+    let stack = '';
     segments.forEach(function(s) {
         if (s.value <= 0) return;
-        const frac = s.value / total;
-        const dash = Math.max(0.6, circ * frac - 1.2);
-        circles += '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="none" stroke="' + s.color + '" stroke-width="' + stroke + '" ' +
-            'stroke-linecap="round" stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '" stroke-dashoffset="' + (-offsetAcc).toFixed(1) + '" transform="rotate(-90 ' + c + ' ' + c + ')"/>';
-        offsetAcc += circ * frac;
+        const g = adashGradFor(s.color);
+        stack += '<i style="flex:' + s.value + ';--sc:' + s.color + ';background:linear-gradient(90deg,' + g[0] + ',' + g[1] + ')"></i>';
     });
-    const svgHtml = (
-        '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' + circles +
-        '<text x="' + c + '" y="' + (c - 3) + '" text-anchor="middle" font-size="18" font-weight="800" fill="' + ADASH.text + '">' + total + '</text>' +
-        '<text x="' + c + '" y="' + (c + 12) + '" text-anchor="middle" font-size="7.5" letter-spacing="0.05em" fill="var(--adash-muted)">TOTAL</text>' +
-        '</svg>'
-    );
-    let legend = '';
+    let rows = '';
     segments.forEach(function(s) {
-        const pct = total ? Math.round((s.value / total) * 100) : 0;
-        legend += (
-            '<div class="adash-donut-legend-row">' +
-            '<span style="width:8px;height:8px;border-radius:2px;background:' + s.color + ';display:inline-block;flex:0 0 auto"></span>' +
-            '<span style="color:var(--adash-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(s.label) + '</span>' +
-            '<span style="color:var(--adash-muted);font-weight:700">' + pct + '%</span>' +
-            '</div>'
+        const pct = Math.round((s.value / safeTotal) * 100);
+        const g = adashGradFor(s.color);
+        rows += (
+            '<div class="adash-lrow" style="--sc:' + s.color + '">' +
+            '<div class="adash-lrow-head">' +
+            '<span class="dot" style="background:' + s.color + '"></span>' +
+            '<span class="nm">' + esc(s.label) + '</span>' +
+            '<span class="ct">' + s.value.toLocaleString() + '</span>' +
+            '<span class="pc">' + pct + '%</span>' +
+            '</div>' +
+            '<div class="adash-track">' +
+            (pct > 0 ? '<i class="adash-fill" style="width:' + pct + '%;--c2:' + g[1] + ';background:linear-gradient(90deg,' + g[0] + ',' + g[1] + ')"></i>' : '') +
+            '</div></div>'
         );
     });
     return (
-        '<div style="display:flex;align-items:center;gap:12px">' +
-        '<div style="flex:0 0 auto">' + svgHtml + '</div>' +
-        '<div style="flex:1;min-width:0">' + legend + '</div>' +
-        '</div>'
+        '<div class="adash-total"><span class="n">' + total.toLocaleString() + '</span><span class="l">' + esc(opts.totalLabel || 'TOTAL') + '</span></div>' +
+        '<div class="adash-stack">' + (stack || '<i style="flex:1;background:rgba(255,255,255,0.08);box-shadow:none"></i>') + '</div>' +
+        rows
     );
 }
 
 // ---- Card / stat building blocks (dark theme) --------------------------
 function renderAdashStat(icon, value, label, color) {
+    const c = color || ADASH.green;
     return (
-        '<div class="adash-stat">' +
+        '<div class="adash-stat" style="' + adashAccentStyle(c) + '">' +
         '<div class="icon">' + icon + '</div>' +
-        '<div class="val" style="color:' + (color || ADASH.green) + '">' + value + '</div>' +
+        '<div class="val" style="color:' + c + '">' + value + '</div>' +
         '<div class="lbl">' + esc(label) + '</div>' +
         '</div>'
     );
@@ -21879,11 +22117,12 @@ function renderStatCard(icon, value, label, color) { return renderAdashStat(icon
 
 function renderAdashKpi(opts) {
     const trendHtml = opts.trend ? renderTrendBadge(opts.trend) : '';
-    const clickAttr = opts.filterKey ? ' data-action="analytics-filter-users" data-filter="' + opts.filterKey + '" style="cursor:pointer"' : '';
     const color = opts.color || ADASH.green;
+    const styleAttr = ' style="' + adashAccentStyle(color) + (opts.filterKey ? 'cursor:pointer;' : '') + '"';
+    const clickAttr = opts.filterKey ? ' data-action="analytics-filter-users" data-filter="' + opts.filterKey + '"' : '';
     const sparkHtml = opts.spark ? '<div class="adash-kpi-spark">' + svgSparkline(opts.spark, { color: color }) + '</div>' : '';
     return (
-        '<div class="adash-kpi"' + clickAttr + '>' +
+        '<div class="adash-kpi"' + clickAttr + styleAttr + '>' +
         '<div class="adash-kpi-head">' +
         '<span class="adash-kpi-icon" style="background:' + color + '22;color:' + color + '">' + opts.icon + '</span>' +
         (opts.spark ? '' : (trendHtml || '')) +
@@ -21924,9 +22163,10 @@ function renderAdashBarChart(data, opts) {
 // Back-compat alias
 function renderBarChart(data, opts) { return renderAdashBarChart(data, opts); }
 
-function renderAdashCard(title, icon, contentHtml, subtitle) {
+function renderAdashCard(title, icon, contentHtml, subtitle, accent) {
+    const c = accent || adashNextAccent();
     return (
-        '<div class="adash-card">' +
+        '<div class="adash-card" style="' + adashAccentStyle(c) + '">' +
         '<p class="adash-card-title">' + icon + ' ' + esc(title) + (subtitle ? ' <span class="sub">· ' + esc(subtitle) + '</span>' : '') + '</p>' +
         contentHtml +
         '</div>'
@@ -21972,7 +22212,19 @@ function renderAdminAnalytics() {
 
     let html = '<div class="analytics-dash">';
 
-    // Header: range selector + refresh
+    _cardAccentIdx = 0;
+    const sections = [
+        { id: 'overview',   accent: ADASH.green,  label: '📊 Overview',         body: function() { return renderAnalyticsOverviewTab(d); } },
+        { id: 'growth',     accent: ADASH.blue,   label: '📈 Growth',           body: function() { return renderAnalyticsGrowthTab(d); } },
+        { id: 'revenue',    accent: ADASH.gold,   label: '💰 Revenue',          body: function() { return renderAnalyticsRevenueTab(d); } },
+        { id: 'engagement', accent: ADASH.purple, label: '🎯 Engagement',       body: function() { return renderAnalyticsEngagementTab(d); } },
+        { id: 'content',    accent: ADASH.teal,   label: '🗂️ Content',          body: function() { return renderAnalyticsContentTab(d); } },
+        { id: 'logs',       accent: ADASH.pink,   label: '📋 Logs',             body: function() { return renderAnalyticsLogsTab(d); } },
+        { id: 'sessions',   accent: ADASH.orange, label: '🔐 Login & Sessions', body: function() { return renderAdminSessions(); } }
+    ];
+
+    // Sticky header: range selector + refresh + jump-to-section chips
+    html += '<div class="adash-sticky">';
     html += (
         '<div class="adash-range-row">' +
         [7, 14, 30].map(function(n) {
@@ -21981,18 +22233,17 @@ function renderAdminAnalytics() {
         '<button class="btn btn-outline btn-sm btn-refresh" data-action="analytics-refresh" style="flex:0 0 auto;padding:6px 10px">' + svg('refresh', 15) + '</button>' +
         '</div>'
     );
+    html += '<div class="adash-jump">' + sections.map(function(sec) {
+        return '<button type="button" style="' + adashAccentStyle(sec.accent) + '" onclick="var el=document.getElementById(\'adash-sec-' + sec.id + '\');if(el)el.scrollIntoView({behavior:\'smooth\',block:\'start\'});">' + sec.label + '</button>';
+    }).join('') + '</div>';
+    html += '</div>';
 
-    // Single continuous page — every section flows into side-by-side
-    // columns instead of stacking vertically, so there's no long
-    // scroll: on mobile it "bends" sideways (swipe left/right), on a
-    // laptop it just naturally shows more columns across the width.
+    // One continuous page: every section stacks vertically, nothing is
+    // clipped. The app's .view container handles the scrolling.
     html += '<div class="adash-onepage">';
-    html += '<div class="adash-section"><p class="adash-section-label">📊 Overview</p>' + renderAnalyticsOverviewTab(d) + '</div>';
-    html += '<div class="adash-section"><p class="adash-section-label">📈 Growth</p>' + renderAnalyticsGrowthTab(d) + '</div>';
-    html += '<div class="adash-section"><p class="adash-section-label">💰 Revenue</p>' + renderAnalyticsRevenueTab(d) + '</div>';
-    html += '<div class="adash-section"><p class="adash-section-label">🎯 Engagement</p>' + renderAnalyticsEngagementTab(d) + '</div>';
-    html += '<div class="adash-section"><p class="adash-section-label">🗂️ Content</p>' + renderAnalyticsContentTab(d) + '</div>';
-    html += '<div class="adash-section"><p class="adash-section-label">🔐 Login & Sessions</p>' + renderAdminSessions() + '</div>';
+    sections.forEach(function(sec) {
+        html += '<div class="adash-section" id="adash-sec-' + sec.id + '" style="' + adashAccentStyle(sec.accent) + '"><p class="adash-section-label">' + sec.label + '</p>' + sec.body() + '</div>';
+    });
     html += '</div>';
 
     html += '</div>';
@@ -22004,15 +22255,23 @@ function renderAnalyticsOverviewTab(d) {
     const conversionPct = d.totalUsers > 0 ? Math.round((d.activatedUsers / d.totalUsers) * 100) : 0;
     const onlinePct = d.totalUsers > 0 ? Math.round((d.onlineNow.length / d.totalUsers) * 100) : 0;
 
-    // Hero: two gauges side by side — activation rate & online share
+    // Hero: colourful progress lines instead of circular gauges
+    const activeTodayPct = d.totalUsers > 0 ? Math.round((d.activeToday / d.totalUsers) * 100) : 0;
     html += renderAdashCard('Account Health', '🩺',
-        '<div class="adash-gauge-row">' +
-        '<div class="adash-gauge-item">' + svgGauge(conversionPct, { color: conversionPct >= 50 ? ADASH.green : conversionPct >= 25 ? ADASH.gold : ADASH.red }) +
-        '<p class="lbl">Activation Rate</p></div>' +
-        '<div class="adash-gauge-item">' + svgGauge(onlinePct, { color: ADASH.teal }) +
-        '<p class="lbl">Online Right Now</p></div>' +
-        '</div>' +
-        '<p style="font-size:9px;color:var(--adash-faint);text-align:center;margin-top:8px">' + d.activatedUsers + ' of ' + d.totalUsers + ' users activated · ' + d.onlineNow.length + ' online now</p>'
+        renderAdashMeter({
+            big: true, label: 'Activation Rate', pct: conversionPct,
+            colors: conversionPct >= 50 ? ADASH.grad.green : conversionPct >= 25 ? ADASH.grad.gold : ADASH.grad.red,
+            sub: d.activatedUsers + ' of ' + d.totalUsers + ' users activated'
+        }) +
+        renderAdashMeter({
+            big: true, label: 'Online Right Now', pct: onlinePct, colors: ADASH.grad.teal,
+            sub: d.onlineNow.length + ' online now'
+        }) +
+        renderAdashMeter({
+            big: true, label: 'Active Today', pct: activeTodayPct, colors: ADASH.grad.purple,
+            sub: d.activeToday + ' seen in the last 24 hours'
+        }),
+        null, ADASH.green
     );
 
     // Top-line KPIs with embedded sparklines
@@ -22029,10 +22288,10 @@ function renderAnalyticsOverviewTab(d) {
     html += renderAdashCard('App Opens', '👁️', svgAreaChart(d.viewsByDay, { color: ADASH.blue }), 'last ' + state.analyticsRange + ' days');
 
     // User base breakdown donut
-    html += renderAdashCard('User Base Breakdown', '🍩', svgDonut([
+    html += renderAdashCard('User Base Breakdown', '🌈', svgDonut([
         { label: 'Activated', value: d.activatedUsers, color: ADASH.green },
         { label: 'Inactive', value: d.inactiveUsers, color: ADASH.red },
-    ]));
+    ], { totalLabel: 'USERS' }));
 
     // Quick health strip
     html += (
@@ -22135,13 +22394,12 @@ function renderAnalyticsEngagementTab(d) {
         '</div>'
     );
 
-    // Average score gauges
+    // Average scores as colourful progress lines
     html += renderAdashCard('Average Scores', '🎯',
-        '<div class="adash-gauge-row">' +
-        '<div class="adash-gauge-item">' + svgGauge(d.cbtAvg, { color: ADASH.green }) + '<p class="lbl">CBT</p></div>' +
-        '<div class="adash-gauge-item">' + svgGauge(d.mockAvg, { color: ADASH.purple }) + '<p class="lbl">Mock</p></div>' +
-        '<div class="adash-gauge-item">' + svgGauge(d.subjAvg, { color: ADASH.teal }) + '<p class="lbl">Subject</p></div>' +
-        '</div>'
+        renderAdashMeter({ big: true, label: 'CBT', pct: d.cbtAvg, colors: ADASH.grad.green }) +
+        renderAdashMeter({ big: true, label: 'Mock', pct: d.mockAvg, colors: ADASH.grad.purple }) +
+        renderAdashMeter({ big: true, label: 'Subject', pct: d.subjAvg, colors: ADASH.grad.gold }),
+        null, ADASH.purple
     );
 
     // Attempts distribution by mode — donut using real totals over the range
@@ -22156,7 +22414,7 @@ function renderAnalyticsEngagementTab(d) {
     }).filter(function(s) { return s.value > 0; });
 
     if (donutSegments.length > 0) {
-        html += renderAdashCard('Attempts by Mode', '🍩', svgDonut(donutSegments), 'last ' + state.analyticsRange + ' days');
+        html += renderAdashCard('Attempts by Mode', '🌈', svgDonut(donutSegments, { totalLabel: 'ATTEMPTS' }), 'last ' + state.analyticsRange + ' days');
     }
 
     Object.keys(d.modeLabels).forEach(function(m, i) {
@@ -22168,8 +22426,9 @@ function renderAnalyticsEngagementTab(d) {
         html += renderAdashCard(
             d.modeLabels[m],
             '📊',
-            renderAdashBarChart(perDay, { color: SUBJECT_PALETTE[i % SUBJECT_PALETTE.length] }),
-            totalForMode + ' attempts, avg ' + (d.historyByModeAvg[m] || 0) + '%'
+            svgAreaChart(perDay, { colors: ADASH.gradList[i % ADASH.gradList.length] }),
+            totalForMode + ' attempts, avg ' + (d.historyByModeAvg[m] || 0) + '%',
+            ADASH.gradList[i % ADASH.gradList.length][0]
         );
     });
 
@@ -22211,13 +22470,13 @@ function renderAnalyticsContentTab(d) {
         '</div>'
     );
 
-    html += renderAdashCard('Question Bank by Mode', '🍩', svgDonut([
+    html += renderAdashCard('Question Bank by Mode', '🌈', svgDonut([
         { label: 'CBT Mode', value: modeCounts.cbt, color: ADASH.blue },
         { label: 'Exam Mode', value: modeCounts.exam, color: ADASH.red },
         { label: 'Mock Exam', value: modeCounts.mock, color: ADASH.purple },
         { label: 'Topic Practice', value: modeCounts.topic, color: ADASH.teal },
         { label: 'Novel (CBT)', value: modeCounts.literature, color: ADASH.gold },
-    ]));
+    ], { totalLabel: 'QUESTIONS' }));
 
     function subjectTagsFor(type) {
         const breakdown = subjectBreakdown[type] || {};
@@ -22243,6 +22502,208 @@ function renderAnalyticsContentTab(d) {
         html += renderAdashCard(m.label, m.icon, subjectTagsFor(m.subjType), m.count + ' questions');
     });
 
+    return html;
+}
+
+// ---- Logs analytics ------------------------------------------------------
+const ADASH_ACTIONS = {
+    page_view:            { label: 'App opened',          icon: '👁️', color: ADASH.blue },
+    login:                { label: 'Logged in',           icon: '🟢', color: ADASH.green },
+    logout:               { label: 'Logged out',          icon: '🚪', color: ADASH.orange },
+    completed_cbt:        { label: 'CBT completed',       icon: '📚', color: ADASH.purple },
+    completed_exam:       { label: 'Exam completed',      icon: '📝', color: ADASH.teal },
+    completed_topic:      { label: 'Topic completed',     icon: '📋', color: ADASH.gold },
+    completed_novel:      { label: 'Novel completed',     icon: '📖', color: ADASH.pink },
+    auto_deactivated:     { label: 'Auto-deactivated',    icon: '⏳', color: ADASH.red },
+    activated_by_admin:   { label: 'Activated by admin',  icon: '✅', color: ADASH.green },
+    deactivated_by_admin: { label: 'Deactivated by admin', icon: '🚫', color: ADASH.red }
+};
+function adashActionMeta(action) {
+    if (ADASH_ACTIONS[action]) return ADASH_ACTIONS[action];
+    const str = String(action || 'unknown');
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    const label = str.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+    return { label: label, icon: '•', color: ADASH.cycle[h % ADASH.cycle.length] };
+}
+function adashHourLabel(h) {
+    const hh = h % 12 === 0 ? 12 : h % 12;
+    return hh + ' ' + (h >= 12 ? 'PM' : 'AM');
+}
+function adashHeatColor(t) {
+    return 'hsl(' + Math.round(210 - 210 * t) + ',85%,' + Math.round(48 + 8 * t) + '%)';
+}
+let _adashLogsReq = false;
+
+function renderAnalyticsLogsTab(d) {
+    const logs = d._logs || [];
+    let html = '';
+
+    if (logs.length === 0) {
+        return renderAdashCard('Activity Logs', '📋', '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:10px 0">No log events in this range yet.</p>', null, ADASH.pink);
+    }
+
+    const days = d.days;
+    const perDay = {};
+    days.forEach(function(k) { perDay[k] = 0; });
+    const byHour = new Array(24).fill(0);
+    const byWeek = new Array(7).fill(0);      // Mon..Sun
+    const byAction = {};
+    const byUser = {};
+    let logins = 0, logouts = 0, completions = 0, counted = 0;
+
+    logs.forEach(function(l) {
+        const dt = new Date(l.created_at);
+        if (isNaN(dt.getTime())) return;
+        counted++;
+        const k = dayKey(l.created_at);
+        if (perDay[k] !== undefined) perDay[k]++;
+        byHour[dt.getHours()]++;
+        byWeek[(dt.getDay() + 6) % 7]++;
+        const act = l.action || 'unknown';
+        byAction[act] = (byAction[act] || 0) + 1;
+        const u = l.username || 'Guest';
+        if (u !== 'Guest') byUser[u] = (byUser[u] || 0) + 1;
+        if (act === 'login') logins++;
+        else if (act === 'logout') logouts++;
+        else if (act.indexOf('completed_') === 0) completions++;
+    });
+
+    const perDaySeries = days.map(function(k) { return { label: shortDay(k), value: perDay[k] }; });
+    const uniqueUsers = Object.keys(byUser).length;
+    const avgPerDay = Math.round(counted / (days.length || 1));
+    let peakHour = 0;
+    byHour.forEach(function(v, i) { if (v > byHour[peakHour]) peakHour = i; });
+    const maxHour = Math.max.apply(null, byHour.concat([1]));
+
+    // KPIs
+    html += (
+        '<div class="adash-kpi-grid">' +
+        renderAdashKpi({ icon: '📋', label: 'Total Events', value: counted.toLocaleString(), spark: perDaySeries, trend: trendOf(perDaySeries), color: ADASH.pink }) +
+        renderAdashKpi({ icon: '👥', label: 'Active Users', value: uniqueUsers, color: ADASH.teal }) +
+        renderAdashKpi({ icon: '⚡', label: 'Avg Events / Day', value: avgPerDay, color: ADASH.gold }) +
+        renderAdashKpi({ icon: '⏰', label: 'Peak Hour', value: byHour[peakHour] > 0 ? adashHourLabel(peakHour) : '—', color: ADASH.purple }) +
+        '</div>'
+    );
+    html += (
+        '<div class="adash-stat-grid">' +
+        renderAdashStat('🟢', logins, 'Logins', ADASH.green) +
+        renderAdashStat('🚪', logouts, 'Logouts', ADASH.orange) +
+        renderAdashStat('🏁', completions, 'Completions', ADASH.purple) +
+        '</div>'
+    );
+
+    // Activity over time
+    html += renderAdashCard('Activity Over Time', '📈', svgAreaChart(perDaySeries, { colors: [ADASH.pink, ADASH.purple, ADASH.blue] }), 'last ' + state.analyticsRange + ' days', ADASH.pink);
+
+    // What users do
+    const actKeys = Object.keys(byAction).sort(function(a, b) { return byAction[b] - byAction[a]; });
+    const segs = actKeys.slice(0, 7).map(function(k) {
+        const m = adashActionMeta(k);
+        return { label: m.icon + ' ' + m.label, value: byAction[k], color: m.color };
+    });
+    if (actKeys.length > 7) {
+        const rest = actKeys.slice(7).reduce(function(a, k) { return a + byAction[k]; }, 0);
+        segs.push({ label: '• Other', value: rest, color: ADASH.muted });
+    }
+    html += renderAdashCard('What Users Do', '🧭', svgDonut(segs, { totalLabel: 'EVENTS' }), null, ADASH.blue);
+
+    // Busiest hours — 24 coloured cells in a single line
+    let heat = '<div class="adash-heat">';
+    byHour.forEach(function(v, h) {
+        const t = v / maxHour;
+        heat += '<i title="' + adashHourLabel(h) + ' · ' + v + ' events" style="background:' +
+            (v === 0 ? 'rgba(255,255,255,0.06)' : adashHeatColor(t)) + ';' +
+            (v > 0 ? 'box-shadow:0 0 10px -3px ' + adashHeatColor(t) : '') + '"></i>';
+    });
+    heat += '</div>' +
+        '<div class="adash-heat-axis"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>11p</span></div>' +
+        '<p class="adash-heat-note">Busiest at <b>' + adashHourLabel(peakHour) + '</b> with <b>' + byHour[peakHour] + '</b> events · cool blue = quiet, hot red = busy</p>';
+    html += renderAdashCard('Busiest Hours', '⏰', heat, 'your local time', ADASH.orange);
+
+    // Busiest days of the week
+    const weekNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const maxWeek = Math.max.apply(null, byWeek.concat([1]));
+    let weekHtml = '';
+    weekNames.forEach(function(nm, i) {
+        weekHtml += renderAdashMeter({ label: nm, pct: (byWeek[i] / maxWeek) * 100, valueText: byWeek[i], colors: ADASH.gradList[i % ADASH.gradList.length] });
+    });
+    html += renderAdashCard('Busiest Days', '📅', weekHtml, null, ADASH.gold);
+
+    // Most active users
+    const userKeys = Object.keys(byUser).sort(function(a, b) { return byUser[b] - byUser[a]; }).slice(0, 6);
+    let usersHtml = '';
+    if (userKeys.length === 0) {
+        usersHtml = '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:8px 0">No signed-in activity yet.</p>';
+    } else {
+        const topV = byUser[userKeys[0]] || 1;
+        userKeys.forEach(function(u, i) {
+            usersHtml += renderAdashMeter({
+                label: u, icon: '<span class="adash-rank">#' + (i + 1) + '</span>',
+                pct: (byUser[u] / topV) * 100, valueText: byUser[u],
+                colors: ADASH.gradList[i % ADASH.gradList.length]
+            });
+        });
+    }
+    html += renderAdashCard('Most Active Users', '🏆', usersHtml, 'by events', ADASH.teal);
+
+    // App errors in range
+    let errHtml = '';
+    if (!state.admin.errorsLoaded) {
+        loadAppErrors();
+        errHtml = '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:8px 0">Loading errors…</p>';
+    } else {
+        const daySet = {};
+        days.forEach(function(k) { daySet[k] = true; });
+        const errs = (state.admin.errors || []).filter(function(e) { return e.created_at && daySet[dayKey(e.created_at)]; });
+        if (errs.length === 0) {
+            errHtml = '<p style="font-size:13px;color:var(--adash-green,#22C773);text-align:center;padding:8px 0;font-weight:700">🎉 No errors in this period</p>';
+        } else {
+            const byCtx = {};
+            errs.forEach(function(e) { const c = e.context || 'Error'; byCtx[c] = (byCtx[c] || 0) + 1; });
+            const ctxKeys = Object.keys(byCtx).sort(function(a, b) { return byCtx[b] - byCtx[a]; }).slice(0, 5);
+            const topC = byCtx[ctxKeys[0]] || 1;
+            errHtml += '<div class="adash-total"><span class="n" style="color:' + ADASH.red + '">' + errs.length + '</span><span class="l">ERRORS</span></div>';
+            ctxKeys.forEach(function(c) {
+                errHtml += renderAdashMeter({ label: c, pct: (byCtx[c] / topC) * 100, valueText: byCtx[c], colors: ADASH.grad.red });
+            });
+        }
+    }
+    html += renderAdashCard('App Errors', '🛑', errHtml, null, ADASH.red);
+
+    // Live feed
+    let feedHtml = '';
+    if (!state.admin.logsLoaded) {
+        if (!_adashLogsReq) {
+            _adashLogsReq = true;
+            Promise.resolve(loadLogs()).then(function() { _adashLogsReq = false; }, function() { _adashLogsReq = false; });
+        }
+        feedHtml = '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:8px 0">Loading latest events…</p>';
+    } else if (!state.admin.logs || state.admin.logs.length === 0) {
+        feedHtml = '<p style="font-size:12px;color:var(--adash-faint);text-align:center;padding:8px 0">No events recorded yet.</p>';
+    } else {
+        feedHtml = '<div class="adash-feed">' + state.admin.logs.slice(0, 40).map(function(l) {
+            const m = adashActionMeta(l.action);
+            const showDet = l.details && l.action !== 'page_view';
+            return (
+                '<div class="adash-feed-row" style="--c:' + m.color + ';--c-soft:' + m.color + '22">' +
+                '<i class="adash-feed-bar"></i>' +
+                '<div class="adash-feed-main">' +
+                '<div class="adash-feed-top">' +
+                '<span class="adash-pill">' + m.icon + ' ' + esc(m.label) + '</span>' +
+                '<span class="adash-feed-user">' + esc(l.username || 'Guest') + '</span>' +
+                '<span class="adash-feed-time">' + formatTimeAgo(l.created_at) + '</span>' +
+                '</div>' +
+                (showDet ? '<div class="adash-feed-det">' + esc(l.details) + '</div>' : '') +
+                '</div></div>'
+            );
+        }).join('') + '</div>';
+    }
+    html += renderAdashCard('Live Feed', '📡', feedHtml, 'latest 40', ADASH.green);
+
+    if (logs.length >= 1000) {
+        html += '<p style="font-size:9.5px;color:var(--adash-faint);text-align:center;margin:4px 0 0">Stats based on the latest ' + logs.length.toLocaleString() + ' events in this range.</p>';
+    }
     return html;
 }
 
