@@ -1,5 +1,5 @@
 // MyUTME service worker
-const CACHE_NAME = "myutme-cache-v5";
+const CACHE_NAME = "myutme-cache-v6";
 
 const APP_SHELL = [
   "./",
@@ -9,13 +9,10 @@ const APP_SHELL = [
   "./icon-512.png",
 ];
 
-// How long to wait for the network before treating it as a failure and
-// falling back to cache. Plain fetch() only rejects on a hard error (DNS
-// failure, "no route" when mobile data is off, etc). When data is ON but
-// there's no real signal, the browser thinks a connection is possible and
-// just waits — fetch() never rejects, so a bare .catch(() => cache) never
-// runs and the page hangs on load. Racing fetch() against a timer makes a
-// hang behave exactly like a hard failure.
+// How long to give a background revalidation fetch before giving up.
+// This no longer blocks anything the user sees (see the app-shell
+// strategy below) — it only bounds how long we keep trying to refresh
+// the cache behind the scenes.
 const FETCH_TIMEOUT_MS = 8000;
 
 function fetchWithTimeout(request, timeoutMs = FETCH_TIMEOUT_MS) {
@@ -62,10 +59,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   // App shell (the HTML page itself, whether navigated to directly or
-  // requested as "./" / "./index.html") — always try the network first so
-  // a fresh deploy is picked up on the very next load, not the one after.
-  // Falls back to cache only when the network is unreachable (offline) —
-  // including "unreachable" meaning "took too long," see fetchWithTimeout.
+  // requested as "./" / "./index.html").
   const isAppShell =
     event.request.mode === "navigate" ||
     url.pathname.endsWith(".html") ||
@@ -73,38 +67,47 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith("/");
 
   // Per-subject question data files (questions-<subjectId>.json) and the
-  // legacy seed file. These are the files the app checks on every open to
-  // decide what to add/update/DELETE offline, so they must always go to
-  // the network first — a cache-first strategy here would keep silently
-  // serving an old (or since-deleted) file's contents forever, since the
-  // app would never even see a 404 from the real server. Falls back to the
-  // last-known-good cached copy only when there's truly no network (or the
-  // network hangs past FETCH_TIMEOUT_MS), so offline use still works.
+  // legacy seed file.
   const isQuestionDataFile =
     /^\/?questions-[^/]+\.json$/.test(url.pathname) ||
     url.pathname.endsWith("questions-seed.json");
 
   if (isAppShell || isQuestionDataFile) {
+    // STALE-WHILE-REVALIDATE: answer from cache immediately whenever a
+    // cached copy exists, so the app opens instantly every time — poor
+    // signal, mobile data off, a slow/hanging request, none of it can
+    // block the app from opening. A fresh copy is fetched in the
+    // background and saved for next time; the client already reloads
+    // itself the moment that new version takes over (see
+    // "controllerchange" in index.html), so this trades "may be a few
+    // minutes behind on the very latest deploy" for "never stuck on a
+    // loading screen," which is the right trade for an exam-prep app.
+    // Only when there is truly no cached copy yet (first-ever install,
+    // or this exact file was never cached) do we fall back to waiting on
+    // the network directly.
     event.respondWith(
-      fetchWithTimeout(event.request)
-        .then((networkResponse) => {
-          // Cache successful responses only — never cache a 404/500 so a
-          // later real network check isn't shadowed by a bad cached entry.
-          if (networkResponse && networkResponse.status === 200) {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return networkResponse;
-        })
-        // Question data files are fetched with a cache-busting "?_=<time>"
-        // query string (see offline-db.js) so every check is a real trip to
-        // the network/CDN, not a stale cached copy. That means the exact
-        // URL is different every time, so when truly offline (or the
-        // network hung and we timed out) we look up the last successfully
-        // cached copy while ignoring the query string — otherwise this
-        // fallback could never find anything and offline use would break
-        // entirely.
-        .catch(() => caches.match(event.request, { ignoreSearch: true }))
+      caches.match(event.request, { ignoreSearch: isQuestionDataFile }).then((cached) => {
+        const revalidate = fetchWithTimeout(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const clone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
+            return networkResponse;
+          })
+          .catch(() => null);
+
+        if (cached) {
+          // Kick off the background refresh but don't make the page wait
+          // on it — respond with what we already have right now.
+          event.waitUntil(revalidate);
+          return cached;
+        }
+        // Nothing cached yet at all: this is the one case where we do
+        // need to wait for the network (or its timeout) before we have
+        // anything to show.
+        return revalidate.then((res) => res || Response.error());
+      })
     );
     return;
   }
