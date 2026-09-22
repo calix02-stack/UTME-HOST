@@ -8,13 +8,35 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="MyUTME" />
 <meta property="og:site_name" content="MyUTME" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://myutme.com.ng/" />
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@te6s": "WebSite",
+  "@type": "WebSite",
   "name": "MyUTME",
   "alternateName": "JAMB CBT App",
   "url": "https://myutme.com.ng"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "MobileApplication",
+  "name": "MyUTME - JAMB CBT Practice App",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Web, Android, iOS",
+  "description": "Free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions, and get help from an AI Tutor.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "NGN"
+  },
+  "url": "https://myutme.com.ng",
+  "publisher": {
+    "@type": "Organization",
+    "name": "MyUTME"
+  }
 }
 </script>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -6679,23 +6701,27 @@
     .skeleton-shimmer.line{height:12px;margin:14px 15px;border-radius:6px}
     .skeleton-shimmer.line.short{width:45%}
     @keyframes shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
-.myc-hero{background:linear-gradient(160deg,var(--sc,var(--green)) 0%,var(--green-dark) 100%);border-radius:22px;padding:20px 18px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 12px 28px rgba(15,107,63,0.22)}
-.myc-hero .hi{color:rgba(255,255,255,0.7);font-size:12px;margin:0;position:relative;z-index:1}
-.myc-hero .name{color:#fff;font-family:var(--font-serif);margin:2px 0 0;position:relative;z-index:1}
-.myc-subject-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;margin-bottom:6px;-webkit-overflow-scrolling:touch}
-.myc-subject-strip::-webkit-scrollbar{display:none}
-.myc-subject-card{flex:0 0 auto;width:128px;min-height:110px;border-radius:16px;background:var(--card-bg);border:1px solid var(--line);color:var(--ink);padding:12px;position:relative;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .15s;overflow:hidden}
+/* Practice Hub — the old green gradient hero banner has been removed
+   entirely (see renderMyCourses()); only this slim, optional status
+   line remains, in place of what used to be a big colored card. */
+.ph-slim-status{font-size:11.5px;font-weight:700;margin:0 0 10px;padding:8px 10px;border-radius:10px;background:var(--card-bg);border:1px solid var(--line);color:var(--muted)}
+.ph-slim-status.ph-slim-warn{color:var(--danger);border-color:var(--danger)}
+/* Subjects now sit in a compact 2x2 grid (all 4 visible together,
+   no horizontal scrolling and no scrolling to see the set) instead
+   of a wide horizontally-scrolling strip. */
+.myc-subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.myc-subject-card{width:100%;min-height:0;border-radius:14px;background:var(--card-bg);border:1px solid var(--line);color:var(--ink);padding:8px;position:relative;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .15s;overflow:hidden}
 .myc-subject-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--sc,var(--green))}
 .myc-subject-card:active{transform:scale(0.96)}
-.myc-sc-badge{font-family:var(--font-mono);font-size:10px;font-weight:800;background:var(--sc,var(--green));color:#fff;display:inline-block;padding:2px 7px;border-radius:6px;margin:6px 0 22px}
-.myc-sc-name{font-weight:800;font-size:13px;margin:0;color:var(--ink)}
+.myc-sc-badge{font-family:var(--font-mono);font-size:10px;font-weight:800;background:var(--sc,var(--green));color:#fff;display:inline-block;padding:2px 7px;border-radius:6px;margin:4px 0 10px}
+.myc-sc-name{font-weight:800;font-size:12.5px;margin:0;color:var(--ink)}
 .myc-sc-tag{font-size:9px;color:var(--muted);margin:2px 0 0;text-transform:uppercase;letter-spacing:0.04em}
-.myc-subject-card-img{width:136px;padding:8px}
-.myc-sc-cover{width:100%;height:76px;border-radius:10px;background-size:cover;background-position:center;margin-bottom:6px;background-color:var(--bg)}
+.myc-subject-card-img{padding:6px}
+.myc-sc-cover{width:100%;height:46px;border-radius:8px;background-size:cover;background-position:center;margin-bottom:5px;background-color:var(--bg)}
 .myc-sc-cover-fallback{display:flex;align-items:flex-end;padding:6px}
 .myc-sc-cover-fallback .myc-sc-badge{margin:0}
-.myc-sc-arrow{position:absolute;bottom:10px;right:10px;opacity:0.6;color:var(--muted)}
-.myc-add-tile{background:var(--card-bg);border:1.5px dashed var(--line);color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:none}
+.myc-sc-arrow{position:absolute;bottom:8px;right:8px;opacity:0.6;color:var(--muted)}
+.myc-add-tile{background:var(--card-bg);border:1.5px dashed var(--line);color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:none;min-height:88px}
 .myc-sc-cancel{position:absolute;top:6px;right:6px;z-index:2;width:20px;height:20px;border-radius:999px;background:rgba(0,0,0,0.55);color:#fff;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;transition:background .15s,transform .15s}
 .myc-sc-cancel:hover{background:var(--danger)}
 .myc-sc-cancel:active{transform:scale(0.9)}
@@ -6719,9 +6745,12 @@
    single-column layout (not the shared 2-column mode-card-v2 grid used
    elsewhere) so each mode reads as its own clear, spacious row with real
    room to breathe between entries. */
-.ph-mode-list{display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
-.ph-mode-card{display:flex;align-items:center;gap:14px;width:100%;background:var(--card-bg);border:1px solid var(--line);border-radius:18px;padding:16px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.06);transition:transform .15s,box-shadow .15s,border-color .15s;text-align:left}
-.ph-mode-card:hover{border-color:var(--green);box-shadow:0 10px 24px rgba(15,107,63,0.14)}
+.ph-mode-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+/* Colored, not plain-white, rows — each mode card carries its own tint
+   as a soft background + border (set inline per-card) plus a solid
+   colored left edge for a clear pop of color at a glance. */
+.ph-mode-card{display:flex;align-items:center;gap:12px;width:100%;border:1px solid var(--line);border-left:4px solid var(--tint,var(--green));border-radius:14px;padding:12px 14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.05);transition:transform .15s,box-shadow .15s,border-color .15s;text-align:left}
+.ph-mode-card:hover{box-shadow:0 8px 18px rgba(0,0,0,0.1)}
 .ph-mode-card:active{transform:scale(0.98)}
 .ph-mode-icon{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ph-mode-text{display:flex;flex-direction:column;justify-content:center;min-width:0;gap:2px;flex:1}
@@ -6937,7 +6966,22 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
 </style>
 </head>
 <body>
-<div id="root"></div>
+<!-- This app is a JS-rendered single page app, so the two blocks below
+     exist purely for SEO/crawlability: real, keyword-rich text that's
+     present in the raw HTML before any JavaScript runs. The moment the
+     app mounts, render() replaces #root's contents entirely (see
+     "root.innerHTML = html" further down), so real visitors never see
+     this — it's there for Google/Bing and any bot that reads the page
+     before or without executing JS. -->
+<div id="root">
+  <h1>MyUTME – JAMB CBT Practice App for UTME</h1>
+  <p>MyUTME is a free JAMB CBT practice app built for UTME candidates in Nigeria preparing for the JAMB exam. Practice real JAMB CBT-style past questions, take timed mock exams, drill topics subject by subject, and get help anytime from an AI Tutor.</p>
+  <p>Loading MyUTME…</p>
+</div>
+<noscript>
+  <h1>MyUTME – JAMB CBT Practice App for UTME</h1>
+  <p>MyUTME is a free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions from previous years, and drill topics subject by subject — with an AI Tutor available anytime you're stuck. Please enable JavaScript in your browser to use MyUTME.</p>
+</noscript>
 
 <div id="pwa-ios-tip">
     <span>📲 Install: tap <b>Share</b> then <b>"Add to Home Screen"</b></span>
@@ -15348,12 +15392,12 @@ function renderMockRegisterModal() {
     return (
         '<div class="submit-overlay" data-action="mock-reg-cancel">' +
         '<div class="submit-modal" data-action="prevent-close">' +
-        '<p style="font-weight:700;font-size:14px;margin-bottom:8px">Register for Mock Exam</p>' +
+        '<p style="font-weight:700;font-size:14px;margin-bottom:8px">Choose Your Subject</p>' +
         '<p style="font-size:11px;color:var(--muted);margin-bottom:6px">Pick the subject you want to attempt (' + selected.length + '/1)</p>' +
         '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">' + chips + '</div>' +
         '<div style="display:flex;gap:8px">' +
         '<button type="button" class="btn btn-outline" style="flex:1" data-action="mock-reg-cancel">Cancel</button>' +
-        '<button type="button" class="btn btn-gold" style="flex:1" data-action="mock-reg-confirm">Register</button>' +
+        '<button type="button" class="btn btn-gold" style="flex:1" data-action="mock-reg-confirm">Start</button>' +
         '</div>' +
         '</div>' +
         '</div>'
@@ -16526,6 +16570,13 @@ function renderApp() {
         'mock-exam': state.mockFinished || state.mockSubmitted,
     };
     const isExamTaking = EXAM_TAKING_VIEWS.indexOf(state.view) !== -1 && !EXAM_RESULT_SHOWING[state.view];
+    // AI Tutor gets its own minimal, "free app" style bar: just a menu
+    // (3-dash) button that opens chat history (new chat + past chats)
+    // and a small title — no notification bell, no refresh button, no
+    // profile avatar, and no separate in-page header duplicating this.
+    // This, plus hiding the bottom nav below, frees up real space for
+    // the conversation and keeps AI Tutor from feeling oversized.
+    const isAiAssistant = state.view === 'ai-assistant';
 
     let leftContent = '';
 
@@ -16574,6 +16625,12 @@ function renderApp() {
         (isExamTaking
             ? '<div class="topbar-left"><span class="page-name">MyUTME</span></div>' +
               '<div class="topbar-center"></div><div class="topbar-right"></div>'
+            : isAiAssistant
+            ? '<div class="topbar-left">' +
+              '<button class="icon-btn" data-action="ai-toggle-history" aria-label="Chat history">' + svg('menu', 19) + '</button>' +
+              '<span class="page-name" style="margin-left:6px">AI Tutor</span>' +
+              '</div>' +
+              '<div class="topbar-center"></div><div class="topbar-right"></div>'
             : isHome
             ? '<div class="topbar-left">' +
               '<button class="icon-btn topbar-refresh-btn" data-action="app-refresh" aria-label="Refresh">' +
@@ -16593,7 +16650,7 @@ function renderApp() {
         ) +
         '</div>' +
         '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + (PICKER_SCREEN_VIEWS.indexOf(state.view) !== -1 ? ' view-picker' : '') + '"><div class="view-content' + (__consumeViewChangeFlag() ? ' view-enter' : '') + '">' + renderView() + '</div></div>' +
-        (isExamTaking ? '' : renderBottomNav()) +
+        ((isExamTaking || isAiAssistant) ? '' : renderBottomNav()) +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
         (state.viewingImage ? (
             '<div class="ai-history-overlay" style="z-index:200;align-items:center;justify-content:center;padding:20px" data-action="close-image-viewer">' +
@@ -16813,32 +16870,34 @@ const atMax = mySubjectIds.length === 4;
     ];
     let modeGrid = '<div class="ph-mode-list">';
     modes.forEach(function(m) {
+        // Each Practice Mode card now carries its own tint as a real
+        // colored card (soft tinted background + matching left edge),
+        // not just a small colored icon bubble on an otherwise plain
+        // white row.
         modeGrid += (
-            '<button class="ph-mode-card" data-action="set-view" data-view="' + m.view + '">' +
-            '<span class="ph-mode-icon" style="background:' + m.tint + '1A;color:' + m.tint + '">' + svg(m.icon, 22) + '</span>' +
+            '<button class="ph-mode-card" style="--tint:' + m.tint + ';background:' + m.tint + '14;border-color:' + m.tint + '40" data-action="set-view" data-view="' + m.view + '">' +
+            '<span class="ph-mode-icon" style="background:' + m.tint + '26;color:' + m.tint + '">' + svg(m.icon, 22) + '</span>' +
             '<span class="ph-mode-text"><span class="ph-mode-label">' + esc(m.label) + '</span><span class="ph-mode-sub">' + esc(m.sub) + '</span></span>' +
-            '<span class="ph-mode-chevron">' + svg('chevleft', 16).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>' +
+            '<span class="ph-mode-chevron" style="color:' + m.tint + '">' + svg('chevleft', 16).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>' +
             '</button>'
         );
     });
     modeGrid += '</div>';
 
+    // The old green gradient hero (with glow + "Your subjects & practice
+    // modes" title) has been removed entirely — the topbar already shows
+    // "Practice Hub" as the page title, so this was just repeating it
+    // while eating a big chunk of vertical space. Only a slim status
+    // line remains, and only when something actually needs attention.
+    const slimStatus = isOverLimit
+        ? '<p class="ph-slim-status ph-slim-warn">⚠️ ' + mySubjectIds.length + ' subjects enrolled — remove ' + excessCount + ' to get back to 4.</p>'
+        : '';
+
     return (
-        '<div class="myc-hero">' +
-        '<div class="glow3"></div>' +
-        '<p class="hi">Your subjects & practice modes</p>' +
-        '<p class="name" style="font-size:20px">Practice Hub</p>' +
-        '<p style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:4px;position:relative;z-index:1">' +
-        (isOverLimit
-            ? '⚠️ You have ' + mySubjectIds.length + ' subjects enrolled — ' + excessCount + ' too many. Tap "Remove Subject" below until you are back to exactly 4.'
-            : (atMax
-                ? 'English + your 3 electives. You can remove or swap any subject any time.'
-                : 'English + exactly 3 electives. You can remove or swap any subject any time.')) +
-        '</p>' +
-        '</div>' +
-        '<div class="myc-subject-strip">' + subjectCards + addTile + '</div>' +
+        slimStatus +
+        '<div class="myc-subject-grid">' + subjectCards + addTile + '</div>' +
         pickerHtml +
-        '<div class="section-hdr" style="margin-top:22px;margin-bottom:14px"><h2>Practice Modes</h2></div>' +
+        '<div class="section-hdr" style="margin-top:16px;margin-bottom:10px"><h2>Practice Modes</h2></div>' +
         modeGrid
     );
 }
@@ -19174,16 +19233,12 @@ function renderAiAssistant() {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading your chats...</p></div>';
     }
 
+    // The topbar now carries the "AI Tutor" title and the menu button
+    // (new chat + past chats live behind it), so this in-page header is
+    // no longer duplicated here — that reclaims vertical space for the
+    // conversation instead of a second, bigger title block.
     let headerHtml = (
-        '<div class="ai-header">' +
-        '<button class="ai-icon-btn" data-action="ai-toggle-history" aria-label="Chat history">' + svg('history', 17) + '</button>' +
-        '<div class="ai-title-wrap">' +
-        '<p class="ai-title">' + svg('sparkles', 18) + ' AI Tutor <span class="ai-badge">AI</span></p>' +
-        '<p class="ai-sub"><span class="dot"></span> Not a real teacher — always double-check important answers</p>' +
-        '</div>' +
-        '<button class="ai-icon-btn" data-action="ai-new-chat" aria-label="New chat" style="background:var(--green);color:#fff;border-color:var(--green)">' + svg('plus', 18) + '</button>' +
-        '</div>' +
-        (state.aiReturnView ? '<button class="ai-back-to-q" data-action="ai-back-to-question">' + svg('chevleft', 14) + ' Back to your question</button>' : '')
+        state.aiReturnView ? '<button class="ai-back-to-q" data-action="ai-back-to-question">' + svg('chevleft', 14) + ' Back to your question</button>' : ''
     );
 
     let bubbles = '';
@@ -20921,7 +20976,7 @@ function renderMockExamPicker() {
             } else if (st !== 'completed') {
                 actionHtml = exam.source === 'live'
                     ? '<button class="btn btn-gold" data-action="join-live-exam" data-examid="' + exam.id + '" style="padding:8px">Join Exam</button>'
-                    : '<button class="btn btn-gold" data-action="register-mock" data-examid="' + exam.id + '" data-source="admin" style="padding:8px">Register</button>';
+                    : '<button class="btn btn-gold" data-action="register-mock" data-examid="' + exam.id + '" data-source="admin" style="padding:8px">Join Exam</button>';
             } else {
                 actionHtml = '<p style="font-size:11px;color:var(--faint);text-align:center">Ended</p>';
             }
@@ -21175,13 +21230,13 @@ function renderLiveExamLinkConfirm() {
         body = (
             '<p style="font-size:13px;color:var(--muted);margin:14px 0 0">Starts ' + scheduled.toLocaleString() + '. ' +
             (state.authUser
-                ? 'Reserve your spot now, or just come back to this link once it starts.'
+                ? 'Join now, or just come back to this link once it starts.'
                 : 'Keep this link and come back once it starts to join as a guest — nothing to do yet.') +
             '</p>' +
             (state.authUser
                 ? (reg
-                    ? '<p style="font-size:12px;color:var(--green);font-weight:700;margin-top:10px">✅ You\'re already registered</p>'
-                    : '<button class="btn btn-gold" style="width:100%;padding:12px;margin-top:14px" data-action="reserve-live-exam-link" data-examid="' + exam.id + '">Reserve My Spot</button>')
+                    ? '<p style="font-size:12px;color:var(--green);font-weight:700;margin-top:10px">✅ You\'re already in</p>'
+                    : '<button class="btn btn-gold" style="width:100%;padding:12px;margin-top:14px" data-action="reserve-live-exam-link" data-examid="' + exam.id + '">Join Exam</button>')
                 : '')
         );
     } else {
