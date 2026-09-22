@@ -5667,13 +5667,35 @@
     }
     .chat-bubble {
         border-radius: 12px;
-        padding: 8px 12px;
-        font-size: 14px;
+        padding: 10px 14px;
+        font-size: 15px;
         font-weight: 400;
-        line-height: 1.5;
+        line-height: 1.65;
+        letter-spacing: 0.1px;
         position: relative;
         word-wrap: break-word;
         box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+    /* AI/tutor replies get extra breathing room — the goal is text that
+       reads like a spaced-out chat reply (short paragraphs, clear
+       headings, roomy lists), not a dense wall of bold text. */
+    .chat-bubble.ai p, .chat-bubble.admin p {
+        margin: 0 0 10px;
+    }
+    .chat-bubble.ai p:last-child, .chat-bubble.admin p:last-child {
+        margin-bottom: 0;
+    }
+    .chat-bubble.ai .chat-heading, .chat-bubble.admin .chat-heading {
+        display: block;
+        font-weight: 700;
+        font-size: 1em;
+        margin: 12px 0 6px;
+    }
+    .chat-bubble.ai .chat-heading:first-child, .chat-bubble.admin .chat-heading:first-child {
+        margin-top: 0;
+    }
+    .chat-bubble.ai strong, .chat-bubble.admin strong {
+        font-weight: 600;
     }
     .chat-bubble.me {
         background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
@@ -5705,10 +5727,11 @@
         text-align: right;
     }
     .chat-bubble .chat-list {
-        margin: 4px 0;
-        padding-left: 18px;
+        margin: 8px 0;
+        padding-left: 20px;
     }
-    .chat-bubble .chat-list li { margin-bottom: 3px; }
+    .chat-bubble .chat-list li { margin-bottom: 6px; line-height: 1.6; }
+    .chat-bubble .chat-list li:last-child { margin-bottom: 0; }
     .chat-bubble .chat-code {
         background: rgba(0,0,0,0.06);
         border-radius: 8px;
@@ -8794,6 +8817,8 @@ myEnrollments: [],
 myEnrollmentsLoaded: false,
 myEnrollmentsLoading: false,
     myElectives: [], // English + up to 3 elective subject IDs — local/offline, see loadMyElectivesLocal()
+    showElectiveOnboarding: false, // first-run "pick your 3 subjects" popup shown right after signup
+    onboardingElectives: [], // subject IDs picked so far inside that popup (max 3)
     selectedCourseId: null,
     selectedSubjectId: null,
     mycAdding: false,
@@ -10950,6 +10975,14 @@ async function signUp(fullName, username, email, password) {
             state.signupPassword = "";
             state.signupConfirm = "";
             showToast(isActivationSystemOn() ? "Account created! You need to be activated by admin." : "Account created!", "success");
+            // Brand-new account, nothing picked yet — kick off the
+            // "choose your 3 subjects" popup right away instead of leaving
+            // Practice Hub looking empty until the person stumbles onto
+            // the Add Subject tile themselves.
+            if (!state.myElectives || state.myElectives.length === 0) {
+                state.onboardingElectives = [];
+                state.showElectiveOnboarding = true;
+            }
             setupRealtimeNotifications();
             startLastSeenHeartbeat();
             addLog(data.user.id, username, 'login', 'Signed up and logged in');
@@ -11548,6 +11581,11 @@ async function loadLiveExamAttempts() {
 
 async function createLiveExam() {
     if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    // Guard against double-taps / rapid repeat clicks on "Create & Get Join
+    // Code" — the request can take a moment on a slow connection, and
+    // without this guard each extra tap before the first insert finishes
+    // fires its own createLiveExam() call, creating duplicate exams.
+    if (state.creatingLiveExam) return;
     if (state.settingsCache.examCreationEnabled === false && !isAdmin()) {
         showToast('Exam creation is currently turned off by the admin.', 'error');
         return;
@@ -11572,6 +11610,7 @@ async function createLiveExam() {
     const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60000 + 30 * 60000);
 
     let code = generateJoinCode();
+    state.creatingLiveExam = true;
     const { data, error } = await supabase.from('live_exams').insert([{
         created_by: state.authUser.id,
         creator_username: state.profile.name,
@@ -11593,6 +11632,7 @@ async function createLiveExam() {
         results_released: true,
     }]).select().single();
 
+    state.creatingLiveExam = false;
     if (error) { showNetworkAwareError('Error creating exam: ' + error.message, error); return; }
     if (!f.isPublic) {
         state.lastCreatedJoinCode = code;
@@ -15244,6 +15284,58 @@ function downloadAnalyticsSummaryPdf() {
 // ============================================================
 //  RENDER HELPERS FOR MODALS
 // ============================================================
+// ============================================================
+//  FIRST-RUN ELECTIVE ONBOARDING — shown once, right after signup, so a
+//  brand-new account picks its subject combo immediately instead of
+//  landing on an empty Practice Hub. English is compulsory and always
+//  included; the person picks exactly 3 electives here. Everything this
+//  writes to (state.myElectives / saveMyElectivesLocal) is the exact same
+//  data Practice Hub's Add/Remove/Swap already reads and edits, so the 4
+//  subjects chosen here show up there immediately and stay fully
+//  re-editable afterwards.
+// ============================================================
+function renderElectiveOnboardingModal() {
+    if (!state.showElectiveOnboarding) return '';
+    const picked = state.onboardingElectives || [];
+    const available = SUBJECTS.filter(function(s) { return s.id !== 'eng' && s.id !== 'lhm'; });
+    const chips = available.map(function(s) {
+        const isSel = picked.indexOf(s.id) !== -1;
+        const disabled = !isSel && picked.length >= 3;
+        return (
+            '<button type="button" class="myc-picker-opt' + (isSel ? ' active' : '') + '" ' +
+            'data-action="onboarding-toggle-elective" data-subjectid="' + s.id + '" ' +
+            (disabled ? 'disabled style="opacity:.4"' : '') +
+            ' style="display:flex;align-items:center;justify-content:space-between;gap:8px' + (disabled ? ';opacity:.4' : '') + '">' +
+            '<span style="display:flex;align-items:center;gap:8px">' +
+            '<span class="myc-sc-badge" style="position:static;background:' + s.color + '20;color:' + s.color + '">' + esc(s.code) + '</span>' +
+            '<span>' + esc(s.name) + '</span>' +
+            '</span>' +
+            (isSel ? '<span style="font-size:11px;font-weight:800;color:var(--green)">✓ Selected</span>' : '') +
+            '</button>'
+        );
+    }).join('');
+
+    return (
+        '<div class="submit-overlay" data-action="prevent-close">' +
+        '<div class="submit-modal" data-action="prevent-close" style="max-height:85vh;overflow-y:auto">' +
+        '<p style="font-weight:800;font-size:16px;margin-bottom:4px">Choose your subjects</p>' +
+        '<p style="font-size:12px;color:var(--muted);margin-bottom:12px">English is compulsory and already included. Pick exactly 3 more — you can add, remove or swap any of them later in Practice Hub.</p>' +
+        '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--green-light);margin-bottom:10px">' +
+        '<span class="myc-sc-badge" style="position:static;background:var(--green);color:#fff">ENG</span>' +
+        '<span style="font-size:13px;font-weight:700">English Language</span>' +
+        '<span style="margin-left:auto;font-size:11px;color:var(--green);font-weight:700">Compulsory</span>' +
+        '</div>' +
+        '<p style="font-size:11px;color:var(--muted);margin-bottom:6px">' + picked.length + '/3 selected</p>' +
+        '<div class="myc-picker-grid">' + chips + '</div>' +
+        '<button type="button" class="btn btn-green" style="width:100%;margin-top:14px" ' +
+        (picked.length === 3 ? '' : 'disabled') +
+        ' data-action="onboarding-confirm-electives">Continue' + (picked.length === 3 ? '' : ' (' + (3 - picked.length) + ' more to pick)') + '</button>' +
+        '<button type="button" class="btn btn-outline" style="width:100%;margin-top:8px" data-action="onboarding-skip-electives">Skip for now</button>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
 function renderMockRegisterModal() {
     if (!state.showMockRegisterModal) return '';
     const selected = state.mockSelectedSubjects || [];
@@ -15791,17 +15883,15 @@ function renderNow() {
         return;
     }
 
-    if (false) {
-        // The blocking "rolling circle" boot spinner has been removed on
-        // purpose: the app must be usable immediately from local/cached
-        // data regardless of network state (mobile data on/off, poor
-        // signal, or a failed/slow Supabase request). The auth session
-        // check (see checkAuthSession()) now resolves quietly in the
-        // background and simply re-renders once it's done — the person
-        // is treated as logged-out until then, which is a normal,
-        // interactive state rather than a frozen loading screen.
-        return;
-    }
+    // The blocking "rolling circle" boot spinner that used to sit here has
+    // been removed on purpose: the app must be usable immediately from
+    // local/cached data regardless of network state (mobile data on/off,
+    // poor signal, or a failed/slow Supabase request). The auth session
+    // check (see checkAuthSession()) now resolves quietly in the
+    // background and simply re-renders once it's done — the person is
+    // treated as logged-out until then, which is a normal, interactive
+    // state rather than a frozen loading screen that could get stuck open
+    // during a network error.
 
     const SCROLL_PRESERVE_SELECTORS = [
         '.view',
@@ -15933,6 +16023,9 @@ function renderNow() {
     }
     if (state.showMockRegisterModal) {
         html += __modalWrap('mockReg', true, renderMockRegisterModal());
+    }
+    if (state.showElectiveOnboarding) {
+        html += __modalWrap('electiveOnboarding', true, renderElectiveOnboardingModal());
     }
     if (state.showExamAwayModal) {
         html += __modalWrap('examAway', true, renderExamAwayModal());
@@ -18963,8 +19056,11 @@ function formatAiChatText(raw) {
         .replace(/\u0001SUP([^\u0001]+)\u0001/g, '<sup>$1</sup>')
         .replace(/\u0001SUB([^\u0001]+)\u0001/g, '<sub>$1</sub>');
 
-    // 8) Lightweight markdown -> real formatting.
-    text = text.replace(/^\s*#{1,6}\s+(.+)$/gm, '<strong>$1</strong>');
+    // 8) Lightweight markdown -> real formatting. Headers become their own
+    // spaced-out block (not just bold text running into the paragraph
+    // around them) so a reply with multiple headers reads like distinct
+    // sections instead of one dense, heavily-bolded block.
+    text = text.replace(/^\s*#{1,6}\s+(.+)$/gm, '\u0002H\u0002$1\u0002/H\u0002');
     text = text.replace(/\*\*([^\n*]+)\*\*/g, '<strong>$1</strong>');
     text = text.replace(/\*([^\s*][^*]*?)\*/g, '<em>$1</em>');
     text = text.replace(/(^|[^A-Za-z0-9])_([^\s_][^_]*?)_(?![A-Za-z0-9])/g, '$1<em>$2</em>');
@@ -18983,8 +19079,26 @@ function formatAiChatText(raw) {
         return '<pre class="chat-code"><code>' + esc(codeBlocks[i]) + '</code></pre>';
     });
 
-    // 10) Remaining newlines -> line breaks.
-    text = text.replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
+    // 10) Turn the heading placeholders into their own spaced-out block,
+    // then split the remaining text into paragraphs on blank lines (rather
+    // than just <br><br>) so replies get real vertical breathing room
+    // between ideas, the way a normal chat reply reads.
+    text = text.replace(/\u0002H\u0002([\s\S]*?)\u0002\/H\u0002/g, '\n<span class="chat-heading">$1</span>\n');
+    text = text
+        .split(/\n{2,}/)
+        .map(function(block) {
+            block = block.trim();
+            if (!block) return '';
+            // Leave already-block-level pieces (headings, lists) alone;
+            // wrap everything else in a paragraph with single <br>s for
+            // any remaining single line breaks inside it.
+            if (/^<(span class="chat-heading"|ul class="chat-list"|pre class="chat-code")/.test(block)) {
+                return block;
+            }
+            return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
+        })
+        .filter(Boolean)
+        .join('');
 
     return text;
 }
@@ -20950,7 +21064,7 @@ function renderLiveExamCreateWizard() {
         '<button class="cbt-mode-btn' + (f.isPublic ? ' active' : '') + '" style="flex:1" data-action="live-set-public" data-public="true"><span class="icon">🌍</span><span class="label">Anyone</span><span class="desc">Shows in public list</span></button>' +
         '<button class="cbt-mode-btn' + (!f.isPublic ? ' active' : '') + '" style="flex:1" data-action="live-set-public" data-public="false"><span class="icon">🔒</span><span class="label">Code only</span><span class="desc">Private, join code needed</span></button>' +
         '</div>' +
-        '<button class="btn btn-green" data-action="submit-create-live-exam" style="padding:10px">Create & Get Join Code</button>' +
+        '<button class="btn btn-green" data-action="submit-create-live-exam" style="padding:10px" ' + (state.creatingLiveExam ? 'disabled' : '') + '>' + (state.creatingLiveExam ? 'Creating…' : 'Create & Get Join Code') + '</button>' +
         '</div>'
     );
 }
@@ -25516,6 +25630,40 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
+    // ============================================================
+    //  FIRST-RUN ELECTIVE ONBOARDING POPUP
+    // ============================================================
+    if (action === 'onboarding-toggle-elective') {
+        const sid = el.getAttribute('data-subjectid');
+        if (!Array.isArray(state.onboardingElectives)) state.onboardingElectives = [];
+        const idx = state.onboardingElectives.indexOf(sid);
+        if (idx !== -1) {
+            state.onboardingElectives.splice(idx, 1);
+        } else if (state.onboardingElectives.length < 3) {
+            state.onboardingElectives.push(sid);
+        }
+        render();
+        return;
+    }
+    if (action === 'onboarding-confirm-electives') {
+        if (!state.onboardingElectives || state.onboardingElectives.length !== 3) {
+            showToast('Pick exactly 3 subjects to continue.', 'error');
+            return;
+        }
+        state.myElectives = state.onboardingElectives.slice();
+        saveMyElectivesLocal();
+        state.showElectiveOnboarding = false;
+        state.onboardingElectives = [];
+        showToast('🎉 Your subjects are set! You can edit them any time in Practice Hub.', 'success');
+        render();
+        return;
+    }
+    if (action === 'onboarding-skip-electives') {
+        state.showElectiveOnboarding = false;
+        state.onboardingElectives = [];
+        render();
+        return;
+    }
     if (action === 'subj-start-cbt') {
         const sid = el.getAttribute('data-subjectid');
         const s = SUBJECTS.find(function(x) { return x.id === sid; });
@@ -27339,6 +27487,7 @@ document.addEventListener('click', function(e) {
         return;
     }
     if (action === 'submit-create-live-exam') {
+        if (state.creatingLiveExam) return;
         state.liveExamCreateForm.title = document.getElementById('live-title')?.value || '';
         state.liveExamCreateForm.durationHours = parseInt(document.getElementById('live-duration-hours')?.value || 0);
         state.liveExamCreateForm.durationMinutes = parseInt(document.getElementById('live-duration-minutes')?.value || 30);
