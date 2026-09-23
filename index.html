@@ -513,6 +513,20 @@
         overflow-y: visible;
         padding-bottom: 20px;
     }
+    /* Account page: instead of leaving a big dead gap below short content
+       (menu grid ends, then nothing until the bottom nav), this wrapper
+       stretches to fill the whole scrollable area and pins the sign-out
+       + policy-links block to the very bottom via margin-top:auto — the
+       page now occupies the full screen with no scrolling needed. */
+    .profile-fill {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+    }
+    .profile-fill .profile-bottom-pin {
+        margin-top: auto;
+        padding-top: 10px;
+    }
     .view-chat {
         padding: 0 !important;
         overflow: hidden !important;
@@ -6827,13 +6841,12 @@
    was leaving the exam-shell shorter than the actual visible area,
    squeezing the scrollable question area more than necessary. */
 .view-exam { max-height: calc(var(--app-vh, 100vh) - 46px) !important; }
-/* AI Tutor hides the bottom tab bar too (see isAiAssistant in the render
-   loop), so — same reasoning as .view-exam above — it must not have 58px
-   reserved for a bar that isn't there. Without this override the chat
-   page was left with a dead strip of empty space under the input bar
-   instead of the input sitting flush at the true bottom of the screen.
-   Scoped to .view-nonav (not .view-chat) because Support Chat also uses
-   .view-chat but DOES keep the bottom nav, so it still needs the 58px. */
+/* AI Tutor and Support both hide the bottom tab bar (see isFullPageChat in
+   the render loop) for a fullscreen, immersive chat layout — so, same
+   reasoning as .view-exam above, neither must have 58px reserved for a
+   bar that isn't there. Without this override the chat page was left
+   with a dead strip of empty space under the input bar instead of the
+   input sitting flush at the true bottom of the screen. */
 .view-nonav { max-height: calc(var(--app-vh, 100vh) - 46px) !important; }
 .ai-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .ai-header .ai-icon-btn{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--card-bg);border:1px solid var(--line);color:var(--ink);cursor:pointer;flex-shrink:0}
@@ -7415,7 +7428,7 @@ const GOLD = "#E4A93A";
 // generic "AI"/"Assistant" label — and are styled identically to a human
 // admin's replies (see .chat-bubble.ai/.admin), so there's no visual tell
 // between the two, only the name.
-const SUPPORT_BOT_NAME = "Tobi";
+const SUPPORT_BOT_NAME = "Support";
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/GwSJGQCaWbL0Hd4hw6Pu8W";
 const PAYSTACK_PUBLIC_KEY = "pk_live_58e6b5b2ecc81730786fb95ec444a77422a4b2b4";
@@ -8541,7 +8554,16 @@ let state = {
     activateCode: "",
     activateStatus: null,
     isLoading: false,
-    authReady: false,
+    // Was "false", with a full-screen logo/"Loading…" gate shown until the
+    // real Supabase session check finished — that gate (and, before this
+    // change, the blank moment right before it appears) is exactly the
+    // "loading logo" / "flashes like it logged me out" issue reported.
+    // Defaulting to true and rendering immediately, combined with the
+    // optimistic auth hydration at the top of init() below, means a
+    // returning logged-in person sees themselves logged in from the very
+    // first paint — no gate, no flash — while checkAuthSession() still
+    // confirms/corrects it quietly in the background either way.
+    authReady: true,
 
     authUser: null,
     authProfile: null,
@@ -13924,7 +13946,19 @@ async function sendAiMessage(text, questionContext) {
     const msg = (text || '').trim();
     const pendingImage = state.aiPendingImage;
     const pendingDocument = state.aiPendingDocument;
-    if ((!msg && !pendingImage && !pendingDocument) || !state.authUser || state.aiSending) return;
+    if (!state.authUser) {
+        // Guests can open and look around AI Tutor, but actually sending a
+        // message needs an account (chats are saved per-user, and the AI
+        // backend requires a real user id) — prompt instead of silently
+        // doing nothing when they tap send.
+        showToast('Create a free account to chat with AI Tutor.', 'error');
+        state.showSignup = true;
+        state.showLogin = false;
+        syncUrlForAuth('signup');
+        render();
+        return;
+    }
+    if ((!msg && !pendingImage && !pendingDocument) || state.aiSending) return;
     if (blockIfOffline("No internet connection. Please try again.")) return;
     const trialCheck = trialAiRateLimitCheck();
     if (!trialCheck.allowed) {
@@ -14259,8 +14293,26 @@ function generateAiSupportReply(userText, issueKey) {
 // instead of showing a generic "I don't understand" message. The message
 // is wrapped with support context so the model knows this is a support
 // conversation, not a study question.
-async function generateSmartSupportReply(userText) {
-    const context = 'You are MyUTME Support, a friendly help-desk assistant for the JAMB CBT practice app "MyUTME". ' +
+// Support chat kept answering actual JAMB subject questions the same way
+// AI Tutor would (e.g. "what is Newton's third law") instead of staying
+// scoped to account/payment/app issues — because the fallback below asks
+// the same AI backend used by AI Tutor, and it doesn't reliably honor the
+// "support only" instruction in the prompt on its own. Catching the
+// obvious case client-side, before ever calling that backend, is a much
+// more reliable fix than hoping the model stays in scope.
+const SUPPORT_OFF_TOPIC_HINTS = [
+    'solve', 'calculate', 'differentiat', 'integrat', 'simplify', 'factoriz', 'factoris',
+    'equation', 'theorem', 'photosynthesis', 'mitosis', 'velocity', 'balance the equation',
+    'what is the capital', 'who wrote', 'define ', 'explain the', 'physics', 'chemistry',
+    'biology', 'mathematics', 'economics', 'government', 'literature', 'geography',
+    'commerce', 'accounting', 'crs', 'irs', 'english language', 'essay', 'grammar',
+    'syllabus', 'jamb syllabus', 'past question', 'mock question', 'topic question',
+];
+function looksLikeStudyQuestion(text) {
+    const t = (text || '').toLowerCase();
+    return SUPPORT_OFF_TOPIC_HINTS.some(function(k) { return t.indexOf(k) !== -1; });
+}
+async function generateSmartSupportReply(userText) {    const context = 'You are MyUTME Support, a friendly help-desk assistant for the JAMB CBT practice app "MyUTME". ' +
         'Only answer questions about the app itself: account activation, license keys, payments (Paystack or manual transfer), ' +
         'login/password, mock exams, scores, offline mode, or bugs. Be concise (2-4 sentences), practical, and reassuring. ' +
         'If the question is outside what you can resolve, or you are not confident, say so plainly and let the user know a ' +
@@ -14330,6 +14382,16 @@ async function sendSupportMessage(text, issueKey) {
         state.supportMessages = state.supportMessages.filter(function(m) { return !m.isTyping; });
 
         let ai = generateAiSupportReply(msg, issueKey);
+        if (!ai && looksLikeStudyQuestion(msg)) {
+            // A real subject/study question — that's what AI Tutor is
+            // for, not Support. Answer it here would be exactly the
+            // "Support answering like AI chat" mix-up, so redirect
+            // instead of ever calling the AI backend for this one.
+            ai = {
+                text: "That looks like a study question rather than an account/app issue — head over to AI Tutor (bottom nav) for help with that! I'm here for payments, activation, login, and app problems. 🙂",
+                escalate: false,
+            };
+        }
         if (!ai) {
             // Nothing matched our quick rules — ask the real AI backend for a proper answer.
             ai = await generateSmartSupportReply(msg);
@@ -16153,14 +16215,18 @@ function renderNow() {
     // set state.view to the guest entry screen — got overridden right back
     // to the login/signup gate below, which is the bug where a shared exam
     // link opened "Create account" instead of the exam.
-    const GUEST_ALLOWED_VIEWS = ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check'];
+    //
+    // 'home' and 'ai-assistant' are also allowed so a guest can actually
+    // look around the app and try AI Tutor before ever creating an
+    // account — Practice Hub, Mock Arena and Account still gate behind
+    // login, and AI Tutor itself still requires an account the moment a
+    // guest tries to actually send a message (see sendAiMessage()).
+    const GUEST_ALLOWED_VIEWS = ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check', 'home', 'ai-assistant'];
     const onGuestAllowedView = GUEST_ALLOWED_VIEWS.indexOf(state.view) !== -1 || state.isGuestMock;
 
     let html;
     if (state.showFaq) {
         html = renderFaqPage();
-    } else if (!state.authReady) {
-        html = renderAuthChecking();
     } else if (!state.authUser && !onGuestAllowedView) {
         html = renderAuthGate();
     } else {
@@ -16307,25 +16373,11 @@ function renderSplash() {
     );
 }
 
-// Shown only for the brief moment on app open between init() rendering
-// the shell and checkAuthSession() resolving. Without this, a returning
-// logged-in person would flash the "log in / sign up" gate for a beat on
-// every reopen (state.authUser starts null until the session check
-// finishes) — which reads as "it logged me out", and then looks like it
-// "auto logs in" the moment they tap into the login form, purely because
-// the real check happened to land right after. Showing a neutral loading
-// state instead of the auth gate until authReady is true removes that
-// false impression entirely.
-function renderAuthChecking() {
-    return (
-        '<div id="app-shell"><div id="app-inner" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)">' +
-        '<div style="text-align:center">' +
-        '<div style="margin-bottom:14px">' + logoSvg(56) + '</div>' +
-        '<p style="font-size:12px;color:var(--muted)">Loading…</p>' +
-        '</div>' +
-        '</div></div>'
-    );
-}
+// The "Loading…" logo gate that used to live here has been removed
+// entirely — state.authReady now defaults to true and
+// hydrateAuthFromCache() (see init()) restores a returning user's login
+// state before the first paint, so there's nothing left to show a
+// waiting screen for.
 
 function renderUnderConstruction() {
     const settings = state.settingsCache;
@@ -16697,6 +16749,12 @@ function renderApp() {
     // This, plus hiding the bottom nav below, frees up real space for
     // the conversation and keeps AI Tutor from feeling oversized.
     const isAiAssistant = state.view === 'ai-assistant';
+    // Support gets the exact same fullscreen, minimal-topbar treatment as
+    // AI Tutor now (back button + small title, bottom nav hidden) instead
+    // of the old half-and-half layout that kept the bottom nav and a big
+    // duplicate in-page header.
+    const isSupportChat = state.view === 'support';
+    const isFullPageChat = isAiAssistant || isSupportChat;
 
     let leftContent = '';
 
@@ -16747,11 +16805,19 @@ function renderApp() {
               '<div class="topbar-center"></div><div class="topbar-right"></div>'
             : isAiAssistant
             ? '<div class="topbar-left">' +
-              '<button class="icon-btn" data-action="ai-toggle-history" aria-label="Chat history">' + svg('menu', 19) + '</button>' +
-              '<span class="page-name" style="margin-left:6px">MyUTME AI Tutor</span>' +
+              '<button class="icon-btn" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '</button>' +
+              '<span class="page-name" style="margin-left:2px">MyUTME AI Tutor</span>' +
               '</div>' +
               '<div class="topbar-center"></div><div class="topbar-right">' +
-              '<button class="icon-btn" data-action="set-view" data-view="home" aria-label="Leave AI Tutor">' + svg('x', 18) + '</button>' +
+              '<button class="icon-btn" data-action="ai-toggle-history" aria-label="Chat history">' + svg('menu', 19) + '</button>' +
+              '</div>'
+            : isSupportChat
+            ? '<div class="topbar-left">' +
+              '<button class="icon-btn" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '</button>' +
+              '<span class="page-name" style="margin-left:2px">Support</span>' +
+              '</div>' +
+              '<div class="topbar-center"></div><div class="topbar-right">' +
+              (isLoggedIn ? '<button class="icon-btn" data-action="open-support-whatsapp" aria-label="Chat on WhatsApp">' + svg('whatsapp', 18) + '</button>' : '') +
               '</div>'
             : isHome
             ? '<div class="topbar-left">' +
@@ -16771,8 +16837,8 @@ function renderApp() {
               rightContent + '</div>'
         ) +
         '</div>' +
-        '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + (isAiAssistant ? ' view-nonav' : '') + (PICKER_SCREEN_VIEWS.indexOf(state.view) !== -1 ? ' view-picker' : '') + '"><div class="view-content' + (__consumeViewChangeFlag() ? ' view-enter' : '') + '">' + renderView() + '</div></div>' +
-        ((isExamTaking || isAiAssistant) ? '' : renderBottomNav()) +
+        '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + (isFullPageChat ? ' view-nonav' : '') + (PICKER_SCREEN_VIEWS.indexOf(state.view) !== -1 ? ' view-picker' : '') + '"><div class="view-content' + (__consumeViewChangeFlag() ? ' view-enter' : '') + '">' + renderView() + '</div></div>' +
+        ((isExamTaking || isFullPageChat) ? '' : renderBottomNav()) +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
         (state.viewingImage ? (
             '<div class="ai-history-overlay" style="z-index:200;align-items:center;justify-content:center;padding:20px" data-action="close-image-viewer">' +
@@ -19507,10 +19573,10 @@ function renderAiAssistant() {
 function renderSupportChat() {
     if (!state.authUser) {
         return (
-            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<h2 class="title" style="font-size:14px">💬 Support Chat</h2>' +
-            '<p class="sub" style="font-size:11px">Get help with payments and activation</p>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to chat with support.</p></div>'
+            '<div style="padding-top:16px;text-align:center">' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to chat with support.</p>' +
+            '<button class="btn btn-gold" style="margin-top:6px" data-action="show-login">Log in</button>' +
+            '</div></div>'
         );
     }
 
@@ -19518,18 +19584,6 @@ function renderSupportChat() {
         loadSupportMessages();
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading chat...</p></div>';
     }
-
-    // Header
-    let headerHtml = (
-        '<div class="support-header">' +
-        '<div class="avatar-icon">' + logoSvg(36) + '</div>' +
-        '<div class="info">' +
-        '<p class="name">MyUTME Support</p>' +
-        '<p class="status"><span class="dot"></span> Online</p>' +
-        '</div>' +
-        '<button class="mini-btn support-wa-btn" data-action="open-support-whatsapp" title="Chat on WhatsApp" aria-label="Chat on WhatsApp">' + svg('whatsapp', 15) + ' WhatsApp</button>' +
-        '</div>'
-    );
 
     let bubbles = '';
     if (state.supportMessages.length === 0) {
@@ -19591,11 +19645,7 @@ function renderSupportChat() {
 
     return (
         '<div class="ai-chat-page">' +
-        '<div class="support-page-head">' +
-        '<button class="back-link" data-action="set-view" data-view="home" style="margin-bottom:8px">' + svg("chevleft", 14) + ' Home</button>' +
-        headerHtml +
-        quickIssuesHtml +
-        '</div>' +
+        (quickIssuesHtml ? '<div class="support-page-head">' + quickIssuesHtml + '</div>' : '') +
         '<div class="chat-window">' + bubbles + '</div>' +
         '<div class="chat-input-row">' +
         '<textarea class="field ai-chat-textarea" id="support-chat-input" placeholder="Message support..." rows="1"></textarea>' +
@@ -20214,6 +20264,7 @@ function renderProfile() {
     );
     
     return (
+        '<div class="profile-fill">' +
         '<h2 class="title" style="margin-bottom:6px;font-size:14px">Account</h2>' +
         heroHtml +
         activateCardHtml +
@@ -20221,7 +20272,8 @@ function renderProfile() {
         walletHtml +
         menuHtml +
         editHtml +
-        bottomHtml
+        '<div class="profile-bottom-pin">' + bottomHtml + '</div>' +
+        '</div>'
     );
 }
 
@@ -30312,6 +30364,34 @@ document.addEventListener('input', function(e) {
 //  INIT
 // ============================================================
 async function init() {
+    // Optimistic auth hydration — if this device was logged in before
+    // (storage.get('wasEverLoggedIn')) and we still have their cached
+    // profile, restore it into state immediately, synchronously, before
+    // the very first render. That means a returning logged-in person's
+    // first paint already shows them logged in — no loading logo, no
+    // "Create account" flash — while checkAuthSession() (further down)
+    // still confirms the real session with Supabase in the background
+    // and quietly corrects state if the cache was stale (e.g. the
+    // session actually expired, or they signed out elsewhere).
+    (function hydrateAuthFromCache() {
+        if (storage.get('wasEverLoggedIn') !== 'true') return;
+        try {
+            const cachedProfileRaw = storage.get('profile');
+            if (!cachedProfileRaw) return;
+            const cachedProfile = JSON.parse(cachedProfileRaw);
+            if (!cachedProfile || !cachedProfile.id) return;
+            state.profile = Object.assign({}, state.profile, cachedProfile);
+            // Minimal stub — just enough for the many "is someone logged
+            // in" / "whose id is this" checks around the app. The real,
+            // full Supabase user object still lands shortly after from
+            // checkAuthSession() and replaces this.
+            state.authUser = { id: cachedProfile.id, email: cachedProfile.email || '' };
+        } catch (e) {
+            // Bad/corrupted cache — fall through and let the normal,
+            // network-based auth check figure it out as usual.
+        }
+    })();
+
     // Reflect a real, direct URL (e.g. someone opening myutme.com.ng/ai-tutor
     // or a search result for /account) into initial app state — only for
     // the handful of routed sections/auth screens; every other path is
@@ -30362,16 +30442,14 @@ async function init() {
         checkActivationAutoEnable();
         render();
     });
-    // Failsafe: checkAuthSession() has its own internal timeouts/retries,
-    // but if the device's network is bad enough that even those stall
-    // (e.g. requests that never resolve or reject), this guarantees the
-    // app still becomes usable quickly instead of sitting on the auth
-    // spinner forever. Whichever finishes first — the real check or this
-    // failsafe — flips state.authReady and re-renders. A poor connection
-    // that resolves the real check later than this still gets its result
-    // painted correctly — see the render() calls inside checkAuthSession()
-    // itself, which fire whenever it actually finishes, even after this
-    // failsafe has already opened the app.
+    // The app itself no longer waits on any of this — state.authReady now
+    // defaults to true and the app is already visible/interactive from
+    // the very first paint (see hydrateAuthFromCache() above and the
+    // authReady default). This is just a background safety net: if
+    // checkAuthSession() itself somehow hangs (e.g. a request that never
+    // resolves or rejects on a very bad connection), this guarantees it
+    // gets force-finished within 5s rather than silently hanging forever
+    // in the background.
     await Promise.race([
         checkAuthSession(),
         new Promise(function(resolve) {
@@ -30382,7 +30460,7 @@ async function init() {
                     render();
                 }
                 resolve();
-            }, 8000);
+            }, 5000);
         })
     ]);
     // Restore session snapshot after auth is ready
