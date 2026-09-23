@@ -92,6 +92,7 @@
     --faint: #8A9990;
     --line: #E7EAE8;
     --bg: #FAFAF9;
+    --toggle-off: rgba(19,41,29,0.18);
     --font-serif: Georgia, 'Times New Roman', Cambria, serif;
     --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -125,6 +126,7 @@
         --faint: #6b7b70;
         --line: #2d3d35;
         --card-bg: #16213e;
+        --toggle-off: rgba(255,255,255,0.18);
         --shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
         --drawer-bg: #0f0f1f;
         --drawer-text: #e8e8e8;
@@ -563,12 +565,12 @@
 
     h2.title {
         font-family: var(--font-serif);
-        font-size: 20px;
+        font-size: 16px;
         margin: 0 0 2px;
         color: var(--ink);
     }
     p.sub {
-        font-size: 13px;
+        font-size: 11.5px;
         color: var(--muted);
         margin: 0 0 14px;
     }
@@ -2716,12 +2718,20 @@
         position: relative;
         width: 40px;
         height: 20px;
-        background: rgba(255, 255, 255, 0.2);
+        /* Was translucent white — invisible on the light card backgrounds
+           this is used on all over the app (Account, Study Planner, admin
+           toggles). --toggle-off is theme-aware so the track is always
+           visible against whatever surface it sits on. */
+        background: var(--toggle-off);
         border-radius: 999px;
         cursor: pointer;
         transition: background 0.3s;
         flex-shrink: 0;
     }
+    /* The drawer's own toggle always sits on the dark green drawer
+       background regardless of light/dark mode, so it keeps the
+       original translucent-white track rather than the theme-aware one. */
+    .drawer-theme-toggle .toggle-switch { background: rgba(255,255,255,0.2); }
     .toggle-switch.active { background: var(--gold); }
     .toggle-switch .slider {
         position: absolute;
@@ -3639,44 +3649,44 @@
     .activate-feature-card {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 14px 16px;
+        gap: 10px;
+        padding: 8px 12px;
         background: var(--card-bg);
         border: 1.5px solid var(--green);
         border-radius: 999px;
         cursor: pointer;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
     }
     .activate-feature-card .afc-icon {
         flex-shrink: 0;
-        width: 46px;
-        height: 46px;
-        border-radius: 14px;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
         background: var(--green);
         display: flex;
         align-items: center;
         justify-content: center;
         position: relative;
     }
-    .activate-feature-card .afc-icon svg { width: 24px; height: 24px; stroke: #fff; }
+    .activate-feature-card .afc-icon svg { width: 18px; height: 18px; stroke: #fff; }
     .activate-feature-card .afc-badge {
         position: absolute;
         top: -5px;
         right: -5px;
-        width: 18px;
-        height: 18px;
+        width: 15px;
+        height: 15px;
         border-radius: 999px;
         background: #E2543A;
         display: flex;
         align-items: center;
         justify-content: center;
         border: 2px solid var(--card-bg);
-        font-size: 10px;
+        font-size: 9px;
     }
     .activate-feature-card .afc-title {
         flex: 1;
         font-family: var(--font-sans);
-        font-size: 19px;
+        font-size: 14px;
         font-weight: 800;
         color: var(--ink);
     }
@@ -3686,8 +3696,8 @@
         color: var(--green);
         border: none;
         border-radius: 999px;
-        padding: 9px 16px;
-        font-size: 13px;
+        padding: 7px 13px;
+        font-size: 11.5px;
         font-weight: 700;
         display: flex;
         align-items: center;
@@ -3717,30 +3727,30 @@
     .connect-social-row {
         display: flex;
         justify-content: space-between;
-        gap: 8px;
-        margin: 10px 0 18px;
+        gap: 6px;
+        margin: 4px 0 8px;
     }
     .connect-social-item {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
         flex: 1;
         background: none;
         border: none;
         cursor: pointer;
     }
     .connect-social-item .csi-icon {
-        width: 52px;
-        height: 52px;
-        border-radius: 16px;
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
-    .connect-social-item .csi-icon svg { width: 24px; height: 24px; }
+    .connect-social-item .csi-icon svg { width: 17px; height: 17px; }
     .connect-social-item .csi-label {
-        font-size: 11px;
+        font-size: 9px;
         font-weight: 700;
         color: var(--muted);
     }
@@ -6189,9 +6199,9 @@
         position: relative;
         overflow: hidden;
         background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
-        border-radius: 20px;
-        padding: 22px 18px;
-        margin-bottom: 14px;
+        border-radius: 16px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
         box-shadow: 0 10px 30px rgba(15, 107, 63, 0.25);
     }
     .acct-hero .glow2 {
@@ -6206,23 +6216,23 @@
     .acct-hero-row {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 10px;
         position: relative;
         z-index: 1;
     }
     .acct-avatar-wrap {
         position: relative;
-        width: 68px;
-        height: 68px;
+        width: 48px;
+        height: 48px;
         flex-shrink: 0;
     }
     .acct-avatar-wrap img,
     .acct-avatar-wrap .acct-avatar-fallback {
-        width: 68px;
-        height: 68px;
+        width: 48px;
+        height: 48px;
         border-radius: 999px;
         object-fit: cover;
-        border: 3px solid rgba(255,255,255,0.35);
+        border: 2px solid rgba(255,255,255,0.35);
     }
     .acct-avatar-fallback {
         display: flex;
@@ -6231,20 +6241,20 @@
         background: rgba(255,255,255,0.15);
         color: #fff;
         font-family: var(--font-serif);
-        font-size: 26px;
+        font-size: 19px;
     }
     .acct-avatar-edit {
         position: absolute;
         bottom: -2px;
         right: -2px;
-        width: 24px;
-        height: 24px;
+        width: 19px;
+        height: 19px;
         border-radius: 999px;
         background: var(--gold);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 11px;
+        font-size: 9px;
         border: 2px solid var(--green);
         cursor: pointer;
         color: #3A2A0A;
@@ -6254,18 +6264,18 @@
     .acct-hero-name {
         color: #fff;
         font-family: var(--font-serif);
-        font-size: 19px;
+        font-size: 15px;
         margin: 0;
         line-height: 1.2;
     }
     .acct-hero-user {
         color: rgba(255,255,255,0.75);
-        font-size: 12px;
-        margin: 2px 0 0;
+        font-size: 10.5px;
+        margin: 1px 0 0;
     }
     .acct-hero-email {
         color: rgba(255,255,255,0.6);
-        font-size: 11px;
+        font-size: 9.5px;
         margin: 1px 0 0;
         word-break: break-all;
     }
@@ -6273,10 +6283,10 @@
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        margin-top: 8px;
-        padding: 3px 11px;
+        margin-top: 4px;
+        padding: 2px 9px;
         border-radius: 999px;
-        font-size: 10px;
+        font-size: 9px;
         font-weight: 700;
     }
     .acct-status-pill.on {
@@ -6345,19 +6355,19 @@
 .wallet-row .wr-topup:hover { background: var(--green); color: #fff; }
 
     .acct-menu-grid {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 8px;
-        margin-bottom: 14px;
+        margin-bottom: 10px;
     }
     .acct-menu-item {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
         background: var(--card-bg);
         border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 12px 14px;
+        border-radius: 12px;
+        padding: 9px 10px;
         cursor: pointer;
         transition: border-color .15s, transform .15s, box-shadow .2s;
         box-shadow: 0 2px 8px rgba(19,41,29,0.04);
@@ -6375,37 +6385,39 @@
         .acct-menu-item:hover .amii-chevron { transform: translateX(2px); color: var(--green); }
     }
     .acct-menu-item .amii-chevron {
-        color: var(--faint);
-        flex-shrink: 0;
-        display: flex;
-        transition: transform .2s ease, color .2s ease;
+        display: none;
     }
     .acct-menu-item .amicon {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 18px;
+        font-size: 14px;
         line-height: 1;
     }
-    .acct-menu-item .amicon svg { width: 20px; height: 20px; }
+    .acct-menu-item .amicon svg { width: 16px; height: 16px; }
     .acct-menu-item .amii-text {
         flex: 1;
         min-width: 0;
     }
     .acct-menu-item .amii-title {
-        font-size: 13px;
+        font-size: 11.5px;
         font-weight: 700;
         color: var(--ink);
         margin: 0;
     }
     .acct-menu-item .amii-sub {
-        font-size: 10px;
+        font-size: 9px;
         color: var(--muted);
         margin: 1px 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
     }
     .acct-menu-item .amii-badge {
         background: var(--gold);
@@ -6656,11 +6668,11 @@
         background: var(--card-bg);
         border: 1px solid var(--line);
         border-radius: 10px;
-        padding: 10px 14px;
-        margin-bottom: 10px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
     }
     .toggle-row .toggle-label {
-        font-size: 13px;
+        font-size: 11.5px;
         font-weight: 600;
         color: var(--ink);
     }
@@ -16590,7 +16602,7 @@ function renderFaqImageUploadModal() {
         '<div class="faq-img-upload-modal" data-action="prevent-close">' +
         '<h3 style="font-family:var(--font-serif);margin:0 0 4px;font-size:16px;color:var(--ink)">' + svg('image', 16) + ' ' +
         esc(feature ? feature.title : 'Feature image') + '</h3>' +
-        '<p class="sub" style="font-size:12px;margin:0 0 4px">Upload a screenshot or image for this feature.</p>' +
+        '<p class="sub" style="font-size:11px;margin:0 0 4px">Upload a screenshot or image for this feature.</p>' +
         '<div class="faq-img-upload-preview">' +
         (previewUrl ? '<img src="' + esc(previewUrl) + '" alt="Preview" />' : svg('image', 34)) +
         '</div>' +
@@ -16611,7 +16623,7 @@ function renderFaqImageUploadModal() {
 // except Home. Home keeps its own colored brand header separately.
 const PAGE_TITLES = {
     'mysubjects': 'Practice Hub',
-    'ai-assistant': 'AI Tutor',
+    'ai-assistant': 'MyUTME AI Tutor',
     'mockexam': 'Mock Arena',
     'profile': 'Account',
     'profile-edit': 'Edit Profile',
@@ -16736,7 +16748,7 @@ function renderApp() {
             : isAiAssistant
             ? '<div class="topbar-left">' +
               '<button class="icon-btn" data-action="ai-toggle-history" aria-label="Chat history">' + svg('menu', 19) + '</button>' +
-              '<span class="page-name" style="margin-left:6px">AI Tutor</span>' +
+              '<span class="page-name" style="margin-left:6px">MyUTME AI Tutor</span>' +
               '</div>' +
               '<div class="topbar-center"></div><div class="topbar-right">' +
               '<button class="icon-btn" data-action="set-view" data-view="home" aria-label="Leave AI Tutor">' + svg('x', 18) + '</button>' +
@@ -17069,7 +17081,7 @@ function renderLearningHub() {
     });
     return (
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">My Learning</h2>' +
-        '<p class="sub" style="font-size:12px;margin-bottom:12px">Practice tools, study material, and your results</p>' +
+        '<p class="sub" style="font-size:11px;margin-bottom:12px">Practice tools, study material, and your results</p>' +
         '<div class="acct-menu-grid">' + cards + '</div>'
     );
 }
@@ -17214,7 +17226,7 @@ function renderAllCourses() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">All Courses</h2>' +
-        '<p class="sub" style="font-size:12px;margin-bottom:14px">Browse every subject course available</p>' +
+        '<p class="sub" style="font-size:11px;margin-bottom:14px">Browse every subject course available</p>' +
         rows
     );
 }
@@ -18611,7 +18623,7 @@ async function shareDocFile() {
 function renderPrivacyPolicy() {
     return (
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-        '<h2 class="title" style="font-size:18px">Privacy Policy</h2>' +
+        '<h2 class="title" style="font-size:14px">Privacy Policy</h2>' +
         '<p class="sub" style="font-size:11px">Last updated: August 2026</p>' +
         '<div class="card" style="font-size:12px;line-height:1.6">' +
         '<p style="margin-bottom:10px"><b>What we collect:</b> your username, email address, and exam performance data (scores, answers, weak questions) when you create an account and use the app.</p>' +
@@ -18627,7 +18639,7 @@ function renderPrivacyPolicy() {
 function renderTermsOfService() {
     return (
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-        '<h2 class="title" style="font-size:18px">Terms of Service</h2>' +
+        '<h2 class="title" style="font-size:14px">Terms of Service</h2>' +
         '<p class="sub" style="font-size:11px">Last updated: August 2026</p>' +
         '<div class="card" style="font-size:12px;line-height:1.6">' +
         '<p style="margin-bottom:10px"><b>Acceptance:</b> by using MyUTME, you agree to these terms. If you don\'t agree, please stop using the app.</p>' +
@@ -18839,7 +18851,7 @@ function renderReviseModeSubjects() {
     return (
         '<button class="back-link" data-action="revise-back-to-modes">' + svg("chevleft", 14) + ' All modes</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(meta.label) + '</h2>' +
-        '<p class="sub" style="font-size:12px">Choose a subject</p>' +
+        '<p class="sub" style="font-size:11px">Choose a subject</p>' +
         renderReviseFilterTabs() +
         cards
     );
@@ -18949,7 +18961,7 @@ function renderReviseModeQuestions() {
     return (
         '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subjName) + '</h2>' +
-        '<p class="sub" style="font-size:12px">' + esc(meta.label) + ' · ' + total + ' missed question' + (total === 1 ? '' : 's') + '</p>' +
+        '<p class="sub" style="font-size:11px">' + esc(meta.label) + ' · ' + total + ' missed question' + (total === 1 ? '' : 's') + '</p>' +
         
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
         '<span style="font-size:13px;font-weight:600">Question ' + (state.reviseIndex + 1) + ' of ' + total + '</span>' +
@@ -19052,7 +19064,7 @@ function renderFlashcards() {
         '<button class="back-link" data-action="flashcards-back-to-subjects">' + svg("chevleft", 14) + ' Change subject</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subj ? subj.name : 'Flashcards') +
         '</h2>' +
-        '<p class="sub" style="font-size:12px">Card ' + (state.flashcardIndex + 1) + ' of ' + total +
+        '<p class="sub" style="font-size:11px">Card ' + (state.flashcardIndex + 1) + ' of ' + total +
         ' &nbsp;·&nbsp; 👍 ' + state.flashcardKnew + ' &nbsp; 👎 ' + state.flashcardDidntKnow + '</p>' +
         '<div class="flashcard-progress-track"><div class="flashcard-progress-fill" style="width:' + pct + '%"></div></div>' +
 
@@ -19124,7 +19136,7 @@ function renderFlashcardsDone() {
     const pct = total > 0 ? Math.round((state.flashcardKnew / total) * 100) : 0;
     return (
         '<h2 class="title">Deck Complete 🎉</h2>' +
-        '<p class="sub" style="font-size:12px">' + esc(subj ? subj.name : '') + ' · ' + total + ' card' + (total === 1 ? '' : 's') + '</p>' +
+        '<p class="sub" style="font-size:11px">' + esc(subj ? subj.name : '') + ' · ' + total + ' card' + (total === 1 ? '' : 's') + '</p>' +
         '<div class="card" style="text-align:center;padding:20px;margin-bottom:12px">' +
         '<p style="font-family:var(--font-mono);font-size:36px;margin:0;color:' + GREEN + '">' + state.flashcardKnew +
         ' / ' + total + '</p>' +
@@ -19333,8 +19345,8 @@ function groupAiSessionsByDay(sessions) {
 function renderAiAssistant() {
     if (!state.authUser) {
         return (
-            '<h2 class="title" style="font-size:18px">✨ AI Tutor</h2>' +
-            '<p class="sub" style="font-size:12px">Ask questions, get real explanations</p>' +
+            '<h2 class="title" style="font-size:14px">✨ MyUTME AI Tutor</h2>' +
+            '<p class="sub" style="font-size:11px">Ask questions, get real explanations</p>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to use the AI Tutor.</p></div>'
         );
     }
@@ -19496,8 +19508,8 @@ function renderSupportChat() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<h2 class="title" style="font-size:18px">💬 Support Chat</h2>' +
-            '<p class="sub" style="font-size:12px">Get help with payments and activation</p>' +
+            '<h2 class="title" style="font-size:14px">💬 Support Chat</h2>' +
+            '<p class="sub" style="font-size:11px">Get help with payments and activation</p>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to chat with support.</p></div>'
         );
     }
@@ -19676,8 +19688,8 @@ function renderHistory() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<h2 class="title" style="font-size:18px">📊 Result Analysis</h2>' +
-            '<p class="sub" style="font-size:12px">View all your exam results and performance</p>' +
+            '<h2 class="title" style="font-size:14px">📊 Result Analysis</h2>' +
+            '<p class="sub" style="font-size:11px">View all your exam results and performance</p>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view your results.</p></div>'
         );
     }
@@ -19712,8 +19724,8 @@ function renderHistory() {
     if (filtered.length === 0) {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<h2 class="title" style="font-size:18px">📊 Result Analysis</h2>' +
-            '<p class="sub" style="font-size:12px">View all your exam results and performance</p>' +
+            '<h2 class="title" style="font-size:14px">📊 Result Analysis</h2>' +
+            '<p class="sub" style="font-size:11px">View all your exam results and performance</p>' +
             filterHtml +
             '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No results yet for this filter. Complete an exam to see it here.</p></div>'
         );
@@ -19746,8 +19758,8 @@ function renderHistory() {
 
     let html = (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<h2 class="title" style="font-size:18px">📊 Result Analysis</h2>' +
-        '<p class="sub" style="font-size:12px">View all your exam results and performance</p>' +
+        '<h2 class="title" style="font-size:14px">📊 Result Analysis</h2>' +
+        '<p class="sub" style="font-size:11px">View all your exam results and performance</p>' +
         statsHtml +
         '<button class="btn btn-green" style="margin-bottom:8px" data-action="set-view" data-view="analytics">' + svg('chart', 14) + ' Open Personal Analytics Dashboard</button>' +
         filterHtml
@@ -19850,7 +19862,7 @@ function renderAnalyticsDashboard() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>' +
-            '<h2 class="title" style="font-size:18px">📈 Personal Analytics</h2>' +
+            '<h2 class="title" style="font-size:14px">📈 Personal Analytics</h2>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view your analytics.</p></div>'
         );
     }
@@ -19866,7 +19878,7 @@ function renderAnalyticsDashboard() {
 
     const entries = (state.historyEntries || []).slice();
     const backBtn = '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>';
-    const header = '<h2 class="title" style="font-size:18px">📈 Personal Analytics</h2><p class="sub" style="font-size:12px">A deeper look at your strengths, weaknesses, and pace</p>';
+    const header = '<h2 class="title" style="font-size:14px">📈 Personal Analytics</h2><p class="sub" style="font-size:11px">A deeper look at your strengths, weaknesses, and pace</p>';
 
     if (entries.length === 0) {
         return (
@@ -20022,7 +20034,7 @@ function renderProfile() {
     // Guest view
     if (!isLoggedIn) {
         return (
-            '<h2 class="title" style="margin-bottom:12px;font-size:18px">Account</h2>' +
+            '<h2 class="title" style="margin-bottom:6px;font-size:14px">Account</h2>' +
             '<div class="acct-hero" style="text-align:center;padding:28px 18px">' +
             '<div class="glow2"></div>' +
             '<div class="acct-hero-row" style="justify-content:center">' +
@@ -20194,15 +20206,15 @@ function renderProfile() {
     
     // Bottom actions
     let bottomHtml = (
-        '<button class="btn btn-outline" style="padding:10px;margin-top:4px" data-action="sign-out">Sign out</button>' +
-        '<div style="display:flex;gap:10px;justify-content:center;margin-top:12px">' +
+        '<button class="btn btn-outline" style="padding:8px;margin-top:2px;font-size:12px" data-action="sign-out">Sign out</button>' +
+        '<div style="display:flex;gap:10px;justify-content:center;margin-top:8px">' +
         '<a href="https://myutme.com.ng/privacy.html" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--faint);text-decoration:underline">Privacy Policy</a>' +
         '<a href="https://myutme.com.ng/terms.html" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--faint);text-decoration:underline">Terms of Service</a>' +
         '</div>'
     );
     
     return (
-        '<h2 class="title" style="margin-bottom:12px;font-size:18px">Account</h2>' +
+        '<h2 class="title" style="margin-bottom:6px;font-size:14px">Account</h2>' +
         heroHtml +
         activateCardHtml +
         socialHtml +
@@ -20236,7 +20248,7 @@ function renderAvatarUploadModal() {
         '<div class="avatar-upload-overlay" data-action="cancel-avatar-upload">' +
         '<div class="avatar-upload-modal" data-action="prevent-close">' +
         '<h3 style="font-family:var(--font-serif);margin:0 0 4px;font-size:18px;color:var(--ink)">📸 Profile Photo</h3>' +
-        '<p class="sub" style="font-size:12px">Choose a photo to use as your avatar</p>' +
+        '<p class="sub" style="font-size:11px">Choose a photo to use as your avatar</p>' +
         previewHtml +
         '<input type="file" id="avatar-file-input" accept="image/*" style="display:none" />' +
         '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-bottom:8px" data-action="choose-avatar-photo">Choose Photo</button>' +
@@ -20263,8 +20275,8 @@ function renderProfileEdit() {
 
     return (
         '<button class="back-link" data-action="cancel-profile-edit">' + svg("chevleft", 14) + ' Account</button>' +
-        '<h2 class="title" style="font-size:18px">Edit Profile</h2>' +
-        '<p class="sub" style="font-size:12px">Update your photo, name and username</p>' +
+        '<h2 class="title" style="font-size:14px">Edit Profile</h2>' +
+        '<p class="sub" style="font-size:11px">Update your photo, name and username</p>' +
 
         '<div style="display:flex;flex-direction:column;align-items:center;margin:14px 0 20px">' +
         '<div style="position:relative;width:92px;height:92px">' +
@@ -20376,7 +20388,7 @@ function renderFundWalletModal() {
         '<div class="flag-overlay" data-action="close-fund-wallet">' +
         '<div class="flag-modal" data-action="prevent-close">' +
         '<h3 style="font-family:var(--font-serif);margin:0 0 2px;font-size:18px;color:var(--ink)">💳 Fund Wallet</h3>' +
-        '<p class="sub" style="font-size:12px">Enter amount to add to your wallet</p>' +
+        '<p class="sub" style="font-size:11px">Enter amount to add to your wallet</p>' +
         '<label class="field-label">Amount (₦)</label>' +
         '<input class="field" id="fund-wallet-amount-input" type="number" placeholder="e.g. 2000" value="' + esc(amount) + '" style="margin-bottom:8px;font-size:16px;font-weight:700" />' +
         '<div class="fund-quick-btns">' + quickBtns + '</div>' +
@@ -20394,8 +20406,8 @@ function renderTransactionHistory() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-            '<h2 class="title" style="font-size:18px">💳 Transaction History</h2>' +
-            '<p class="sub" style="font-size:12px">View your wallet funding and purchases</p>' +
+            '<h2 class="title" style="font-size:14px">💳 Transaction History</h2>' +
+            '<p class="sub" style="font-size:11px">View your wallet funding and purchases</p>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view transactions.</p></div>'
         );
     }
@@ -20434,8 +20446,8 @@ function renderTransactionHistory() {
     
     return (
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-        '<h2 class="title" style="font-size:18px">💳 Transaction History</h2>' +
-        '<p class="sub" style="font-size:12px">Wallet balance: <strong style="color:var(--green)">₦' + balance.toLocaleString() + '</strong></p>' +
+        '<h2 class="title" style="font-size:14px">💳 Transaction History</h2>' +
+        '<p class="sub" style="font-size:11px">Wallet balance: <strong style="color:var(--green)">₦' + balance.toLocaleString() + '</strong></p>' +
         rows
     );
 }
@@ -20447,8 +20459,8 @@ function renderStudyReminderPage() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-            '<h2 class="title" style="font-size:18px">⏰ Study Planner</h2>' +
-            '<p class="sub" style="font-size:12px">Reminders and everything to keep you on track</p>' +
+            '<h2 class="title" style="font-size:14px">⏰ Study Planner</h2>' +
+            '<p class="sub" style="font-size:11px">Reminders and everything to keep you on track</p>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to use the Study Planner.</p></div>'
         );
     }
@@ -20494,8 +20506,8 @@ function renderStudyReminderPage() {
     
     return (
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-        '<h2 class="title" style="font-size:18px">⏰ Study Planner</h2>' +
-        '<p class="sub" style="font-size:12px">Your schedule, and a nudge worded exactly how you like it.</p>' +
+        '<h2 class="title" style="font-size:14px">⏰ Study Planner</h2>' +
+        '<p class="sub" style="font-size:11px">Your schedule, and a nudge worded exactly how you like it.</p>' +
         '<div class="card">' +
         toggleHtml +
         '<p class="section-label" style="margin-top:4px">Time</p>' +
@@ -21253,7 +21265,7 @@ function renderGuestResultCheck() {
         return (
             '<div class="card" style="text-align:center;padding:24px">' +
             '<p style="font-size:40px;margin:0 0 12px">⚠️</p>' +
-            '<h2 class="title" style="font-size:18px">Result Not Found</h2>' +
+            '<h2 class="title" style="font-size:14px">Result Not Found</h2>' +
             '<p style="font-size:13px;color:var(--muted);margin:0">' + esc(state.guestResultCheckError) + '</p>' +
             '</div>'
         );
@@ -21265,7 +21277,7 @@ function renderGuestResultCheck() {
         return (
             '<div class="card" style="text-align:center;padding:24px">' +
             '<p style="font-size:40px;margin:0 0 12px">⏳</p>' +
-            '<h2 class="title" style="font-size:18px">Results Not Released Yet</h2>' +
+            '<h2 class="title" style="font-size:14px">Results Not Released Yet</h2>' +
             '<p style="font-size:13px;color:var(--muted);margin:0 0 14px">Hi ' + esc(d.guestName) + ', your score for "' + esc(d.examTitle) + '" is saved and waiting for the admin to release results.</p>' +
             '<div style="padding:12px;background:var(--bg);border-radius:10px;text-align:left">' +
             '<p style="font-size:11px;font-weight:700;margin:0 0 6px">Keep this link to check back later:</p>' +
@@ -21316,7 +21328,7 @@ function renderLiveExamLinkConfirm() {
         return (
             '<div class="card" style="text-align:center;padding:24px">' +
             '<p style="font-size:40px;margin:0 0 12px">⚠️</p>' +
-            '<h2 class="title" style="font-size:18px">Exam Not Found</h2>' +
+            '<h2 class="title" style="font-size:14px">Exam Not Found</h2>' +
             '<p style="font-size:13px;color:var(--muted);margin:0">This link may be invalid or the exam was deleted.</p>' +
             '</div>'
         );
@@ -21366,8 +21378,8 @@ function renderLiveExamLinkConfirm() {
     return (
         '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
         '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
-        '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam.title) + '</h2>' +
-        '<p class="sub" style="font-size:12px;margin-bottom:2px">' + esc(subjNames) + ' · ' + (exam.num_questions || '-') + ' questions' + (subjIds.length > 1 ? '/subject' : '') + ' · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>' +
+        '<h2 class="title" style="font-size:14px;margin-bottom:4px">' + esc(exam.title) + '</h2>' +
+        '<p class="sub" style="font-size:11px;margin-bottom:2px">' + esc(subjNames) + ' · ' + (exam.num_questions || '-') + ' questions' + (subjIds.length > 1 ? '/subject' : '') + ' · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>' +
         '<p style="font-size:9px;font-weight:800;letter-spacing:0.04em;color:' + (st === 'ongoing' ? 'var(--green)' : st === 'upcoming' ? 'var(--muted)' : 'var(--faint)') + '">' +
         (st === 'ongoing' ? '● LIVE NOW' : st === 'upcoming' ? '📅 UPCOMING' : '🔒 ENDED') + '</p>' +
         body +
@@ -21389,8 +21401,8 @@ function renderExamLinkGuest() {
         return (
             '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
             '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
-            '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
-            '<p class="sub" style="font-size:12px;margin-bottom:2px">' + (subj ? esc(subj.name) : '') + '</p>' +
+            '<h2 class="title" style="font-size:14px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
+            '<p class="sub" style="font-size:11px;margin-bottom:2px">' + (subj ? esc(subj.name) : '') + '</p>' +
             '<p style="font-size:12px;color:var(--muted);margin-top:14px">Opening your exam…</p>' +
             '</div>'
         );
@@ -21402,8 +21414,8 @@ function renderExamLinkGuest() {
     return (
         '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
         '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
-        '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
-        '<p class="sub" style="font-size:12px;margin-bottom:18px">' +
+        '<h2 class="title" style="font-size:14px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
+        '<p class="sub" style="font-size:11px;margin-bottom:18px">' +
         (subj ? esc(subj.name) + ' — ' : '') +
         'Create a free account to take this exam and save your result.</p>' +
         '<button class="btn btn-gold" style="width:100%;padding:12px" data-action="show-signup">Create Account</button>' +
@@ -21421,7 +21433,7 @@ function renderMockResult() {
         return (
             '<div class="card" style="text-align:center;padding:24px">' +
             '<p style="font-size:40px;margin:0 0 12px">⏳</p>' +
-            '<h2 class="title" style="font-size:18px">Waiting for Results</h2>' +
+            '<h2 class="title" style="font-size:14px">Waiting for Results</h2>' +
             '<p style="font-size:13px;color:var(--muted);margin:0">' +
             (state.isGuestMock
                 ? 'Your exam has been submitted and your score is saved. Results haven\'t been released yet.'
@@ -21493,8 +21505,8 @@ function renderStudyCircle() {
     return (
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Account</button>' +
         '<div class="feature-icon" style="background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('users', 30) + '</div>' +
-        '<h2 class="title" style="font-size:18px">Study Circle 🌿</h2>' +
-        '<p class="sub" style="font-size:12px">Join other JAMB candidates, get study tips, and be the first to hear about updates.</p>' +
+        '<h2 class="title" style="font-size:14px">Study Circle 🌿</h2>' +
+        '<p class="sub" style="font-size:11px">Join other JAMB candidates, get study tips, and be the first to hear about updates.</p>' +
         '<button class="btn btn-green" style="width:100%;margin-top:14px;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px" data-action="open-study-circle-whatsapp">' +
         svg('whatsapp', 18) + ' Join the WhatsApp Group' +
         '</button>' +
@@ -21541,7 +21553,7 @@ function renderLeaderboard() {
     if (state.loadingLeaderboard) {
         return (
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-            '<p class="sub" style="font-size:12px;margin-bottom:10px">See how you rank against other candidates</p>' +
+            '<p class="sub" style="font-size:11px;margin-bottom:10px">See how you rank against other candidates</p>' +
             '<div class="loading-spinner"><div class="spinner"></div><p>Loading leaderboard...</p></div>'
         );
     }
@@ -21570,7 +21582,7 @@ function renderLeaderboard() {
         }
         return (
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-            '<p class="sub" style="font-size:12px;margin-bottom:10px">See how you rank against other candidates. Usernames are partially hidden to protect privacy — you\'ll see your own name in full. Ranked by 4-subject Mock score (out of 400) — 1-subject mocks don\'t count here.</p>' +
+            '<p class="sub" style="font-size:11px;margin-bottom:10px">See how you rank against other candidates. Usernames are partially hidden to protect privacy — you\'ll see your own name in full. Ranked by 4-subject Mock score (out of 400) — 1-subject mocks don\'t count here.</p>' +
             tabsHtml +
             '<div style="margin-bottom:10px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">' +
             '<span>Rank</span><span>Candidate</span><span>Score</span>' +
@@ -21601,7 +21613,7 @@ function renderLeaderboard() {
         }).join('');
         return (
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-            '<p class="sub" style="font-size:12px;margin-bottom:10px">Pick a subject to see the best scores for that subject.</p>' +
+            '<p class="sub" style="font-size:11px;margin-bottom:10px">Pick a subject to see the best scores for that subject.</p>' +
             tabsHtml +
             subjRows
         );
@@ -21634,7 +21646,7 @@ function renderLeaderboard() {
     return (
         '<button type="button" class="btn btn-outline btn-sm" style="margin-bottom:10px" data-action="back-subject-leaderboard">‹ All Subjects</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 ' + esc(subj ? subj.name : 'Subject') + ' Leaderboard</h2>' +
-        '<p class="sub" style="font-size:12px;margin-bottom:10px">Best score per candidate. Retaking this subject updates your score here, higher or lower. Entries marked <b>UNVERIFIED</b> were taken via a shared exam link without an account.</p>' +
+        '<p class="sub" style="font-size:11px;margin-bottom:10px">Best score per candidate. Retaking this subject updates your score here, higher or lower. Entries marked <b>UNVERIFIED</b> were taken via a shared exam link without an account.</p>' +
         '<div style="margin-bottom:10px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">' +
         '<span>Rank</span><span>Candidate</span><span>Score</span>' +
         '</div>' +
@@ -21715,8 +21727,8 @@ function renderActivate() {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
             '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('shield', 30) + '</div>' +
-            '<h2 class="title" style="font-size:18px">Full Access, No Activation Needed</h2>' +
-            '<p class="sub" style="font-size:12px">Every feature is unlocked right now — there\'s nothing to activate.</p>'
+            '<h2 class="title" style="font-size:14px">Full Access, No Activation Needed</h2>' +
+            '<p class="sub" style="font-size:11px">Every feature is unlocked right now — there\'s nothing to activate.</p>'
         );
     }
     const isActive = isUserActive();
@@ -21741,8 +21753,8 @@ function renderActivate() {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
             '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('shield', 30) + '</div>' +
-            '<h2 class="title" style="font-size:18px">You\'re Activated! ✅</h2>' +
-            '<p class="sub" style="font-size:12px">Your account has full access.</p>' +
+            '<h2 class="title" style="font-size:14px">You\'re Activated! ✅</h2>' +
+            '<p class="sub" style="font-size:11px">Your account has full access.</p>' +
             (justActivatedKey ?
                 '<div class="card" style="text-align:center;padding:16px;border:1.5px solid var(--gold);margin-bottom:10px">' +
                 '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">🔑 Your activation key — save this somewhere safe</p>' +
@@ -21760,8 +21772,8 @@ function renderActivate() {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
             '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 30) + '</div>' +
-            '<h2 class="title" style="font-size:18px">Activate Your Account</h2>' +
-            '<p class="sub" style="font-size:12px">Unlock unlimited mock exams &amp; past questions</p>' +
+            '<h2 class="title" style="font-size:14px">Activate Your Account</h2>' +
+            '<p class="sub" style="font-size:11px">Unlock unlimited mock exams &amp; past questions</p>' +
             '<div class="card" style="text-align:center;padding:16px">' +
             '<p style="font-size:12px;color:var(--muted);margin:0 0 10px">Please log in or create an account first.</p>' +
             '<button class="btn btn-green" data-action="show-login" style="padding:10px">Log in</button>' +
@@ -21773,8 +21785,8 @@ function renderActivate() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
         '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 30) + '</div>' +
-        '<h2 class="title" style="font-size:18px">Activate Your Account</h2>' +
-        '<p class="sub" style="font-size:12px">Unlock unlimited mock exams &amp; past questions</p>' +
+        '<h2 class="title" style="font-size:14px">Activate Your Account</h2>' +
+        '<p class="sub" style="font-size:11px">Unlock unlimited mock exams &amp; past questions</p>' +
 
         (state.activateRedirectReason ?
             '<div class="activate-redirect-note"><span class="icon">🔑</span><p>' + esc(state.activateRedirectReason) + '</p></div>' : '') +
@@ -21884,8 +21896,8 @@ function renderLicensePlans() {
     return (
         '<button class="back-link" data-action="set-view" data-view="activate">' + svg("chevleft", 14) + ' Activate</button>' +
         '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 30) + '</div>' +
-        '<h2 class="title" style="font-size:18px">Choose Your Plan</h2>' +
-        '<p class="sub" style="font-size:12px">Pick a plan that fits your JAMB prep timeline</p>' +
+        '<h2 class="title" style="font-size:14px">Choose Your Plan</h2>' +
+        '<p class="sub" style="font-size:11px">Pick a plan that fits your JAMB prep timeline</p>' +
 
         '<div class="card" style="margin-bottom:12px">' +
         '<p style="font-size:12px;font-weight:600;margin:0 0 6px">Why activate?</p>' +
@@ -21979,7 +21991,7 @@ function renderAdmin() {
         '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">' + svg("shield", 18).replace(
             'stroke="currentColor"', 'stroke="' + GREEN + '"') +
         '<h2 class="title" style="margin:0;font-size:18px">Admin Panel</h2></div>' +
-        '<p class="sub" style="font-size:12px">Manage questions, settings, and content.</p>' +
+        '<p class="sub" style="font-size:11px">Manage questions, settings, and content.</p>' +
         '<div class="admin-tabs">' + tabBar + '</div>' +
         body
     );
