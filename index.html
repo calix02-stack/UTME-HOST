@@ -7032,6 +7032,25 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
    sticky at the bottom of a screen can sit on top of content, even
    on devices with a home-indicator/gesture-bar. --------------------- */
 .bottom-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 2px); }
+
+/* boot spinner (replaces the old visible loading text) */
+.boot-spinner{position:fixed;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid rgba(15,107,63,.15);border-top-color:#0F6B3F;border-radius:50%;animation:spin .7s linear infinite}
+/* labelled buttons (Back / History / WhatsApp) */
+.icon-btn.labeled{width:auto;padding:0 9px 0 5px;gap:2px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.icon-btn.labeled.wa{padding:0 10px;gap:5px;color:#128C4A}
+/* pull-to-refresh indicator */
+#ptr-ind{position:fixed;top:0;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;background:var(--card-bg,#fff);box-shadow:0 3px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;z-index:9999;pointer-events:none;opacity:0;transform:translateY(-50px)}
+#ptr-ind svg{width:18px;height:18px;stroke:#0F6B3F}
+#ptr-ind.spin svg{animation:spin .7s linear infinite}
+.view{overscroll-behavior-y:contain}
+/* Account page: tighter sizing */
+.acct-hero{padding:10px 12px;margin-bottom:6px}
+.acct-hero-name{font-size:14px}
+.acct-menu-grid{gap:6px;margin-bottom:8px}
+.acct-menu-item{padding:7px 9px}
+.acct-menu-item .amicon{width:26px;height:26px;font-size:13px}
+.acct-menu-item .amii-title{font-size:11px}
+.acct-menu-item .amii-sub{font-size:8.5px}
 </style>
 </head>
 <body>
@@ -7042,11 +7061,7 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
      "root.innerHTML = html" further down), so real visitors never see
      this — it's there for Google/Bing and any bot that reads the page
      before or without executing JS. -->
-<div id="root">
-  <h1>MyUTME – JAMB CBT Practice App for UTME</h1>
-  <p>MyUTME is a free JAMB CBT practice app built for UTME candidates in Nigeria preparing for the JAMB exam. Practice real JAMB CBT-style past questions, take timed mock exams, drill topics subject by subject, and get help anytime from an AI Tutor.</p>
-  <p>Loading MyUTME…</p>
-</div>
+<div id="root"><div class="boot-spinner" aria-label="Loading"></div></div>
 <noscript>
   <h1>MyUTME – JAMB CBT Practice App for UTME</h1>
   <p>MyUTME is a free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions from previous years, and drill topics subject by subject — with an AI Tutor available anytime you're stuck. Please enable JavaScript in your browser to use MyUTME.</p>
@@ -16805,19 +16820,19 @@ function renderApp() {
               '<div class="topbar-center"></div><div class="topbar-right"></div>'
             : isAiAssistant
             ? '<div class="topbar-left">' +
-              '<button class="icon-btn" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '</button>' +
+              '<button class="icon-btn labeled" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '<span>Back</span></button>' +
               '<span class="page-name" style="margin-left:2px">MyUTME AI Tutor</span>' +
               '</div>' +
               '<div class="topbar-center"></div><div class="topbar-right">' +
-              '<button class="icon-btn" data-action="ai-toggle-history" aria-label="Chat history">' + svg('menu', 19) + '</button>' +
+              '<button class="icon-btn labeled" data-action="ai-toggle-history" aria-label="Chat history">' + svg('menu', 17) + '<span>History</span></button>' +
               '</div>'
             : isSupportChat
             ? '<div class="topbar-left">' +
-              '<button class="icon-btn" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '</button>' +
+              '<button class="icon-btn labeled" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '<span>Back</span></button>' +
               '<span class="page-name" style="margin-left:2px">Support</span>' +
               '</div>' +
               '<div class="topbar-center"></div><div class="topbar-right">' +
-              (isLoggedIn ? '<button class="icon-btn" data-action="open-support-whatsapp" aria-label="Chat on WhatsApp">' + svg('whatsapp', 18) + '</button>' : '') +
+              (isLoggedIn ? '<button class="icon-btn labeled wa" data-action="open-support-whatsapp" aria-label="Chat on WhatsApp">' + svg('whatsapp', 18) + '<span>WhatsApp</span></button>' : '') +
               '</div>'
             : isHome
             ? '<div class="topbar-left">' +
@@ -30688,6 +30703,64 @@ function refreshApp() {
     // this is a single-file app, so "refresh" means reload the page.
     setTimeout(function() { location.reload(); }, 350);
 }
+
+
+// ============================================================
+//  PULL-TO-REFRESH (drag down from the top of any screen, like a website)
+// ============================================================
+(function () {
+    var startY = 0, dy = 0, tracking = false, ind = null, TH = 70;
+    function getInd() {
+        if (!ind) {
+            ind = document.createElement('div'); ind.id = 'ptr-ind';
+            ind.innerHTML = svg('refresh', 18);
+            document.body.appendChild(ind);
+        }
+        return ind;
+    }
+    function atTop(el, view) {
+        while (el && el !== view) {
+            if (el.scrollTop > 0) return false;
+            el = el.parentElement;
+        }
+        return view.scrollTop <= 0;
+    }
+    document.addEventListener('touchstart', function (e) {
+        tracking = false;
+        if (e.touches.length !== 1) return;
+        var t = e.target;
+        if (!t.closest) return;
+        var view = t.closest('.view');
+        if (!view || view.classList.contains('view-chat') || view.classList.contains('view-exam') || view.classList.contains('view-nonav')) return;
+        if (t.closest('input, textarea, select, [contenteditable], .ai-history-overlay')) return;
+        if (!atTop(t, view)) return;
+        startY = e.touches[0].clientY; dy = 0; tracking = true;
+    }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+        if (!tracking) return;
+        dy = e.touches[0].clientY - startY;
+        var i = getInd();
+        if (dy <= 0) { i.style.opacity = 0; return; }
+        var d = Math.min(dy * 0.5, 90);
+        i.style.opacity = Math.min(dy / TH, 1);
+        i.style.transform = 'translateY(' + (d + 40) + 'px) rotate(' + (dy * 3) + 'deg)';
+    }, { passive: true });
+    document.addEventListener('touchend', function () {
+        if (!tracking) return;
+        tracking = false;
+        var i = getInd();
+        if (dy > TH) {
+            i.classList.add('spin');
+            i.style.opacity = 1;
+            i.style.transform = 'translateY(80px)';
+            refreshApp();
+        } else {
+            i.style.opacity = 0;
+            i.style.transform = 'translateY(-50px)';
+        }
+        dy = 0;
+    }, { passive: true });
+})();
 
 // ============================================================
 //  COPY PROTECTION (JS layer)
