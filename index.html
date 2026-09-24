@@ -7051,6 +7051,19 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
 .acct-menu-item .amicon{width:26px;height:26px;font-size:13px}
 .acct-menu-item .amii-title{font-size:11px}
 .acct-menu-item .amii-sub{font-size:8.5px}
+
+/* Account: small icons, bottom block pinned so no dead gap */
+.profile-fill{min-height:calc(var(--app-vh,100vh) - 46px - 58px - 28px)}
+.connect-social-row{margin:2px 0 6px}
+.connect-social-item{gap:2px}
+.connect-social-item .csi-icon{width:28px;height:28px;border-radius:9px}
+.connect-social-item .csi-icon svg{width:14px;height:14px}
+.connect-social-item .csi-label{font-size:8.5px}
+.acct-avatar-wrap{width:40px;height:40px}
+.acct-menu-item .amicon{width:22px;height:22px;font-size:11px;border-radius:7px}
+.acct-menu-item .amicon svg{width:13px;height:13px}
+.acct-menu-item{padding:6px 8px;gap:6px}
+.activate-feature-card .afc-icon{transform:scale(.85)}
 </style>
 </head>
 <body>
@@ -7090,6 +7103,7 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
      the same way on every device, with no extra tap. -->
 <script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="offline-db.js?v=3" defer></script>
+<script src="offline-db-boost.js?v=1" defer></script>
 <script>
 // ============================================================
 //  VIEWPORT HEIGHT FIX
@@ -7172,8 +7186,25 @@ function createOfflineSupabaseStub() {
     };
 }
 
+// Offline => fail instantly (no waiting on a dead connection). Plain data
+// reads (GET) are also capped so a "connected but no internet" network can
+// never leave a screen spinning.
+function fastFetch(input, init) {
+    if (navigator.onLine === false) {
+        return Promise.reject(new TypeError('Failed to fetch (offline)'));
+    }
+    var method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+    if (method !== 'GET' || typeof AbortController === 'undefined') return fetch(input, init);
+    var ctrl = new AbortController();
+    var t = setTimeout(function() { ctrl.abort(); }, 10000);
+    if (init && init.signal) { init.signal.addEventListener('abort', function() { ctrl.abort(); }); }
+    var opts = Object.assign({}, init || {}, { signal: ctrl.signal });
+    return fetch(input, opts).finally(function() { clearTimeout(t); });
+}
+
 function createRealSupabaseClient() {
     return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { fetch: fastFetch },
         auth: {
             persistSession: true,
             autoRefreshToken: true,
@@ -9729,21 +9760,9 @@ async function cacheAllDataForOffline() {
     }
 }
 
-async function loadSettings() {
-    if (!isOnline()) {
-        const cached = loadOfflineCache('settings');
-        if (cached) return cached;
-    }
-    try {
-        const { data, error } = await withNetworkTimeout(
-            supabase.from('admin_settings').select('*'), 8000, 'Settings load'
-        );
-        if (error) {
-            console.warn("Load settings error:", extractErrorMessage(error), error);
-            return loadOfflineCache('settings') || state.settingsCache;
-        }
+function buildSettingsResult(rows) {
         const settings = {};
-        (data || []).forEach(function(s) { settings[s.setting_key] = s.setting_value; });
+        (rows || []).forEach(function(s) { settings[s.setting_key] = s.setting_value; });
 
         const result = {
             cbtQuestionsPerSubject: settings.cbt_settings?.questions_per_subject || 40,
@@ -9767,12 +9786,39 @@ async function loadSettings() {
             activationAutoEnableDate: settings.activation_auto_enable_date || null,
             faqImages: settings.faq_images || {},
         };
-        state.settingsCache = result;
-        return result;
-    } catch (e) {
-        console.warn("Load settings exception:", e);
-        return state.settingsCache;
+    return result;
+}
+
+let _settingsInflight = null;
+async function loadSettings() {
+    // Cache-first: return what we already have instantly, refresh in background.
+    const cached = state.settingsCache || loadOfflineCache('settings');
+    function refresh() {
+        if (_settingsInflight) return _settingsInflight;
+        _settingsInflight = (async function() {
+            try {
+                const { data, error } = await withNetworkTimeout(
+                    supabase.from('admin_settings').select('*'), 8000, 'Settings load'
+                );
+                if (error) return null;
+                const result = buildSettingsResult(data);
+                state.settingsCache = result;
+                saveOfflineCache('settings', result);
+                return result;
+            } catch (e) { return null; }
+            finally { _settingsInflight = null; }
+        })();
+        return _settingsInflight;
     }
+    if (cached) {
+        if (!state.settingsCache) state.settingsCache = cached;
+        if (isOnline()) refresh();
+        return cached;
+    }
+    if (!isOnline()) return buildSettingsResult([]);
+    // Nothing cached yet: wait at most ~1.5s, then use defaults.
+    const r = await Promise.race([refresh(), new Promise(function(res) { setTimeout(function() { res(null); }, 1500); })]);
+    return r || buildSettingsResult([]);
 }
 
 async function loadDocuments(filterSubject) {
@@ -10608,56 +10654,45 @@ async function resolveFlaggedQuestions(questionId) {
 // ============================================================
 //  NOTIFICATIONS
 // ============================================================
+function applyNotifRows(data) {
+    const userId = state.authUser?.id;
+    state.notifsList = (data || []).filter(function(n) {
+        const isForThisUser = !n.target_user_id || n.target_user_id === userId;
+        const hasContent = !!((n.title && n.title.trim()) || (n.body && n.body.trim()));
+        return isForThisUser && hasContent;
+    });
+    state.notifsLoaded = true;
+    state.notifsUnreadCount = state.notifsList.filter(function(n) {
+        return state.readNotifs.indexOf(n.id) === -1;
+    }).length;
+    state.notifs = state.notifsList.map(function(n) {
+        return {
+            id: n.id,
+            title: n.title,
+            body: n.body,
+            image_url: n.image_url || null,
+            time: formatTimeAgo(n.created_at),
+            unread: state.readNotifs.indexOf(n.id) === -1,
+        };
+    });
+    render();
+}
 async function loadNotifications() {
     try {
-        let query = supabase
-            .from('notifications')
-            .select('*')
-            .order('created_at', { ascending: false });
-            
-        const { data, error } = await query;
+        const { data, error } = await withNetworkTimeout(
+            supabase.from('notifications').select('*').order('created_at', { ascending: false }),
+            8000, 'Notifications load'
+        );
         if (error) {
             console.warn("Load notifications error:", error);
-            state.notifsList = [];
-            state.notifsLoaded = true;
-            render();
+            applyNotifRows(loadOfflineCache('notifs') || []);
             return;
         }
-
-        const userId = state.authUser?.id;
-        state.notifsList = (data || []).filter(function(n) {
-            // Only count rows that (a) are actually addressed to this user
-            // (broadcast, or targeted at them specifically) and (b) are a
-            // real, populated notification — a row with no title/body isn't
-            // something anyone actually "sent", so it shouldn't be able to
-            // light up the bell badge with a number the user can never
-            // resolve by reading anything.
-            const isForThisUser = !n.target_user_id || n.target_user_id === userId;
-            const hasContent = !!((n.title && n.title.trim()) || (n.body && n.body.trim()));
-            return isForThisUser && hasContent;
-        });
-        
-        state.notifsLoaded = true;
-
-        state.notifsUnreadCount = state.notifsList.filter(function(n) {
-            return state.readNotifs.indexOf(n.id) === -1;
-        }).length;
-
-        state.notifs = state.notifsList.map(function(n) {
-            return {
-                id: n.id,
-                title: n.title,
-                body: n.body,
-                image_url: n.image_url || null,
-                time: formatTimeAgo(n.created_at),
-                unread: state.readNotifs.indexOf(n.id) === -1,
-            };
-        });
-
-        render();
+        saveOfflineCache('notifs', data || []);
+        applyNotifRows(data);
     } catch (e) {
         console.warn("Load notifications exception:", e);
-        state.notifsLoaded = true;
+        applyNotifRows(loadOfflineCache('notifs') || []);
     }
 }
 
@@ -13764,7 +13799,8 @@ async function loadAiSessions() {
             .select('*')
             .eq('user_id', state.authUser.id)
             .order('updated_at', { ascending: false });
-        state.aiSessions = error ? [] : (data || []);
+        if (!error) saveOfflineCache('aiSessions_' + state.authUser.id, data || []);
+        state.aiSessions = error ? (loadOfflineCache('aiSessions_' + state.authUser.id) || []) : (data || []);
         state.aiSessionsLoaded = true;
 
         // Note: deliberately NOT auto-resuming the most recent session here.
@@ -13779,7 +13815,7 @@ async function loadAiSessions() {
         }
         render();
     } catch (e) {
-        state.aiSessions = [];
+        state.aiSessions = (state.authUser && loadOfflineCache('aiSessions_' + state.authUser.id)) || [];
         state.aiSessionsLoaded = true;
         render();
     }
@@ -30792,6 +30828,48 @@ document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
     }
 });
+
+
+// ============================================================
+//  INSTANT SCREENS: show cached data immediately, refresh quietly,
+//  and never leave a screen spinning more than ~1.5s.
+// ============================================================
+function fastWrap(orig, instant, slow) {
+    var inflight = null;
+    return function() {
+        if (inflight) return inflight;
+        try { instant(); } catch (e) {}
+        var timer = setTimeout(function() { try { slow(); } catch (e) {} }, 1500);
+        inflight = Promise.resolve(orig.apply(this, arguments)).finally(function() {
+            clearTimeout(timer); inflight = null;
+        });
+        return inflight;
+    };
+}
+loadNotifications = fastWrap(loadNotifications,
+    function() { if (!state.notifsLoaded) { var c = loadOfflineCache('notifs'); if (c) applyNotifRows(c); } },
+    function() { if (!state.notifsLoaded) applyNotifRows(loadOfflineCache('notifs') || []); });
+loadMockExams = fastWrap(loadMockExams,
+    function() { if (!state.mockLoaded) { var c = loadOfflineCache('mockExams'); if (c) { state.mockExams = c; state.mockLoaded = true; render(); } } },
+    function() { if (!state.mockLoaded) { state.mockExams = loadOfflineCache('mockExams') || []; state.mockLoaded = true; render(); } });
+loadLiveExams = fastWrap(loadLiveExams,
+    function() { if (!state.liveExamsLoaded) { var c = loadOfflineCache('liveExams'); if (c) { state.liveExams = c; state.liveExamsLoaded = true; render(); } } },
+    function() { if (!state.liveExamsLoaded) { state.liveExams = loadOfflineCache('liveExams') || []; state.liveExamsLoaded = true; render(); } });
+loadAiSessions = fastWrap(loadAiSessions,
+    function() {
+        if (!state.aiSessionsLoaded && state.authUser) {
+            var c = loadOfflineCache('aiSessions_' + state.authUser.id);
+            if (c) { state.aiSessions = c; state.aiSessionsLoaded = true; if (!state.aiCurrentSessionId) { state.aiMessages = []; state.aiMessagesLoaded = true; } render(); }
+        }
+    },
+    function() {
+        if (!state.aiSessionsLoaded) {
+            state.aiSessions = (state.authUser && loadOfflineCache('aiSessions_' + state.authUser.id)) || [];
+            state.aiSessionsLoaded = true;
+            if (!state.aiCurrentSessionId) { state.aiMessages = []; state.aiMessagesLoaded = true; }
+            render();
+        }
+    });
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
