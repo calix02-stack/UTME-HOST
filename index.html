@@ -1,26 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- GitHub Pages has no server-side rewrites, so a direct visit to a
-     "real" URL like /ai-tutor would 404 before this app ever loads.
-     404.html (added alongside this file) catches that and redirects
-     here with the intended path encoded in the query string; this
-     script decodes it back into a normal-looking URL via
-     history.replaceState before anything else runs, so the app's own
-     router (see applyInitialPathRoute() in init()) reads the correct
-     path. Standard, widely-used technique — https://github.com/rafgraph/spa-github-pages -->
-<script>
-(function(l) {
-    if (l.search && l.search[1] === '/') {
-        var decoded = l.search.slice(1).split('&').map(function(s) {
-            return s.replace(/~and~/g, '&');
-        }).join('?');
-        window.history.replaceState(null, null,
-            l.pathname.slice(0, -1) + decoded + l.hash
-        );
-    }
-}(window.location));
-</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
 <link rel="manifest" href="manifest.json" />            
@@ -28,35 +8,13 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="MyUTME" />
 <meta property="og:site_name" content="MyUTME" />
-<meta name="robots" content="index, follow" />
-<link rel="canonical" href="https://myutme.com.ng/" />
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "WebSite",
+  "@te6s": "WebSite",
   "name": "MyUTME",
   "alternateName": "JAMB CBT App",
   "url": "https://myutme.com.ng"
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "MobileApplication",
-  "name": "MyUTME - JAMB CBT Practice App",
-  "applicationCategory": "EducationalApplication",
-  "operatingSystem": "Web, Android, iOS",
-  "description": "Free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions, and get help from an AI Tutor.",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "NGN"
-  },
-  "url": "https://myutme.com.ng",
-  "publisher": {
-    "@type": "Organization",
-    "name": "MyUTME"
-  }
 }
 </script>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -66,7 +24,7 @@
 <link rel="shortcut icon" href="https://myutme.com.ng/icon-192.png" />
 <title>MyUTME – JAMB CBT Practice App for UTME Mock Exams & Past Questions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <meta name="description" content="Free JAMB CBT app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions, and drill topics subject by subject. The easiest JAMB CBT practice app to prepare for UTME on your phone." />
 <meta property="og:title" content="MyUTME - JAMB CBT Practice App" />
 <meta property="og:description" content="Practice real JAMB CBT-style questions, take timed mock exams, and drill topics subject by subject." />
@@ -92,7 +50,6 @@
     --faint: #8A9990;
     --line: #E7EAE8;
     --bg: #FAFAF9;
-    --toggle-off: rgba(19,41,29,0.18);
     --font-serif: Georgia, 'Times New Roman', Cambria, serif;
     --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -126,7 +83,6 @@
         --faint: #6b7b70;
         --line: #2d3d35;
         --card-bg: #16213e;
-        --toggle-off: rgba(255,255,255,0.18);
         --shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
         --drawer-bg: #0f0f1f;
         --drawer-text: #e8e8e8;
@@ -513,20 +469,6 @@
         overflow-y: visible;
         padding-bottom: 20px;
     }
-    /* Account page: instead of leaving a big dead gap below short content
-       (menu grid ends, then nothing until the bottom nav), this wrapper
-       stretches to fill the whole scrollable area and pins the sign-out
-       + policy-links block to the very bottom via margin-top:auto — the
-       page now occupies the full screen with no scrolling needed. */
-    .profile-fill {
-        display: flex;
-        flex-direction: column;
-        min-height: 100%;
-    }
-    .profile-fill .profile-bottom-pin {
-        margin-top: auto;
-        padding-top: 10px;
-    }
     .view-chat {
         padding: 0 !important;
         overflow: hidden !important;
@@ -560,31 +502,31 @@
         justify-content: center;
         margin-bottom: 12px;
         position: relative;
-        box-shadow: 0 6px 14px -4px rgba(0,0,0,0.18);
-        animation: featureIconIn .35s ease both;
+        box-shadow: 0 10px 24px -6px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.25);
+        animation: featureIconIn .45s cubic-bezier(.2,.8,.2,1) both;
     }
     .feature-icon::after {
         content: "";
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        background: linear-gradient(160deg, rgba(255,255,255,0.14), transparent 55%);
+        background: linear-gradient(160deg, rgba(255,255,255,0.28), transparent 55%);
         pointer-events: none;
     }
     .feature-icon svg { width: 32px; height: 32px; color: #fff; position: relative; z-index: 1; }
     @keyframes featureIconIn {
-        from { opacity: 0; transform: scale(.92); }
-        to { opacity: 1; transform: scale(1); }
+        from { opacity: 0; transform: scale(.8) rotate(-6deg); }
+        to { opacity: 1; transform: scale(1) rotate(0); }
     }
 
     h2.title {
         font-family: var(--font-serif);
-        font-size: 16px;
+        font-size: 20px;
         margin: 0 0 2px;
         color: var(--ink);
     }
     p.sub {
-        font-size: 11.5px;
+        font-size: 13px;
         color: var(--muted);
         margin: 0 0 14px;
     }
@@ -2732,20 +2674,12 @@
         position: relative;
         width: 40px;
         height: 20px;
-        /* Was translucent white — invisible on the light card backgrounds
-           this is used on all over the app (Account, Study Planner, admin
-           toggles). --toggle-off is theme-aware so the track is always
-           visible against whatever surface it sits on. */
-        background: var(--toggle-off);
+        background: rgba(255, 255, 255, 0.2);
         border-radius: 999px;
         cursor: pointer;
         transition: background 0.3s;
         flex-shrink: 0;
     }
-    /* The drawer's own toggle always sits on the dark green drawer
-       background regardless of light/dark mode, so it keeps the
-       original translucent-white track rather than the theme-aware one. */
-    .drawer-theme-toggle .toggle-switch { background: rgba(255,255,255,0.2); }
     .toggle-switch.active { background: var(--gold); }
     .toggle-switch .slider {
         position: absolute;
@@ -3663,44 +3597,44 @@
     .activate-feature-card {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 8px 12px;
+        gap: 12px;
+        padding: 14px 16px;
         background: var(--card-bg);
         border: 1.5px solid var(--green);
         border-radius: 999px;
         cursor: pointer;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
     }
     .activate-feature-card .afc-icon {
         flex-shrink: 0;
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
         background: var(--green);
         display: flex;
         align-items: center;
         justify-content: center;
         position: relative;
     }
-    .activate-feature-card .afc-icon svg { width: 18px; height: 18px; stroke: #fff; }
+    .activate-feature-card .afc-icon svg { width: 24px; height: 24px; stroke: #fff; }
     .activate-feature-card .afc-badge {
         position: absolute;
         top: -5px;
         right: -5px;
-        width: 15px;
-        height: 15px;
+        width: 18px;
+        height: 18px;
         border-radius: 999px;
         background: #E2543A;
         display: flex;
         align-items: center;
         justify-content: center;
         border: 2px solid var(--card-bg);
-        font-size: 9px;
+        font-size: 10px;
     }
     .activate-feature-card .afc-title {
         flex: 1;
         font-family: var(--font-sans);
-        font-size: 14px;
+        font-size: 19px;
         font-weight: 800;
         color: var(--ink);
     }
@@ -3710,8 +3644,8 @@
         color: var(--green);
         border: none;
         border-radius: 999px;
-        padding: 7px 13px;
-        font-size: 11.5px;
+        padding: 9px 16px;
+        font-size: 13px;
         font-weight: 700;
         display: flex;
         align-items: center;
@@ -3741,30 +3675,30 @@
     .connect-social-row {
         display: flex;
         justify-content: space-between;
-        gap: 6px;
-        margin: 4px 0 8px;
+        gap: 8px;
+        margin: 10px 0 18px;
     }
     .connect-social-item {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
         flex: 1;
         background: none;
         border: none;
         cursor: pointer;
     }
     .connect-social-item .csi-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 11px;
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
-    .connect-social-item .csi-icon svg { width: 17px; height: 17px; }
+    .connect-social-item .csi-icon svg { width: 24px; height: 24px; }
     .connect-social-item .csi-label {
-        font-size: 9px;
+        font-size: 11px;
         font-weight: 700;
         color: var(--muted);
     }
@@ -5284,7 +5218,7 @@
        Distinct purple/violet accent so it reads as a helpful shortcut, not
        an error or a flag action. */
     .mini-btn.ask-ai, .ask-ai-inline {
-        background: linear-gradient(135deg, #6B4F82 0%, #7C5CA8 100%);
+        background: linear-gradient(135deg, #6C4CF0 0%, #8E6CFF 100%);
         color: #fff;
         border: none;
         font-weight: 700;
@@ -5732,48 +5666,20 @@
         padding: 0 4px;
     }
     .chat-bubble {
-        border-radius: 16px;
-        padding: 11px 15px;
-        font-size: 14.5px;
-        font-weight: 400 !important;
-        line-height: 1.6;
-        letter-spacing: 0.1px;
+        border-radius: 12px;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 1.5;
         position: relative;
         word-wrap: break-word;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-    }
-    /* AI/tutor replies get extra breathing room — the goal is text that
-       reads like a calm, spaced-out chat reply (short paragraphs, clear
-       headings, roomy lists) at a normal reading weight, not a dense
-       wall of bold text. */
-    .chat-bubble.ai, .chat-bubble.admin,
-    .chat-bubble.ai *, .chat-bubble.admin * {
-        font-weight: 400 !important;
-    }
-    .chat-bubble.ai p, .chat-bubble.admin p {
-        margin: 0 0 9px;
-    }
-    .chat-bubble.ai p:last-child, .chat-bubble.admin p:last-child {
-        margin-bottom: 0;
-    }
-    .chat-bubble.ai .chat-heading, .chat-bubble.admin .chat-heading {
-        display: block;
-        font-weight: 600 !important;
-        font-size: 1em;
-        margin: 12px 0 6px;
-    }
-    .chat-bubble.ai .chat-heading:first-child, .chat-bubble.admin .chat-heading:first-child {
-        margin-top: 0;
-    }
-    .chat-bubble.ai strong, .chat-bubble.admin strong {
-        font-weight: 600 !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
     }
     .chat-bubble.me {
         background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
         color: #fff;
-        border-bottom-right-radius: 4px;
+        border-bottom-right-radius: 3px;
         box-shadow: 0 3px 10px rgba(15,107,63,0.22);
-        font-weight: 400 !important;
     }
     /* Support replies — whether answered by the assistant or a human admin
        — are styled identically on purpose, so there's no visual tell
@@ -5782,7 +5688,7 @@
         background: var(--bg);
         border: 1px solid var(--line);
         color: #13291D;
-        border-bottom-left-radius: 4px;
+        border-bottom-left-radius: 3px;
     }
     [data-theme="dark"] .chat-bubble.ai, [data-theme="dark"] .chat-bubble.admin { background: #232f28; color: #f0f0f0; border-color: #33413a; }
     .chat-bubble.them {
@@ -5799,11 +5705,10 @@
         text-align: right;
     }
     .chat-bubble .chat-list {
-        margin: 8px 0;
-        padding-left: 20px;
+        margin: 4px 0;
+        padding-left: 18px;
     }
-    .chat-bubble .chat-list li { margin-bottom: 6px; line-height: 1.6; }
-    .chat-bubble .chat-list li:last-child { margin-bottom: 0; }
+    .chat-bubble .chat-list li { margin-bottom: 3px; }
     .chat-bubble .chat-code {
         background: rgba(0,0,0,0.06);
         border-radius: 8px;
@@ -5867,27 +5772,21 @@
         overflow-y: hidden;
     }
     .chat-input-row textarea.ai-chat-textarea {
-        min-height: 46px;
+        min-height: 52px;
         max-height: 160px;
-        padding: 12px 16px;
-        font-size: 14px;
-        font-weight: 400 !important;
-        line-height: 1.35;
+        padding: 14px 14px;
+        font-size: 15px;
+        line-height: 1.4;
         border-radius: 20px;
         overflow-y: hidden;
-        /* The placeholder is short enough at this size/width to sit on a
-           single line — but if a longer typed message ever does wrap,
-           min-height only guarantees the first line stays fully visible,
-           it never clips a second line (JS grows the box on input, and
-           overflow-y stays hidden only to avoid a scrollbar flash). */
     }
     .chat-send-btn { width: auto; padding: 8px 14px; flex-shrink: 0; }
     .chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .chat-tool-btn {
         background: var(--bg);
         color: var(--muted);
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         flex-shrink: 0;
         border-radius: 999px;
         display: flex;
@@ -5903,11 +5802,7 @@
     .chat-attach-overlay { position: fixed; inset: 0; z-index: 6; background: transparent; }
     .chat-attach-menu {
         position: fixed;
-        /* Anchored above the input row: row height (~62px) plus the
-           safe-area inset the row itself pads out on notched phones, so
-           the menu sits flush above the input bar instead of a fixed
-           guess that drifts once the row's own height changes. */
-        bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+        bottom: 64px;
         left: 12px;
         background: var(--card-bg);
         border: 1px solid var(--line);
@@ -5971,8 +5866,8 @@
     }
     .ai-editing-banner button { color: var(--muted); font-weight: 700; }
     .chat-send-fab {
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
         border-radius: 999px;
         background: var(--green);
         color: #fff;
@@ -6213,9 +6108,9 @@
         position: relative;
         overflow: hidden;
         background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
-        border-radius: 16px;
-        padding: 12px 14px;
-        margin-bottom: 8px;
+        border-radius: 20px;
+        padding: 22px 18px;
+        margin-bottom: 14px;
         box-shadow: 0 10px 30px rgba(15, 107, 63, 0.25);
     }
     .acct-hero .glow2 {
@@ -6230,23 +6125,23 @@
     .acct-hero-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 14px;
         position: relative;
         z-index: 1;
     }
     .acct-avatar-wrap {
         position: relative;
-        width: 48px;
-        height: 48px;
+        width: 68px;
+        height: 68px;
         flex-shrink: 0;
     }
     .acct-avatar-wrap img,
     .acct-avatar-wrap .acct-avatar-fallback {
-        width: 48px;
-        height: 48px;
+        width: 68px;
+        height: 68px;
         border-radius: 999px;
         object-fit: cover;
-        border: 2px solid rgba(255,255,255,0.35);
+        border: 3px solid rgba(255,255,255,0.35);
     }
     .acct-avatar-fallback {
         display: flex;
@@ -6255,20 +6150,20 @@
         background: rgba(255,255,255,0.15);
         color: #fff;
         font-family: var(--font-serif);
-        font-size: 19px;
+        font-size: 26px;
     }
     .acct-avatar-edit {
         position: absolute;
         bottom: -2px;
         right: -2px;
-        width: 19px;
-        height: 19px;
+        width: 24px;
+        height: 24px;
         border-radius: 999px;
         background: var(--gold);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 9px;
+        font-size: 11px;
         border: 2px solid var(--green);
         cursor: pointer;
         color: #3A2A0A;
@@ -6278,18 +6173,18 @@
     .acct-hero-name {
         color: #fff;
         font-family: var(--font-serif);
-        font-size: 15px;
+        font-size: 19px;
         margin: 0;
         line-height: 1.2;
     }
     .acct-hero-user {
         color: rgba(255,255,255,0.75);
-        font-size: 10.5px;
-        margin: 1px 0 0;
+        font-size: 12px;
+        margin: 2px 0 0;
     }
     .acct-hero-email {
         color: rgba(255,255,255,0.6);
-        font-size: 9.5px;
+        font-size: 11px;
         margin: 1px 0 0;
         word-break: break-all;
     }
@@ -6297,10 +6192,10 @@
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        margin-top: 4px;
-        padding: 2px 9px;
+        margin-top: 8px;
+        padding: 3px 11px;
         border-radius: 999px;
-        font-size: 9px;
+        font-size: 10px;
         font-weight: 700;
     }
     .acct-status-pill.on {
@@ -6369,19 +6264,19 @@
 .wallet-row .wr-topup:hover { background: var(--green); color: #fff; }
 
     .acct-menu-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: flex;
+        flex-direction: column;
         gap: 8px;
-        margin-bottom: 10px;
+        margin-bottom: 14px;
     }
     .acct-menu-item {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
         background: var(--card-bg);
         border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 9px 10px;
+        border-radius: 14px;
+        padding: 12px 14px;
         cursor: pointer;
         transition: border-color .15s, transform .15s, box-shadow .2s;
         box-shadow: 0 2px 8px rgba(19,41,29,0.04);
@@ -6399,39 +6294,37 @@
         .acct-menu-item:hover .amii-chevron { transform: translateX(2px); color: var(--green); }
     }
     .acct-menu-item .amii-chevron {
-        display: none;
+        color: var(--faint);
+        flex-shrink: 0;
+        display: flex;
+        transition: transform .2s ease, color .2s ease;
     }
     .acct-menu-item .amicon {
-        width: 30px;
-        height: 30px;
-        border-radius: 9px;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 14px;
+        font-size: 18px;
         line-height: 1;
     }
-    .acct-menu-item .amicon svg { width: 16px; height: 16px; }
+    .acct-menu-item .amicon svg { width: 20px; height: 20px; }
     .acct-menu-item .amii-text {
         flex: 1;
         min-width: 0;
     }
     .acct-menu-item .amii-title {
-        font-size: 11.5px;
+        font-size: 13px;
         font-weight: 700;
         color: var(--ink);
         margin: 0;
     }
     .acct-menu-item .amii-sub {
-        font-size: 9px;
+        font-size: 10px;
         color: var(--muted);
         margin: 1px 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
     }
     .acct-menu-item .amii-badge {
         background: var(--gold);
@@ -6682,11 +6575,11 @@
         background: var(--card-bg);
         border: 1px solid var(--line);
         border-radius: 10px;
-        padding: 8px 12px;
-        margin-bottom: 8px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
     }
     .toggle-row .toggle-label {
-        font-size: 11.5px;
+        font-size: 13px;
         font-weight: 600;
         color: var(--ink);
     }
@@ -6763,27 +6656,23 @@
     .skeleton-shimmer.line{height:12px;margin:14px 15px;border-radius:6px}
     .skeleton-shimmer.line.short{width:45%}
     @keyframes shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
-/* Practice Hub — the old green gradient hero banner has been removed
-   entirely (see renderMyCourses()); only this slim, optional status
-   line remains, in place of what used to be a big colored card. */
-.ph-slim-status{font-size:11.5px;font-weight:700;margin:0 0 10px;padding:8px 10px;border-radius:10px;background:var(--card-bg);border:1px solid var(--line);color:var(--muted)}
-.ph-slim-status.ph-slim-warn{color:var(--danger);border-color:var(--danger)}
-/* Subjects now sit in a compact 2x2 grid (all 4 visible together,
-   no horizontal scrolling and no scrolling to see the set) instead
-   of a wide horizontally-scrolling strip. */
-.myc-subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
-.myc-subject-card{width:100%;min-height:0;border-radius:14px;background:var(--card-bg);border:1px solid var(--line);color:var(--ink);padding:8px;position:relative;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .15s;overflow:hidden}
+.myc-hero{background:linear-gradient(160deg,var(--sc,var(--green)) 0%,var(--green-dark) 100%);border-radius:22px;padding:20px 18px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 12px 28px rgba(15,107,63,0.22)}
+.myc-hero .hi{color:rgba(255,255,255,0.7);font-size:12px;margin:0;position:relative;z-index:1}
+.myc-hero .name{color:#fff;font-family:var(--font-serif);margin:2px 0 0;position:relative;z-index:1}
+.myc-subject-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;margin-bottom:6px;-webkit-overflow-scrolling:touch}
+.myc-subject-strip::-webkit-scrollbar{display:none}
+.myc-subject-card{flex:0 0 auto;width:128px;min-height:110px;border-radius:16px;background:var(--card-bg);border:1px solid var(--line);color:var(--ink);padding:12px;position:relative;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .15s;overflow:hidden}
 .myc-subject-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--sc,var(--green))}
 .myc-subject-card:active{transform:scale(0.96)}
-.myc-sc-badge{font-family:var(--font-mono);font-size:10px;font-weight:800;background:var(--sc,var(--green));color:#fff;display:inline-block;padding:2px 7px;border-radius:6px;margin:4px 0 10px}
-.myc-sc-name{font-weight:800;font-size:12.5px;margin:0;color:var(--ink)}
+.myc-sc-badge{font-family:var(--font-mono);font-size:10px;font-weight:800;background:var(--sc,var(--green));color:#fff;display:inline-block;padding:2px 7px;border-radius:6px;margin:6px 0 22px}
+.myc-sc-name{font-weight:800;font-size:13px;margin:0;color:var(--ink)}
 .myc-sc-tag{font-size:9px;color:var(--muted);margin:2px 0 0;text-transform:uppercase;letter-spacing:0.04em}
-.myc-subject-card-img{padding:6px}
-.myc-sc-cover{width:100%;height:46px;border-radius:8px;background-size:cover;background-position:center;margin-bottom:5px;background-color:var(--bg)}
+.myc-subject-card-img{width:136px;padding:8px}
+.myc-sc-cover{width:100%;height:76px;border-radius:10px;background-size:cover;background-position:center;margin-bottom:6px;background-color:var(--bg)}
 .myc-sc-cover-fallback{display:flex;align-items:flex-end;padding:6px}
 .myc-sc-cover-fallback .myc-sc-badge{margin:0}
-.myc-sc-arrow{position:absolute;bottom:8px;right:8px;opacity:0.6;color:var(--muted)}
-.myc-add-tile{background:var(--card-bg);border:1.5px dashed var(--line);color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:none;min-height:88px}
+.myc-sc-arrow{position:absolute;bottom:10px;right:10px;opacity:0.6;color:var(--muted)}
+.myc-add-tile{background:var(--card-bg);border:1.5px dashed var(--line);color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:none}
 .myc-sc-cancel{position:absolute;top:6px;right:6px;z-index:2;width:20px;height:20px;border-radius:999px;background:rgba(0,0,0,0.55);color:#fff;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;transition:background .15s,transform .15s}
 .myc-sc-cancel:hover{background:var(--danger)}
 .myc-sc-cancel:active{transform:scale(0.9)}
@@ -6807,12 +6696,9 @@
    single-column layout (not the shared 2-column mode-card-v2 grid used
    elsewhere) so each mode reads as its own clear, spacious row with real
    room to breathe between entries. */
-.ph-mode-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
-/* Colored, not plain-white, rows — each mode card carries its own tint
-   as a soft background + border (set inline per-card) plus a solid
-   colored left edge for a clear pop of color at a glance. */
-.ph-mode-card{display:flex;align-items:center;gap:12px;width:100%;border:1px solid var(--line);border-left:4px solid var(--tint,var(--green));border-radius:14px;padding:12px 14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.05);transition:transform .15s,box-shadow .15s,border-color .15s;text-align:left}
-.ph-mode-card:hover{box-shadow:0 8px 18px rgba(0,0,0,0.1)}
+.ph-mode-list{display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
+.ph-mode-card{display:flex;align-items:center;gap:14px;width:100%;background:var(--card-bg);border:1px solid var(--line);border-radius:18px;padding:16px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.06);transition:transform .15s,box-shadow .15s,border-color .15s;text-align:left}
+.ph-mode-card:hover{border-color:var(--green);box-shadow:0 10px 24px rgba(15,107,63,0.14)}
 .ph-mode-card:active{transform:scale(0.98)}
 .ph-mode-icon{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ph-mode-text{display:flex;flex-direction:column;justify-content:center;min-width:0;gap:2px;flex:1}
@@ -6841,13 +6727,6 @@
    was leaving the exam-shell shorter than the actual visible area,
    squeezing the scrollable question area more than necessary. */
 .view-exam { max-height: calc(var(--app-vh, 100vh) - 46px) !important; }
-/* AI Tutor and Support both hide the bottom tab bar (see isFullPageChat in
-   the render loop) for a fullscreen, immersive chat layout — so, same
-   reasoning as .view-exam above, neither must have 58px reserved for a
-   bar that isn't there. Without this override the chat page was left
-   with a dead strip of empty space under the input bar instead of the
-   input sitting flush at the true bottom of the screen. */
-.view-nonav { max-height: calc(var(--app-vh, 100vh) - 46px) !important; }
 .ai-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .ai-header .ai-icon-btn{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--card-bg);border:1px solid var(--line);color:var(--ink);cursor:pointer;flex-shrink:0}
 .ai-header .ai-title-wrap{flex:1;min-width:0}
@@ -6869,24 +6748,24 @@
 .doc-cat-chip.selected{border-color:var(--green);background:var(--green);color:#fff}
 .ai-history-panel{width:82%;max-width:300px;height:100%;background:var(--card-bg);display:flex;flex-direction:column;box-shadow:8px 0 30px rgba(0,0,0,0.2)}
 .ai-history-panel .ahp-head{padding:16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
-.ai-history-panel .ahp-head h3{font-family:var(--font-sans);font-weight:800;font-size:15px;margin:0;color:var(--ink)}
+.ai-history-panel .ahp-head h3{font-family:var(--font-serif);font-size:17px;margin:0;color:var(--ink)}
 .ai-history-list{flex:1;overflow-y:auto;padding:8px}
 .ai-session-item{display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;cursor:pointer;margin-bottom:2px}
 .ai-session-item:hover{background:var(--bg)}
 .ai-session-item.active{background:var(--green-light)}
 [data-theme="dark"] .ai-session-item.active{background:#1a2d1a}
 .ai-session-item .asi-text{flex:1;min-width:0}
-.ai-session-item .asi-title{font-size:12.5px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ai-session-item .asi-title{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ai-session-item .asi-time{font-size:9px;color:var(--faint);margin-top:1px}
 .ai-session-item .asi-del{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--faint);flex-shrink:0}
 .ai-session-item .asi-del:hover{background:#fce4ec;color:var(--danger)}
-.ai-new-chat-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;margin:10px;border-radius:10px;background:var(--green);color:#fff;font-weight:600;font-size:12.5px;cursor:pointer}
+.ai-new-chat-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;margin:10px;border-radius:10px;background:var(--green);color:#fff;font-weight:700;font-size:12.5px;cursor:pointer}
 .ai-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;gap:10px}
-.ai-empty-state .aie-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(145deg,var(--green) 0%,var(--green-dark) 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(15,107,63,0.28)}
+.ai-empty-state .aie-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(145deg,#7C5CFC,#5A3ADB);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(124,92,252,0.3)}
 .ai-empty-state .aie-icon svg{color:#fff}
-.ai-empty-state h3{font-family:var(--font-sans);font-weight:800;font-size:16px;margin:0;color:var(--ink)}
-.ai-empty-state p{font-size:12px;font-weight:400;color:var(--muted);margin:0;max-width:240px;line-height:1.5}
-.ai-suggestion-chip{background:var(--card-bg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:11.5px;font-weight:500;color:var(--ink);cursor:pointer}
+.ai-empty-state h3{font-family:var(--font-serif);font-size:16px;margin:0;color:var(--ink)}
+.ai-empty-state p{font-size:12px;color:var(--muted);margin:0;max-width:240px}
+.ai-suggestion-chip{background:var(--card-bg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:11.5px;font-weight:600;color:var(--ink);cursor:pointer}
 .ai-suggestions-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
 /* ============================================================
    ICON ALIGNMENT NORMALIZATION
@@ -7032,53 +6911,10 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
    sticky at the bottom of a screen can sit on top of content, even
    on devices with a home-indicator/gesture-bar. --------------------- */
 .bottom-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 2px); }
-
-/* boot spinner (replaces the old visible loading text) */
-.boot-spinner{position:fixed;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid rgba(15,107,63,.15);border-top-color:#0F6B3F;border-radius:50%;animation:spin .7s linear infinite}
-/* labelled buttons (Back / History / WhatsApp) */
-.icon-btn.labeled{width:auto;padding:0 9px 0 5px;gap:2px;font-size:12.5px;font-weight:700;white-space:nowrap}
-.icon-btn.labeled.wa{padding:0 10px;gap:5px;color:#128C4A}
-/* pull-to-refresh indicator */
-#ptr-ind{position:fixed;top:0;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;background:var(--card-bg,#fff);box-shadow:0 3px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;z-index:9999;pointer-events:none;opacity:0;transform:translateY(-50px)}
-#ptr-ind svg{width:18px;height:18px;stroke:#0F6B3F}
-#ptr-ind.spin svg{animation:spin .7s linear infinite}
-.view{overscroll-behavior-y:contain}
-/* Account page: tighter sizing */
-.acct-hero{padding:10px 12px;margin-bottom:6px}
-.acct-hero-name{font-size:14px}
-.acct-menu-grid{gap:6px;margin-bottom:8px}
-.acct-menu-item{padding:7px 9px}
-.acct-menu-item .amicon{width:26px;height:26px;font-size:13px}
-.acct-menu-item .amii-title{font-size:11px}
-.acct-menu-item .amii-sub{font-size:8.5px}
-
-/* Account: small icons, bottom block pinned so no dead gap */
-.profile-fill{min-height:calc(var(--app-vh,100vh) - 46px - 58px - 28px)}
-.connect-social-row{margin:2px 0 6px}
-.connect-social-item{gap:2px}
-.connect-social-item .csi-icon{width:28px;height:28px;border-radius:9px}
-.connect-social-item .csi-icon svg{width:14px;height:14px}
-.connect-social-item .csi-label{font-size:8.5px}
-.acct-avatar-wrap{width:40px;height:40px}
-.acct-menu-item .amicon{width:22px;height:22px;font-size:11px;border-radius:7px}
-.acct-menu-item .amicon svg{width:13px;height:13px}
-.acct-menu-item{padding:6px 8px;gap:6px}
-.activate-feature-card .afc-icon{transform:scale(.85)}
 </style>
 </head>
 <body>
-<!-- This app is a JS-rendered single page app, so the two blocks below
-     exist purely for SEO/crawlability: real, keyword-rich text that's
-     present in the raw HTML before any JavaScript runs. The moment the
-     app mounts, render() replaces #root's contents entirely (see
-     "root.innerHTML = html" further down), so real visitors never see
-     this — it's there for Google/Bing and any bot that reads the page
-     before or without executing JS. -->
-<div id="root"><div class="boot-spinner" aria-label="Loading"></div></div>
-<noscript>
-  <h1>MyUTME – JAMB CBT Practice App for UTME</h1>
-  <p>MyUTME is a free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions from previous years, and drill topics subject by subject — with an AI Tutor available anytime you're stuck. Please enable JavaScript in your browser to use MyUTME.</p>
-</noscript>
+<div id="root"></div>
 
 <div id="pwa-ios-tip">
     <span>📲 Install: tap <b>Share</b> then <b>"Add to Home Screen"</b></span>
@@ -7102,68 +6938,7 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
      pdf.js decodes and paints the PDF onto a canvas ourselves, so it opens
      the same way on every device, with no extra tap. -->
 <script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-<script>
-// ============================================================
-//  OfflineDB READINESS SHIM
-// ------------------------------------------------------------
-// offline-db.js is loaded with `defer`, so on a slow/flaky
-// connection (exactly the situation this app's "offline" features
-// exist for) there's a window where the rest of the app can run
-// before window.OfflineDB actually exists yet — or, if the file
-// fails to load at all, window.OfflineDB never gets defined.
-// Every call site across the app does `window.OfflineDB.someFn(...)`
-// with no guard, so that shows up for users as:
-//   "Cannot read properties of undefined (reading 'getPassageBatchesOffline')"
-//   "Cannot read properties of undefined (reading 'loadQuestionsOffline')"
-// (see Admin Panel > Errors log).
-//
-// Fix: make `window.OfflineDB` a stand-in object from the very start.
-// Any method called on it before the real offline-db.js has set
-// `window.OfflineDB = {...}` is queued and waits for that to happen,
-// then forwards the call to the real implementation. Once the real
-// object is assigned, it's used directly — no extra indirection, no
-// change needed at any of the ~50 existing call sites.
-(function () {
-    var realDB = null;
-    var resolveReady;
-    var readyPromise = new Promise(function (res) { resolveReady = res; });
-    var READY_TIMEOUT_MS = 20000;
-    var timedOut = false;
-    setTimeout(function () {
-        if (!realDB) {
-            timedOut = true;
-            console.error('OfflineDB failed to become ready within ' + READY_TIMEOUT_MS + 'ms (offline-db.js may have failed to load).');
-        }
-    }, READY_TIMEOUT_MS);
-
-    var stub = new Proxy({}, {
-        get: function (target, prop) {
-            if (realDB) return realDB[prop];
-            return function () {
-                var args = arguments;
-                return readyPromise.then(function () {
-                    if (typeof realDB[prop] !== 'function') {
-                        throw new Error('OfflineDB.' + String(prop) + ' is not available.');
-                    }
-                    return realDB[prop].apply(realDB, args);
-                });
-            };
-        }
-    });
-
-    Object.defineProperty(window, 'OfflineDB', {
-        configurable: true,
-        get: function () { return realDB || stub; },
-        set: function (v) {
-            realDB = v;
-            if (timedOut) console.info('OfflineDB became available after the initial timeout; queued calls will still resolve.');
-            resolveReady();
-        }
-    });
-})();
-</script>
 <script src="offline-db.js?v=3" defer></script>
-<script src="offline-db-boost.js?v=1" defer></script>
 <script>
 // ============================================================
 //  VIEWPORT HEIGHT FIX
@@ -7246,25 +7021,8 @@ function createOfflineSupabaseStub() {
     };
 }
 
-// Offline => fail instantly (no waiting on a dead connection). Plain data
-// reads (GET) are also capped so a "connected but no internet" network can
-// never leave a screen spinning.
-function fastFetch(input, init) {
-    if (navigator.onLine === false) {
-        return Promise.reject(new TypeError('Failed to fetch (offline)'));
-    }
-    var method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
-    if (method !== 'GET' || typeof AbortController === 'undefined') return fetch(input, init);
-    var ctrl = new AbortController();
-    var t = setTimeout(function() { ctrl.abort(); }, 10000);
-    if (init && init.signal) { init.signal.addEventListener('abort', function() { ctrl.abort(); }); }
-    var opts = Object.assign({}, init || {}, { signal: ctrl.signal });
-    return fetch(input, opts).finally(function() { clearTimeout(t); });
-}
-
 function createRealSupabaseClient() {
     return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { fetch: fastFetch },
         auth: {
             persistSession: true,
             autoRefreshToken: true,
@@ -7534,7 +7292,7 @@ const GOLD = "#E4A93A";
 // generic "AI"/"Assistant" label — and are styled identically to a human
 // admin's replies (see .chat-bubble.ai/.admin), so there's no visual tell
 // between the two, only the name.
-const SUPPORT_BOT_NAME = "Support";
+const SUPPORT_BOT_NAME = "Tobi";
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/GwSJGQCaWbL0Hd4hw6Pu8W";
 const PAYSTACK_PUBLIC_KEY = "pk_live_58e6b5b2ecc81730786fb95ec444a77422a4b2b4";
@@ -7594,20 +7352,20 @@ const DEFAULT_COURSES = COURSE_EXAM_TYPES.reduce(function(list, examType) {
     return list;
 }, []);
 const HOME_TILES = [
-    { key: "cbt", label: "JAMB CBT", blurb: "Real JAMB-style practice", icon: "monitor", color: "#3B6EA5",
-        colorDark: "#274A6E" },
+    { key: "cbt", label: "JAMB CBT", blurb: "Real JAMB-style practice", icon: "monitor", color: "#2E6FF2",
+        colorDark: "#1447B3" },
     { key: "exam", label: "JAMB Past Questions", blurb: "2021–2026, one subject at a time", icon: "clipboard", color: "#E2543A",
         colorDark: "#B23420" },
-    { key: "mockexam", label: "Mock Arena", blurb: "Create or join a mock arena exam", icon: "target", color: "#6E5296",
-        colorDark: "#4A3B66" },
-    { key: "literature", label: "Novel (CBT)", blurb: "Set texts & comprehension", icon: "book", color: "#3E7C74",
-        colorDark: "#2C5850" },
+    { key: "mockexam", label: "Mock Arena", blurb: "Create or join a mock arena exam", icon: "target", color: "#8E44AD",
+        colorDark: "#5E2D8C" },
+    { key: "literature", label: "Novel (CBT)", blurb: "Set texts & comprehension", icon: "book", color: "#0E9488",
+        colorDark: "#0B6E64" },
     { key: "documents", label: "Study Materials", blurb: "Past questions & study files", icon: "folder",
-        color: "#46527A", colorDark: "#323C5C" },
+        color: "#4C5FD5", colorDark: "#2F3FAE" },
     { key: "revise", label: "Revise Weak Qs", blurb: "Retry missed questions", icon: "rotate",
         color: "#0F6B3F", colorDark: "#0A4A2B" },
     { key: "history", label: "Result Analysis", blurb: "View all your results", icon: "clock",
-        color: "#6E5296", colorDark: "#4A3B66" },
+        color: "#8E44AD", colorDark: "#5E2D8C" },
 ];
 
 const ICONS = {
@@ -8660,16 +8418,7 @@ let state = {
     activateCode: "",
     activateStatus: null,
     isLoading: false,
-    // Was "false", with a full-screen logo/"Loading…" gate shown until the
-    // real Supabase session check finished — that gate (and, before this
-    // change, the blank moment right before it appears) is exactly the
-    // "loading logo" / "flashes like it logged me out" issue reported.
-    // Defaulting to true and rendering immediately, combined with the
-    // optimistic auth hydration at the top of init() below, means a
-    // returning logged-in person sees themselves logged in from the very
-    // first paint — no gate, no flash — while checkAuthSession() still
-    // confirms/corrects it quietly in the background either way.
-    authReady: true,
+    authReady: false,
 
     authUser: null,
     authProfile: null,
@@ -9045,8 +8794,6 @@ myEnrollments: [],
 myEnrollmentsLoaded: false,
 myEnrollmentsLoading: false,
     myElectives: [], // English + up to 3 elective subject IDs — local/offline, see loadMyElectivesLocal()
-    showElectiveOnboarding: false, // first-run "pick your 3 subjects" popup shown right after signup
-    onboardingElectives: [], // subject IDs picked so far inside that popup (max 3)
     selectedCourseId: null,
     selectedSubjectId: null,
     mycAdding: false,
@@ -9820,9 +9567,21 @@ async function cacheAllDataForOffline() {
     }
 }
 
-function buildSettingsResult(rows) {
+async function loadSettings() {
+    if (!isOnline()) {
+        const cached = loadOfflineCache('settings');
+        if (cached) return cached;
+    }
+    try {
+        const { data, error } = await withNetworkTimeout(
+            supabase.from('admin_settings').select('*'), 8000, 'Settings load'
+        );
+        if (error) {
+            console.warn("Load settings error:", extractErrorMessage(error), error);
+            return loadOfflineCache('settings') || state.settingsCache;
+        }
         const settings = {};
-        (rows || []).forEach(function(s) { settings[s.setting_key] = s.setting_value; });
+        (data || []).forEach(function(s) { settings[s.setting_key] = s.setting_value; });
 
         const result = {
             cbtQuestionsPerSubject: settings.cbt_settings?.questions_per_subject || 40,
@@ -9846,39 +9605,12 @@ function buildSettingsResult(rows) {
             activationAutoEnableDate: settings.activation_auto_enable_date || null,
             faqImages: settings.faq_images || {},
         };
-    return result;
-}
-
-let _settingsInflight = null;
-async function loadSettings() {
-    // Cache-first: return what we already have instantly, refresh in background.
-    const cached = state.settingsCache || loadOfflineCache('settings');
-    function refresh() {
-        if (_settingsInflight) return _settingsInflight;
-        _settingsInflight = (async function() {
-            try {
-                const { data, error } = await withNetworkTimeout(
-                    supabase.from('admin_settings').select('*'), 8000, 'Settings load'
-                );
-                if (error) return null;
-                const result = buildSettingsResult(data);
-                state.settingsCache = result;
-                saveOfflineCache('settings', result);
-                return result;
-            } catch (e) { return null; }
-            finally { _settingsInflight = null; }
-        })();
-        return _settingsInflight;
+        state.settingsCache = result;
+        return result;
+    } catch (e) {
+        console.warn("Load settings exception:", e);
+        return state.settingsCache;
     }
-    if (cached) {
-        if (!state.settingsCache) state.settingsCache = cached;
-        if (isOnline()) refresh();
-        return cached;
-    }
-    if (!isOnline()) return buildSettingsResult([]);
-    // Nothing cached yet: wait at most ~1.5s, then use defaults.
-    const r = await Promise.race([refresh(), new Promise(function(res) { setTimeout(function() { res(null); }, 1500); })]);
-    return r || buildSettingsResult([]);
 }
 
 async function loadDocuments(filterSubject) {
@@ -10714,45 +10446,56 @@ async function resolveFlaggedQuestions(questionId) {
 // ============================================================
 //  NOTIFICATIONS
 // ============================================================
-function applyNotifRows(data) {
-    const userId = state.authUser?.id;
-    state.notifsList = (data || []).filter(function(n) {
-        const isForThisUser = !n.target_user_id || n.target_user_id === userId;
-        const hasContent = !!((n.title && n.title.trim()) || (n.body && n.body.trim()));
-        return isForThisUser && hasContent;
-    });
-    state.notifsLoaded = true;
-    state.notifsUnreadCount = state.notifsList.filter(function(n) {
-        return state.readNotifs.indexOf(n.id) === -1;
-    }).length;
-    state.notifs = state.notifsList.map(function(n) {
-        return {
-            id: n.id,
-            title: n.title,
-            body: n.body,
-            image_url: n.image_url || null,
-            time: formatTimeAgo(n.created_at),
-            unread: state.readNotifs.indexOf(n.id) === -1,
-        };
-    });
-    render();
-}
 async function loadNotifications() {
     try {
-        const { data, error } = await withNetworkTimeout(
-            supabase.from('notifications').select('*').order('created_at', { ascending: false }),
-            8000, 'Notifications load'
-        );
+        let query = supabase
+            .from('notifications')
+            .select('*')
+            .order('created_at', { ascending: false });
+            
+        const { data, error } = await query;
         if (error) {
             console.warn("Load notifications error:", error);
-            applyNotifRows(loadOfflineCache('notifs') || []);
+            state.notifsList = [];
+            state.notifsLoaded = true;
+            render();
             return;
         }
-        saveOfflineCache('notifs', data || []);
-        applyNotifRows(data);
+
+        const userId = state.authUser?.id;
+        state.notifsList = (data || []).filter(function(n) {
+            // Only count rows that (a) are actually addressed to this user
+            // (broadcast, or targeted at them specifically) and (b) are a
+            // real, populated notification — a row with no title/body isn't
+            // something anyone actually "sent", so it shouldn't be able to
+            // light up the bell badge with a number the user can never
+            // resolve by reading anything.
+            const isForThisUser = !n.target_user_id || n.target_user_id === userId;
+            const hasContent = !!((n.title && n.title.trim()) || (n.body && n.body.trim()));
+            return isForThisUser && hasContent;
+        });
+        
+        state.notifsLoaded = true;
+
+        state.notifsUnreadCount = state.notifsList.filter(function(n) {
+            return state.readNotifs.indexOf(n.id) === -1;
+        }).length;
+
+        state.notifs = state.notifsList.map(function(n) {
+            return {
+                id: n.id,
+                title: n.title,
+                body: n.body,
+                image_url: n.image_url || null,
+                time: formatTimeAgo(n.created_at),
+                unread: state.readNotifs.indexOf(n.id) === -1,
+            };
+        });
+
+        render();
     } catch (e) {
         console.warn("Load notifications exception:", e);
-        applyNotifRows(loadOfflineCache('notifs') || []);
+        state.notifsLoaded = true;
     }
 }
 
@@ -11201,21 +10944,12 @@ async function signUp(fullName, username, email, password) {
             state.profile.walletBalance = 0;
 
             state.showSignup = false;
-            syncUrlForAuth(null);
             state.signupFullName = "";
             state.signupUsername = "";
             state.signupEmail = "";
             state.signupPassword = "";
             state.signupConfirm = "";
             showToast(isActivationSystemOn() ? "Account created! You need to be activated by admin." : "Account created!", "success");
-            // Brand-new account, nothing picked yet — kick off the
-            // "choose your 3 subjects" popup right away instead of leaving
-            // Practice Hub looking empty until the person stumbles onto
-            // the Add Subject tile themselves.
-            if (!state.myElectives || state.myElectives.length === 0) {
-                state.onboardingElectives = [];
-                state.showElectiveOnboarding = true;
-            }
             setupRealtimeNotifications();
             startLastSeenHeartbeat();
             addLog(data.user.id, username, 'login', 'Signed up and logged in');
@@ -11322,7 +11056,6 @@ async function signIn(emailOrUsername, password) {
             startLastSeenHeartbeat();
 
             state.showLogin = false;
-            syncUrlForAuth(null);
             state.loginEmail = "";
             state.loginPassword = "";
             addLog(state.authUser.id, state.profile.name, 'login', 'Logged in');
@@ -11815,11 +11548,6 @@ async function loadLiveExamAttempts() {
 
 async function createLiveExam() {
     if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
-    // Guard against double-taps / rapid repeat clicks on "Create & Get Join
-    // Code" — the request can take a moment on a slow connection, and
-    // without this guard each extra tap before the first insert finishes
-    // fires its own createLiveExam() call, creating duplicate exams.
-    if (state.creatingLiveExam) return;
     if (state.settingsCache.examCreationEnabled === false && !isAdmin()) {
         showToast('Exam creation is currently turned off by the admin.', 'error');
         return;
@@ -11844,7 +11572,6 @@ async function createLiveExam() {
     const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60000 + 30 * 60000);
 
     let code = generateJoinCode();
-    state.creatingLiveExam = true;
     const { data, error } = await supabase.from('live_exams').insert([{
         created_by: state.authUser.id,
         creator_username: state.profile.name,
@@ -11866,7 +11593,6 @@ async function createLiveExam() {
         results_released: true,
     }]).select().single();
 
-    state.creatingLiveExam = false;
     if (error) { showNetworkAwareError('Error creating exam: ' + error.message, error); return; }
     if (!f.isPublic) {
         state.lastCreatedJoinCode = code;
@@ -13859,8 +13585,7 @@ async function loadAiSessions() {
             .select('*')
             .eq('user_id', state.authUser.id)
             .order('updated_at', { ascending: false });
-        if (!error) saveOfflineCache('aiSessions_' + state.authUser.id, data || []);
-        state.aiSessions = error ? (loadOfflineCache('aiSessions_' + state.authUser.id) || []) : (data || []);
+        state.aiSessions = error ? [] : (data || []);
         state.aiSessionsLoaded = true;
 
         // Note: deliberately NOT auto-resuming the most recent session here.
@@ -13875,7 +13600,7 @@ async function loadAiSessions() {
         }
         render();
     } catch (e) {
-        state.aiSessions = (state.authUser && loadOfflineCache('aiSessions_' + state.authUser.id)) || [];
+        state.aiSessions = [];
         state.aiSessionsLoaded = true;
         render();
     }
@@ -14057,19 +13782,7 @@ async function sendAiMessage(text, questionContext) {
     const msg = (text || '').trim();
     const pendingImage = state.aiPendingImage;
     const pendingDocument = state.aiPendingDocument;
-    if (!state.authUser) {
-        // Guests can open and look around AI Tutor, but actually sending a
-        // message needs an account (chats are saved per-user, and the AI
-        // backend requires a real user id) — prompt instead of silently
-        // doing nothing when they tap send.
-        showToast('Create a free account to chat with AI Tutor.', 'error');
-        state.showSignup = true;
-        state.showLogin = false;
-        syncUrlForAuth('signup');
-        render();
-        return;
-    }
-    if ((!msg && !pendingImage && !pendingDocument) || state.aiSending) return;
+    if ((!msg && !pendingImage && !pendingDocument) || !state.authUser || state.aiSending) return;
     if (blockIfOffline("No internet connection. Please try again.")) return;
     const trialCheck = trialAiRateLimitCheck();
     if (!trialCheck.allowed) {
@@ -14404,26 +14117,8 @@ function generateAiSupportReply(userText, issueKey) {
 // instead of showing a generic "I don't understand" message. The message
 // is wrapped with support context so the model knows this is a support
 // conversation, not a study question.
-// Support chat kept answering actual JAMB subject questions the same way
-// AI Tutor would (e.g. "what is Newton's third law") instead of staying
-// scoped to account/payment/app issues — because the fallback below asks
-// the same AI backend used by AI Tutor, and it doesn't reliably honor the
-// "support only" instruction in the prompt on its own. Catching the
-// obvious case client-side, before ever calling that backend, is a much
-// more reliable fix than hoping the model stays in scope.
-const SUPPORT_OFF_TOPIC_HINTS = [
-    'solve', 'calculate', 'differentiat', 'integrat', 'simplify', 'factoriz', 'factoris',
-    'equation', 'theorem', 'photosynthesis', 'mitosis', 'velocity', 'balance the equation',
-    'what is the capital', 'who wrote', 'define ', 'explain the', 'physics', 'chemistry',
-    'biology', 'mathematics', 'economics', 'government', 'literature', 'geography',
-    'commerce', 'accounting', 'crs', 'irs', 'english language', 'essay', 'grammar',
-    'syllabus', 'jamb syllabus', 'past question', 'mock question', 'topic question',
-];
-function looksLikeStudyQuestion(text) {
-    const t = (text || '').toLowerCase();
-    return SUPPORT_OFF_TOPIC_HINTS.some(function(k) { return t.indexOf(k) !== -1; });
-}
-async function generateSmartSupportReply(userText) {    const context = 'You are MyUTME Support, a friendly help-desk assistant for the JAMB CBT practice app "MyUTME". ' +
+async function generateSmartSupportReply(userText) {
+    const context = 'You are MyUTME Support, a friendly help-desk assistant for the JAMB CBT practice app "MyUTME". ' +
         'Only answer questions about the app itself: account activation, license keys, payments (Paystack or manual transfer), ' +
         'login/password, mock exams, scores, offline mode, or bugs. Be concise (2-4 sentences), practical, and reassuring. ' +
         'If the question is outside what you can resolve, or you are not confident, say so plainly and let the user know a ' +
@@ -14493,16 +14188,6 @@ async function sendSupportMessage(text, issueKey) {
         state.supportMessages = state.supportMessages.filter(function(m) { return !m.isTyping; });
 
         let ai = generateAiSupportReply(msg, issueKey);
-        if (!ai && looksLikeStudyQuestion(msg)) {
-            // A real subject/study question — that's what AI Tutor is
-            // for, not Support. Answer it here would be exactly the
-            // "Support answering like AI chat" mix-up, so redirect
-            // instead of ever calling the AI backend for this one.
-            ai = {
-                text: "That looks like a study question rather than an account/app issue — head over to AI Tutor (bottom nav) for help with that! I'm here for payments, activation, login, and app problems. 🙂",
-                escalate: false,
-            };
-        }
         if (!ai) {
             // Nothing matched our quick rules — ask the real AI backend for a proper answer.
             ai = await generateSmartSupportReply(msg);
@@ -14709,130 +14394,91 @@ async function startCbt() {
     const perSubject = state.cbtQuestionCount || 25;
     state.cbtEngBatch = null;
 
-    // FIX: this whole load used to run with no timeout or error handling —
-    // if any OfflineDB call hung or rejected (slow/broken IndexedDB, a
-    // stalled sync, etc), state.isLoading was NEVER reset back to false and
-    // the "Loading questions..." overlay stayed on screen forever with no
-    // way out. Wrapping in try/catch/finally (same pattern already used in
-    // startLiteratureCbt) guarantees the overlay always clears, and each
-    // OfflineDB call gets a timeout so one stuck promise can't hang the
-    // whole flow indefinitely.
-    try {
-        for (const subject of subjects) {
-            if (!subject) continue;
-            let qs = [];
+    for (const subject of subjects) {
+        let qs = [];
 
-            if (subject.id === 'eng') {
-                // ====== FIX: pick ONE batch and use that SAME batch's passage
-                // + that SAME batch's questions together, so they can never
-                // mismatch. This pool/tracker is CBT-specific (mode: 'cbt'),
-                // kept separate from the Mock Arena's own 'mock' pool/tracker
-                // so running CBT and Mock never steal each other's batches. ======
-                let cbtBatches = [];
-                try {
-                    cbtBatches = await withNetworkTimeout(
-                        window.OfflineDB.getPassageBatchesOffline('eng', 'cbt'),
-                        2000, 'English passage batches load'
-                    );
-                } catch (e) {
-                    console.warn('CBT English batch load timed out or failed:', e);
-                    cbtBatches = [];
+        if (subject.id === 'eng') {
+            // ====== FIX: pick ONE batch and use that SAME batch's passage
+            // + that SAME batch's questions together, so they can never
+            // mismatch. This pool/tracker is CBT-specific (mode: 'cbt'),
+            // kept separate from the Mock Arena's own 'mock' pool/tracker
+            // so running CBT and Mock never steal each other's batches. ======
+            const cbtBatches = await window.OfflineDB.getPassageBatchesOffline('eng', 'cbt');
+            let engQuestionsLoaded = false;
+
+            if (cbtBatches && cbtBatches.length > 0) {
+                const completedKey = 'eng_cbt_completed_' + state.authUser.id;
+                let completedBatches = JSON.parse(storage.get(completedKey) || '[]');
+
+                let availableBatches = cbtBatches.filter(function(bn) { return completedBatches.indexOf(bn) === -1; });
+                if (availableBatches.length === 0) {
+                    storage.set(completedKey, JSON.stringify([]));
+                    availableBatches = cbtBatches.slice();
                 }
-                let engQuestionsLoaded = false;
 
-                if (cbtBatches && cbtBatches.length > 0) {
-                    const completedKey = 'eng_cbt_completed_' + state.authUser.id;
-                    let completedBatches = JSON.parse(storage.get(completedKey) || '[]');
+                // Shuffle which batch we try first, so it's not always
+                // the same one — but questions ALWAYS come from whichever
+                // batch we end up selecting, never a different one.
+                const batchTryOrder = shuffleArray(availableBatches);
+                const allEngQuestions = await window.OfflineDB.loadQuestionsOffline('cbt', 'eng');
 
-                    let availableBatches = cbtBatches.filter(function(bn) { return completedBatches.indexOf(bn) === -1; });
-                    if (availableBatches.length === 0) {
-                        storage.set(completedKey, JSON.stringify([]));
-                        availableBatches = cbtBatches.slice();
-                    }
+                for (const selectedBatch of batchTryOrder) {
+                    const qData = allEngQuestions
+                        .filter(function(q) { return q.batch_number === selectedBatch; })
+                        .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
+                        .slice(0, perSubject);
 
-                    // Shuffle which batch we try first, so it's not always
-                    // the same one — but questions ALWAYS come from whichever
-                    // batch we end up selecting, never a different one.
-                    const batchTryOrder = shuffleArray(availableBatches);
-                    const allEngQuestions = await withNetworkTimeout(
-                        window.OfflineDB.loadQuestionsOffline('cbt', 'eng'),
-                        2000, 'English questions load'
-                    );
+                    if (qData.length > 0) {
+                        const passage = await window.OfflineDB.getPassageOffline(selectedBatch, 'cbt');
 
-                    for (const selectedBatch of batchTryOrder) {
-                        const qData = allEngQuestions
-                            .filter(function(q) { return q.batch_number === selectedBatch; })
-                            .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
-                            .slice(0, perSubject);
+                        state.cbtEngBatch = selectedBatch;
+                        storage.set('eng_cbt_tracker_' + state.authUser.id, String(selectedBatch));
 
-                        if (qData.length > 0) {
-                            const passage = await withNetworkTimeout(
-                                window.OfflineDB.getPassageOffline(selectedBatch, 'cbt'),
-                                2000, 'English passage load'
-                            );
-
-                            state.cbtEngBatch = selectedBatch;
-                            storage.set('eng_cbt_tracker_' + state.authUser.id, String(selectedBatch));
-
-                            if (passage) {
-                                state.currentEnglishPassage = passage;
-                                state.hasPassage = true;
-                                state.passageRead = false;
-                                state.passageQuestionIds = qData.map(function(q) { return q.id; });
-                            } else {
-                                state.currentEnglishPassage = null;
-                                state.hasPassage = false;
-                                state.passageRead = true;
-                                state.passageQuestionIds = [];
-                            }
-
-                            qs = qData;
-                            engQuestionsLoaded = true;
-                            break;
+                        if (passage) {
+                            state.currentEnglishPassage = passage;
+                            state.hasPassage = true;
+                            state.passageRead = false;
+                            state.passageQuestionIds = qData.map(function(q) { return q.id; });
+                        } else {
+                            state.currentEnglishPassage = null;
+                            state.hasPassage = false;
+                            state.passageRead = true;
+                            state.passageQuestionIds = [];
                         }
+
+                        qs = qData;
+                        engQuestionsLoaded = true;
+                        break;
                     }
                 }
-
-                if (!engQuestionsLoaded) {
-                    state.currentEnglishPassage = null;
-                    state.hasPassage = false;
-                    state.passageRead = true;
-                    state.passageQuestionIds = [];
-                    state.cbtEngBatch = null;
-
-                    qs = await withNetworkTimeout(
-                        window.OfflineDB.loadQuestionsOffline('cbt', 'eng'),
-                        2000, 'English questions load'
-                    );
-                    qs = shuffleArray(qs).slice(0, perSubject);
-                }
-                // ====== END FIX ======
-            } else {
-                qs = await withNetworkTimeout(
-                    window.OfflineDB.loadQuestionsOffline('cbt', subject.id),
-                    2000, subject.name + ' questions load'
-                );
-                qs = shuffleArray(qs).slice(0, perSubject);
             }
 
-            const qsWithSubject = (qs || []).map(function(q) {
-                return Object.assign({}, q, { subject_name: subject.name });
-            });
-            allQuestions = allQuestions.concat(qsWithSubject);
+            if (!engQuestionsLoaded) {
+                state.currentEnglishPassage = null;
+                state.hasPassage = false;
+                state.passageRead = true;
+                state.passageQuestionIds = [];
+                state.cbtEngBatch = null;
+
+                qs = await window.OfflineDB.loadQuestionsOffline('cbt', 'eng');
+                qs = shuffleArray(qs).slice(0, perSubject);
+            }
+            // ====== END FIX ======
+        } else {
+            qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id);
+            qs = shuffleArray(qs).slice(0, perSubject);
         }
-    } catch (e) {
-        console.warn('CBT question load failed:', e);
-        state.isLoading = false;
-        showNetworkAwareError('Could not load questions. Please try again.', e);
-        render();
-        return;
-    } finally {
-        state.isLoading = false;
+        
+        const qsWithSubject = qs.map(function(q) {
+            return Object.assign({}, q, { subject_name: subject.name });
+        });
+        allQuestions = allQuestions.concat(qsWithSubject);
     }
 
+    state.isLoading = false;
+            
     if (allQuestions.length === 0) {
         showToast('No questions available for these subjects.', 'error');
-        render();
         return;
     }
 
@@ -14897,7 +14543,7 @@ async function startLiteratureCbt() {
     try {
         questions = await withNetworkTimeout(
             window.OfflineDB.loadQuestionsOffline('NOVEL (CBT)', 'lhm', null, perBatch),
-            2000, 'Novel questions load'
+            15000, 'Novel questions load'
         );
     } catch (e) {
         console.warn('Novel (CBT) load timed out or failed:', e);
@@ -14909,10 +14555,10 @@ async function startLiteratureCbt() {
     // from the server before giving up, instead of hanging or failing silently.
     if ((!questions || questions.length === 0) && window.OfflineDB && typeof window.OfflineDB.syncAllSubjectFiles === 'function') {
         try {
-            await withNetworkTimeout(window.OfflineDB.syncAllSubjectFiles(['lhm']), 2000, 'Novel file sync');
+            await withNetworkTimeout(window.OfflineDB.syncAllSubjectFiles(['lhm']), 15000, 'Novel file sync');
             questions = await withNetworkTimeout(
                 window.OfflineDB.loadQuestionsOffline('NOVEL (CBT)', 'lhm', null, perBatch),
-                2000, 'Novel questions reload'
+                15000, 'Novel questions reload'
             );
         } catch (e) {
             console.warn('Novel (CBT) sync/retry failed:', e);
@@ -14984,28 +14630,11 @@ async function startExam() {
     render();
     
     const s = SUBJECTS.find(function(x) { return x.id === state.examSubject; });
-    // FIX: same class of bug as startCbt — this had no timeout or error
-    // handling, so a hung/rejected OfflineDB call left state.isLoading
-    // stuck true forever with the overlay frozen on screen. Wrapped with
-    // withNetworkTimeout + try/catch so it always resolves one way or
-    // another and the overlay always clears.
-    let questions = [];
-    try {
-        questions = await withNetworkTimeout(
-            window.OfflineDB.loadQuestionsOffline('exam', state.examSubject, state.examYear),
-            2000, 'Exam questions load'
-        );
-    } catch (e) {
-        console.warn('Exam question load failed:', e);
-        state.isLoading = false;
-        showNetworkAwareError('Could not load questions. Please try again.', e);
-        render();
-        return;
-    }
+    let questions = await window.OfflineDB.loadQuestionsOffline('exam', state.examSubject, state.examYear);
     state.isLoading = false;
     render();
     
-    if (!questions || questions.length === 0) {
+    if (questions.length === 0) {
         showToast('No questions uploaded for this subject and year yet.', 'error');
         return;
     }
@@ -15079,29 +14708,11 @@ async function startTopicPractice() {
     render();
     
     const settings = await loadSettings();
-    // FIX: same class of bug as startCbt — this had no timeout or error
-    // handling, so a hung/rejected OfflineDB call left state.isLoading
-    // stuck true forever with the overlay frozen on screen. Wrapped with
-    // withNetworkTimeout + try/catch so it always resolves one way or
-    // another and the overlay always clears.
-    let questions = [];
-    try {
-        questions = await withNetworkTimeout(
-            window.OfflineDB.getTopicQuestionsOffline(state.topicId, TOPIC_SESSION_SIZE),
-            2000, 'Topic questions load'
-        );
-    } catch (e) {
-        console.warn('Topic question load failed:', e);
-        state.isLoading = false;
-        showNetworkAwareError('Could not load questions. Please try again.', e);
-        render();
-        return;
-    }
+    const questions = await window.OfflineDB.getTopicQuestionsOffline(state.topicId, TOPIC_SESSION_SIZE);
     state.isLoading = false;
 
-    if (!questions || questions.length === 0) {
+    if (questions.length === 0) {
         showToast('No questions for this topic yet.', 'error');
-        render();
         return;
     }
 
@@ -15633,58 +15244,6 @@ function downloadAnalyticsSummaryPdf() {
 // ============================================================
 //  RENDER HELPERS FOR MODALS
 // ============================================================
-// ============================================================
-//  FIRST-RUN ELECTIVE ONBOARDING — shown once, right after signup, so a
-//  brand-new account picks its subject combo immediately instead of
-//  landing on an empty Practice Hub. English is compulsory and always
-//  included; the person picks exactly 3 electives here. Everything this
-//  writes to (state.myElectives / saveMyElectivesLocal) is the exact same
-//  data Practice Hub's Add/Remove/Swap already reads and edits, so the 4
-//  subjects chosen here show up there immediately and stay fully
-//  re-editable afterwards.
-// ============================================================
-function renderElectiveOnboardingModal() {
-    if (!state.showElectiveOnboarding) return '';
-    const picked = state.onboardingElectives || [];
-    const available = SUBJECTS.filter(function(s) { return s.id !== 'eng' && s.id !== 'lhm'; });
-    const chips = available.map(function(s) {
-        const isSel = picked.indexOf(s.id) !== -1;
-        const disabled = !isSel && picked.length >= 3;
-        return (
-            '<button type="button" class="myc-picker-opt' + (isSel ? ' active' : '') + '" ' +
-            'data-action="onboarding-toggle-elective" data-subjectid="' + s.id + '" ' +
-            (disabled ? 'disabled style="opacity:.4"' : '') +
-            ' style="display:flex;align-items:center;justify-content:space-between;gap:8px' + (disabled ? ';opacity:.4' : '') + '">' +
-            '<span style="display:flex;align-items:center;gap:8px">' +
-            '<span class="myc-sc-badge" style="position:static;background:' + s.color + '20;color:' + s.color + '">' + esc(s.code) + '</span>' +
-            '<span>' + esc(s.name) + '</span>' +
-            '</span>' +
-            (isSel ? '<span style="font-size:11px;font-weight:800;color:var(--green)">✓ Selected</span>' : '') +
-            '</button>'
-        );
-    }).join('');
-
-    return (
-        '<div class="submit-overlay" data-action="prevent-close">' +
-        '<div class="submit-modal" data-action="prevent-close" style="max-height:85vh;overflow-y:auto">' +
-        '<p style="font-weight:800;font-size:16px;margin-bottom:4px">Choose your subjects</p>' +
-        '<p style="font-size:12px;color:var(--muted);margin-bottom:12px">English is compulsory and already included. Pick exactly 3 more — you can add, remove or swap any of them later in Practice Hub.</p>' +
-        '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--green-light);margin-bottom:10px">' +
-        '<span class="myc-sc-badge" style="position:static;background:var(--green);color:#fff">ENG</span>' +
-        '<span style="font-size:13px;font-weight:700">English Language</span>' +
-        '<span style="margin-left:auto;font-size:11px;color:var(--green);font-weight:700">Compulsory</span>' +
-        '</div>' +
-        '<p style="font-size:11px;color:var(--muted);margin-bottom:6px">' + picked.length + '/3 selected</p>' +
-        '<div class="myc-picker-grid">' + chips + '</div>' +
-        '<button type="button" class="btn btn-green" style="width:100%;margin-top:14px" ' +
-        (picked.length === 3 ? '' : 'disabled') +
-        ' data-action="onboarding-confirm-electives">Continue' + (picked.length === 3 ? '' : ' (' + (3 - picked.length) + ' more to pick)') + '</button>' +
-        '<button type="button" class="btn btn-outline" style="width:100%;margin-top:8px" data-action="onboarding-skip-electives">Skip for now</button>' +
-        '</div>' +
-        '</div>'
-    );
-}
-
 function renderMockRegisterModal() {
     if (!state.showMockRegisterModal) return '';
     const selected = state.mockSelectedSubjects || [];
@@ -15697,12 +15256,12 @@ function renderMockRegisterModal() {
     return (
         '<div class="submit-overlay" data-action="mock-reg-cancel">' +
         '<div class="submit-modal" data-action="prevent-close">' +
-        '<p style="font-weight:700;font-size:14px;margin-bottom:8px">Choose Your Subject</p>' +
+        '<p style="font-weight:700;font-size:14px;margin-bottom:8px">Register for Mock Exam</p>' +
         '<p style="font-size:11px;color:var(--muted);margin-bottom:6px">Pick the subject you want to attempt (' + selected.length + '/1)</p>' +
         '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">' + chips + '</div>' +
         '<div style="display:flex;gap:8px">' +
         '<button type="button" class="btn btn-outline" style="flex:1" data-action="mock-reg-cancel">Cancel</button>' +
-        '<button type="button" class="btn btn-gold" style="flex:1" data-action="mock-reg-confirm">Start</button>' +
+        '<button type="button" class="btn btn-gold" style="flex:1" data-action="mock-reg-confirm">Register</button>' +
         '</div>' +
         '</div>' +
         '</div>'
@@ -16054,54 +15613,7 @@ function flushReviseReloadIfNeeded() {
     }
 }
 
-// ============================================================
-//  URL ROUTING (GitHub Pages) — gives the handful of main sections a
-//  real, distinct, shareable URL (e.g. /ai-tutor, /account) instead of
-//  everything living at "/" behind JS state. This is what lets Google
-//  discover and offer them as sitelinks, and lets a shared link open
-//  straight to that section. Only these few top-level destinations are
-//  routed — every other internal view (exam-taking, admin, etc.) is
-//  left exactly as it was, still just JS state with no URL of its own.
-//  Deep-link query params like ?examlink=... are handled elsewhere and
-//  always take priority over this.
-// ============================================================
-const NAV_PATH_MAP = {
-    'home': '/',
-    'ai-assistant': '/ai-tutor',
-    'mysubjects': '/practice-hub',
-    'mockexam': '/mock-arena',
-    'profile': '/account',
-};
-const PATH_TO_NAV_VIEW = {};
-Object.keys(NAV_PATH_MAP).forEach(function(k) { PATH_TO_NAV_VIEW[NAV_PATH_MAP[k]] = k; });
-
-function pathForView(v) {
-    return NAV_PATH_MAP.hasOwnProperty(v) ? NAV_PATH_MAP[v] : null;
-}
-
-// Pushes a clean URL for one of the routable sections above. Silently
-// does nothing for any other view — those never had a URL of their own
-// and this leaves them exactly as before.
-function syncUrlForView(v) {
-    const path = pathForView(v);
-    if (!path) return;
-    if (window.location.pathname === path) return;
-    try { history.pushState({ myutmeView: v }, '', path); } catch (e) {}
-}
-
-// Login/signup are modals, not separate views, but they still deserve
-// their own /login and /signup URLs. Pass null to close — that just
-// restores whatever the current section's URL should be.
-function syncUrlForAuth(kind) {
-    try {
-        if (kind === 'login') history.pushState({ myutmeAuth: 'login' }, '', '/login');
-        else if (kind === 'signup') history.pushState({ myutmeAuth: 'signup' }, '', '/signup');
-        else syncUrlForView(state.view);
-    } catch (e) {}
-}
-
-function setView(v, navOpts) {
-    navOpts = navOpts || {};
+function setView(v) {
     // Only Mock Exam auto-submits when the candidate navigates away to
     // another page in the app — it's the live, invigilated arena exam, so
     // leaving is treated as leaving the room. Every other timed mode
@@ -16218,7 +15730,6 @@ function setView(v, navOpts) {
         loadStudyReminder();
     }
     saveSessionSnapshot();
-    if (!navOpts.fromPopstate) syncUrlForView(v);
     render();
 }
 
@@ -16260,20 +15771,6 @@ window.addEventListener('popstate', function() {
     if (state.viewingDocument || state.viewingImage) {
         closeOverlay(true);
     }
-    // Browser back/forward between one of our routed sections (or the
-    // login/signup URLs) — reflect it in app state instead of just
-    // changing the address bar with nothing on screen matching it.
-    const path = window.location.pathname;
-    if (path === '/login' || path === '/signup') {
-        state.showLogin = (path === '/login');
-        state.showSignup = (path === '/signup');
-        render();
-        return;
-    }
-    const v = PATH_TO_NAV_VIEW[path];
-    if (v && v !== state.view) {
-        setView(v, { fromPopstate: true });
-    }
     // If no overlay is open, there's nothing for us to intercept — let the
     // browser's default back navigation proceed normally.
 });
@@ -16294,15 +15791,17 @@ function renderNow() {
         return;
     }
 
-    // The blocking "rolling circle" boot spinner that used to sit here has
-    // been removed on purpose: the app must be usable immediately from
-    // local/cached data regardless of network state (mobile data on/off,
-    // poor signal, or a failed/slow Supabase request). The auth session
-    // check (see checkAuthSession()) now resolves quietly in the
-    // background and simply re-renders once it's done — the person is
-    // treated as logged-out until then, which is a normal, interactive
-    // state rather than a frozen loading screen that could get stuck open
-    // during a network error.
+    if (false) {
+        // The blocking "rolling circle" boot spinner has been removed on
+        // purpose: the app must be usable immediately from local/cached
+        // data regardless of network state (mobile data on/off, poor
+        // signal, or a failed/slow Supabase request). The auth session
+        // check (see checkAuthSession()) now resolves quietly in the
+        // background and simply re-renders once it's done — the person
+        // is treated as logged-out until then, which is a normal,
+        // interactive state rather than a frozen loading screen.
+        return;
+    }
 
     const SCROLL_PRESERVE_SELECTORS = [
         '.view',
@@ -16400,18 +15899,14 @@ function renderNow() {
     // set state.view to the guest entry screen — got overridden right back
     // to the login/signup gate below, which is the bug where a shared exam
     // link opened "Create account" instead of the exam.
-    //
-    // 'home' and 'ai-assistant' are also allowed so a guest can actually
-    // look around the app and try AI Tutor before ever creating an
-    // account — Practice Hub, Mock Arena and Account still gate behind
-    // login, and AI Tutor itself still requires an account the moment a
-    // guest tries to actually send a message (see sendAiMessage()).
-    const GUEST_ALLOWED_VIEWS = ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check', 'home', 'ai-assistant'];
+    const GUEST_ALLOWED_VIEWS = ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check'];
     const onGuestAllowedView = GUEST_ALLOWED_VIEWS.indexOf(state.view) !== -1 || state.isGuestMock;
 
     let html;
     if (state.showFaq) {
         html = renderFaqPage();
+    } else if (!state.authReady) {
+        html = renderAuthChecking();
     } else if (!state.authUser && !onGuestAllowedView) {
         html = renderAuthGate();
     } else {
@@ -16438,9 +15933,6 @@ function renderNow() {
     }
     if (state.showMockRegisterModal) {
         html += __modalWrap('mockReg', true, renderMockRegisterModal());
-    }
-    if (state.showElectiveOnboarding) {
-        html += __modalWrap('electiveOnboarding', true, renderElectiveOnboardingModal());
     }
     if (state.showExamAwayModal) {
         html += __modalWrap('examAway', true, renderExamAwayModal());
@@ -16558,11 +16050,25 @@ function renderSplash() {
     );
 }
 
-// The "Loading…" logo gate that used to live here has been removed
-// entirely — state.authReady now defaults to true and
-// hydrateAuthFromCache() (see init()) restores a returning user's login
-// state before the first paint, so there's nothing left to show a
-// waiting screen for.
+// Shown only for the brief moment on app open between init() rendering
+// the shell and checkAuthSession() resolving. Without this, a returning
+// logged-in person would flash the "log in / sign up" gate for a beat on
+// every reopen (state.authUser starts null until the session check
+// finishes) — which reads as "it logged me out", and then looks like it
+// "auto logs in" the moment they tap into the login form, purely because
+// the real check happened to land right after. Showing a neutral loading
+// state instead of the auth gate until authReady is true removes that
+// false impression entirely.
+function renderAuthChecking() {
+    return (
+        '<div id="app-shell"><div id="app-inner" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)">' +
+        '<div style="text-align:center">' +
+        '<div style="margin-bottom:14px">' + logoSvg(56) + '</div>' +
+        '<p style="font-size:12px;color:var(--muted)">Loading…</p>' +
+        '</div>' +
+        '</div></div>'
+    );
+}
 
 function renderUnderConstruction() {
     const settings = state.settingsCache;
@@ -16839,7 +16345,7 @@ function renderFaqImageUploadModal() {
         '<div class="faq-img-upload-modal" data-action="prevent-close">' +
         '<h3 style="font-family:var(--font-serif);margin:0 0 4px;font-size:16px;color:var(--ink)">' + svg('image', 16) + ' ' +
         esc(feature ? feature.title : 'Feature image') + '</h3>' +
-        '<p class="sub" style="font-size:11px;margin:0 0 4px">Upload a screenshot or image for this feature.</p>' +
+        '<p class="sub" style="font-size:12px;margin:0 0 4px">Upload a screenshot or image for this feature.</p>' +
         '<div class="faq-img-upload-preview">' +
         (previewUrl ? '<img src="' + esc(previewUrl) + '" alt="Preview" />' : svg('image', 34)) +
         '</div>' +
@@ -16860,7 +16366,7 @@ function renderFaqImageUploadModal() {
 // except Home. Home keeps its own colored brand header separately.
 const PAGE_TITLES = {
     'mysubjects': 'Practice Hub',
-    'ai-assistant': 'MyUTME AI Tutor',
+    'ai-assistant': 'AI Tutor',
     'mockexam': 'Mock Arena',
     'profile': 'Account',
     'profile-edit': 'Edit Profile',
@@ -16927,19 +16433,6 @@ function renderApp() {
         'mock-exam': state.mockFinished || state.mockSubmitted,
     };
     const isExamTaking = EXAM_TAKING_VIEWS.indexOf(state.view) !== -1 && !EXAM_RESULT_SHOWING[state.view];
-    // AI Tutor gets its own minimal, "free app" style bar: just a menu
-    // (3-dash) button that opens chat history (new chat + past chats)
-    // and a small title — no notification bell, no refresh button, no
-    // profile avatar, and no separate in-page header duplicating this.
-    // This, plus hiding the bottom nav below, frees up real space for
-    // the conversation and keeps AI Tutor from feeling oversized.
-    const isAiAssistant = state.view === 'ai-assistant';
-    // Support gets the exact same fullscreen, minimal-topbar treatment as
-    // AI Tutor now (back button + small title, bottom nav hidden) instead
-    // of the old half-and-half layout that kept the bottom nav and a big
-    // duplicate in-page header.
-    const isSupportChat = state.view === 'support';
-    const isFullPageChat = isAiAssistant || isSupportChat;
 
     let leftContent = '';
 
@@ -16988,22 +16481,6 @@ function renderApp() {
         (isExamTaking
             ? '<div class="topbar-left"><span class="page-name">MyUTME</span></div>' +
               '<div class="topbar-center"></div><div class="topbar-right"></div>'
-            : isAiAssistant
-            ? '<div class="topbar-left">' +
-              '<button class="icon-btn labeled" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '<span>Back</span></button>' +
-              '<span class="page-name" style="margin-left:2px">MyUTME AI Tutor</span>' +
-              '</div>' +
-              '<div class="topbar-center"></div><div class="topbar-right">' +
-              '<button class="icon-btn labeled" data-action="ai-toggle-history" aria-label="Chat history">' + svg('menu', 17) + '<span>History</span></button>' +
-              '</div>'
-            : isSupportChat
-            ? '<div class="topbar-left">' +
-              '<button class="icon-btn labeled" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '<span>Back</span></button>' +
-              '<span class="page-name" style="margin-left:2px">Support</span>' +
-              '</div>' +
-              '<div class="topbar-center"></div><div class="topbar-right">' +
-              (isLoggedIn ? '<button class="icon-btn labeled wa" data-action="open-support-whatsapp" aria-label="Chat on WhatsApp">' + svg('whatsapp', 18) + '<span>WhatsApp</span></button>' : '') +
-              '</div>'
             : isHome
             ? '<div class="topbar-left">' +
               '<button class="icon-btn topbar-refresh-btn" data-action="app-refresh" aria-label="Refresh">' +
@@ -17022,8 +16499,8 @@ function renderApp() {
               rightContent + '</div>'
         ) +
         '</div>' +
-        '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + (isFullPageChat ? ' view-nonav' : '') + (PICKER_SCREEN_VIEWS.indexOf(state.view) !== -1 ? ' view-picker' : '') + '"><div class="view-content' + (__consumeViewChangeFlag() ? ' view-enter' : '') + '">' + renderView() + '</div></div>' +
-        ((isExamTaking || isFullPageChat) ? '' : renderBottomNav()) +
+        '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + (PICKER_SCREEN_VIEWS.indexOf(state.view) !== -1 ? ' view-picker' : '') + '"><div class="view-content' + (__consumeViewChangeFlag() ? ' view-enter' : '') + '">' + renderView() + '</div></div>' +
+        (isExamTaking ? '' : renderBottomNav()) +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
         (state.viewingImage ? (
             '<div class="ai-history-overlay" style="z-index:200;align-items:center;justify-content:center;padding:20px" data-action="close-image-viewer">' +
@@ -17238,39 +16715,37 @@ const atMax = mySubjectIds.length === 4;
         { view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
         { view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#3E7C74' },
         { view: 'revise', label: 'Revise Weak', sub: 'Retry missed Qs', icon: 'rotate', tint: '#0F6B3F' },
-        { view: 'topic', label: 'Topic Practice', sub: 'Read notes or take a CBT', icon: 'list', tint: '#6B4F82' },
+        { view: 'topic', label: 'Topic Practice', sub: 'Read notes or take a CBT', icon: 'list', tint: '#7C5CFC' },
         { view: 'documents', label: 'Study Materials', sub: 'Past Q & files', icon: 'folder', tint: '#46527A' },
     ];
     let modeGrid = '<div class="ph-mode-list">';
     modes.forEach(function(m) {
-        // Each Practice Mode card now carries its own tint as a real
-        // colored card (soft tinted background + matching left edge),
-        // not just a small colored icon bubble on an otherwise plain
-        // white row.
         modeGrid += (
-            '<button class="ph-mode-card" style="--tint:' + m.tint + ';background:' + m.tint + '14;border-color:' + m.tint + '40" data-action="set-view" data-view="' + m.view + '">' +
-            '<span class="ph-mode-icon" style="background:' + m.tint + '26;color:' + m.tint + '">' + svg(m.icon, 22) + '</span>' +
+            '<button class="ph-mode-card" data-action="set-view" data-view="' + m.view + '">' +
+            '<span class="ph-mode-icon" style="background:' + m.tint + '1A;color:' + m.tint + '">' + svg(m.icon, 22) + '</span>' +
             '<span class="ph-mode-text"><span class="ph-mode-label">' + esc(m.label) + '</span><span class="ph-mode-sub">' + esc(m.sub) + '</span></span>' +
-            '<span class="ph-mode-chevron" style="color:' + m.tint + '">' + svg('chevleft', 16).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>' +
+            '<span class="ph-mode-chevron">' + svg('chevleft', 16).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>' +
             '</button>'
         );
     });
     modeGrid += '</div>';
 
-    // The old green gradient hero (with glow + "Your subjects & practice
-    // modes" title) has been removed entirely — the topbar already shows
-    // "Practice Hub" as the page title, so this was just repeating it
-    // while eating a big chunk of vertical space. Only a slim status
-    // line remains, and only when something actually needs attention.
-    const slimStatus = isOverLimit
-        ? '<p class="ph-slim-status ph-slim-warn">⚠️ ' + mySubjectIds.length + ' subjects enrolled — remove ' + excessCount + ' to get back to 4.</p>'
-        : '';
-
     return (
-        slimStatus +
-        '<div class="myc-subject-grid">' + subjectCards + addTile + '</div>' +
+        '<div class="myc-hero">' +
+        '<div class="glow3"></div>' +
+        '<p class="hi">Your subjects & practice modes</p>' +
+        '<p class="name" style="font-size:20px">Practice Hub</p>' +
+        '<p style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:4px;position:relative;z-index:1">' +
+        (isOverLimit
+            ? '⚠️ You have ' + mySubjectIds.length + ' subjects enrolled — ' + excessCount + ' too many. Tap "Remove Subject" below until you are back to exactly 4.'
+            : (atMax
+                ? 'English + your 3 electives. You can remove or swap any subject any time.'
+                : 'English + exactly 3 electives. You can remove or swap any subject any time.')) +
+        '</p>' +
+        '</div>' +
+        '<div class="myc-subject-strip">' + subjectCards + addTile + '</div>' +
         pickerHtml +
-        '<div class="section-hdr" style="margin-top:16px;margin-bottom:10px"><h2>Practice Modes</h2></div>' +
+        '<div class="section-hdr" style="margin-top:22px;margin-bottom:14px"><h2>Practice Modes</h2></div>' +
         modeGrid
     );
 }
@@ -17307,15 +16782,15 @@ function renderSubjectModes() {
 }
 function renderLearningHub() {
     const tools = [
-        { key: 'cbt', label: 'JAMB CBT', blurb: 'Real JAMB-style practice', icon: 'monitor', color: '#3B6EA5' },
+        { key: 'cbt', label: 'JAMB CBT', blurb: 'Real JAMB-style practice', icon: 'monitor', color: '#2E6FF2' },
         { key: 'exam', label: 'JAMB Past Questions', blurb: '2021–2026, one subject at a time', icon: 'clipboard', color: '#E2543A' },
-        { key: 'mockexam', label: 'Mock Arena', blurb: 'Create or join a mock arena exam', icon: 'target', color: '#6E5296' },
-        { key: 'flashcards', label: 'Flashcards', blurb: 'Flip through Q&A fast', icon: 'cards', color: '#97527A' },
-        { key: 'literature', label: 'Novel (CBT)', blurb: 'Set texts & comprehension', icon: 'book', color: '#3E7C74' },
+        { key: 'mockexam', label: 'Mock Arena', blurb: 'Create or join a mock arena exam', icon: 'target', color: '#8E44AD' },
+        { key: 'flashcards', label: 'Flashcards', blurb: 'Flip through Q&A fast', icon: 'cards', color: '#D64EA0' },
+        { key: 'literature', label: 'Novel (CBT)', blurb: 'Set texts & comprehension', icon: 'book', color: '#0E9488' },
         { key: 'revise', label: 'Revise Weak Qs', blurb: 'Retry questions you missed', icon: 'rotate', color: '#0F6B3F' },
-        { key: 'topic', label: 'Topic Practice', blurb: 'Read topic notes or take a topic CBT', icon: 'list', color: '#6B4F82' },
-        { key: 'documents', label: 'Study Materials', blurb: 'Past questions & study files', icon: 'folder', color: '#46527A' },
-        { key: 'history', label: 'Result Analysis', blurb: 'Your exam results & performance', icon: 'clock', color: '#6E5296' },
+        { key: 'topic', label: 'Topic Practice', blurb: 'Read topic notes or take a topic CBT', icon: 'list', color: '#7C5CFC' },
+        { key: 'documents', label: 'Study Materials', blurb: 'Past questions & study files', icon: 'folder', color: '#4C5FD5' },
+        { key: 'history', label: 'Result Analysis', blurb: 'Your exam results & performance', icon: 'clock', color: '#8E44AD' },
     ];
     let cards = '';
     tools.forEach(function(t, i) {
@@ -17332,7 +16807,7 @@ function renderLearningHub() {
     });
     return (
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">My Learning</h2>' +
-        '<p class="sub" style="font-size:11px;margin-bottom:12px">Practice tools, study material, and your results</p>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:12px">Practice tools, study material, and your results</p>' +
         '<div class="acct-menu-grid">' + cards + '</div>'
     );
 }
@@ -17477,7 +16952,7 @@ function renderAllCourses() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">All Courses</h2>' +
-        '<p class="sub" style="font-size:11px;margin-bottom:14px">Browse every subject course available</p>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:14px">Browse every subject course available</p>' +
         rows
     );
 }
@@ -17497,7 +16972,7 @@ function renderFeature(tile) {
 function renderLiteratureHome() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<div class="feature-icon" style="background:#3E7C74">' + svg("book", 30) + '</div>' +
+        '<div class="feature-icon" style="background:#0E9488">' + svg("book", 30) + '</div>' +
         '<h2 class="title">Novel (CBT)</h2>' +
         '<p class="sub">Set texts, comprehension, and study materials</p>' +
         '<div class="lit-grid">' +
@@ -17528,7 +17003,7 @@ function renderLiteratureCbt() {
         '<button class="back-link" data-action="set-view" data-view="literature" style="flex-shrink:0">' + svg("chevleft", 14) +
         ' Novel (CBT)</button>' +
         '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-bottom:6px">' +
-        '<div class="feature-icon" style="background:#3E7C74;width:32px;height:32px;border-radius:10px;margin-bottom:0">' + svg("book", 16) + '</div>' +
+        '<div class="feature-icon" style="background:#0E9488;width:32px;height:32px;border-radius:10px;margin-bottom:0">' + svg("book", 16) + '</div>' +
         '<div><h2 class="title" style="margin:0;font-size:14px">Novel (CBT)</h2><p class="sub" style="margin:0;font-size:10.5px;padding:0">Practice Novel questions</p></div>' +
         '</div>' +
         '<div class="picker-scroll">' +
@@ -17651,7 +17126,7 @@ function renderCbtMode() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home" style="flex-shrink:0">' + svg("chevleft", 14) + ' Home</button>' +
         '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-bottom:6px">' +
-        '<div class="feature-icon" style="background:#3B6EA5;width:32px;height:32px;border-radius:10px;margin-bottom:0">' + svg("monitor", 16) + '</div>' +
+        '<div class="feature-icon" style="background:#2E6FF2;width:32px;height:32px;border-radius:10px;margin-bottom:0">' + svg("monitor", 16) + '</div>' +
         '<div><h2 class="title" style="margin:0;font-size:14px">JAMB CBT</h2><p class="sub" style="margin:0;font-size:10.5px;padding:0">Real JAMB-style practice screen</p></div>' +
         '</div>' +
         '<div class="picker-scroll">' +
@@ -18231,7 +17706,7 @@ function renderTopicsPicker() {
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<div class="feature-icon" style="background:#6B4F82">' + svg("list", 30) + '</div>' +
+        '<div class="feature-icon" style="background:#7C5CFC">' + svg("list", 30) + '</div>' +
         '<h2 class="title">Topic Practice</h2>' +
         '<p class="sub">Drill one topic at a time</p>' +
         '<div class="mode-note">Select a subject to see its topics.</div>' +
@@ -18281,7 +17756,7 @@ function renderTopicsListPage() {
     return (
         '<button class="back-link" data-action="set-view" data-view="topic" style="flex-shrink:0">' + svg("chevleft", 14) + ' Subjects</button>' +
         '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-bottom:6px">' +
-        '<div class="feature-icon" style="background:#6B4F82;width:32px;height:32px;border-radius:10px;margin-bottom:0">' + svg("list", 16) + '</div>' +
+        '<div class="feature-icon" style="background:#7C5CFC;width:32px;height:32px;border-radius:10px;margin-bottom:0">' + svg("list", 16) + '</div>' +
         '<div><h2 class="title" style="margin:0;font-size:14px">' + esc(subjName) + '</h2><p class="sub" style="margin:0;font-size:10.5px;padding:0">Pick a topic to practice</p></div>' +
         '</div>' +
         '<div class="picker-scroll">' +
@@ -18681,7 +18156,7 @@ function renderDocumentsUser() {
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<div class="feature-icon" style="background:#46527A">' + svg("folder", 30) + '</div>' +
+        '<div class="feature-icon" style="background:#4C5FD5">' + svg("folder", 30) + '</div>' +
         '<h2 class="title">Study Materials</h2>' +
         '<p class="sub">Past questions & study files</p>' +
         '<input class="search-box" id="docs-search-input" placeholder="🔍 Search study materials..." value="' + esc(state.docsSearchQuery || '') + '" />' +
@@ -18874,7 +18349,7 @@ async function shareDocFile() {
 function renderPrivacyPolicy() {
     return (
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-        '<h2 class="title" style="font-size:14px">Privacy Policy</h2>' +
+        '<h2 class="title" style="font-size:18px">Privacy Policy</h2>' +
         '<p class="sub" style="font-size:11px">Last updated: August 2026</p>' +
         '<div class="card" style="font-size:12px;line-height:1.6">' +
         '<p style="margin-bottom:10px"><b>What we collect:</b> your username, email address, and exam performance data (scores, answers, weak questions) when you create an account and use the app.</p>' +
@@ -18890,7 +18365,7 @@ function renderPrivacyPolicy() {
 function renderTermsOfService() {
     return (
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-        '<h2 class="title" style="font-size:14px">Terms of Service</h2>' +
+        '<h2 class="title" style="font-size:18px">Terms of Service</h2>' +
         '<p class="sub" style="font-size:11px">Last updated: August 2026</p>' +
         '<div class="card" style="font-size:12px;line-height:1.6">' +
         '<p style="margin-bottom:10px"><b>Acceptance:</b> by using MyUTME, you agree to these terms. If you don\'t agree, please stop using the app.</p>' +
@@ -18967,11 +18442,11 @@ async function loadWeakQuestions() {
 }
 
 const REVISE_MODE_META = {
-    cbt: { label: 'CBT Mode', icon: 'monitor', color: '#3B6EA5' },
+    cbt: { label: 'CBT Mode', icon: 'monitor', color: '#2E6FF2' },
     exam: { label: 'Exam Mode', icon: 'clipboard', color: '#E2543A' },
-    mock: { label: 'Mock Exam', icon: 'target', color: '#6E5296' },
-    topic: { label: 'Topic Practice', icon: 'list', color: '#6B4F82' },
-    novel: { label: 'Novel (CBT)', icon: 'book', color: '#3E7C74' },
+    mock: { label: 'Mock Exam', icon: 'target', color: '#8E44AD' },
+    topic: { label: 'Topic Practice', icon: 'list', color: '#7C5CFC' },
+    novel: { label: 'Novel (CBT)', icon: 'book', color: '#0E9488' },
     revise: { label: 'Revision Retry', icon: 'rotate', color: '#0F6B3F' },
     unknown: { label: 'Other', icon: 'rotate', color: '#5B6B60' },
 };
@@ -19102,7 +18577,7 @@ function renderReviseModeSubjects() {
     return (
         '<button class="back-link" data-action="revise-back-to-modes">' + svg("chevleft", 14) + ' All modes</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(meta.label) + '</h2>' +
-        '<p class="sub" style="font-size:11px">Choose a subject</p>' +
+        '<p class="sub" style="font-size:12px">Choose a subject</p>' +
         renderReviseFilterTabs() +
         cards
     );
@@ -19212,7 +18687,7 @@ function renderReviseModeQuestions() {
     return (
         '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subjName) + '</h2>' +
-        '<p class="sub" style="font-size:11px">' + esc(meta.label) + ' · ' + total + ' missed question' + (total === 1 ? '' : 's') + '</p>' +
+        '<p class="sub" style="font-size:12px">' + esc(meta.label) + ' · ' + total + ' missed question' + (total === 1 ? '' : 's') + '</p>' +
         
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
         '<span style="font-size:13px;font-weight:600">Question ' + (state.reviseIndex + 1) + ' of ' + total + '</span>' +
@@ -19246,7 +18721,7 @@ function renderFlashcards() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<div class="feature-icon" style="background:#97527A">' + svg("cards", 30) + '</div>' +
+            '<div class="feature-icon" style="background:#D64EA0">' + svg("cards", 30) + '</div>' +
             '<h2 class="title">Flashcards</h2>' +
             '<p class="sub">Flip through questions fast</p>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to access flashcards.</p></div>'
@@ -19315,7 +18790,7 @@ function renderFlashcards() {
         '<button class="back-link" data-action="flashcards-back-to-subjects">' + svg("chevleft", 14) + ' Change subject</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subj ? subj.name : 'Flashcards') +
         '</h2>' +
-        '<p class="sub" style="font-size:11px">Card ' + (state.flashcardIndex + 1) + ' of ' + total +
+        '<p class="sub" style="font-size:12px">Card ' + (state.flashcardIndex + 1) + ' of ' + total +
         ' &nbsp;·&nbsp; 👍 ' + state.flashcardKnew + ' &nbsp; 👎 ' + state.flashcardDidntKnow + '</p>' +
         '<div class="flashcard-progress-track"><div class="flashcard-progress-fill" style="width:' + pct + '%"></div></div>' +
 
@@ -19372,7 +18847,7 @@ function renderFlashcardSubjectPicker() {
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<div class="feature-icon" style="background:#97527A">' + svg("cards", 30) + '</div>' +
+        '<div class="feature-icon" style="background:#D64EA0">' + svg("cards", 30) + '</div>' +
         '<h2 class="title">Flashcards</h2>' +
         '<p class="sub">Flip through questions fast, subject by subject</p>' +
         '<div class="mode-note">Pick a subject to start a flashcard deck.</div>' +
@@ -19387,7 +18862,7 @@ function renderFlashcardsDone() {
     const pct = total > 0 ? Math.round((state.flashcardKnew / total) * 100) : 0;
     return (
         '<h2 class="title">Deck Complete 🎉</h2>' +
-        '<p class="sub" style="font-size:11px">' + esc(subj ? subj.name : '') + ' · ' + total + ' card' + (total === 1 ? '' : 's') + '</p>' +
+        '<p class="sub" style="font-size:12px">' + esc(subj ? subj.name : '') + ' · ' + total + ' card' + (total === 1 ? '' : 's') + '</p>' +
         '<div class="card" style="text-align:center;padding:20px;margin-bottom:12px">' +
         '<p style="font-family:var(--font-mono);font-size:36px;margin:0;color:' + GREEN + '">' + state.flashcardKnew +
         ' / ' + total + '</p>' +
@@ -19488,11 +18963,8 @@ function formatAiChatText(raw) {
         .replace(/\u0001SUP([^\u0001]+)\u0001/g, '<sup>$1</sup>')
         .replace(/\u0001SUB([^\u0001]+)\u0001/g, '<sub>$1</sub>');
 
-    // 8) Lightweight markdown -> real formatting. Headers become their own
-    // spaced-out block (not just bold text running into the paragraph
-    // around them) so a reply with multiple headers reads like distinct
-    // sections instead of one dense, heavily-bolded block.
-    text = text.replace(/^\s*#{1,6}\s+(.+)$/gm, '\u0002H\u0002$1\u0002/H\u0002');
+    // 8) Lightweight markdown -> real formatting.
+    text = text.replace(/^\s*#{1,6}\s+(.+)$/gm, '<strong>$1</strong>');
     text = text.replace(/\*\*([^\n*]+)\*\*/g, '<strong>$1</strong>');
     text = text.replace(/\*([^\s*][^*]*?)\*/g, '<em>$1</em>');
     text = text.replace(/(^|[^A-Za-z0-9])_([^\s_][^_]*?)_(?![A-Za-z0-9])/g, '$1<em>$2</em>');
@@ -19511,26 +18983,8 @@ function formatAiChatText(raw) {
         return '<pre class="chat-code"><code>' + esc(codeBlocks[i]) + '</code></pre>';
     });
 
-    // 10) Turn the heading placeholders into their own spaced-out block,
-    // then split the remaining text into paragraphs on blank lines (rather
-    // than just <br><br>) so replies get real vertical breathing room
-    // between ideas, the way a normal chat reply reads.
-    text = text.replace(/\u0002H\u0002([\s\S]*?)\u0002\/H\u0002/g, '\n<span class="chat-heading">$1</span>\n');
-    text = text
-        .split(/\n{2,}/)
-        .map(function(block) {
-            block = block.trim();
-            if (!block) return '';
-            // Leave already-block-level pieces (headings, lists) alone;
-            // wrap everything else in a paragraph with single <br>s for
-            // any remaining single line breaks inside it.
-            if (/^<(span class="chat-heading"|ul class="chat-list"|pre class="chat-code")/.test(block)) {
-                return block;
-            }
-            return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
-        })
-        .filter(Boolean)
-        .join('');
+    // 10) Remaining newlines -> line breaks.
+    text = text.replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
 
     return text;
 }
@@ -19596,8 +19050,8 @@ function groupAiSessionsByDay(sessions) {
 function renderAiAssistant() {
     if (!state.authUser) {
         return (
-            '<h2 class="title" style="font-size:14px">✨ MyUTME AI Tutor</h2>' +
-            '<p class="sub" style="font-size:11px">Ask questions, get real explanations</p>' +
+            '<h2 class="title" style="font-size:18px">✨ AI Tutor</h2>' +
+            '<p class="sub" style="font-size:12px">Ask questions, get real explanations</p>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to use the AI Tutor.</p></div>'
         );
     }
@@ -19606,12 +19060,16 @@ function renderAiAssistant() {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading your chats...</p></div>';
     }
 
-    // The topbar now carries the "AI Tutor" title and the menu button
-    // (new chat + past chats live behind it), so this in-page header is
-    // no longer duplicated here — that reclaims vertical space for the
-    // conversation instead of a second, bigger title block.
     let headerHtml = (
-        state.aiReturnView ? '<button class="ai-back-to-q" data-action="ai-back-to-question">' + svg('chevleft', 14) + ' Back to your question</button>' : ''
+        '<div class="ai-header">' +
+        '<button class="ai-icon-btn" data-action="ai-toggle-history" aria-label="Chat history">' + svg('history', 17) + '</button>' +
+        '<div class="ai-title-wrap">' +
+        '<p class="ai-title">' + svg('sparkles', 18) + ' AI Tutor <span class="ai-badge">AI</span></p>' +
+        '<p class="ai-sub"><span class="dot"></span> Not a real teacher — always double-check important answers</p>' +
+        '</div>' +
+        '<button class="ai-icon-btn" data-action="ai-new-chat" aria-label="New chat" style="background:var(--green);color:#fff;border-color:var(--green)">' + svg('plus', 18) + '</button>' +
+        '</div>' +
+        (state.aiReturnView ? '<button class="ai-back-to-q" data-action="ai-back-to-question">' + svg('chevleft', 14) + ' Back to your question</button>' : '')
     );
 
     let bubbles = '';
@@ -19748,7 +19206,7 @@ function renderAiAssistant() {
         attachMenu +
         '</div>' +
         '<button class="icon-btn chat-tool-btn' + (state.aiRecording ? ' recording' : '') + '" data-action="ai-toggle-voice" title="Voice input" aria-label="Voice input">' + svg(state.aiRecording ? 'stop' : 'mic', 18) + '</button>' +
-        '<textarea class="field ai-chat-textarea" id="ai-chat-input" placeholder="Message AI Tutor..." rows="1">' + esc(state.aiInput || '') + '</textarea>' +
+        '<textarea class="field ai-chat-textarea" id="ai-chat-input" placeholder="Ask your AI Tutor anything..." rows="1">' + esc(state.aiInput || '') + '</textarea>' +
         '<button class="chat-send-fab" data-action="send-ai-message" aria-label="Send"' + (state.aiSending ? ' disabled' : '') + '>' + svg('send', 16) + '</button>' +
         '</div>' +
         '</div>' +
@@ -19758,10 +19216,10 @@ function renderAiAssistant() {
 function renderSupportChat() {
     if (!state.authUser) {
         return (
-            '<div style="padding-top:16px;text-align:center">' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to chat with support.</p>' +
-            '<button class="btn btn-gold" style="margin-top:6px" data-action="show-login">Log in</button>' +
-            '</div></div>'
+            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
+            '<h2 class="title" style="font-size:18px">💬 Support Chat</h2>' +
+            '<p class="sub" style="font-size:12px">Get help with payments and activation</p>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to chat with support.</p></div>'
         );
     }
 
@@ -19769,6 +19227,18 @@ function renderSupportChat() {
         loadSupportMessages();
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading chat...</p></div>';
     }
+
+    // Header
+    let headerHtml = (
+        '<div class="support-header">' +
+        '<div class="avatar-icon">' + logoSvg(36) + '</div>' +
+        '<div class="info">' +
+        '<p class="name">MyUTME Support</p>' +
+        '<p class="status"><span class="dot"></span> Online</p>' +
+        '</div>' +
+        '<button class="mini-btn support-wa-btn" data-action="open-support-whatsapp" title="Chat on WhatsApp" aria-label="Chat on WhatsApp">' + svg('whatsapp', 15) + ' WhatsApp</button>' +
+        '</div>'
+    );
 
     let bubbles = '';
     if (state.supportMessages.length === 0) {
@@ -19830,7 +19300,11 @@ function renderSupportChat() {
 
     return (
         '<div class="ai-chat-page">' +
-        (quickIssuesHtml ? '<div class="support-page-head">' + quickIssuesHtml + '</div>' : '') +
+        '<div class="support-page-head">' +
+        '<button class="back-link" data-action="set-view" data-view="home" style="margin-bottom:8px">' + svg("chevleft", 14) + ' Home</button>' +
+        headerHtml +
+        quickIssuesHtml +
+        '</div>' +
         '<div class="chat-window">' + bubbles + '</div>' +
         '<div class="chat-input-row">' +
         '<textarea class="field ai-chat-textarea" id="support-chat-input" placeholder="Message support..." rows="1"></textarea>' +
@@ -19923,8 +19397,8 @@ function renderHistory() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<h2 class="title" style="font-size:14px">📊 Result Analysis</h2>' +
-            '<p class="sub" style="font-size:11px">View all your exam results and performance</p>' +
+            '<h2 class="title" style="font-size:18px">📊 Result Analysis</h2>' +
+            '<p class="sub" style="font-size:12px">View all your exam results and performance</p>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view your results.</p></div>'
         );
     }
@@ -19959,8 +19433,8 @@ function renderHistory() {
     if (filtered.length === 0) {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<h2 class="title" style="font-size:14px">📊 Result Analysis</h2>' +
-            '<p class="sub" style="font-size:11px">View all your exam results and performance</p>' +
+            '<h2 class="title" style="font-size:18px">📊 Result Analysis</h2>' +
+            '<p class="sub" style="font-size:12px">View all your exam results and performance</p>' +
             filterHtml +
             '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No results yet for this filter. Complete an exam to see it here.</p></div>'
         );
@@ -19993,8 +19467,8 @@ function renderHistory() {
 
     let html = (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<h2 class="title" style="font-size:14px">📊 Result Analysis</h2>' +
-        '<p class="sub" style="font-size:11px">View all your exam results and performance</p>' +
+        '<h2 class="title" style="font-size:18px">📊 Result Analysis</h2>' +
+        '<p class="sub" style="font-size:12px">View all your exam results and performance</p>' +
         statsHtml +
         '<button class="btn btn-green" style="margin-bottom:8px" data-action="set-view" data-view="analytics">' + svg('chart', 14) + ' Open Personal Analytics Dashboard</button>' +
         filterHtml
@@ -20097,7 +19571,7 @@ function renderAnalyticsDashboard() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>' +
-            '<h2 class="title" style="font-size:14px">📈 Personal Analytics</h2>' +
+            '<h2 class="title" style="font-size:18px">📈 Personal Analytics</h2>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view your analytics.</p></div>'
         );
     }
@@ -20113,7 +19587,7 @@ function renderAnalyticsDashboard() {
 
     const entries = (state.historyEntries || []).slice();
     const backBtn = '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>';
-    const header = '<h2 class="title" style="font-size:14px">📈 Personal Analytics</h2><p class="sub" style="font-size:11px">A deeper look at your strengths, weaknesses, and pace</p>';
+    const header = '<h2 class="title" style="font-size:18px">📈 Personal Analytics</h2><p class="sub" style="font-size:12px">A deeper look at your strengths, weaknesses, and pace</p>';
 
     if (entries.length === 0) {
         return (
@@ -20269,7 +19743,7 @@ function renderProfile() {
     // Guest view
     if (!isLoggedIn) {
         return (
-            '<h2 class="title" style="margin-bottom:6px;font-size:14px">Account</h2>' +
+            '<h2 class="title" style="margin-bottom:12px;font-size:18px">Account</h2>' +
             '<div class="acct-hero" style="text-align:center;padding:28px 18px">' +
             '<div class="glow2"></div>' +
             '<div class="acct-hero-row" style="justify-content:center">' +
@@ -20372,11 +19846,11 @@ function renderProfile() {
     // the Activate card per the requested layout, then the rest follow.
     const menuItems = [
         { key: 'set-view|study-circle', icon: '🌿', color: '#0F6B3F', title: 'Study Circle', sub: 'Join our WhatsApp group & channel' },
-        { key: 'start-profile-edit', icon: '✏️', color: '#3B6EA5', title: 'Profile', sub: 'Edit your name and photo' },
-        { key: 'set-view|leaderboard', icon: '🏆', color: '#6B4F82', title: 'Leaderboard', sub: 'See where you rank' },
-        { key: 'set-view|history', icon: '📊', color: '#6E5296', title: 'Result Analysis', sub: 'Your exam results and performance' },
+        { key: 'start-profile-edit', icon: '✏️', color: '#2E6FF2', title: 'Profile', sub: 'Edit your name and photo' },
+        { key: 'set-view|leaderboard', icon: '🏆', color: '#7C5CFC', title: 'Leaderboard', sub: 'See where you rank' },
+        { key: 'set-view|history', icon: '📊', color: '#8E44AD', title: 'Result Analysis', sub: 'Your exam results and performance' },
         { key: 'set-view|study-reminder', icon: '⏰', color: '#E4A93A', title: 'Study Planner', sub: 'Reminders & your own nudge message', badge: 'NEW' },
-        { key: 'set-view|support', icon: '💬', color: '#46527A', title: 'Support', sub: 'Chat with us or WhatsApp' },
+        { key: 'set-view|support', icon: '💬', color: '#4C5FD5', title: 'Support', sub: 'Chat with us or WhatsApp' },
     ];
     if (state.pwaInstallAvailable && !isStandaloneApp()) {
         menuItems.push({ key: 'trigger-pwa-install', icon: '⬇️', color: '#0F6B3F', title: 'Install App', sub: 'Add MyUTME to your home screen' });
@@ -20441,24 +19915,22 @@ function renderProfile() {
     
     // Bottom actions
     let bottomHtml = (
-        '<button class="btn btn-outline" style="padding:8px;margin-top:2px;font-size:12px" data-action="sign-out">Sign out</button>' +
-        '<div style="display:flex;gap:10px;justify-content:center;margin-top:8px">' +
+        '<button class="btn btn-outline" style="padding:10px;margin-top:4px" data-action="sign-out">Sign out</button>' +
+        '<div style="display:flex;gap:10px;justify-content:center;margin-top:12px">' +
         '<a href="https://myutme.com.ng/privacy.html" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--faint);text-decoration:underline">Privacy Policy</a>' +
         '<a href="https://myutme.com.ng/terms.html" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--faint);text-decoration:underline">Terms of Service</a>' +
         '</div>'
     );
     
     return (
-        '<div class="profile-fill">' +
-        '<h2 class="title" style="margin-bottom:6px;font-size:14px">Account</h2>' +
+        '<h2 class="title" style="margin-bottom:12px;font-size:18px">Account</h2>' +
         heroHtml +
         activateCardHtml +
         socialHtml +
         walletHtml +
         menuHtml +
         editHtml +
-        '<div class="profile-bottom-pin">' + bottomHtml + '</div>' +
-        '</div>'
+        bottomHtml
     );
 }
 
@@ -20485,7 +19957,7 @@ function renderAvatarUploadModal() {
         '<div class="avatar-upload-overlay" data-action="cancel-avatar-upload">' +
         '<div class="avatar-upload-modal" data-action="prevent-close">' +
         '<h3 style="font-family:var(--font-serif);margin:0 0 4px;font-size:18px;color:var(--ink)">📸 Profile Photo</h3>' +
-        '<p class="sub" style="font-size:11px">Choose a photo to use as your avatar</p>' +
+        '<p class="sub" style="font-size:12px">Choose a photo to use as your avatar</p>' +
         previewHtml +
         '<input type="file" id="avatar-file-input" accept="image/*" style="display:none" />' +
         '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-bottom:8px" data-action="choose-avatar-photo">Choose Photo</button>' +
@@ -20512,8 +19984,8 @@ function renderProfileEdit() {
 
     return (
         '<button class="back-link" data-action="cancel-profile-edit">' + svg("chevleft", 14) + ' Account</button>' +
-        '<h2 class="title" style="font-size:14px">Edit Profile</h2>' +
-        '<p class="sub" style="font-size:11px">Update your photo, name and username</p>' +
+        '<h2 class="title" style="font-size:18px">Edit Profile</h2>' +
+        '<p class="sub" style="font-size:12px">Update your photo, name and username</p>' +
 
         '<div style="display:flex;flex-direction:column;align-items:center;margin:14px 0 20px">' +
         '<div style="position:relative;width:92px;height:92px">' +
@@ -20625,7 +20097,7 @@ function renderFundWalletModal() {
         '<div class="flag-overlay" data-action="close-fund-wallet">' +
         '<div class="flag-modal" data-action="prevent-close">' +
         '<h3 style="font-family:var(--font-serif);margin:0 0 2px;font-size:18px;color:var(--ink)">💳 Fund Wallet</h3>' +
-        '<p class="sub" style="font-size:11px">Enter amount to add to your wallet</p>' +
+        '<p class="sub" style="font-size:12px">Enter amount to add to your wallet</p>' +
         '<label class="field-label">Amount (₦)</label>' +
         '<input class="field" id="fund-wallet-amount-input" type="number" placeholder="e.g. 2000" value="' + esc(amount) + '" style="margin-bottom:8px;font-size:16px;font-weight:700" />' +
         '<div class="fund-quick-btns">' + quickBtns + '</div>' +
@@ -20643,8 +20115,8 @@ function renderTransactionHistory() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-            '<h2 class="title" style="font-size:14px">💳 Transaction History</h2>' +
-            '<p class="sub" style="font-size:11px">View your wallet funding and purchases</p>' +
+            '<h2 class="title" style="font-size:18px">💳 Transaction History</h2>' +
+            '<p class="sub" style="font-size:12px">View your wallet funding and purchases</p>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view transactions.</p></div>'
         );
     }
@@ -20683,8 +20155,8 @@ function renderTransactionHistory() {
     
     return (
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-        '<h2 class="title" style="font-size:14px">💳 Transaction History</h2>' +
-        '<p class="sub" style="font-size:11px">Wallet balance: <strong style="color:var(--green)">₦' + balance.toLocaleString() + '</strong></p>' +
+        '<h2 class="title" style="font-size:18px">💳 Transaction History</h2>' +
+        '<p class="sub" style="font-size:12px">Wallet balance: <strong style="color:var(--green)">₦' + balance.toLocaleString() + '</strong></p>' +
         rows
     );
 }
@@ -20696,8 +20168,8 @@ function renderStudyReminderPage() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-            '<h2 class="title" style="font-size:14px">⏰ Study Planner</h2>' +
-            '<p class="sub" style="font-size:11px">Reminders and everything to keep you on track</p>' +
+            '<h2 class="title" style="font-size:18px">⏰ Study Planner</h2>' +
+            '<p class="sub" style="font-size:12px">Reminders and everything to keep you on track</p>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to use the Study Planner.</p></div>'
         );
     }
@@ -20743,8 +20215,8 @@ function renderStudyReminderPage() {
     
     return (
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-        '<h2 class="title" style="font-size:14px">⏰ Study Planner</h2>' +
-        '<p class="sub" style="font-size:11px">Your schedule, and a nudge worded exactly how you like it.</p>' +
+        '<h2 class="title" style="font-size:18px">⏰ Study Planner</h2>' +
+        '<p class="sub" style="font-size:12px">Your schedule, and a nudge worded exactly how you like it.</p>' +
         '<div class="card">' +
         toggleHtml +
         '<p class="section-label" style="margin-top:4px">Time</p>' +
@@ -21335,7 +20807,7 @@ function renderMockExamPicker() {
             } else if (st !== 'completed') {
                 actionHtml = exam.source === 'live'
                     ? '<button class="btn btn-gold" data-action="join-live-exam" data-examid="' + exam.id + '" style="padding:8px">Join Exam</button>'
-                    : '<button class="btn btn-gold" data-action="register-mock" data-examid="' + exam.id + '" data-source="admin" style="padding:8px">Join Exam</button>';
+                    : '<button class="btn btn-gold" data-action="register-mock" data-examid="' + exam.id + '" data-source="admin" style="padding:8px">Register</button>';
             } else {
                 actionHtml = '<p style="font-size:11px;color:var(--faint);text-align:center">Ended</p>';
             }
@@ -21478,7 +20950,7 @@ function renderLiveExamCreateWizard() {
         '<button class="cbt-mode-btn' + (f.isPublic ? ' active' : '') + '" style="flex:1" data-action="live-set-public" data-public="true"><span class="icon">🌍</span><span class="label">Anyone</span><span class="desc">Shows in public list</span></button>' +
         '<button class="cbt-mode-btn' + (!f.isPublic ? ' active' : '') + '" style="flex:1" data-action="live-set-public" data-public="false"><span class="icon">🔒</span><span class="label">Code only</span><span class="desc">Private, join code needed</span></button>' +
         '</div>' +
-        '<button class="btn btn-green" data-action="submit-create-live-exam" style="padding:10px" ' + (state.creatingLiveExam ? 'disabled' : '') + '>' + (state.creatingLiveExam ? 'Creating…' : 'Create & Get Join Code') + '</button>' +
+        '<button class="btn btn-green" data-action="submit-create-live-exam" style="padding:10px">Create & Get Join Code</button>' +
         '</div>'
     );
 }
@@ -21502,7 +20974,7 @@ function renderGuestResultCheck() {
         return (
             '<div class="card" style="text-align:center;padding:24px">' +
             '<p style="font-size:40px;margin:0 0 12px">⚠️</p>' +
-            '<h2 class="title" style="font-size:14px">Result Not Found</h2>' +
+            '<h2 class="title" style="font-size:18px">Result Not Found</h2>' +
             '<p style="font-size:13px;color:var(--muted);margin:0">' + esc(state.guestResultCheckError) + '</p>' +
             '</div>'
         );
@@ -21514,7 +20986,7 @@ function renderGuestResultCheck() {
         return (
             '<div class="card" style="text-align:center;padding:24px">' +
             '<p style="font-size:40px;margin:0 0 12px">⏳</p>' +
-            '<h2 class="title" style="font-size:14px">Results Not Released Yet</h2>' +
+            '<h2 class="title" style="font-size:18px">Results Not Released Yet</h2>' +
             '<p style="font-size:13px;color:var(--muted);margin:0 0 14px">Hi ' + esc(d.guestName) + ', your score for "' + esc(d.examTitle) + '" is saved and waiting for the admin to release results.</p>' +
             '<div style="padding:12px;background:var(--bg);border-radius:10px;text-align:left">' +
             '<p style="font-size:11px;font-weight:700;margin:0 0 6px">Keep this link to check back later:</p>' +
@@ -21565,7 +21037,7 @@ function renderLiveExamLinkConfirm() {
         return (
             '<div class="card" style="text-align:center;padding:24px">' +
             '<p style="font-size:40px;margin:0 0 12px">⚠️</p>' +
-            '<h2 class="title" style="font-size:14px">Exam Not Found</h2>' +
+            '<h2 class="title" style="font-size:18px">Exam Not Found</h2>' +
             '<p style="font-size:13px;color:var(--muted);margin:0">This link may be invalid or the exam was deleted.</p>' +
             '</div>'
         );
@@ -21589,13 +21061,13 @@ function renderLiveExamLinkConfirm() {
         body = (
             '<p style="font-size:13px;color:var(--muted);margin:14px 0 0">Starts ' + scheduled.toLocaleString() + '. ' +
             (state.authUser
-                ? 'Join now, or just come back to this link once it starts.'
+                ? 'Reserve your spot now, or just come back to this link once it starts.'
                 : 'Keep this link and come back once it starts to join as a guest — nothing to do yet.') +
             '</p>' +
             (state.authUser
                 ? (reg
-                    ? '<p style="font-size:12px;color:var(--green);font-weight:700;margin-top:10px">✅ You\'re already in</p>'
-                    : '<button class="btn btn-gold" style="width:100%;padding:12px;margin-top:14px" data-action="reserve-live-exam-link" data-examid="' + exam.id + '">Join Exam</button>')
+                    ? '<p style="font-size:12px;color:var(--green);font-weight:700;margin-top:10px">✅ You\'re already registered</p>'
+                    : '<button class="btn btn-gold" style="width:100%;padding:12px;margin-top:14px" data-action="reserve-live-exam-link" data-examid="' + exam.id + '">Reserve My Spot</button>')
                 : '')
         );
     } else {
@@ -21615,8 +21087,8 @@ function renderLiveExamLinkConfirm() {
     return (
         '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
         '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
-        '<h2 class="title" style="font-size:14px;margin-bottom:4px">' + esc(exam.title) + '</h2>' +
-        '<p class="sub" style="font-size:11px;margin-bottom:2px">' + esc(subjNames) + ' · ' + (exam.num_questions || '-') + ' questions' + (subjIds.length > 1 ? '/subject' : '') + ' · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>' +
+        '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam.title) + '</h2>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:2px">' + esc(subjNames) + ' · ' + (exam.num_questions || '-') + ' questions' + (subjIds.length > 1 ? '/subject' : '') + ' · ' + formatTimeShort((exam.time_limit_minutes || 0) * 60) + '</p>' +
         '<p style="font-size:9px;font-weight:800;letter-spacing:0.04em;color:' + (st === 'ongoing' ? 'var(--green)' : st === 'upcoming' ? 'var(--muted)' : 'var(--faint)') + '">' +
         (st === 'ongoing' ? '● LIVE NOW' : st === 'upcoming' ? '📅 UPCOMING' : '🔒 ENDED') + '</p>' +
         body +
@@ -21638,8 +21110,8 @@ function renderExamLinkGuest() {
         return (
             '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
             '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
-            '<h2 class="title" style="font-size:14px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
-            '<p class="sub" style="font-size:11px;margin-bottom:2px">' + (subj ? esc(subj.name) : '') + '</p>' +
+            '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
+            '<p class="sub" style="font-size:12px;margin-bottom:2px">' + (subj ? esc(subj.name) : '') + '</p>' +
             '<p style="font-size:12px;color:var(--muted);margin-top:14px">Opening your exam…</p>' +
             '</div>'
         );
@@ -21651,8 +21123,8 @@ function renderExamLinkGuest() {
     return (
         '<div class="card" style="text-align:center;padding:24px;max-width:420px;margin:0 auto">' +
         '<div class="feature-icon" style="margin:0 auto 14px;background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('clock', 28) + '</div>' +
-        '<h2 class="title" style="font-size:14px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
-        '<p class="sub" style="font-size:11px;margin-bottom:18px">' +
+        '<h2 class="title" style="font-size:18px;margin-bottom:4px">' + esc(exam ? exam.title : 'Timed Mock Exam') + '</h2>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:18px">' +
         (subj ? esc(subj.name) + ' — ' : '') +
         'Create a free account to take this exam and save your result.</p>' +
         '<button class="btn btn-gold" style="width:100%;padding:12px" data-action="show-signup">Create Account</button>' +
@@ -21670,7 +21142,7 @@ function renderMockResult() {
         return (
             '<div class="card" style="text-align:center;padding:24px">' +
             '<p style="font-size:40px;margin:0 0 12px">⏳</p>' +
-            '<h2 class="title" style="font-size:14px">Waiting for Results</h2>' +
+            '<h2 class="title" style="font-size:18px">Waiting for Results</h2>' +
             '<p style="font-size:13px;color:var(--muted);margin:0">' +
             (state.isGuestMock
                 ? 'Your exam has been submitted and your score is saved. Results haven\'t been released yet.'
@@ -21742,8 +21214,8 @@ function renderStudyCircle() {
     return (
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Account</button>' +
         '<div class="feature-icon" style="background:linear-gradient(145deg,#0F6B3F 0%,#0A4A2B 100%)">' + svg('users', 30) + '</div>' +
-        '<h2 class="title" style="font-size:14px">Study Circle 🌿</h2>' +
-        '<p class="sub" style="font-size:11px">Join other JAMB candidates, get study tips, and be the first to hear about updates.</p>' +
+        '<h2 class="title" style="font-size:18px">Study Circle 🌿</h2>' +
+        '<p class="sub" style="font-size:12px">Join other JAMB candidates, get study tips, and be the first to hear about updates.</p>' +
         '<button class="btn btn-green" style="width:100%;margin-top:14px;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px" data-action="open-study-circle-whatsapp">' +
         svg('whatsapp', 18) + ' Join the WhatsApp Group' +
         '</button>' +
@@ -21790,7 +21262,7 @@ function renderLeaderboard() {
     if (state.loadingLeaderboard) {
         return (
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-            '<p class="sub" style="font-size:11px;margin-bottom:10px">See how you rank against other candidates</p>' +
+            '<p class="sub" style="font-size:12px;margin-bottom:10px">See how you rank against other candidates</p>' +
             '<div class="loading-spinner"><div class="spinner"></div><p>Loading leaderboard...</p></div>'
         );
     }
@@ -21819,7 +21291,7 @@ function renderLeaderboard() {
         }
         return (
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-            '<p class="sub" style="font-size:11px;margin-bottom:10px">See how you rank against other candidates. Usernames are partially hidden to protect privacy — you\'ll see your own name in full. Ranked by 4-subject Mock score (out of 400) — 1-subject mocks don\'t count here.</p>' +
+            '<p class="sub" style="font-size:12px;margin-bottom:10px">See how you rank against other candidates. Usernames are partially hidden to protect privacy — you\'ll see your own name in full. Ranked by 4-subject Mock score (out of 400) — 1-subject mocks don\'t count here.</p>' +
             tabsHtml +
             '<div style="margin-bottom:10px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">' +
             '<span>Rank</span><span>Candidate</span><span>Score</span>' +
@@ -21850,7 +21322,7 @@ function renderLeaderboard() {
         }).join('');
         return (
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-            '<p class="sub" style="font-size:11px;margin-bottom:10px">Pick a subject to see the best scores for that subject.</p>' +
+            '<p class="sub" style="font-size:12px;margin-bottom:10px">Pick a subject to see the best scores for that subject.</p>' +
             tabsHtml +
             subjRows
         );
@@ -21883,7 +21355,7 @@ function renderLeaderboard() {
     return (
         '<button type="button" class="btn btn-outline btn-sm" style="margin-bottom:10px" data-action="back-subject-leaderboard">‹ All Subjects</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 ' + esc(subj ? subj.name : 'Subject') + ' Leaderboard</h2>' +
-        '<p class="sub" style="font-size:11px;margin-bottom:10px">Best score per candidate. Retaking this subject updates your score here, higher or lower. Entries marked <b>UNVERIFIED</b> were taken via a shared exam link without an account.</p>' +
+        '<p class="sub" style="font-size:12px;margin-bottom:10px">Best score per candidate. Retaking this subject updates your score here, higher or lower. Entries marked <b>UNVERIFIED</b> were taken via a shared exam link without an account.</p>' +
         '<div style="margin-bottom:10px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">' +
         '<span>Rank</span><span>Candidate</span><span>Score</span>' +
         '</div>' +
@@ -21964,8 +21436,8 @@ function renderActivate() {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
             '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('shield', 30) + '</div>' +
-            '<h2 class="title" style="font-size:14px">Full Access, No Activation Needed</h2>' +
-            '<p class="sub" style="font-size:11px">Every feature is unlocked right now — there\'s nothing to activate.</p>'
+            '<h2 class="title" style="font-size:18px">Full Access, No Activation Needed</h2>' +
+            '<p class="sub" style="font-size:12px">Every feature is unlocked right now — there\'s nothing to activate.</p>'
         );
     }
     const isActive = isUserActive();
@@ -21990,8 +21462,8 @@ function renderActivate() {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
             '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('shield', 30) + '</div>' +
-            '<h2 class="title" style="font-size:14px">You\'re Activated! ✅</h2>' +
-            '<p class="sub" style="font-size:11px">Your account has full access.</p>' +
+            '<h2 class="title" style="font-size:18px">You\'re Activated! ✅</h2>' +
+            '<p class="sub" style="font-size:12px">Your account has full access.</p>' +
             (justActivatedKey ?
                 '<div class="card" style="text-align:center;padding:16px;border:1.5px solid var(--gold);margin-bottom:10px">' +
                 '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">🔑 Your activation key — save this somewhere safe</p>' +
@@ -22009,8 +21481,8 @@ function renderActivate() {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
             '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 30) + '</div>' +
-            '<h2 class="title" style="font-size:14px">Activate Your Account</h2>' +
-            '<p class="sub" style="font-size:11px">Unlock unlimited mock exams &amp; past questions</p>' +
+            '<h2 class="title" style="font-size:18px">Activate Your Account</h2>' +
+            '<p class="sub" style="font-size:12px">Unlock unlimited mock exams &amp; past questions</p>' +
             '<div class="card" style="text-align:center;padding:16px">' +
             '<p style="font-size:12px;color:var(--muted);margin:0 0 10px">Please log in or create an account first.</p>' +
             '<button class="btn btn-green" data-action="show-login" style="padding:10px">Log in</button>' +
@@ -22022,8 +21494,8 @@ function renderActivate() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
         '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 30) + '</div>' +
-        '<h2 class="title" style="font-size:14px">Activate Your Account</h2>' +
-        '<p class="sub" style="font-size:11px">Unlock unlimited mock exams &amp; past questions</p>' +
+        '<h2 class="title" style="font-size:18px">Activate Your Account</h2>' +
+        '<p class="sub" style="font-size:12px">Unlock unlimited mock exams &amp; past questions</p>' +
 
         (state.activateRedirectReason ?
             '<div class="activate-redirect-note"><span class="icon">🔑</span><p>' + esc(state.activateRedirectReason) + '</p></div>' : '') +
@@ -22133,8 +21605,8 @@ function renderLicensePlans() {
     return (
         '<button class="back-link" data-action="set-view" data-view="activate">' + svg("chevleft", 14) + ' Activate</button>' +
         '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 30) + '</div>' +
-        '<h2 class="title" style="font-size:14px">Choose Your Plan</h2>' +
-        '<p class="sub" style="font-size:11px">Pick a plan that fits your JAMB prep timeline</p>' +
+        '<h2 class="title" style="font-size:18px">Choose Your Plan</h2>' +
+        '<p class="sub" style="font-size:12px">Pick a plan that fits your JAMB prep timeline</p>' +
 
         '<div class="card" style="margin-bottom:12px">' +
         '<p style="font-size:12px;font-weight:600;margin:0 0 6px">Why activate?</p>' +
@@ -22228,7 +21700,7 @@ function renderAdmin() {
         '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">' + svg("shield", 18).replace(
             'stroke="currentColor"', 'stroke="' + GREEN + '"') +
         '<h2 class="title" style="margin:0;font-size:18px">Admin Panel</h2></div>' +
-        '<p class="sub" style="font-size:11px">Manage questions, settings, and content.</p>' +
+        '<p class="sub" style="font-size:12px">Manage questions, settings, and content.</p>' +
         '<div class="admin-tabs">' + tabBar + '</div>' +
         body
     );
@@ -26044,40 +25516,6 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
-    // ============================================================
-    //  FIRST-RUN ELECTIVE ONBOARDING POPUP
-    // ============================================================
-    if (action === 'onboarding-toggle-elective') {
-        const sid = el.getAttribute('data-subjectid');
-        if (!Array.isArray(state.onboardingElectives)) state.onboardingElectives = [];
-        const idx = state.onboardingElectives.indexOf(sid);
-        if (idx !== -1) {
-            state.onboardingElectives.splice(idx, 1);
-        } else if (state.onboardingElectives.length < 3) {
-            state.onboardingElectives.push(sid);
-        }
-        render();
-        return;
-    }
-    if (action === 'onboarding-confirm-electives') {
-        if (!state.onboardingElectives || state.onboardingElectives.length !== 3) {
-            showToast('Pick exactly 3 subjects to continue.', 'error');
-            return;
-        }
-        state.myElectives = state.onboardingElectives.slice();
-        saveMyElectivesLocal();
-        state.showElectiveOnboarding = false;
-        state.onboardingElectives = [];
-        showToast('🎉 Your subjects are set! You can edit them any time in Practice Hub.', 'success');
-        render();
-        return;
-    }
-    if (action === 'onboarding-skip-electives') {
-        state.showElectiveOnboarding = false;
-        state.onboardingElectives = [];
-        render();
-        return;
-    }
     if (action === 'subj-start-cbt') {
         const sid = el.getAttribute('data-subjectid');
         const s = SUBJECTS.find(function(x) { return x.id === sid; });
@@ -26464,7 +25902,6 @@ document.addEventListener('click', function(e) {
         state.authError = null;
         state.resetEmailSent = false;
         state.drawerOpen = false;
-        syncUrlForAuth('login');
         render();
         return;
     }
@@ -26475,7 +25912,6 @@ document.addEventListener('click', function(e) {
         state.authError = null;
         state.resetEmailSent = false;
         state.drawerOpen = false;
-        syncUrlForAuth('signup');
         render();
         return;
     }
@@ -26496,7 +25932,6 @@ document.addEventListener('click', function(e) {
         state.authError = null;
         state.resetError = null;
         state.resetEmailSent = false;
-        syncUrlForAuth(null);
         render();
         return;
     }
@@ -26506,7 +25941,6 @@ document.addEventListener('click', function(e) {
         state.showReset = false;
         state.authError = null;
         state.resetEmailSent = false;
-        syncUrlForAuth('login');
         render();
         return;
     }
@@ -26516,7 +25950,6 @@ document.addEventListener('click', function(e) {
         state.showReset = false;
         state.authError = null;
         state.resetEmailSent = false;
-        syncUrlForAuth('signup');
         render();
         return;
     }
@@ -27906,7 +27339,6 @@ document.addEventListener('click', function(e) {
         return;
     }
     if (action === 'submit-create-live-exam') {
-        if (state.creatingLiveExam) return;
         state.liveExamCreateForm.title = document.getElementById('live-title')?.value || '';
         state.liveExamCreateForm.durationHours = parseInt(document.getElementById('live-duration-hours')?.value || 0);
         state.liveExamCreateForm.durationMinutes = parseInt(document.getElementById('live-duration-minutes')?.value || 30);
@@ -30549,47 +29981,6 @@ document.addEventListener('input', function(e) {
 //  INIT
 // ============================================================
 async function init() {
-    // Optimistic auth hydration — if this device was logged in before
-    // (storage.get('wasEverLoggedIn')) and we still have their cached
-    // profile, restore it into state immediately, synchronously, before
-    // the very first render. That means a returning logged-in person's
-    // first paint already shows them logged in — no loading logo, no
-    // "Create account" flash — while checkAuthSession() (further down)
-    // still confirms the real session with Supabase in the background
-    // and quietly corrects state if the cache was stale (e.g. the
-    // session actually expired, or they signed out elsewhere).
-    (function hydrateAuthFromCache() {
-        if (storage.get('wasEverLoggedIn') !== 'true') return;
-        try {
-            const cachedProfileRaw = storage.get('profile');
-            if (!cachedProfileRaw) return;
-            const cachedProfile = JSON.parse(cachedProfileRaw);
-            if (!cachedProfile || !cachedProfile.id) return;
-            state.profile = Object.assign({}, state.profile, cachedProfile);
-            // Minimal stub — just enough for the many "is someone logged
-            // in" / "whose id is this" checks around the app. The real,
-            // full Supabase user object still lands shortly after from
-            // checkAuthSession() and replaces this.
-            state.authUser = { id: cachedProfile.id, email: cachedProfile.email || '' };
-        } catch (e) {
-            // Bad/corrupted cache — fall through and let the normal,
-            // network-based auth check figure it out as usual.
-        }
-    })();
-
-    // Reflect a real, direct URL (e.g. someone opening myutme.com.ng/ai-tutor
-    // or a search result for /account) into initial app state — only for
-    // the handful of routed sections/auth screens; every other path is
-    // left alone since query-param deep links (?examlink=, etc.) are
-    // handled separately, further down, and always run after this.
-    (function applyInitialPathRoute() {
-        const path = window.location.pathname;
-        if (path === '/login') { state.showLogin = true; return; }
-        if (path === '/signup') { state.showSignup = true; return; }
-        const v = PATH_TO_NAV_VIEW[path];
-        if (v) state.view = v;
-    })();
-
     // Light (white) is the default look for every user — dark mode is an
     // opt-in the person turns on themselves from Settings. We only trust a
     // stored 'darkMode' value if it was actually set by someone tapping the
@@ -30627,14 +30018,16 @@ async function init() {
         checkActivationAutoEnable();
         render();
     });
-    // The app itself no longer waits on any of this — state.authReady now
-    // defaults to true and the app is already visible/interactive from
-    // the very first paint (see hydrateAuthFromCache() above and the
-    // authReady default). This is just a background safety net: if
-    // checkAuthSession() itself somehow hangs (e.g. a request that never
-    // resolves or rejects on a very bad connection), this guarantees it
-    // gets force-finished within 5s rather than silently hanging forever
-    // in the background.
+    // Failsafe: checkAuthSession() has its own internal timeouts/retries,
+    // but if the device's network is bad enough that even those stall
+    // (e.g. requests that never resolve or reject), this guarantees the
+    // app still becomes usable quickly instead of sitting on the auth
+    // spinner forever. Whichever finishes first — the real check or this
+    // failsafe — flips state.authReady and re-renders. A poor connection
+    // that resolves the real check later than this still gets its result
+    // painted correctly — see the render() calls inside checkAuthSession()
+    // itself, which fire whenever it actually finishes, even after this
+    // failsafe has already opened the app.
     await Promise.race([
         checkAuthSession(),
         new Promise(function(resolve) {
@@ -30645,7 +30038,7 @@ async function init() {
                     render();
                 }
                 resolve();
-            }, 5000);
+            }, 8000);
         })
     ]);
     // Restore session snapshot after auth is ready
@@ -30874,64 +30267,6 @@ function refreshApp() {
     setTimeout(function() { location.reload(); }, 350);
 }
 
-
-// ============================================================
-//  PULL-TO-REFRESH (drag down from the top of any screen, like a website)
-// ============================================================
-(function () {
-    var startY = 0, dy = 0, tracking = false, ind = null, TH = 70;
-    function getInd() {
-        if (!ind) {
-            ind = document.createElement('div'); ind.id = 'ptr-ind';
-            ind.innerHTML = svg('refresh', 18);
-            document.body.appendChild(ind);
-        }
-        return ind;
-    }
-    function atTop(el, view) {
-        while (el && el !== view) {
-            if (el.scrollTop > 0) return false;
-            el = el.parentElement;
-        }
-        return view.scrollTop <= 0;
-    }
-    document.addEventListener('touchstart', function (e) {
-        tracking = false;
-        if (e.touches.length !== 1) return;
-        var t = e.target;
-        if (!t.closest) return;
-        var view = t.closest('.view');
-        if (!view || view.classList.contains('view-chat') || view.classList.contains('view-exam') || view.classList.contains('view-nonav')) return;
-        if (t.closest('input, textarea, select, [contenteditable], .ai-history-overlay')) return;
-        if (!atTop(t, view)) return;
-        startY = e.touches[0].clientY; dy = 0; tracking = true;
-    }, { passive: true });
-    document.addEventListener('touchmove', function (e) {
-        if (!tracking) return;
-        dy = e.touches[0].clientY - startY;
-        var i = getInd();
-        if (dy <= 0) { i.style.opacity = 0; return; }
-        var d = Math.min(dy * 0.5, 90);
-        i.style.opacity = Math.min(dy / TH, 1);
-        i.style.transform = 'translateY(' + (d + 40) + 'px) rotate(' + (dy * 3) + 'deg)';
-    }, { passive: true });
-    document.addEventListener('touchend', function () {
-        if (!tracking) return;
-        tracking = false;
-        var i = getInd();
-        if (dy > TH) {
-            i.classList.add('spin');
-            i.style.opacity = 1;
-            i.style.transform = 'translateY(80px)';
-            refreshApp();
-        } else {
-            i.style.opacity = 0;
-            i.style.transform = 'translateY(-50px)';
-        }
-        dy = 0;
-    }, { passive: true });
-})();
-
 // ============================================================
 //  COPY PROTECTION (JS layer)
 //  Backs up the CSS user-select rules with real event interception, so
@@ -30962,48 +30297,6 @@ document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
     }
 });
-
-
-// ============================================================
-//  INSTANT SCREENS: show cached data immediately, refresh quietly,
-//  and never leave a screen spinning more than ~1.5s.
-// ============================================================
-function fastWrap(orig, instant, slow) {
-    var inflight = null;
-    return function() {
-        if (inflight) return inflight;
-        try { instant(); } catch (e) {}
-        var timer = setTimeout(function() { try { slow(); } catch (e) {} }, 1500);
-        inflight = Promise.resolve(orig.apply(this, arguments)).finally(function() {
-            clearTimeout(timer); inflight = null;
-        });
-        return inflight;
-    };
-}
-loadNotifications = fastWrap(loadNotifications,
-    function() { if (!state.notifsLoaded) { var c = loadOfflineCache('notifs'); if (c) applyNotifRows(c); } },
-    function() { if (!state.notifsLoaded) applyNotifRows(loadOfflineCache('notifs') || []); });
-loadMockExams = fastWrap(loadMockExams,
-    function() { if (!state.mockLoaded) { var c = loadOfflineCache('mockExams'); if (c) { state.mockExams = c; state.mockLoaded = true; render(); } } },
-    function() { if (!state.mockLoaded) { state.mockExams = loadOfflineCache('mockExams') || []; state.mockLoaded = true; render(); } });
-loadLiveExams = fastWrap(loadLiveExams,
-    function() { if (!state.liveExamsLoaded) { var c = loadOfflineCache('liveExams'); if (c) { state.liveExams = c; state.liveExamsLoaded = true; render(); } } },
-    function() { if (!state.liveExamsLoaded) { state.liveExams = loadOfflineCache('liveExams') || []; state.liveExamsLoaded = true; render(); } });
-loadAiSessions = fastWrap(loadAiSessions,
-    function() {
-        if (!state.aiSessionsLoaded && state.authUser) {
-            var c = loadOfflineCache('aiSessions_' + state.authUser.id);
-            if (c) { state.aiSessions = c; state.aiSessionsLoaded = true; if (!state.aiCurrentSessionId) { state.aiMessages = []; state.aiMessagesLoaded = true; } render(); }
-        }
-    },
-    function() {
-        if (!state.aiSessionsLoaded) {
-            state.aiSessions = (state.authUser && loadOfflineCache('aiSessions_' + state.authUser.id)) || [];
-            state.aiSessionsLoaded = true;
-            if (!state.aiCurrentSessionId) { state.aiMessages = []; state.aiMessagesLoaded = true; }
-            render();
-        }
-    });
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
