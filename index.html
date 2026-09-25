@@ -7102,6 +7102,66 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
      pdf.js decodes and paints the PDF onto a canvas ourselves, so it opens
      the same way on every device, with no extra tap. -->
 <script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>
+// ============================================================
+//  OfflineDB READINESS SHIM
+// ------------------------------------------------------------
+// offline-db.js is loaded with `defer`, so on a slow/flaky
+// connection (exactly the situation this app's "offline" features
+// exist for) there's a window where the rest of the app can run
+// before window.OfflineDB actually exists yet — or, if the file
+// fails to load at all, window.OfflineDB never gets defined.
+// Every call site across the app does `window.OfflineDB.someFn(...)`
+// with no guard, so that shows up for users as:
+//   "Cannot read properties of undefined (reading 'getPassageBatchesOffline')"
+//   "Cannot read properties of undefined (reading 'loadQuestionsOffline')"
+// (see Admin Panel > Errors log).
+//
+// Fix: make `window.OfflineDB` a stand-in object from the very start.
+// Any method called on it before the real offline-db.js has set
+// `window.OfflineDB = {...}` is queued and waits for that to happen,
+// then forwards the call to the real implementation. Once the real
+// object is assigned, it's used directly — no extra indirection, no
+// change needed at any of the ~50 existing call sites.
+(function () {
+    var realDB = null;
+    var resolveReady;
+    var readyPromise = new Promise(function (res) { resolveReady = res; });
+    var READY_TIMEOUT_MS = 20000;
+    var timedOut = false;
+    setTimeout(function () {
+        if (!realDB) {
+            timedOut = true;
+            console.error('OfflineDB failed to become ready within ' + READY_TIMEOUT_MS + 'ms (offline-db.js may have failed to load).');
+        }
+    }, READY_TIMEOUT_MS);
+
+    var stub = new Proxy({}, {
+        get: function (target, prop) {
+            if (realDB) return realDB[prop];
+            return function () {
+                var args = arguments;
+                return readyPromise.then(function () {
+                    if (typeof realDB[prop] !== 'function') {
+                        throw new Error('OfflineDB.' + String(prop) + ' is not available.');
+                    }
+                    return realDB[prop].apply(realDB, args);
+                });
+            };
+        }
+    });
+
+    Object.defineProperty(window, 'OfflineDB', {
+        configurable: true,
+        get: function () { return realDB || stub; },
+        set: function (v) {
+            realDB = v;
+            if (timedOut) console.info('OfflineDB became available after the initial timeout; queued calls will still resolve.');
+            resolveReady();
+        }
+    });
+})();
+</script>
 <script src="offline-db.js?v=3" defer></script>
 <script src="offline-db-boost.js?v=1" defer></script>
 <script>
