@@ -14709,91 +14709,130 @@ async function startCbt() {
     const perSubject = state.cbtQuestionCount || 25;
     state.cbtEngBatch = null;
 
-    for (const subject of subjects) {
-        let qs = [];
+    // FIX: this whole load used to run with no timeout or error handling —
+    // if any OfflineDB call hung or rejected (slow/broken IndexedDB, a
+    // stalled sync, etc), state.isLoading was NEVER reset back to false and
+    // the "Loading questions..." overlay stayed on screen forever with no
+    // way out. Wrapping in try/catch/finally (same pattern already used in
+    // startLiteratureCbt) guarantees the overlay always clears, and each
+    // OfflineDB call gets a timeout so one stuck promise can't hang the
+    // whole flow indefinitely.
+    try {
+        for (const subject of subjects) {
+            if (!subject) continue;
+            let qs = [];
 
-        if (subject.id === 'eng') {
-            // ====== FIX: pick ONE batch and use that SAME batch's passage
-            // + that SAME batch's questions together, so they can never
-            // mismatch. This pool/tracker is CBT-specific (mode: 'cbt'),
-            // kept separate from the Mock Arena's own 'mock' pool/tracker
-            // so running CBT and Mock never steal each other's batches. ======
-            const cbtBatches = await window.OfflineDB.getPassageBatchesOffline('eng', 'cbt');
-            let engQuestionsLoaded = false;
-
-            if (cbtBatches && cbtBatches.length > 0) {
-                const completedKey = 'eng_cbt_completed_' + state.authUser.id;
-                let completedBatches = JSON.parse(storage.get(completedKey) || '[]');
-
-                let availableBatches = cbtBatches.filter(function(bn) { return completedBatches.indexOf(bn) === -1; });
-                if (availableBatches.length === 0) {
-                    storage.set(completedKey, JSON.stringify([]));
-                    availableBatches = cbtBatches.slice();
+            if (subject.id === 'eng') {
+                // ====== FIX: pick ONE batch and use that SAME batch's passage
+                // + that SAME batch's questions together, so they can never
+                // mismatch. This pool/tracker is CBT-specific (mode: 'cbt'),
+                // kept separate from the Mock Arena's own 'mock' pool/tracker
+                // so running CBT and Mock never steal each other's batches. ======
+                let cbtBatches = [];
+                try {
+                    cbtBatches = await withNetworkTimeout(
+                        window.OfflineDB.getPassageBatchesOffline('eng', 'cbt'),
+                        2000, 'English passage batches load'
+                    );
+                } catch (e) {
+                    console.warn('CBT English batch load timed out or failed:', e);
+                    cbtBatches = [];
                 }
+                let engQuestionsLoaded = false;
 
-                // Shuffle which batch we try first, so it's not always
-                // the same one — but questions ALWAYS come from whichever
-                // batch we end up selecting, never a different one.
-                const batchTryOrder = shuffleArray(availableBatches);
-                const allEngQuestions = await window.OfflineDB.loadQuestionsOffline('cbt', 'eng');
+                if (cbtBatches && cbtBatches.length > 0) {
+                    const completedKey = 'eng_cbt_completed_' + state.authUser.id;
+                    let completedBatches = JSON.parse(storage.get(completedKey) || '[]');
 
-                for (const selectedBatch of batchTryOrder) {
-                    const qData = allEngQuestions
-                        .filter(function(q) { return q.batch_number === selectedBatch; })
-                        .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
-                        .slice(0, perSubject);
+                    let availableBatches = cbtBatches.filter(function(bn) { return completedBatches.indexOf(bn) === -1; });
+                    if (availableBatches.length === 0) {
+                        storage.set(completedKey, JSON.stringify([]));
+                        availableBatches = cbtBatches.slice();
+                    }
 
-                    if (qData.length > 0) {
-                        const passage = await window.OfflineDB.getPassageOffline(selectedBatch, 'cbt');
+                    // Shuffle which batch we try first, so it's not always
+                    // the same one — but questions ALWAYS come from whichever
+                    // batch we end up selecting, never a different one.
+                    const batchTryOrder = shuffleArray(availableBatches);
+                    const allEngQuestions = await withNetworkTimeout(
+                        window.OfflineDB.loadQuestionsOffline('cbt', 'eng'),
+                        2000, 'English questions load'
+                    );
 
-                        state.cbtEngBatch = selectedBatch;
-                        storage.set('eng_cbt_tracker_' + state.authUser.id, String(selectedBatch));
+                    for (const selectedBatch of batchTryOrder) {
+                        const qData = allEngQuestions
+                            .filter(function(q) { return q.batch_number === selectedBatch; })
+                            .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
+                            .slice(0, perSubject);
 
-                        if (passage) {
-                            state.currentEnglishPassage = passage;
-                            state.hasPassage = true;
-                            state.passageRead = false;
-                            state.passageQuestionIds = qData.map(function(q) { return q.id; });
-                        } else {
-                            state.currentEnglishPassage = null;
-                            state.hasPassage = false;
-                            state.passageRead = true;
-                            state.passageQuestionIds = [];
+                        if (qData.length > 0) {
+                            const passage = await withNetworkTimeout(
+                                window.OfflineDB.getPassageOffline(selectedBatch, 'cbt'),
+                                2000, 'English passage load'
+                            );
+
+                            state.cbtEngBatch = selectedBatch;
+                            storage.set('eng_cbt_tracker_' + state.authUser.id, String(selectedBatch));
+
+                            if (passage) {
+                                state.currentEnglishPassage = passage;
+                                state.hasPassage = true;
+                                state.passageRead = false;
+                                state.passageQuestionIds = qData.map(function(q) { return q.id; });
+                            } else {
+                                state.currentEnglishPassage = null;
+                                state.hasPassage = false;
+                                state.passageRead = true;
+                                state.passageQuestionIds = [];
+                            }
+
+                            qs = qData;
+                            engQuestionsLoaded = true;
+                            break;
                         }
-
-                        qs = qData;
-                        engQuestionsLoaded = true;
-                        break;
                     }
                 }
-            }
 
-            if (!engQuestionsLoaded) {
-                state.currentEnglishPassage = null;
-                state.hasPassage = false;
-                state.passageRead = true;
-                state.passageQuestionIds = [];
-                state.cbtEngBatch = null;
+                if (!engQuestionsLoaded) {
+                    state.currentEnglishPassage = null;
+                    state.hasPassage = false;
+                    state.passageRead = true;
+                    state.passageQuestionIds = [];
+                    state.cbtEngBatch = null;
 
-                qs = await window.OfflineDB.loadQuestionsOffline('cbt', 'eng');
+                    qs = await withNetworkTimeout(
+                        window.OfflineDB.loadQuestionsOffline('cbt', 'eng'),
+                        2000, 'English questions load'
+                    );
+                    qs = shuffleArray(qs).slice(0, perSubject);
+                }
+                // ====== END FIX ======
+            } else {
+                qs = await withNetworkTimeout(
+                    window.OfflineDB.loadQuestionsOffline('cbt', subject.id),
+                    2000, subject.name + ' questions load'
+                );
                 qs = shuffleArray(qs).slice(0, perSubject);
             }
-            // ====== END FIX ======
-        } else {
-            qs = await window.OfflineDB.loadQuestionsOffline('cbt', subject.id);
-            qs = shuffleArray(qs).slice(0, perSubject);
+
+            const qsWithSubject = (qs || []).map(function(q) {
+                return Object.assign({}, q, { subject_name: subject.name });
+            });
+            allQuestions = allQuestions.concat(qsWithSubject);
         }
-        
-        const qsWithSubject = qs.map(function(q) {
-            return Object.assign({}, q, { subject_name: subject.name });
-        });
-        allQuestions = allQuestions.concat(qsWithSubject);
+    } catch (e) {
+        console.warn('CBT question load failed:', e);
+        state.isLoading = false;
+        showNetworkAwareError('Could not load questions. Please try again.', e);
+        render();
+        return;
+    } finally {
+        state.isLoading = false;
     }
 
-    state.isLoading = false;
-            
     if (allQuestions.length === 0) {
         showToast('No questions available for these subjects.', 'error');
+        render();
         return;
     }
 
@@ -14858,7 +14897,7 @@ async function startLiteratureCbt() {
     try {
         questions = await withNetworkTimeout(
             window.OfflineDB.loadQuestionsOffline('NOVEL (CBT)', 'lhm', null, perBatch),
-            15000, 'Novel questions load'
+            2000, 'Novel questions load'
         );
     } catch (e) {
         console.warn('Novel (CBT) load timed out or failed:', e);
@@ -14870,10 +14909,10 @@ async function startLiteratureCbt() {
     // from the server before giving up, instead of hanging or failing silently.
     if ((!questions || questions.length === 0) && window.OfflineDB && typeof window.OfflineDB.syncAllSubjectFiles === 'function') {
         try {
-            await withNetworkTimeout(window.OfflineDB.syncAllSubjectFiles(['lhm']), 15000, 'Novel file sync');
+            await withNetworkTimeout(window.OfflineDB.syncAllSubjectFiles(['lhm']), 2000, 'Novel file sync');
             questions = await withNetworkTimeout(
                 window.OfflineDB.loadQuestionsOffline('NOVEL (CBT)', 'lhm', null, perBatch),
-                15000, 'Novel questions reload'
+                2000, 'Novel questions reload'
             );
         } catch (e) {
             console.warn('Novel (CBT) sync/retry failed:', e);
@@ -14945,11 +14984,28 @@ async function startExam() {
     render();
     
     const s = SUBJECTS.find(function(x) { return x.id === state.examSubject; });
-    let questions = await window.OfflineDB.loadQuestionsOffline('exam', state.examSubject, state.examYear);
+    // FIX: same class of bug as startCbt — this had no timeout or error
+    // handling, so a hung/rejected OfflineDB call left state.isLoading
+    // stuck true forever with the overlay frozen on screen. Wrapped with
+    // withNetworkTimeout + try/catch so it always resolves one way or
+    // another and the overlay always clears.
+    let questions = [];
+    try {
+        questions = await withNetworkTimeout(
+            window.OfflineDB.loadQuestionsOffline('exam', state.examSubject, state.examYear),
+            2000, 'Exam questions load'
+        );
+    } catch (e) {
+        console.warn('Exam question load failed:', e);
+        state.isLoading = false;
+        showNetworkAwareError('Could not load questions. Please try again.', e);
+        render();
+        return;
+    }
     state.isLoading = false;
     render();
     
-    if (questions.length === 0) {
+    if (!questions || questions.length === 0) {
         showToast('No questions uploaded for this subject and year yet.', 'error');
         return;
     }
@@ -15023,11 +15079,29 @@ async function startTopicPractice() {
     render();
     
     const settings = await loadSettings();
-    const questions = await window.OfflineDB.getTopicQuestionsOffline(state.topicId, TOPIC_SESSION_SIZE);
+    // FIX: same class of bug as startCbt — this had no timeout or error
+    // handling, so a hung/rejected OfflineDB call left state.isLoading
+    // stuck true forever with the overlay frozen on screen. Wrapped with
+    // withNetworkTimeout + try/catch so it always resolves one way or
+    // another and the overlay always clears.
+    let questions = [];
+    try {
+        questions = await withNetworkTimeout(
+            window.OfflineDB.getTopicQuestionsOffline(state.topicId, TOPIC_SESSION_SIZE),
+            2000, 'Topic questions load'
+        );
+    } catch (e) {
+        console.warn('Topic question load failed:', e);
+        state.isLoading = false;
+        showNetworkAwareError('Could not load questions. Please try again.', e);
+        render();
+        return;
+    }
     state.isLoading = false;
 
-    if (questions.length === 0) {
+    if (!questions || questions.length === 0) {
         showToast('No questions for this topic yet.', 'error');
+        render();
         return;
     }
 
