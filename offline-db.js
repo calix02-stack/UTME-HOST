@@ -28,10 +28,67 @@
 
     var dbPromise = null;
 
+    // ------------------------------------------------------------
+    // DIAGNOSTIC REPORTER
+    // ------------------------------------------------------------
+    // Question loads were timing out app-wide with no clue why — the
+    // 12s timeout in index.html just says "timed out", not WHAT
+    // actually happened underneath (IndexedDB blocked? never
+    // responded at all? genuinely errored?). This pipes real
+    // diagnostics into the same Admin Panel > Errors log the app
+    // already has (via window.logAppError, defined in index.html and
+    // already loaded by the time this file runs), so the next
+    // occurrence shows the real cause instead of just "timed out".
+    // Never throws — a broken diagnostic must never break the app.
+    function reportDiagnostic(context, extra) {
+        try {
+            var detail = extra ? ' | ' + JSON.stringify(extra) : '';
+            if (typeof window.logAppError === 'function') {
+                window.logAppError('offline-db diagnostic: ' + context, { message: context + detail });
+            } else {
+                console.warn('offline-db diagnostic:', context + detail);
+            }
+        } catch (e) { /* diagnostics must never throw */ }
+    }
+
     function openDB() {
         if (dbPromise) return dbPromise;
+        var startedAt = Date.now();
+        var blockedFired = false;
         dbPromise = new Promise(function (resolve, reject) {
-            var req = indexedDB.open(DB_NAME, DB_VERSION);
+            if (typeof indexedDB === 'undefined') {
+                reportDiagnostic('openDB: indexedDB is unavailable in this environment', {
+                    userAgent: navigator.userAgent
+                });
+                reject(new Error('IndexedDB unavailable'));
+                return;
+            }
+
+            var req;
+            try {
+                req = indexedDB.open(DB_NAME, DB_VERSION);
+            } catch (syncErr) {
+                reportDiagnostic('openDB: indexedDB.open threw synchronously', {
+                    message: syncErr && syncErr.message, userAgent: navigator.userAgent
+                });
+                reject(syncErr);
+                return;
+            }
+
+            // If the request hasn't fired ANY callback (success, error, or
+            // even blocked) after 4s, something below the JS layer is
+            // stuck — most commonly a WebView/browser with broken or
+            // restricted IndexedDB support. This only logs; it does not
+            // change what openDB() resolves to (that's handled by the
+            // network-fallback race added in loadQuestionsOffline below).
+            var watchdog = setTimeout(function () {
+                reportDiagnostic('openDB: indexedDB.open has not settled after 4s', {
+                    blockedFired: blockedFired,
+                    userAgent: navigator.userAgent,
+                    standalone: (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true
+                });
+            }, 4000);
+
             req.onupgradeneeded = function (e) {
                 var db = e.target.result;
 
@@ -59,12 +116,26 @@
                     db.createObjectStore('meta', { keyPath: 'key' });
                 }
             };
-            req.onsuccess = function (e) { resolve(e.target.result); };
+            req.onsuccess = function (e) {
+                clearTimeout(watchdog);
+                var elapsed = Date.now() - startedAt;
+                if (elapsed > 4000) {
+                    reportDiagnostic('openDB: succeeded but only after ' + elapsed + 'ms', { blockedFired: blockedFired });
+                }
+                resolve(e.target.result);
+            };
             req.onerror = function (e) {
+                clearTimeout(watchdog);
                 dbPromise = null;
+                reportDiagnostic('openDB: onerror', {
+                    message: (e.target.error && e.target.error.message) || 'unknown',
+                    elapsedMs: Date.now() - startedAt
+                });
                 reject(e.target.error || new Error('IndexedDB open failed'));
             };
             req.onblocked = function () {
+                blockedFired = true;
+                reportDiagnostic('openDB: blocked by another open connection/tab');
                 console.warn('offline-db.js: IndexedDB open blocked by another tab.');
             };
         });
@@ -213,16 +284,75 @@
 
     // ---- Questions (cbt / mock / exam / NOVEL (CBT) / subject) ----
 
+    // The local-DB path times out app-wide at 12s (index.html) with no
+    // recovery — the mode just fails. If the local DB hasn't answered
+    // within LOCAL_RACE_MS, this kicks off a direct network fetch of
+    // that subject's questions file as a fallback, so a stuck/broken
+    // IndexedDB on one device doesn't block someone with a perfectly
+    // fine internet connection from starting a mode. Whichever path
+    // answers first wins; if the local DB was just being slow (not
+    // actually broken) it's still allowed to finish and its data is
+    // kept for next time.
+    var LOCAL_RACE_MS = 5000;
+
+    function filterQuestions(rows, type, year, limit) {
+        var filtered = rows.filter(function (q) { return !type || q.type === type; });
+        if (year !== undefined && year !== null) {
+            filtered = filtered.filter(function (q) { return q.year === year; });
+        }
+        if (limit) {
+            filtered = shuffle(filtered).slice(0, limit);
+        }
+        return filtered;
+    }
+
     OfflineDB.loadQuestionsOffline = function (type, subjectId, year, limit) {
-        return storeGetAllByIndex('questions', 'by_type_subject', [type, subjectId]).then(function (rows) {
-            var filtered = rows;
-            if (year !== undefined && year !== null) {
-                filtered = filtered.filter(function (q) { return q.year === year; });
-            }
-            if (limit) {
-                filtered = shuffle(filtered).slice(0, limit);
-            }
-            return filtered;
+        var localPromise = storeGetAllByIndex('questions', 'by_type_subject', [type, subjectId]);
+
+        return new Promise(function (resolve, reject) {
+            var settled = false;
+
+            var raceTimer = setTimeout(function () {
+                if (settled) return;
+                reportDiagnostic('loadQuestionsOffline: local DB slow after ' + LOCAL_RACE_MS + 'ms, trying network fallback', { type: type, subjectId: subjectId });
+                fetchSubjectFile(subjectId).then(function (file) {
+                    if (settled || file.notFound || !file.questions || !file.questions.length) return;
+                    var filtered = filterQuestions(file.questions, type, year, limit);
+                    if (filtered.length > 0 && !settled) {
+                        settled = true;
+                        reportDiagnostic('loadQuestionsOffline: served from network fallback', { type: type, subjectId: subjectId, count: filtered.length });
+                        resolve(filtered);
+                        // Best-effort: cache what we fetched for next time.
+                        storePutAll('questions', file.questions.map(function (q) {
+                            var copy = Object.assign({}, q);
+                            if (!copy.id) copy.id = uid();
+                            copy.subject_id = subjectId;
+                            return copy;
+                        })).catch(function () {});
+                    }
+                }).catch(function () { /* fallback failed too — local path may still resolve */ });
+            }, LOCAL_RACE_MS);
+
+            localPromise.then(function (rows) {
+                clearTimeout(raceTimer);
+                if (settled) return; // network fallback already won the race
+                settled = true;
+                resolve(filterQuestions(rows, type, year, limit));
+            }, function (err) {
+                clearTimeout(raceTimer);
+                if (settled) return;
+                reportDiagnostic('loadQuestionsOffline: local DB error, trying network fallback', { type: type, subjectId: subjectId, error: err && err.message });
+                fetchSubjectFile(subjectId).then(function (file) {
+                    if (settled) return;
+                    settled = true;
+                    if (file.notFound || !file.questions) { resolve([]); return; }
+                    resolve(filterQuestions(file.questions, type, year, limit));
+                }).catch(function () {
+                    if (settled) return;
+                    settled = true;
+                    reject(err); // surface the original local error — network fallback failed too
+                });
+            });
         });
     };
 
