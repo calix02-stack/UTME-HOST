@@ -373,9 +373,15 @@
                 if (res.status === 404) return { notFound: true };
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 return res.json().then(function (data) {
+                    // Real export shape (confirmed from an actual exported file):
+                    // { version, subject_id, exportedAt, questions: [...], passages: [...],
+                    //   topics: [...], topic_questions: [...] }
+                    // Still accept a bare array for backward compatibility.
                     var arr = Array.isArray(data) ? data : (data && data.questions) || [];
                     var passages = (data && !Array.isArray(data) && data.passages) || [];
-                    return { notFound: false, questions: arr, passages: passages };
+                    var topics = (data && !Array.isArray(data) && data.topics) || [];
+                    var topicQuestions = (data && !Array.isArray(data) && data.topic_questions) || [];
+                    return { notFound: false, questions: arr, passages: passages, topics: topics, topic_questions: topicQuestions };
                 });
             });
     }
@@ -383,13 +389,27 @@
     OfflineDB.exportSubjectData = function (subjectId) {
         return Promise.all([
             storeGetAllByIndex('questions', 'by_subject', subjectId),
-            storeGetAll('passages')
+            storeGetAll('passages'),
+            storeGetAllByIndex('topics', 'by_subject', subjectId)
         ]).then(function (res) {
             var questions = res[0];
             var passages = res[1].filter(function (p) { return p.subject_id === subjectId; });
-            var payload = { subject_id: subjectId, questions: questions, passages: passages };
-            downloadJson('questions-' + subjectId + '.json', payload);
-            return payload;
+            var topics = res[2];
+            var topicIds = topics.map(function (t) { return t.id; });
+            return storeGetAll('topic_questions').then(function (allTQ) {
+                var topicQuestions = allTQ.filter(function (tq) { return topicIds.indexOf(tq.topic_id) !== -1; });
+                var payload = {
+                    version: '1.0',
+                    subject_id: subjectId,
+                    exportedAt: new Date().toISOString(),
+                    questions: questions,
+                    passages: passages,
+                    topics: topics,
+                    topic_questions: topicQuestions
+                };
+                downloadJson('questions-' + subjectId + '.json', payload);
+                return payload;
+            });
         });
     };
 
@@ -421,9 +441,23 @@
                         copy.id = copy.subject_id + '_' + copy.mode + '_' + copy.batch_number;
                         return storePut('passages', copy);
                     });
-                    return Promise.all([
-                        normalized.length ? storePutAll('questions', normalized) : Promise.resolve()
-                    ].concat(passagePuts)).then(function () {
+                    var topicIdMap = {};
+                    var topicPuts = (file.topics || []).map(function (t) {
+                        var copy = Object.assign({}, t, { subject_id: subjectId });
+                        if (!copy.id) copy.id = uid();
+                        topicIdMap[t.id] = copy.id;
+                        return storePut('topics', copy);
+                    });
+                    var topicQuestionPuts = (file.topic_questions || []).map(function (tq) {
+                        var copy = Object.assign({}, tq);
+                        if (!copy.id) copy.id = uid();
+                        if (copy.topic_id && topicIdMap[copy.topic_id]) copy.topic_id = topicIdMap[copy.topic_id];
+                        return storePut('topic_questions', copy);
+                    });
+                    return Promise.all(
+                        [normalized.length ? storePutAll('questions', normalized) : Promise.resolve()]
+                            .concat(passagePuts).concat(topicPuts).concat(topicQuestionPuts)
+                    ).then(function () {
                         results[subjectId] = { status: 'reconciled', count: normalized.length };
                     });
                 });
