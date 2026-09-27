@@ -33,7 +33,6 @@ function fetchWithTimeout(request, timeoutMs = FETCH_TIMEOUT_MS) {
 }
 
 self.addEventListener("install", (event) => {
-  // Add files one by one so a single missing file can't break the install.
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       Promise.all(APP_SHELL.map((url) => cache.add(url).catch(() => null)))
@@ -70,13 +69,9 @@ self.addEventListener("fetch", (event) => {
     /^\/?questions-[^/]+\.json$/.test(url.pathname) ||
     url.pathname.endsWith("questions-seed.json");
 
-  // The app's own scripts (offline-db.js etc.): also stale-while-revalidate,
-  // ignoring the ?v= query so the cached copy is always found offline.
   const isAppScript = url.pathname.endsWith(".js") && /offline-db/.test(url.pathname);
 
   if (isAppShell || isQuestionDataFile || isAppScript) {
-    // STALE-WHILE-REVALIDATE: answer from cache immediately when a copy
-    // exists; refresh in the background for next time.
     const ignoreSearch = isQuestionDataFile || isAppScript;
     event.respondWith(
       caches.match(event.request, { ignoreSearch }).then((cached) => {
@@ -84,7 +79,6 @@ self.addEventListener("fetch", (event) => {
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               const clone = networkResponse.clone();
-              // Store script copies under the plain path so ?v= changes still match.
               const key = isAppScript ? new Request(url.origin + url.pathname) : event.request;
               caches.open(CACHE_NAME).then((cache) => cache.put(key, clone));
             }
@@ -102,7 +96,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else (icons, manifest, other static assets).
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetchPromise = fetchWithTimeout(event.request)
@@ -119,7 +112,6 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// ===== PUSH NOTIFICATIONS =====
 self.addEventListener("push", (event) => {
   let data = {};
   try {
