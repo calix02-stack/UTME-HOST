@@ -325,17 +325,16 @@
 
     // ---- Questions (cbt / mock / exam / NOVEL (CBT) / subject) ----
 
-    // The local-DB path times out app-wide at 12s (index.html) with no
-    // recovery — the mode just fails. If the local DB hasn't answered
-    // within LOCAL_RACE_MS, this kicks off a direct network fetch of
-    // that subject's questions file as a fallback, so a stuck/broken
-    // IndexedDB on one device doesn't block someone with a perfectly
-    // fine internet connection from starting a mode. Whichever path
-    // answers first wins; if the local DB was just being slow (not
-    // actually broken) it's still allowed to finish and its data is
-    // kept for next time.
-    var LOCAL_RACE_MS = 900;
-
+    // Local DB has been observed hanging on some devices/browsers 100% of
+    // the time (not just occasionally) — so waiting on it FIRST before even
+    // trying the network, as the previous version of this function did, was
+    // itself the source of the multi-second spinner. Fix: fire off the
+    // local read and a direct network fetch of the subject file AT THE
+    // SAME TIME, and resolve with whichever comes back first with usable
+    // data. On a device where local IndexedDB genuinely works and is fast,
+    // it still wins the race with no perceptible delay. On a device where
+    // it's broken/hanging, the response time is simply how long the
+    // network fetch takes — no artificial wait tacked on first.
     function filterQuestions(rows, type, year, limit) {
         var filtered = rows.filter(function (q) { return !type || q.type === type; });
         if (year !== undefined && year !== null) {
@@ -349,51 +348,71 @@
 
     OfflineDB.loadQuestionsOffline = function (type, subjectId, year, limit) {
         var localPromise = storeGetAllByIndex('questions', 'by_type_subject', [type, subjectId]);
+        var networkPromise = fetchSubjectFile(subjectId); // starts immediately, in parallel — not after waiting on local
 
         return new Promise(function (resolve, reject) {
             var settled = false;
+            var localDone = false, networkDone = false;
+            var localErr = null, networkErr = null;
 
-            var raceTimer = setTimeout(function () {
-                if (settled) return;
-                reportDiagnostic('loadQuestionsOffline: local DB slow after ' + LOCAL_RACE_MS + 'ms, trying network fallback', { type: type, subjectId: subjectId });
-                fetchSubjectFile(subjectId).then(function (file) {
-                    if (settled || file.notFound || !file.questions || !file.questions.length) return;
-                    var filtered = filterQuestions(file.questions, type, year, limit);
-                    if (filtered.length > 0 && !settled) {
-                        settled = true;
-                        reportDiagnostic('loadQuestionsOffline: served from network fallback', { type: type, subjectId: subjectId, count: filtered.length });
-                        resolve(filtered);
-                        // Best-effort: cache what we fetched for next time.
-                        storePutAll('questions', file.questions.map(function (q) {
-                            var copy = Object.assign({}, q);
-                            if (!copy.id) copy.id = uid();
-                            copy.subject_id = subjectId;
-                            return copy;
-                        })).catch(function () {});
-                    }
-                }).catch(function () { /* fallback failed too — local path may still resolve */ });
-            }, LOCAL_RACE_MS);
+            function finish(filtered) {
+                settled = true;
+                resolve(filtered);
+            }
+
+            function maybeFail() {
+                if (settled || !localDone || !networkDone) return;
+                reject(localErr || networkErr || new Error('No questions available'));
+            }
 
             localPromise.then(function (rows) {
-                clearTimeout(raceTimer);
-                if (settled) return; // network fallback already won the race
-                settled = true;
-                resolve(filterQuestions(rows, type, year, limit));
-            }, function (err) {
-                clearTimeout(raceTimer);
+                localDone = true;
                 if (settled) return;
-                reportDiagnostic('loadQuestionsOffline: local DB error, trying network fallback', { type: type, subjectId: subjectId, error: err && err.message });
-                fetchSubjectFile(subjectId).then(function (file) {
-                    if (settled) return;
-                    settled = true;
-                    if (file.notFound || !file.questions) { resolve([]); return; }
-                    resolve(filterQuestions(file.questions, type, year, limit));
-                }).catch(function () {
-                    if (settled) return;
-                    settled = true;
-                    reject(err); // surface the original local error — network fallback failed too
-                });
+                var filtered = filterQuestions(rows, type, year, limit);
+                if (filtered.length > 0) { finish(filtered); return; }
+                maybeFail();
+            }, function (err) {
+                localDone = true;
+                localErr = err;
+                if (settled) return;
+                reportDiagnostic('loadQuestionsOffline: local DB error', { type: type, subjectId: subjectId, error: err && err.message });
+                maybeFail();
             });
+
+            networkPromise.then(function (file) {
+                networkDone = true;
+                if (settled) return;
+                if (file.notFound || !file.questions || !file.questions.length) { maybeFail(); return; }
+                var filtered = filterQuestions(file.questions, type, year, limit);
+                if (filtered.length > 0) {
+                    finish(filtered);
+                    // Best-effort: cache what we fetched for next time, so a
+                    // working local DB has this data available offline later.
+                    storePutAll('questions', file.questions.map(function (q) {
+                        var copy = Object.assign({}, q);
+                        if (!copy.id) copy.id = uid();
+                        copy.subject_id = subjectId;
+                        return copy;
+                    })).catch(function () {});
+                } else {
+                    maybeFail();
+                }
+            }, function (err) {
+                networkDone = true;
+                networkErr = err;
+                maybeFail();
+            });
+
+            // Purely informational — does not delay or change the result,
+            // just tells us in the Errors log if BOTH sources are taking a
+            // while, so a slow case is visible without slowing anything down.
+            setTimeout(function () {
+                if (!settled) {
+                    reportDiagnostic('loadQuestionsOffline: still waiting after 1200ms', {
+                        type: type, subjectId: subjectId, localDone: localDone, networkDone: networkDone
+                    });
+                }
+            }, 1200);
         });
     };
 
