@@ -1,5 +1,5 @@
 // MyUTME service worker
-const CACHE_NAME = "myutme-cache-v7";
+const CACHE_NAME = "myutme-cache-v8";
 
 const APP_SHELL = [
   "./",
