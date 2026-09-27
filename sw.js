@@ -1,6 +1,5 @@
-
 // MyUTME service worker
-const CACHE_NAME = "myutme-cache-v9";
+const CACHE_NAME = "myutme-cache-v10";
 
 const APP_SHELL = [
   "./",
@@ -9,7 +8,6 @@ const APP_SHELL = [
   "./icon-192.png",
   "./icon-512.png",
   "./offline-db.js",
-  "./offline-db-boost.js",
 ];
 
 // How long to give a background revalidation fetch before giving up.
