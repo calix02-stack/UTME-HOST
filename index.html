@@ -450,6 +450,18 @@
         letter-spacing: -0.02em;
     }
     .brand span b { color: var(--gold); font-weight: 400; }
+    .app-version-badge {
+        font-family: var(--font-sans) !important;
+        font-size: 8.5px !important;
+        font-weight: 700 !important;
+        color: rgba(255,255,255,0.85) !important;
+        background: rgba(255,255,255,0.16);
+        border-radius: 999px;
+        padding: 1px 6px;
+        margin-left: 4px;
+        letter-spacing: 0 !important;
+        vertical-align: middle;
+    }
 
     .avatar {
         width: 30px;
@@ -6433,7 +6445,7 @@
         -webkit-line-clamp: 1;
         -webkit-box-orient: vertical;
     }
-    .acct-menu-item .amii-badge {
+    .acct-menu-item .amii-badge, .ph-mode-card .amii-badge {
         background: var(--gold);
         color: var(--ink);
         font-size: 8px;
@@ -8648,6 +8660,12 @@ window.addEventListener('unhandledrejection', function(event) {
 // ============================================================
 let state = {
     phase: "app",
+    // App version shown at the top of the Home screen — read directly from
+    // sw.js (the service worker's own cache-version string) so the badge
+    // on screen always matches whichever build the service worker is
+    // actually serving/caching, instead of a separate hardcoded number
+    // that could drift out of sync with it. Filled in by loadSwVersion().
+    swVersion: null,
     profile: { name: "Guest", email: "", id: null, is_active: true, activation_expiry: null, fullName: "", avatarUrl: null, walletBalance: 0 },
     drawerOpen: false,
     view: "home",
@@ -9743,6 +9761,54 @@ function isOnline() { return navigator.onLine !== false; }
 function isStandaloneApp() {
     return window.matchMedia("(display-mode: standalone)").matches ||
         window.navigator.standalone === true;
+}
+
+// ============================================================
+//  APP VERSION BADGE — read straight from sw.js
+// ============================================================
+// Rather than keep a second, hand-maintained version number that can
+// silently fall out of sync with the service worker, this fetches sw.js
+// itself and pulls whatever version string it already declares (however
+// it's named — CACHE_NAME, CACHE_VERSION, APP_VERSION or VERSION), so the
+// badge shown on screen is always the exact version the service worker
+// is actually running/caching.
+function parseSwVersion(text) {
+    if (!text) return null;
+    const patterns = [
+        /CACHE_NAME\s*=\s*['"]([^'"]+)['"]/,
+        /CACHE_VERSION\s*=\s*['"]([^'"]+)['"]/,
+        /APP_VERSION\s*=\s*['"]([^'"]+)['"]/,
+        /\bVERSION\s*=\s*['"]([^'"]+)['"]/,
+    ];
+    for (let i = 0; i < patterns.length; i++) {
+        const m = text.match(patterns[i]);
+        if (m && m[1]) return m[1];
+    }
+    return null;
+}
+function loadSwVersion() {
+    fetch('sw.js', { cache: 'no-store' })
+        .then(function(r) { return r.ok ? r.text() : null; })
+        .then(function(text) {
+            const v = parseSwVersion(text);
+            if (v) {
+                state.swVersion = v;
+                if (typeof render === 'function') render();
+            }
+        })
+        .catch(function() { /* offline or sw.js unreachable — badge just stays hidden */ });
+}
+// The raw cache-name string is usually something like "myutme-cache-v11",
+// not a bare number — showing that as-is after a "v" prefix would read as
+// "v myutme-cache-v11". This pulls out just the trailing version part
+// (v11, v2.3, etc.) for a clean on-screen badge, falling back to the raw
+// string (still prefixed sensibly) if it doesn't end in a version-shaped
+// suffix.
+function formatVersionBadge(raw) {
+    if (!raw) return '';
+    const m = raw.match(/(?:^|[-_])v?(\d+(?:\.\d+)*)$/i);
+    if (m) return 'v' + m[1];
+    return /^v/i.test(raw) ? raw : 'v' + raw;
 }
 
 // Recognizes a real database course ID vs a local DEFAULT_COURSES placeholder
@@ -17019,7 +17085,9 @@ function renderApp() {
               '<button class="icon-btn topbar-refresh-btn" data-action="app-refresh" aria-label="Refresh">' +
               svg('refresh', 16).replace('stroke="currentColor"', 'stroke="white"') +
               '</button></div>' +
-              '<div class="topbar-center"><span class="brand">' + logoSvg(18) + '<span>My<b>UTME</b></span></span></div>' +
+              '<div class="topbar-center"><span class="brand">' + logoSvg(18) + '<span>My<b>UTME</b></span>' +
+              (state.swVersion ? '<span class="app-version-badge">' + esc(formatVersionBadge(state.swVersion)) + '</span>' : '') +
+              '</span></div>' +
               '<div class="topbar-right">' +
               '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
               svg('bell', 17).replace('stroke="currentColor"', 'stroke="white"') +
@@ -20380,19 +20448,24 @@ function renderProfile() {
 
     // Menu items — ordered by importance. Study Circle comes right after
     // the Activate card per the requested layout, then the rest follow.
+    // Styled the same way as the Practice Hub mode list (ph-mode-card /
+    // ph-mode-icon): a tinted full-width row with a colored left edge, a
+    // larger colored icon bubble (real svg icons, not emoji) and a
+    // trailing tint-colored chevron — instead of the old plain 2-col
+    // white-card grid with small emoji icons.
     const menuItems = [
-        { key: 'set-view|study-circle', icon: '🌿', color: '#0F6B3F', title: 'Study Circle', sub: 'Join our WhatsApp group & channel' },
-        { key: 'start-profile-edit', icon: '✏️', color: '#3B6EA5', title: 'Profile', sub: 'Edit your name and photo' },
-        { key: 'set-view|leaderboard', icon: '🏆', color: '#6B4F82', title: 'Leaderboard', sub: 'See where you rank' },
-        { key: 'set-view|history', icon: '📊', color: '#6E5296', title: 'Result Analysis', sub: 'Your exam results and performance' },
-        { key: 'set-view|study-reminder', icon: '⏰', color: '#E4A93A', title: 'Study Planner', sub: 'Reminders & your own nudge message', badge: 'NEW' },
-        { key: 'set-view|support', icon: '💬', color: '#46527A', title: 'Support', sub: 'Chat with us or WhatsApp' },
+        { key: 'set-view|study-circle', icon: 'whatsapp', color: '#0F6B3F', title: 'Study Circle', sub: 'Join our WhatsApp group & channel' },
+        { key: 'start-profile-edit', icon: 'edit', color: '#3B6EA5', title: 'Profile', sub: 'Edit your name and photo' },
+        { key: 'set-view|leaderboard', icon: 'trophy', color: '#6B4F82', title: 'Leaderboard', sub: 'See where you rank' },
+        { key: 'set-view|history', icon: 'chart', color: '#6E5296', title: 'Result Analysis', sub: 'Your exam results and performance' },
+        { key: 'set-view|study-reminder', icon: 'bell', color: '#E4A93A', title: 'Study Planner', sub: 'Reminders & your own nudge message', badge: 'NEW' },
+        { key: 'set-view|support', icon: 'chat', color: '#46527A', title: 'Support', sub: 'Chat with us or WhatsApp' },
     ];
     if (state.pwaInstallAvailable && !isStandaloneApp()) {
-        menuItems.push({ key: 'trigger-pwa-install', icon: '⬇️', color: '#0F6B3F', title: 'Install App', sub: 'Add MyUTME to your home screen' });
+        menuItems.push({ key: 'trigger-pwa-install', icon: 'download', color: '#0F6B3F', title: 'Install App', sub: 'Add MyUTME to your home screen' });
     }
     
-    let menuHtml = '<div class="acct-menu-grid">';
+    let menuHtml = '<div class="ph-mode-list">';
     menuItems.forEach(function(item) {
         const parts = item.key.split('|');
         const action = parts[0];
@@ -20403,24 +20476,20 @@ function renderProfile() {
         if (view) dataAttr += ' data-view="' + view + '"';
         
         menuHtml += (
-            '<button class="acct-menu-item" ' + dataAttr + '>' +
-            '<span class="amicon" style="background:' + item.color + '20;color:' + item.color + '">' + item.icon + '</span>' +
-            '<div class="amii-text">' +
-            '<p class="amii-title">' + esc(item.title) + badgeHtml + '</p>' +
-            '<p class="amii-sub">' + esc(item.sub) + '</p>' +
-            '</div>' +
+            '<button class="ph-mode-card" style="--tint:' + item.color + ';background:' + item.color + '14;border-color:' + item.color + '40" ' + dataAttr + '>' +
+            '<span class="ph-mode-icon" style="background:' + item.color + '26;color:' + item.color + '">' + svg(item.icon, 22) + '</span>' +
+            '<span class="ph-mode-text"><span class="ph-mode-label">' + esc(item.title) + badgeHtml + '</span><span class="ph-mode-sub">' + esc(item.sub) + '</span></span>' +
+            '<span class="ph-mode-chevron" style="color:' + item.color + '">' + svg('chevleft', 16).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>' +
             '</button>'
         );
     });
     // Admin row
     if (isAdmin()) {
         menuHtml += (
-            '<button class="acct-menu-item" data-action="set-view" data-view="admin">' +
-            '<span class="amicon" style="background:#E4A93A30;color:#E4A93A">🛡️</span>' +
-            '<div class="amii-text">' +
-            '<p class="amii-title">Admin Panel</p>' +
-            '<p class="amii-sub">Manage questions, users & settings</p>' +
-            '</div>' +
+            '<button class="ph-mode-card" style="--tint:#E4A93A;background:#E4A93A14;border-color:#E4A93A40" data-action="set-view" data-view="admin">' +
+            '<span class="ph-mode-icon" style="background:#E4A93A26;color:#E4A93A">' + svg('shield', 22) + '</span>' +
+            '<span class="ph-mode-text"><span class="ph-mode-label">Admin Panel</span><span class="ph-mode-sub">Manage questions, users &amp; settings</span></span>' +
+            '<span class="ph-mode-chevron" style="color:#E4A93A">' + svg('chevleft', 16).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>' +
             '</button>'
         );
     }
@@ -28797,7 +28866,20 @@ document.addEventListener('click', function(e) {
             file_name: state.admin.docFile.name,
             file_url: state.admin.docFile.dataUrl,
             file_type: state.admin.docFile.type,
-        }]).then(function() {
+        }]).then(function(res) {
+            // The insert call resolves normally (it doesn't throw) even when
+            // Supabase rejects the row — e.g. a row-level-security policy,
+            // or the file's base64 data being too large for the column/
+            // request. That failure was previously never checked here, so
+            // the toast said "uploaded" and the doc list was reloaded
+            // unchanged — the document was never actually saved, which is
+            // why uploads appeared to vanish. Now a returned error is
+            // surfaced instead of being treated as success.
+            if (res && res.error) {
+                console.error('Upload doc error:', res.error);
+                showNetworkAwareError('Error uploading document: ' + (res.error.message || 'upload was rejected.'), res.error);
+                return;
+            }
             showToast('Document uploaded!', 'success');
             state.admin.docFile = null;
             state.admin.docName = '';
@@ -30775,7 +30857,19 @@ async function init() {
     // whatever was in the offline DB. If there's no network at all, the
     // fetches below fail fast and nothing local is touched, so the app
     // just keeps working off-line exactly as it was.
-    {
+    //
+    // Why this is deliberately delayed a few seconds before it starts:
+    // this reconcile does a burst of IndexedDB reads/writes across every
+    // subject at once. If the person taps straight into a practice mode
+    // the instant the app opens, that mode's own question query lands in
+    // the *same* IndexedDB queue and has to wait behind this whole burst —
+    // which is exactly why the very first mode opened after a cold
+    // start/refresh feels slow, while every mode after that (once the
+    // burst has finished and everything's cached) opens instantly. Giving
+    // the first render — and whatever the person taps first — a head
+    // start in that queue removes most of that contention, without
+    // changing what the reconcile itself actually does.
+    setTimeout(function() {
         const subjectIds = SUBJECTS.map(function(s) { return s.id; });
         if (window.OfflineDB && typeof window.OfflineDB.reconcileAllSubjectFiles === 'function') {
             withNetworkTimeout(window.OfflineDB.reconcileAllSubjectFiles(subjectIds), 20000, 'Subject file reconcile')
@@ -30803,7 +30897,7 @@ async function init() {
         } else {
             console.warn('window.OfflineDB.reconcileAllSubjectFiles is not defined — skipping subject file reconcile.');
         }
-    }
+    }, 3000);
 
     // Check for expired users on init and periodically
     await checkAndDeactivateExpiredUsers();
@@ -30878,10 +30972,24 @@ async function init() {
 function refreshApp() {
     const btn = document.querySelector('.topbar-refresh-btn');
     if (btn) btn.classList.add('is-spinning');
-    // Full reload so any cached HTML/JS/data is re-fetched from the
-    // network (falling back to the service worker cache if offline) —
-    // this is a single-file app, so "refresh" means reload the page.
-    setTimeout(function() { location.reload(); }, 350);
+    // A real location.reload() is a full browser navigation — offline,
+    // some platforms/webviews let the browser's own native "can't reach
+    // this site" / no-internet interstitial flash up ahead of (or instead
+    // of) the service worker quietly serving the cached app, which makes
+    // an app that's meant to work fully offline look like a broken
+    // website. So check connectivity first: online, reload as before to
+    // pick up anything new; offline, there's nothing to refresh from
+    // anyway (the cached app is already what's on screen) — just say so,
+    // using the app's own offline message instead of letting the browser
+    // show its own error page.
+    setTimeout(function() {
+        if (btn) btn.classList.remove('is-spinning');
+        if (!isOnline()) {
+            showToast("No internet connection. You're offline — CBT mode and anything already loaded still works.", 'offline');
+            return;
+        }
+        location.reload();
+    }, 350);
 }
 
 
@@ -30907,6 +31015,12 @@ function refreshApp() {
     }
     document.addEventListener('touchstart', function (e) {
         tracking = false;
+        // In the installed/standalone app there are two refresh options
+        // (drag-down gesture + the tap button top-left on Home), which is
+        // one too many for an app shell — only the tap button should work
+        // there. On the plain website (browser tab), both stay enabled,
+        // same as before.
+        if (isStandaloneApp()) return;
         if (e.touches.length !== 1) return;
         var t = e.target;
         if (!t.closest) return;
@@ -31020,6 +31134,7 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
+loadSwVersion();
 
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
