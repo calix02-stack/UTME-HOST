@@ -27,6 +27,38 @@
     var STORES = ['questions', 'topics', 'topic_questions', 'passages', 'used_mock', 'meta'];
 
     var dbPromise = null;
+    var currentDb = null;
+
+    // ------------------------------------------------------------
+    // STALE CONNECTION RECOVERY
+    // ------------------------------------------------------------
+    // Root cause of "works right after a reload, then hangs with no
+    // error after leaving the app and coming back": iOS Safari/WKWebView
+    // (and some Android WebViews) can silently invalidate an open
+    // IndexedDB connection while the tab is backgrounded — sometimes
+    // without ever firing `onclose`. Every call made on that connection
+    // afterward just hangs forever: no success, no error, nothing.
+    // Reloading the page works because it creates a brand new connection.
+    //
+    // Fix: (1) if the connection DOES fire onclose/onversionchange, drop
+    // our cached reference immediately so the next call reopens fresh.
+    // (2) Don't rely on that firing at all — proactively recycle the
+    // connection every time the tab becomes visible again, before any
+    // question load even gets a chance to run into a dead connection.
+    function invalidateConnection(reason) {
+        reportDiagnostic('recycling IndexedDB connection: ' + reason);
+        if (currentDb) { try { currentDb.close(); } catch (e) {} }
+        dbPromise = null;
+        currentDb = null;
+    }
+
+    if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible' && dbPromise) {
+                invalidateConnection('tab became visible again (defensive resume)');
+            }
+        });
+    }
 
     // ------------------------------------------------------------
     // DIAGNOSTIC REPORTER
@@ -122,7 +154,16 @@
                 if (elapsed > 4000) {
                     reportDiagnostic('openDB: succeeded but only after ' + elapsed + 'ms', { blockedFired: blockedFired });
                 }
-                resolve(e.target.result);
+                var db = e.target.result;
+                currentDb = db;
+                // Fires if the browser/OS reclaims this connection (backgrounding,
+                // memory pressure, etc). When it does, don't leave dbPromise
+                // pointing at a dead connection — the next call should open fresh.
+                db.onclose = function () { invalidateConnection('connection closed unexpectedly'); };
+                // Fires if another tab/context needs to upgrade the DB version.
+                // We must close our side or that other tab hangs forever too.
+                db.onversionchange = function () { invalidateConnection('versionchange from another tab'); };
+                resolve(db);
             };
             req.onerror = function (e) {
                 clearTimeout(watchdog);
@@ -293,7 +334,7 @@
     // answers first wins; if the local DB was just being slow (not
     // actually broken) it's still allowed to finish and its data is
     // kept for next time.
-    var LOCAL_RACE_MS = 5000;
+    var LOCAL_RACE_MS = 900;
 
     function filterQuestions(rows, type, year, limit) {
         var filtered = rows.filter(function (q) { return !type || q.type === type; });
@@ -498,7 +539,24 @@
     // index.html; these functions pull it back down into IndexedDB.
 
     function fetchSubjectFile(subjectId) {
-        return fetch('questions-' + subjectId + '.json?v=' + Date.now(), { cache: 'no-store' })
+        // Fail instantly when offline (no point waiting on a dead
+        // connection), and cap how long we wait otherwise so a flaky
+        // network can never hang this indefinitely. This used to live in
+        // a separate offline-db-boost.js file that patched window.fetch
+        // globally; folded in here directly instead, scoped to just this
+        // one call site.
+        if (navigator.onLine === false) {
+            return Promise.reject(new TypeError('Failed to fetch (offline)'));
+        }
+        var fetchOpts = { cache: 'no-store' };
+        var abortTimer;
+        if (typeof AbortController !== 'undefined') {
+            var ctrl = new AbortController();
+            abortTimer = setTimeout(function () { ctrl.abort(); }, 8000);
+            fetchOpts.signal = ctrl.signal;
+        }
+        return fetch('questions-' + subjectId + '.json?v=' + Date.now(), fetchOpts)
+            .finally(function () { clearTimeout(abortTimer); })
             .then(function (res) {
                 if (res.status === 404) return { notFound: true };
                 if (!res.ok) throw new Error('HTTP ' + res.status);
