@@ -13986,7 +13986,7 @@ function renderMyKeysCard(showEmpty) {
             '<p style="font-family:var(--font-mono);font-size:14px;font-weight:800;letter-spacing:0.05em;margin:0;color:' + (k.is_used ? 'var(--faint)' : 'var(--ink)') + '">' + esc(k.key_code) + '</p>' +
             '<p style="font-size:10px;color:var(--muted);margin:2px 0 0">' + esc(k.plan_name || 'Activation') + ' · ' + (k.days || 0) + ' days' + (k.is_used ? ' · Used' : ' · Ready to use') + '</p>' +
             '</div>' +
-            (k.is_used ? '' :
+            (k.is_used ? '<span style="font-size:10px;font-weight:800;color:#fff;background:var(--faint);padding:3px 9px;border-radius:999px">USED</span>' :
                 '<button class="mini-btn" data-action="copy-text" data-copy="' + esc(k.key_code) + '" style="font-size:10px">📋 Copy</button>' +
                 '<button class="mini-btn primary" data-action="activate-key-now" data-key="' + esc(k.key_code) + '" style="font-size:10px">Activate</button>') +
             '</div>'
@@ -20925,22 +20925,8 @@ function renderProfile() {
     // and simply switches to an "Activated" state (green check badge,
     // filled icon, no "Go" button) so the card is a permanent, reliable
     // status indicator instead of vanishing.
-    const showActivateCard = activationOn;
-    const activateCardHtml = showActivateCard ? (
-        '<div class="activate-feature-card' + (isActive ? ' is-activated' : '') + '"' +
-        (isActive ? '' : ' data-action="set-view" data-view="activate"') + '>' +
-        '<div class="afc-icon">' + svg('monitor', 22).replace('stroke="currentColor"', 'stroke="#fff"') +
-        '<span class="afc-badge">' + (isActive
-            ? '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' + ICONS.check + '</svg>'
-            : '<svg viewBox="0 0 24 24" width="10" height="10" fill="#fff" stroke="none">' + ICONS.star + '</svg>') +
-        '</span>' +
-        '</div>' +
-        '<span class="afc-title">' + (isAdmin() ? 'Activation is ON (admin)' : (isActive ? 'Activated' : 'Activate')) + '</span>' +
-        (isActive
-            ? '<span class="afc-btn afc-btn-done">' + svg('checkcircle', 13) + ' Active</span>'
-            : '<button class="afc-btn" data-action="set-view" data-view="activate">Go ' + svg('arrowright', 13) + '</button>') +
-        '</div>'
-    ) : '';
+    // (Activate card removed — Activate is now a normal icon in the menu below.)
+    const activateCardHtml = '';
 
     // Menu items — ordered by importance. Study Circle comes right after
     // the Activate card per the requested layout, then the rest follow.
@@ -20957,8 +20943,14 @@ function renderProfile() {
         { key: 'set-view|study-reminder', icon: 'bell', color: '#E4A93A', title: 'Study Planner', sub: 'Reminders & your own nudge message', badge: 'NEW' },
         { key: 'set-view|support', icon: 'chat', color: '#46527A', title: 'Support', sub: 'Chat with us or WhatsApp' },
     ];
-    if (state.authUser && isActivationSystemOn() && !isAdmin()) {
-        menuItems.unshift({ key: 'set-view|my-keys', icon: 'shield', color: '#B9821F', title: 'My Activation Keys', sub: 'Keys you bought, saved safely' });
+    // (Activation keys now live inside the Activate page, not as their own icon.)
+    // Activate icon — always present for every logged-in, non-admin user
+    // (activated or not). Not activated: "Activate". Activated: "Activated"
+    // with days left, and tapping it lets them top up / renew.
+    if (state.authUser && !isAdmin()) {
+        menuItems.unshift(isActive
+            ? { key: 'set-view|activate', icon: 'checkcircle', color: '#0F6B3F', title: 'Activated', sub: (expiry ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left · ' : '') + 'Top up activation', badge: 'TOP UP' }
+            : { key: 'set-view|activate', icon: 'key', color: '#E4A93A', title: 'Activate', sub: 'Unlock full CBT access & all features', badge: 'GO' });
     }
     if (state.pwaInstallAvailable && !isStandaloneApp()) {
         menuItems.push({ key: 'trigger-pwa-install', icon: 'download', color: '#0F6B3F', title: 'Install App', sub: 'Add MyUTME to your home screen' });
@@ -22591,6 +22583,7 @@ function renderActivate() {
             '<div class="card" style="text-align:center;padding:16px">' +
             '<p style="font-size:14px;font-weight:600;color:var(--green);margin:0">Premium Access Active</p>' +
             (expiry ? '<p style="font-size:11px;color:var(--muted);margin:4px 0 0">Expires: ' + expiry.toLocaleDateString() + '</p>' : '') +
+            '<button class="btn btn-gold" data-action="set-view" data-view="license-plans" style="padding:10px;margin-top:12px">Top up activation</button>' +
             '</div>'
         );
     }
