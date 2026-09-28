@@ -3767,16 +3767,16 @@
         cursor: pointer;
     }
     .connect-social-item .csi-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 11px;
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
-    .connect-social-item .csi-icon svg { width: 17px; height: 17px; }
+    .connect-social-item .csi-icon svg { width: 27px; height: 27px; }
     .connect-social-item .csi-label {
-        font-size: 9px;
+        font-size: 11px;
         font-weight: 700;
         color: var(--muted);
     }
@@ -7696,6 +7696,9 @@ const ICONS = {
 };
 function svg(name, size) {
     const s = size || 24;
+    if (name === 'whatsapp') {
+        return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="currentColor" fill-rule="evenodd" stroke="none">' + ICONS.whatsapp + '</svg>';
+    }
     return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[
         name] || '') + '</svg>';
 }
@@ -7713,7 +7716,7 @@ const SOCIAL_ICONS = {
 };
 function socialSvg(name, size) {
     const s = size || 24;
-    return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="currentColor" stroke="none">' + (SOCIAL_ICONS[name] || '') + '</svg>';
+    return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="currentColor" fill-rule="evenodd" stroke="none">' + (SOCIAL_ICONS[name] || '') + '</svg>';
 }
 
 function logoSvg(size) {
@@ -8366,21 +8369,35 @@ function formatDate(dateStr) {
 }
 
 function getJambCountdown() {
+    // Exact countdown. Days drop by one every local midnight (12:00 AM);
+    // hours/minutes/seconds tick live via startJambCountdownTicker().
     const now = new Date();
     const year = now.getFullYear();
-    let target = new Date(year, 3, 15);
-    if (now > target) {
+    let target = new Date(year, 3, 15); // April 15, 00:00 local
+    if (now >= target) {
         target = new Date(year + 1, 3, 15);
     }
-    const diffMs = target - now;
-    const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-    // Round UP to the next multiple of 5 so the figure is always a safe
-    // upper bound (never understates the time left) and stays stable for
-    // several days at a time instead of ticking down daily — paired with
-    // "Less than X days" wording rather than an exact count.
-    const approxDays = Math.max(5, Math.ceil(days / 5) * 5);
-    return { days: days, approxDays: approxDays, year: target.getFullYear() };
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const days = Math.max(0, Math.round((target - startToday) / 86400000));
+    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const secsToMidnight = Math.max(0, Math.floor((nextMidnight - now) / 1000));
+    const hh = String(Math.floor(secsToMidnight / 3600)).padStart(2, '0');
+    const mm = String(Math.floor((secsToMidnight % 3600) / 60)).padStart(2, '0');
+    const ss = String(secsToMidnight % 60).padStart(2, '0');
+    return { days: days, approxDays: days, year: target.getFullYear(), clock: hh + ':' + mm + ':' + ss };
 }
+function startJambCountdownTicker() {
+    if (window.__jambCdTimer) return;
+    window.__jambCdTimer = setInterval(function() {
+        const dEl = document.getElementById('jamb-cd-days');
+        const cEl = document.getElementById('jamb-cd-clock');
+        if (!dEl && !cEl) return;
+        const cd = getJambCountdown();
+        if (dEl) dEl.textContent = cd.days + (cd.days === 1 ? ' day' : ' days');
+        if (cEl) cEl.textContent = cd.clock;
+    }, 1000);
+}
+startJambCountdownTicker();
 // ============================================================
 //  MY SUBJECTS — ordinary local/offline feature (English + up to 3
 //  electives). This is deliberately plain localStorage, NOT a Supabase
@@ -9103,6 +9120,7 @@ myEnrollmentsLoading: false,
     adminUserDetailLoading: false,
     adminUserEnrollments: [],
     adminUserAiMessages: [],
+    adminUserAiError: '',
     settingsCache: {
         cbtQuestionsPerSubject: 40,
         cbtTimeLimit: 100,
@@ -9910,6 +9928,7 @@ function buildSettingsResult(rows) {
             activationEnabled: settings.activation_enabled === true,
             activationAutoEnableDate: settings.activation_auto_enable_date || null,
             faqImages: settings.faq_images || {},
+            supportMemory: (settings.support_memory && Array.isArray(settings.support_memory.entries)) ? settings.support_memory.entries : [],
         };
     return result;
 }
@@ -14433,7 +14452,7 @@ const SUPPORT_QUICK_REPLIES = {
         return { text: 'CBT Mode works offline once you\'ve logged in at least once while connected (we cache your questions automatically). Other modes like Mock Exams need internet. If CBT still isn\'t working offline, try logging in again once while connected so we can refresh your cache.', escalate: false };
     },
     other: function() {
-        return { text: 'No problem — please describe what\'s going on in as much detail as you can, and I\'ll do my best, or get our team to step in.', escalate: true };
+        return { text: 'No problem — describe what is going on in as much detail as you can (which screen, what you tapped, any message you saw). I\'ll fix it if I can, or bring in a human.', escalate: false };
     },
 };
 
@@ -14464,35 +14483,245 @@ function generateAiSupportReply(userText, issueKey) {
     return null;
 }
 
-// For anything the quick-match rules above don't recognize, ask the real
-// AI backend (same engine that powers the AI Tutor) for a proper answer
-// instead of showing a generic "I don't understand" message. The message
-// is wrapped with support context so the model knows this is a support
-// conversation, not a study question.
-// Support chat kept answering actual JAMB subject questions the same way
-// AI Tutor would (e.g. "what is Newton's third law") instead of staying
-// scoped to account/payment/app issues — because the fallback below asks
-// the same AI backend used by AI Tutor, and it doesn't reliably honor the
-// "support only" instruction in the prompt on its own. Catching the
-// obvious case client-side, before ever calling that backend, is a much
-// more reliable fix than hoping the model stays in scope.
+// ============================================================
+//  SUPPORT BRAIN
+//  Order of answering: quick-issue button -> thanks/greeting ->
+//  "get me a human" -> ADMIN MEMORY (answers the admin taught it) ->
+//  built-in in-app knowledge -> legacy keyword rules -> study-question
+//  redirect -> strict AI fallback (answers ONLY from the knowledge above,
+//  otherwise says it can't) -> HUMAN ATTENTION.
+//  Anything it can't fix is marked "human attention" in the chat and
+//  shows up at the top of the Admin > Support list.
+// ============================================================
+const SUPPORT_HUMAN_MARKER = 'human attention';
+function supportEscalationLine() {
+    return '🙋 I\'ve marked this for human attention. An admin will read your message and reply right here in this chat. You can also WhatsApp us on ' + SUPPORT_WHATSAPP_DISPLAY + '.';
+}
+function finalizeSupportReply(r) {
+    if (!r) return null;
+    let text = r.text || '';
+    if (r.escalate && text.toLowerCase().indexOf(SUPPORT_HUMAN_MARKER) === -1) {
+        text = (text ? text + '\n\n' : '') + supportEscalationLine();
+    }
+    return { text: text, escalate: !!r.escalate };
+}
+
+// Keyword lists: a phrase with a space, a word of 7+ letters, or one starting
+// with "+" counts double. A topic needs a total score of 2 to answer, so a
+// single vague word like "key" can't trigger the wrong topic. "not" = words
+// that veto the topic (e.g. "paid" vetoes the how-to-activate answer).
+const SUPPORT_KB = [
+    { k: ['start cbt', 'take cbt', 'cbt mode', 'jamb cbt', 'full cbt', 'how does cbt', 'cbt practice', 'how to use cbt'],
+      a: 'JAMB CBT is in Practice Hub → JAMB CBT. It is a full timed practice with English plus your other chosen subjects, like the real UTME.\n1. Open Practice Hub → JAMB CBT\n2. Confirm your subjects and tap Start\n3. Answer and Submit before time runs out\nYour result is saved in Account → Result Analysis. The time limit and questions per subject are set by the admin.' },
+    { k: ['past question', 'past paper', 'exam mode', 'previous year', 'jamb year'],
+      not: ['not loading', 'not showing', 'no question', 'missing'],
+      a: 'Past Questions (Practice Hub → Past Questions) has real questions from 2021 to 2026.\n1. Pick a subject\n2. Pick a year\n3. Start\nIf a year has no questions, it has not been uploaded yet — tell me the subject and year and I\'ll flag it.' },
+    { k: ['+flashcard', 'flash card', 'flip card'],
+      a: 'Flashcards (Practice Hub → Flashcards) lets you flip through questions and answers quickly for revision. Pick a subject, then tap a card to flip it.' },
+    { k: ['novel', 'literature', 'set text', 'lekki headmaster', 'life changer'],
+      a: 'Novel (CBT) is in Practice Hub → Novel (CBT). It tests the JAMB set texts in CBT format, with its own time limit. Start it like the normal CBT and your result goes to Result Analysis.' },
+    { k: ['revise weak', 'weak question', 'retry missed', 'missed question', 'wrong questions', 'revise mode'],
+      a: 'Revise Weak (Practice Hub → Revise Weak) gives you the questions you missed before so you can retry them. It fills up as you take other tests — if it is empty, you have no missed questions saved yet.' },
+    { k: ['topic practice', 'topic mode', 'read notes', 'study notes', 'by topic', 'topic question'],
+      a: 'Topic Practice (Practice Hub → Topic Practice) lets you pick a subject and topic, then either read the notes or take a short CBT on that topic.' },
+    { k: ['study material', 'documents', 'pdf', 'uploaded file', 'download file', 'past q file', 'material'],
+      a: 'Study Materials (Practice Hub → Study Materials) lists the files the admin uploads, grouped by category.\n1. Use the search box or category chips to find one\n2. Tap it to open\nIf a file you expect isn\'t there: tap ⟳ refresh on Home and check your internet (new uploads need a connection to appear). Still missing? Tell me the file name.' },
+    { k: ['add subject', 'change subject', 'swap subject', 'my subjects', 'choose subject', 'remove subject', 'four subjects', '4 subjects', 'my courses', 'select subject'],
+      a: 'English is always included and you can have up to 4 subjects in total (English + 3).\n• To add: Practice Hub → Add Subject → pick one\n• To change: use the swap option on that subject\'s card and pick the replacement (the old one is removed once you choose)' },
+    { k: ['mock exam', 'mock arena', 'join mock', 'register mock', 'exam link', 'mock link', 'when is mock', 'mock start', 'mock schedule', 'live exam'],
+      not: ['result', 'score'],
+      a: 'Mock exams are scheduled by the admin.\n1. Open the Mock page and register before the start time\n2. When it starts, open it and begin (some mocks are opened from an exam link the admin shares)\n3. Results are released by the admin after the exam window closes\nMocks need internet.' },
+    { k: ['mock result', 'mock score', 'result missing', 'result not showing', 'results released', 'result release', 'when will result', 'mock results'],
+      esc: true,
+      a: 'Mock results are released by the admin after the exam window closes — they are not instant. Check the Mock page again later. Tell me which mock it is (name and date) so the admin can check and release it if it is overdue.' },
+    { k: ['leaderboard', 'my rank', 'ranking', 'my position', 'top students', 'not on leaderboard', 'leader board'],
+      a: 'The leaderboard ranks Mock Exam scores only — CBT and Past Questions results are not ranked. "Overall" only includes full 4-subject mocks (out of 400); each subject tab shows the best score in that subject.\nIt needs internet to load. If you finish a mock offline, your score is queued and sent automatically when you reconnect. Not showing after a mock? Wait a minute, then tap ⟳ refresh.' },
+    { k: ['result analysis', 'my results', 'past results', 'see my score', 'where is my result', 'exam history', 'my history', 'review my answer'],
+      a: 'Every finished CBT, Past Questions, Mock, Novel or Topic attempt is saved in Account → Result Analysis. Use the filter tabs (CBT Full, CBT Single, Exam, Mock, Novel CBT, Topic) to find it.' },
+    { k: ['offline', 'no internet', 'without internet', 'no network', 'data off', 'work offline', 'no data', 'without data', 'without network', 'without wifi', 'use offline'],
+      a: 'CBT, Past Questions and Novel (CBT) run from questions saved on your phone, so once you have logged in and opened the app online once, they work without internet.\nThese need internet: Mock exams, Leaderboard, AI Tutor, Support chat, payments/activation and new Study Materials.\nIf a mode has no questions offline: connect once, open the app, wait ~5 seconds on Home, then try again.' },
+    { k: ['refresh', 'reload', '+version', 'update the app', 'new version', 'latest version', 'app version', 'old version', 'pull down'],
+      a: 'Tap the ⟳ refresh button at the top of Home to reload the app. On the website you can also drag down from the top; the installed app uses the button only.\nYour version shows next to the logo (like v11). If it looks old, close the app fully and reopen it while online, then tap refresh.\nOffline, refresh just says there is no connection — nothing is broken.' },
+    { k: ['install app', 'add to home screen', 'install the app', 'download app', 'app icon', 'home screen', 'install pwa', 'how to install'],
+      a: 'Go to Account → Install App (it shows when your browser supports it).\n• iPhone (Safari): Share → Add to Home Screen\n• Android (Chrome): menu ⋮ → Install app / Add to Home screen\nThen open MyUTME from the new icon.' },
+    { k: ['ai tutor', 'tutor', 'ask ai', 'study help'],
+      a: 'AI Tutor (bottom menu) is for study questions — explanations, solving problems and topics. It needs internet. I only handle app and account problems, so use AI Tutor for subject questions.' },
+    { k: ['study planner', 'study reminder', 'reminder', 'notification', 'nudge', 'remind me', 'not getting notification'],
+      a: 'Account → Study Planner lets you set a daily study reminder time and your own nudge message.\nIf reminders don\'t appear: allow notifications for MyUTME in your phone/browser settings, and keep the app installed to your home screen (works best).' },
+    { k: ['study circle', 'whatsapp group', 'whatsapp channel', 'join group', 'community'],
+      a: 'Account → Study Circle has our WhatsApp group and channel links — tap it and join.' },
+    { k: ['telegram', 'facebook', 'instagram', 'tiktok', 'social media', 'connect with us'],
+      a: 'Under "Connect With Us" on Account, WhatsApp is live now. Telegram, Facebook, Instagram and TikTok links are coming soon.' },
+    { k: ['change name', 'edit profile', 'profile picture', 'profile photo', 'change photo', 'avatar', 'update profile', 'change my name'],
+      a: 'Account → Profile lets you edit your name and photo. Tap Profile, make your change and save.' },
+    { k: ['free trial', 'only 8', '8 questions', 'why only', 'question limit', 'limited questions', 'locked mode', 'unlock full', 'need to activate'],
+      a: 'Accounts that are not activated get every feature, but each attempt is capped at 8 questions. Activate on Account (the Activate card) with a license key or by paying, and you get the full sets.' },
+    { k: ['how to activate', 'how do i activate', 'how can i activate', 'how to subscribe', 'buy key', 'get a key', 'where to buy', 'how much', 'subscription price', 'payment method', 'how to pay'],
+      not: ['paid', 'not activated', 'after payment', 'charged', 'failed', 'declined', 'deducted', 'debited'],
+      a: 'Go to Account → the Activate card.\n1. Enter your license key (12 characters like A1B2-C3D4-E5F6), or\n2. Pay online with Paystack, or pay manually via WhatsApp and you\'ll receive a key\nOnce active, the card shows your expiry date. The current price is shown on the Activate card. Already paid but still locked? Tell me and I\'ll flag it.' },
+    { k: ['+wallet', 'fund wallet', 'wallet balance', 'top up', 'top-up'],
+      a: 'Your wallet balance shows on the Account page, and you can add money from the wallet card there.\nIf a top-up left your bank but the balance didn\'t change, send me the payment reference here and I\'ll flag it.' },
+    { k: ['charged twice', 'double charge', 'debited twice', 'deducted twice', 'paid twice'],
+      esc: true,
+      a: 'Sorry about that. Please send both payment references (or bank alert screenshots) here so our team can verify and fix it.' },
+    { k: ['wrong answer', 'wrong question', 'miskeyed', 'incorrect answer', 'flag question', 'question is wrong', 'typo in question', 'answer is wrong'],
+      a: 'In the review screen after an exam, tap 🚩 Flag Question on that question — it goes straight to our content team to check and correct.' },
+    { k: ['+calculator'],
+      a: 'The calculator shows in CBT when the admin has it switched on. If you don\'t see it, it is currently off.' },
+    { k: ['sign up', 'create account', 'register account', 'new account', 'how to register'],
+      a: 'On the login screen tap Sign up, enter your name, username, email and password, confirm, and you\'re in. Then activate from the Account page when you\'re ready.' },
+    { k: ['logged out', 'keeps logging out', 'session expired', 'sign me out', 'log me out', 'login again'],
+      a: 'You can get logged out if browser data was cleared, you use private/incognito mode, or you signed in on another device. Log in again while online. If it keeps happening, tell me your phone and browser and I\'ll flag it.' },
+    { k: ['not loading', 'stuck loading', 'loading forever', 'keeps loading', 'takes long', 'no questions', 'questions not', 'blank screen', 'spinning', 'not opening', 'wont open', 'won\'t open', 'not starting'],
+      a: 'Let\'s fix it:\n1. Close the app fully and reopen it; wait ~5 seconds on Home before starting a mode\n2. Make sure you have opened the app online at least once\n3. Tap ⟳ refresh at the top of Home\n4. Try another subject to see if it is just one\nIf one subject still shows no questions, tell me the subject and mode (CBT, Past Questions…) — it may not be uploaded yet and I\'ll flag it.' },
+    { k: ['under construction', 'maintenance', 'app is down', 'app currently down', 'site cant be reached', 'this site can', 'not available', 'temporarily unavailable'],
+      a: 'A maintenance screen means the admin paused the app briefly for updates; it reopens at the time shown. If you see a browser page saying the site can\'t be reached, close and reopen the installed app — CBT practice still works offline.' },
+    { k: ['not receiving email', 'no email', 'verification email', 'reset link', 'didn\'t get email', 'did not get email', 'email not coming', 'email not received'],
+      esc: true,
+      a: 'Check your spam/promotions folder and wait a few minutes. Also confirm the email was typed correctly, and request only once (repeats can delay it).' },
+    { k: ['whatsapp number', 'phone number', 'call you', 'reach you', 'contact you', 'contact support', 'contact number'],
+      a: 'WhatsApp support: ' + SUPPORT_WHATSAPP_DISPLAY + ' — or keep chatting here and I\'ll help.' },
+];
+
+const SUPPORT_HUMAN_REQUEST = /\b(human|real person|live agent|an agent|talk to (a |an |the )?(person|someone|admin|agent|somebody)|speak (to|with) (a |an |the )?(person|someone|admin|agent|somebody)|chat with (a |an |the )?(person|admin|agent)|contact (the )?admin|customer (care|service)|need (an |the )?admin|want (an |the )?admin)\b/i;
+
+function supportNorm(t) {
+    return ' ' + (t || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+}
+const SUPPORT_STOPWORDS = ['the','and','for','you','your','are','was','with','this','that','have','has','how','what','when','why','can','not','but','from','they','them','its','into','about','please','help','app','myutme','does','did','get','got','will','would','could','should','any','all','one','out','off','who','where','which'];
+function supportTokens(text) {
+    return supportNorm(text).trim().split(' ').filter(function(w) { return w.length > 2 && SUPPORT_STOPWORDS.indexOf(w) === -1; });
+}
+
+function findSupportKbMatch(text) {
+    const n = supportNorm(text);
+    let best = null, bestScore = 0;
+    SUPPORT_KB.forEach(function(e) {
+        if (e.not && e.not.some(function(w) { return n.indexOf(' ' + w) !== -1; })) return;
+        let score = 0;
+        e.k.forEach(function(raw) {
+            const strong = raw.charAt(0) === '+';
+            const kk = supportNorm(strong ? raw.slice(1) : raw).trim();
+            if (!kk) return;
+            if (n.indexOf(' ' + kk) !== -1) { score += (strong || kk.indexOf(' ') !== -1 || kk.length >= 7) ? 2 : 1; return; }
+            // Same words in a different order ("result for mock" vs "mock result"):
+            // counts when the key has 2+ meaningful words and all of them appear.
+            const words = kk.split(' ').filter(function(w) { return w.length > 2 && SUPPORT_STOPWORDS.indexOf(w) === -1; });
+            if (words.length >= 2 && words.every(function(w) { return n.indexOf(' ' + w) !== -1; })) score += 2;
+        });
+        if (score > bestScore) { best = e; bestScore = score; }
+    });
+    return bestScore >= 2 ? best : null;
+}
+
+// ---- Admin-taught memory (stored in admin_settings.support_memory) ----
+function getSupportMemory() {
+    const m = state.settingsCache && state.settingsCache.supportMemory;
+    return Array.isArray(m) ? m : [];
+}
+async function saveSupportMemory(entries) {
+    try {
+        const res = await supabase.from('admin_settings').upsert(
+            { setting_key: 'support_memory', setting_value: { entries: entries } },
+            { onConflict: 'setting_key' }
+        );
+        if (res && res.error) throw res.error;
+        state.settingsCache = Object.assign({}, state.settingsCache || {}, { supportMemory: entries });
+        saveOfflineCache('settings', state.settingsCache);
+        return true;
+    } catch (e) {
+        console.warn('Save support memory error:', e);
+        showNetworkAwareError('Could not save to Support Memory: ' + ((e && e.message) || 'unknown'), e);
+        return false;
+    }
+}
+function findSupportMemoryMatch(text) {
+    const entries = getSupportMemory();
+    if (!entries.length) return null;
+    const ut = supportTokens(text);
+    const un = supportNorm(text);
+    let best = null, bestScore = 0;
+    entries.forEach(function(e) {
+        String(e.q || '').split(/[|\n]/).forEach(function(variant) {
+            const v = variant.trim();
+            if (v.length < 3) return;
+            const vn = supportNorm(v).trim();
+            if (vn.length >= 6 && un.indexOf(' ' + vn) !== -1) {
+                if (bestScore < 99) { best = e; bestScore = 99; }
+                return;
+            }
+            const vt = supportTokens(v);
+            if (!vt.length) return;
+            let shared = 0;
+            vt.forEach(function(w) { if (ut.indexOf(w) !== -1) shared++; });
+            const ratio = shared / vt.length;
+            if ((shared >= 2 && ratio >= 0.5) || (vt.length <= 2 && shared === vt.length)) {
+                const sc = shared + ratio;
+                if (sc > bestScore) { best = e; bestScore = sc; }
+            }
+        });
+    });
+    return best;
+}
+
+// Support kept answering real subject questions like AI Tutor would.
+// Only genuine study-content words are listed here; app words such as
+// "past questions" are handled by the knowledge base above, and a message
+// that describes a problem ("not loading", "error"...) is never a study question.
 const SUPPORT_OFF_TOPIC_HINTS = [
     'solve', 'calculate', 'differentiat', 'integrat', 'simplify', 'factoriz', 'factoris',
     'equation', 'theorem', 'photosynthesis', 'mitosis', 'velocity', 'balance the equation',
-    'what is the capital', 'who wrote', 'define ', 'explain the', 'physics', 'chemistry',
-    'biology', 'mathematics', 'economics', 'government', 'literature', 'geography',
-    'commerce', 'accounting', 'crs', 'irs', 'english language', 'essay', 'grammar',
-    'syllabus', 'jamb syllabus', 'past question', 'mock question', 'topic question',
+    'what is the capital', 'who wrote', 'define ', 'explain the', 'essay', 'grammar',
 ];
+const SUPPORT_PROBLEM_WORDS = ['not ', "can't", 'cannot', "won't", 'error', 'issue', 'problem', 'fail', 'stuck', 'missing', 'wrong', 'crash', 'load', 'open', 'show'];
 function looksLikeStudyQuestion(text) {
     const t = (text || '').toLowerCase();
+    if (SUPPORT_PROBLEM_WORDS.some(function(w) { return t.indexOf(w) !== -1; })) return false;
     return SUPPORT_OFF_TOPIC_HINTS.some(function(k) { return t.indexOf(k) !== -1; });
 }
-async function generateSmartSupportReply(userText) {    const context = 'You are MyUTME Support, a friendly help-desk assistant for the JAMB CBT practice app "MyUTME". ' +
-        'Only answer questions about the app itself: account activation, license keys, payments (Paystack or manual transfer), ' +
-        'login/password, mock exams, scores, offline mode, or bugs. Be concise (2-4 sentences), practical, and reassuring. ' +
-        'If the question is outside what you can resolve, or you are not confident, say so plainly and let the user know a ' +
-        'human team member will check in. Do not make up account-specific details you don\'t have.\n\nUser\'s message: ' + userText;
+
+function isSupportAwaitingHuman() {
+    const msgs = state.supportMessages || [];
+    for (let i = msgs.length - 1; i >= 0; i--) {
+        const m = msgs[i];
+        if (m.isTyping || m.sender === 'user') continue;
+        if (m.sender === 'admin') return false;
+        if (m.sender === 'ai') return (m.message || '').toLowerCase().indexOf(SUPPORT_HUMAN_MARKER) !== -1;
+    }
+    return false;
+}
+
+function buildSupportKnowledge() {
+    const parts = [];
+    getSupportMemory().forEach(function(e) { parts.push('Q: ' + e.q + '\nA: ' + e.a); });
+    SUPPORT_KB.forEach(function(e) {
+        parts.push('Topic: ' + e.k.map(function(k) { return k.replace(/^\+/, ''); }).slice(0, 4).join(' / ') + '\nA: ' + e.a);
+    });
+    return parts.join('\n\n');
+}
+
+// Strict last-resort AI: it may ONLY use the knowledge above. If the answer
+// isn't in there, or the AI backend is down / rate-limited / errors, this
+// returns null or an escalate flag, and the person is sent to human attention
+// instead of getting a generic chatbot answer.
+async function generateSmartSupportReply(userText) {
+    const recent = (state.supportMessages || []).filter(function(m) { return !m.isTyping && !m.isSystem; }).slice(-7, -1)
+        .map(function(m) { return (m.sender === 'user' ? 'User: ' : 'Support: ') + String(m.message || '').slice(0, 300); }).join('\n');
+    const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry).toLocaleDateString() : null;
+    const ctx = 'Account: ' + (isUserActive() ? 'ACTIVE' + (expiry ? ' until ' + expiry : '') : 'NOT active (free trial, 8 questions per attempt)') +
+        '. Device: ' + (isOnline() ? 'online' : 'offline') + ', ' + (isStandaloneApp() ? 'installed app' : 'website') +
+        ', app version ' + (formatVersionBadge(state.swVersion) || 'unknown') + '.';
+    const prompt =
+        'You are MyUTME Support — the in-app help desk agent for the MyUTME JAMB CBT practice app. You are NOT a general AI assistant and you do not chat casually.\n' +
+        'Your only job is to FIX in-app problems (activation, keys, payments, login, questions not loading, mock exams, leaderboard, offline, updates, installing) with clear, direct steps, or hand the person to a human admin.\n' +
+        'RULES:\n' +
+        '- Answer ONLY using the KNOWLEDGE below and the account facts. Never invent features, prices, buttons, or account details.\n' +
+        '- Be brief and practical: numbered steps when there are steps. No greetings, no "As an AI", no small talk.\n' +
+        '- Do not answer study/subject questions; say AI Tutor handles those.\n' +
+        '- If the knowledge does not clearly cover the problem, or someone must check the account/payment/data, reply with exactly: [[ESCALATE]]\n\n' +
+        'ACCOUNT FACTS: ' + ctx + '\n\nKNOWLEDGE:\n' + buildSupportKnowledge() +
+        (recent ? '\n\nRECENT CHAT:\n' + recent : '') +
+        '\n\nUSER\'S MESSAGE: ' + userText;
     try {
         const res = await fetch(AI_ASSISTANT_URL, {
             method: 'POST',
@@ -14502,19 +14731,69 @@ async function generateSmartSupportReply(userText) {    const context = 'You are
             },
             body: JSON.stringify({
                 userId: state.authUser.id,
-                message: context,
+                message: prompt,
                 mode: 'support',
             }),
         });
-        if (!res.ok) return null;
+        if (!res.ok) return null; // rate limit / overloaded / server error -> human attention
         const data = await res.json();
-        if (!data || !data.reply) return null;
-        return { text: data.reply, escalate: true };
+        const reply = data && data.reply ? String(data.reply).trim() : '';
+        if (!reply) return null;
+        if (reply.indexOf('[[ESCALATE]]') !== -1 || /as an ai|language model|i('| a)m (just )?an ai/i.test(reply)) {
+            return { text: '', escalate: true };
+        }
+        return { text: reply, escalate: false };
     } catch (e) {
         console.warn('Smart support reply failed:', e);
         return null;
     }
 }
+
+async function resolveSupportReply(msg, issueKey) {
+    const awaitingHuman = isSupportAwaitingHuman();
+    const t = (msg || '').toLowerCase().trim();
+
+    if (issueKey && SUPPORT_QUICK_REPLIES[issueKey]) return finalizeSupportReply(SUPPORT_QUICK_REPLIES[issueKey]());
+
+    if (t.length < 40 && /\b(thanks|thank you|thx)\b/.test(t)) {
+        return { text: 'You\'re welcome! If anything else in the app acts up, tell me and I\'ll sort it out. 🙂', escalate: false };
+    }
+    if (t.length < 25 && /^(hi|hello|hey|hola|yo|good (morning|afternoon|evening))\b/.test(t)) {
+        const first = ((state.profile && state.profile.name) || '').split(' ')[0];
+        return { text: 'Hi' + (first && first !== 'Guest' ? ' ' + first : '') + '! 👋 What is going wrong in the app? Tell me what you tapped and what happened (or any message you saw) and I\'ll walk you through the fix.', escalate: false };
+    }
+    if (SUPPORT_HUMAN_REQUEST.test(t)) {
+        if (awaitingHuman) return { text: 'Your chat is already marked for human attention — an admin will reply here as soon as they are free. 🙏', escalate: false };
+        return finalizeSupportReply({ text: 'Sure — I\'m bringing in a real person.', escalate: true });
+    }
+
+    const mem = findSupportMemoryMatch(msg);
+    if (mem) return { text: mem.a, escalate: false };
+
+    const kb = findSupportKbMatch(msg);
+    if (kb) return finalizeSupportReply({ text: kb.a, escalate: !!kb.esc });
+
+    if (awaitingHuman) {
+        return { text: 'Noted — I\'ve added this to your open case so the admin sees it with the rest. 🙏', escalate: false };
+    }
+
+    const legacy = generateAiSupportReply(msg, null);
+    if (legacy) return finalizeSupportReply(legacy);
+
+    if (looksLikeStudyQuestion(msg)) {
+        return { text: 'That looks like a study question rather than an app issue — AI Tutor (bottom menu) is the place for that. I handle payments, activation, login and app problems. 🙂', escalate: false };
+    }
+
+    if (supportTokens(msg).length < 2) {
+        return { text: 'Tell me a bit more so I can fix it: which screen were you on, what did you tap, and what did you see (any message)? I\'ll sort it out or bring in a human.', escalate: false };
+    }
+
+    const ai = await generateSmartSupportReply(msg);
+    if (ai && !ai.escalate && ai.text) return finalizeSupportReply(ai);
+
+    return finalizeSupportReply({ text: 'I can\'t resolve this one myself.', escalate: true });
+}
+
 async function sendSupportMessage(text, issueKey) {
     const msg = (text || '').trim();
     if (!msg) return;
@@ -14522,6 +14801,7 @@ async function sendSupportMessage(text, issueKey) {
     if (blockIfOffline()) return;
 
     state.supportInput = '';
+    window.__chatForceBottom = true;
     render();
 
     const { data: inserted, error } = await supabase.from('support_messages').insert([{
@@ -14540,9 +14820,11 @@ async function sendSupportMessage(text, issueKey) {
     }
 
     state.supportMessages.push(inserted);
+    window.__chatForceBottom = true;
     render();
 
-    // Show typing indicator
+    // Typing indicator stays up for the whole time the reply is being worked
+    // out (including a slow AI call), not just the first 700ms.
     const typingMsg = {
         id: 'typing-' + Date.now(),
         sender: 'ai',
@@ -14553,49 +14835,32 @@ async function sendSupportMessage(text, issueKey) {
     state.supportMessages.push(typingMsg);
     render();
 
-    setTimeout(async function() {
-        // Remove typing indicator
-        state.supportMessages = state.supportMessages.filter(function(m) { return !m.isTyping; });
+    const startedAt = Date.now();
+    let ai;
+    try {
+        ai = await resolveSupportReply(msg, issueKey);
+    } catch (e) {
+        console.warn('Support reply error:', e);
+        ai = finalizeSupportReply({ text: 'I can\'t resolve this one myself.', escalate: true });
+    }
+    const remaining = 700 - (Date.now() - startedAt);
+    if (remaining > 0) await new Promise(function(r) { setTimeout(r, remaining); });
 
-        let ai = generateAiSupportReply(msg, issueKey);
-        if (!ai && looksLikeStudyQuestion(msg)) {
-            // A real subject/study question — that's what AI Tutor is
-            // for, not Support. Answer it here would be exactly the
-            // "Support answering like AI chat" mix-up, so redirect
-            // instead of ever calling the AI backend for this one.
-            ai = {
-                text: "That looks like a study question rather than an account/app issue — head over to AI Tutor (bottom nav) for help with that! I'm here for payments, activation, login, and app problems. 🙂",
-                escalate: false,
-            };
-        }
-        if (!ai) {
-            // Nothing matched our quick rules — ask the real AI backend for a proper answer.
-            ai = await generateSmartSupportReply(msg);
-        }
-        if (!ai) {
-            // Backend unreachable (e.g. offline) — safe generic fallback.
-            ai = { text: 'I\'m not fully sure what you mean — could you tap one of the quick options above, or describe it a bit more?', escalate: true };
-        }
+    state.supportMessages = state.supportMessages.filter(function(m) { return !m.isTyping; });
 
-        const { data: aiInserted } = await supabase.from('support_messages').insert([{
-            user_id: state.authUser.id,
-            username: state.profile.name || 'Guest',
-            sender: 'ai',
-            message: ai.text,
-            read_by_admin: true,
-            read_by_user: true,
-        }]).select().single();
-        if (aiInserted) {
-            state.supportMessages.push(aiInserted);
-            render();
-        }
-        if (ai.escalate) {
-            // Team is still silently notified for follow-up, we just don't
-            // clutter the chat with an extra banner message about it.
-            supabase.from('support_messages').select('id').eq('user_id', state.authUser.id).eq('sender', 'user').then(function() {});
-        }
-    }, 700);
+    const { data: aiInserted } = await supabase.from('support_messages').insert([{
+        user_id: state.authUser.id,
+        username: state.profile.name || 'Guest',
+        sender: 'ai',
+        message: ai.text,
+        read_by_admin: true,
+        read_by_user: true,
+    }]).select().single();
+    state.supportMessages.push(aiInserted || { id: 'local-' + Date.now(), sender: 'ai', message: ai.text, created_at: new Date().toISOString() });
+    window.__chatForceBottom = true;
+    render();
 }
+
 async function loadAdminSupportConversations() {
     try {
         const { data, error } = await supabase
@@ -14611,16 +14876,25 @@ async function loadAdminSupportConversations() {
         }
 
         const grouped = {};
+        // Rows arrive newest-first. A chat "needs human attention" when the
+        // newest non-user message is the bot's human-attention hand-off and no
+        // admin has replied after it.
         (data || []).forEach(function(m) {
             if (!grouped[m.user_id]) {
-                grouped[m.user_id] = { user_id: m.user_id, username: m.username, lastMessage: m.message, lastAt: m.created_at, unreadCount: 0 };
+                grouped[m.user_id] = { user_id: m.user_id, username: m.username, lastMessage: m.message, lastAt: m.created_at, unreadCount: 0, needsHuman: false, _decided: false };
             }
-            if (m.sender === 'user' && !m.read_by_admin) {
-                grouped[m.user_id].unreadCount++;
+            const g = grouped[m.user_id];
+            if (m.sender === 'user' && !m.read_by_admin) g.unreadCount++;
+            if (!g._decided) {
+                if (m.sender === 'admin') g._decided = true;
+                else if (m.sender === 'ai' && String(m.message || '').toLowerCase().indexOf(SUPPORT_HUMAN_MARKER) !== -1) { g.needsHuman = true; g._decided = true; }
             }
         });
         const list = Object.values(grouped);
-        list.sort(function(a, b) { return new Date(b.lastAt) - new Date(a.lastAt); });
+        list.sort(function(a, b) {
+            if (a.needsHuman !== b.needsHuman) return a.needsHuman ? -1 : 1;
+            return new Date(b.lastAt) - new Date(a.lastAt);
+        });
         state.adminSupportConversations = list;
         state.adminSupportConversationsLoaded = true;
         render();
@@ -14665,10 +14939,13 @@ async function loadAdminUserDetail(userId) {
     try {
         const [enrollRes, aiRes] = await Promise.all([
             supabase.from('course_enrollments').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-            supabase.from('ai_assistant_messages').select('sender, message, created_at').eq('user_id', userId).order('created_at', { ascending: true }).limit(50)
+            // Newest 500 messages (was: oldest 50, which hid recent chats)
+            supabase.from('ai_assistant_messages').select('id, session_id, sender, message, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(500)
         ]);
         state.adminUserEnrollments = enrollRes.data || [];
-        state.adminUserAiMessages = aiRes.data || [];
+        state.adminUserAiError = aiRes.error ? (aiRes.error.message || 'Could not load chats') : '';
+        if (aiRes.error) console.warn('Admin AI chat load error:', aiRes.error);
+        state.adminUserAiMessages = (aiRes.data || []).slice().reverse();
     } catch (e) {
         console.warn('Load admin user detail exception:', e);
     } finally {
@@ -16399,6 +16676,20 @@ function renderNow() {
         if (elx) prevScrollPositions[sel] = { top: elx.scrollTop, left: elx.scrollLeft };
     });
 
+    // Chat windows: a freshly opened chat has no previous scroll position,
+    // so the restore step below used to leave it at 0 — i.e. the very first
+    // message — and the person had to scroll all the way down before they
+    // could see where the conversation left off (or type). Instead: open at
+    // the latest message, and keep following new messages as long as the
+    // person hasn't deliberately scrolled up to read older ones.
+    const prevChatEl = document.querySelector('.chat-window');
+    const chatShouldStickToBottom = (function() {
+        if (window.__chatForceBottom) return true;              // person just sent a message
+        if (!prevChatEl) return true;                           // chat just opened
+        if (window.__lastChatView !== state.view) return true;  // switched to a different chat
+        return (prevChatEl.scrollHeight - prevChatEl.scrollTop - prevChatEl.clientHeight) < 120; // already at/near bottom
+    })();
+
     const activeEl = document.activeElement;
     const activeId = activeEl && activeEl.id ? activeEl.id : null;
     const activeSelStart = (activeEl && typeof activeEl.selectionStart === 'number') ? activeEl.selectionStart : null;
@@ -16604,6 +16895,23 @@ function renderNow() {
             elx.scrollLeft = prev.left;
         }
     });
+    (function() {
+        const chatEl = document.querySelector('.chat-window');
+        if (chatEl) {
+            if (chatShouldStickToBottom) {
+                chatEl.scrollTop = chatEl.scrollHeight;
+                // Layout can settle a frame later (fonts, images) — re-pin once.
+                requestAnimationFrame(function() {
+                    const again = document.querySelector('.chat-window');
+                    if (again && chatShouldStickToBottom) again.scrollTop = again.scrollHeight;
+                });
+            }
+            window.__lastChatView = state.view;
+        } else {
+            window.__lastChatView = null;
+        }
+        window.__chatForceBottom = false;
+    })();
     if (activeId) {
         const newActiveEl = document.getElementById(activeId);
         if (newActiveEl) {
@@ -17486,7 +17794,7 @@ function renderHome() {
         '<p class="name">' + esc(firstName) + ' 👋</p>' +
         '<div class="cd-row">' +
         '<span class="cd-emoji">🎯</span>' +
-        '<div><span class="n">Less than ' + cd.approxDays + ' days</span><br><span class="l">to JAMB ' + cd.year + '</span></div>' +
+        '<div><span class="n" id="jamb-cd-days">' + cd.days + (cd.days === 1 ? ' day' : ' days') + '</span><br><span class="l">to JAMB ' + cd.year + ' · next day in <b id="jamb-cd-clock">' + cd.clock + '</b></span></div>' +
         '</div>' +
         '</div>' +
         qaHtml +
@@ -19850,7 +20158,7 @@ function renderSupportChat() {
 
     let bubbles = '';
     if (state.supportMessages.length === 0) {
-        bubbles = '<div class="chat-empty">👋 Hi, I\'m ' + SUPPORT_BOT_NAME + ' — ask me anything about payments, activation, or the app. If I can\'t fully help, our team will jump in, or you can reach us on WhatsApp (' + SUPPORT_WHATSAPP_DISPLAY + ') anytime.</div>';
+        bubbles = '<div class="chat-empty">👋 Hi, I\'m ' + SUPPORT_BOT_NAME + '. Tell me what is not working in the app — activation, payments, login, questions not loading, mocks, offline, updates — and I\'ll walk you through the fix. If I can\'t solve it, I\'ll mark it for human attention and an admin will reply here. WhatsApp: ' + SUPPORT_WHATSAPP_DISPLAY + '.</div>';
     } else {
         let lastSender = '';
         let lastTime = 0;
@@ -19911,9 +20219,33 @@ function renderSupportChat() {
         (quickIssuesHtml ? '<div class="support-page-head">' + quickIssuesHtml + '</div>' : '') +
         '<div class="chat-window">' + bubbles + '</div>' +
         '<div class="chat-input-row">' +
-        '<textarea class="field ai-chat-textarea" id="support-chat-input" placeholder="Message support..." rows="1"></textarea>' +
+        '<textarea class="field ai-chat-textarea" id="support-chat-input" placeholder="Message support..." rows="1">' + esc(state.supportInput || '') + '</textarea>' +
         '<button class="chat-send-fab" data-action="send-support-message" aria-label="Send">' + svg('send', 16) + '</button>' +
         '</div>' +
+        '</div>'
+    );
+}
+
+function renderSupportMemoryAdmin() {
+    const entries = getSupportMemory();
+    let list = '';
+    entries.forEach(function(e) {
+        list += (
+            '<div style="border-top:1px solid var(--line);padding:8px 0">' +
+            '<p style="font-size:12px;font-weight:700;margin:0 0 3px">Q: ' + esc(e.q) + '</p>' +
+            '<p style="font-size:12px;color:var(--muted);margin:0 0 6px;white-space:pre-wrap">' + esc(e.a) + '</p>' +
+            '<button class="btn btn-outline btn-sm" style="font-size:11px" data-action="admin-support-memory-delete" data-id="' + esc(e.id) + '">Delete</button>' +
+            '</div>'
+        );
+    });
+    return (
+        '<div class="card" style="margin-bottom:12px">' +
+        '<p style="font-weight:700;font-size:14px;margin:0 0 4px">🧠 Support Memory (' + entries.length + ')</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Teach the support bot answers to in-app problems it doesn\'t know. It checks this first, before its built-in knowledge. Put different ways a user might ask, separated by a | sign.</p>' +
+        '<textarea class="field" id="admin-support-memory-q" rows="2" placeholder="When a user asks… e.g. result not showing | cannot see my result" style="font-size:13px;margin-bottom:6px">' + esc((state.admin && state.admin.supportMemQ) || '') + '</textarea>' +
+        '<textarea class="field" id="admin-support-memory-a" rows="3" placeholder="The bot should answer…" style="font-size:13px;margin-bottom:6px">' + esc((state.admin && state.admin.supportMemA) || '') + '</textarea>' +
+        '<button class="btn btn-green" style="font-size:12px;padding:8px" data-action="admin-support-memory-add">Save to memory</button>' +
+        list +
         '</div>'
     );
 }
@@ -19927,7 +20259,7 @@ function renderAdminSupport() {
     }
 
     if (state.adminSupportConversations.length === 0) {
-        return '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No support conversations yet.</p></div>';
+        return renderSupportMemoryAdmin() + '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No support conversations yet.</p></div>';
     }
 
     let rows = '';
@@ -19935,7 +20267,7 @@ function renderAdminSupport() {
         rows += (
             '<div class="admin-user-row" data-action="admin-open-support" data-userid="' + c.user_id + '" data-username="' + esc(c.username || '') + '">' +
             '<div class="user-info">' +
-            '<span class="user-name">' + esc(c.username || 'Unknown') + (c.unreadCount > 0 ? ' 🔴' : '') + '</span>' +
+            '<span class="user-name">' + esc(c.username || 'Unknown') + (c.needsHuman ? ' 🙋 <span style="font-size:9px;font-weight:800;color:#B3261E">NEEDS HUMAN</span>' : (c.unreadCount > 0 ? ' 🔴' : '')) + '</span>' +
             '<span class="user-email">' + esc((c.lastMessage || '').slice(0, 50)) + (c.lastMessage && c.lastMessage.length > 50 ? '...' : '') + '</span>' +
             '</div>' +
             (c.unreadCount > 0 ? '<span class="user-status inactive">' + c.unreadCount + ' new</span>' : '<span style="font-size:9px;color:var(--faint)">' + formatTimeAgo(c.lastAt) + '</span>') +
@@ -19944,6 +20276,7 @@ function renderAdminSupport() {
     });
 
     return (
+        renderSupportMemoryAdmin() +
         '<p style="font-weight:700;font-size:14px;margin-bottom:10px">💬 Support Conversations</p>' +
         rows
     );
@@ -19987,6 +20320,7 @@ function renderAdminSupportThread() {
         '<button class="btn btn-outline btn-sm" data-action="admin-close-support">← Back</button>' +
         '</div>' +
         '<div class="chat-window">' + bubbles + '</div>' +
+        '<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin:4px 2px"><input type="checkbox" id="admin-support-save-memory"> Teach the bot this answer (save to Support Memory)</label>' +
         '<div class="chat-input-row">' +
         '<textarea class="field" id="admin-support-reply-input" placeholder="Reply as support..." rows="1" style="font-size:13px;padding:6px 10px"></textarea>' +
         '<button class="btn btn-green chat-send-btn" data-action="admin-send-support-reply" data-userid="' + userId + '" data-username="' + esc(username) + '" style="padding:6px 12px;font-size:12px">Send</button>' +
@@ -24878,10 +25212,12 @@ function renderAdminUserDetail() {
     let chatHtml = '';
     if (!state.adminUserDetailLoaded) {
         chatHtml = '<div class="loading-spinner" style="padding:10px 0"><div class="spinner"></div></div>';
+    } else if (state.adminUserAiError) {
+        chatHtml = '<p style="font-size:12px;color:#dc2626;margin:0">Could not load chats: ' + esc(state.adminUserAiError) + '. If this says "permission denied" or "row-level security", add an admin SELECT policy on ai_assistant_messages in Supabase.</p>';
     } else if (state.adminUserAiMessages.length === 0) {
         chatHtml = '<p style="font-size:12px;color:var(--faint);margin:0">No AI Tutor chats yet.</p>';
     } else {
-        chatHtml += '<div style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">';
+        chatHtml += '<div style="max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">';
         state.adminUserAiMessages.forEach(function(m) {
             const isUser = m.sender === 'user';
             chatHtml += (
@@ -28844,6 +29180,7 @@ document.addEventListener('click', function(e) {
                 activationEnabled: activationEnabled,
                 activationAutoEnableDate: activationAutoEnableDate,
                 faqImages: state.settingsCache.faqImages || {},
+                supportMemory: state.settingsCache.supportMemory || [],
             };
             showToast('Settings saved!', 'success');
             render();
@@ -28971,6 +29308,17 @@ document.addEventListener('click', function(e) {
         const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60000);
         const selectedSubjects = SUBJECTS.filter(function(s) { return selectedIds.indexOf(s.id) !== -1; });
 
+        // 10-second cooldown after a mock is created, so a double-tap (or a
+        // second tap while the first request is still in flight) can never
+        // create duplicate exams. Checked before the confirm() dialog too,
+        // so a repeat tap doesn't even get that far.
+        const MOCK_CREATE_COOLDOWN_MS = 10000;
+        const mockWaitSecs = Math.ceil((MOCK_CREATE_COOLDOWN_MS - (Date.now() - (window.__lastMockCreateAt || 0))) / 1000);
+        if (mockWaitSecs > 0) {
+            showToast('A mock exam was just created. Please wait ' + mockWaitSecs + 's before creating another.', 'error');
+            return;
+        }
+
         function resetForm() {
             state.admin.mockTitle = '';
             state.admin.mockScheduled = '';
@@ -28982,6 +29330,7 @@ document.addEventListener('click', function(e) {
 
         if (selectedSubjects.length === 1) {
             // Single subject — one exam, title used exactly as typed.
+            window.__lastMockCreateAt = Date.now();
             supabase.from('mock_exams').insert([{
                 title: titleRaw,
                 subject_id: selectedSubjects[0].id,
@@ -28998,6 +29347,7 @@ document.addEventListener('click', function(e) {
                 loadMockExams();
                 render();
             }).catch(function(e) {
+                window.__lastMockCreateAt = 0; // nothing was created — don't block a retry
                 console.error('Schedule mock error:', e);
                 // A missing subject_id column on mock_exams is the most likely
                 // cause of an insert failing right after this feature was added.
@@ -29025,6 +29375,7 @@ document.addEventListener('click', function(e) {
             };
         });
 
+        window.__lastMockCreateAt = Date.now();
         supabase.from('mock_exams').insert(rows).select().then(function(res) {
             if (res.error) throw res.error;
             const created = res.data || [];
@@ -29036,6 +29387,7 @@ document.addEventListener('click', function(e) {
             loadMockExams();
             render();
         }).catch(function(e) {
+            window.__lastMockCreateAt = 0; // nothing was created — don't block a retry
             console.error('Bulk schedule mock error:', e);
             const missingColumn = e && e.message && /subject_id/i.test(e.message);
             showNetworkAwareError(missingColumn
@@ -30103,10 +30455,45 @@ if (action === 'browse-filter') {
         return;
     }
 
+    if (action === 'admin-support-memory-add') {
+        const q = ((document.getElementById('admin-support-memory-q') || {}).value || (state.admin.supportMemQ || '')).trim();
+        const a = ((document.getElementById('admin-support-memory-a') || {}).value || (state.admin.supportMemA || '')).trim();
+        if (q.length < 3) { showToast('Type what users ask (at least 3 characters).', 'error'); return; }
+        if (a.length < 5) { showToast('Type the answer the bot should give.', 'error'); return; }
+        const entries = getSupportMemory().concat([{ id: 'm' + Date.now().toString(36), q: q, a: a, created_at: new Date().toISOString() }]);
+        saveSupportMemory(entries).then(function(ok) {
+            if (!ok) return;
+            state.admin.supportMemQ = '';
+            state.admin.supportMemA = '';
+            showToast('Saved — the bot will use this from now on.', 'success');
+            render();
+        });
+        return;
+    }
+
+    if (action === 'admin-support-memory-delete') {
+        const id = el.getAttribute('data-id');
+        if (!confirm('Delete this answer from Support Memory?')) return;
+        saveSupportMemory(getSupportMemory().filter(function(e) { return e.id !== id; })).then(function(ok) {
+            if (ok) { showToast('Removed from memory.', 'success'); render(); }
+        });
+        return;
+    }
+
     if (action === 'admin-send-support-reply') {
         const userId = el.getAttribute('data-userid');
         const username = el.getAttribute('data-username');
         const val = document.getElementById('admin-support-reply-input')?.value || '';
+        window.__chatForceBottom = true;
+        const teach = document.getElementById('admin-support-save-memory');
+        if (teach && teach.checked && val.trim().length >= 5) {
+            // Teach the bot: the user's latest message becomes the question, this reply the answer.
+            const lastUserMsg = (state.adminSupportMessages || []).slice().reverse().find(function(m) { return m.sender === 'user'; });
+            if (lastUserMsg && lastUserMsg.message) {
+                saveSupportMemory(getSupportMemory().concat([{ id: 'm' + Date.now().toString(36), q: String(lastUserMsg.message).slice(0, 200), a: val.trim(), created_at: new Date().toISOString() }]))
+                    .then(function(ok) { if (ok) showToast('Reply saved to Support Memory.', 'success'); });
+            }
+        }
         sendAdminSupportReply(userId, username, val);
         const input = document.getElementById('admin-support-reply-input');
         if (input) input.value = '';
@@ -30615,6 +31002,10 @@ document.addEventListener('input', function(e) {
         const aiH = e.target.scrollHeight;
         e.target.style.height = Math.min(aiH, 160) + 'px';
         e.target.style.overflowY = aiH > 160 ? 'auto' : 'hidden';
+    } else if (id === 'admin-support-memory-q') {
+        state.admin.supportMemQ = e.target.value;
+    } else if (id === 'admin-support-memory-a') {
+        state.admin.supportMemA = e.target.value;
     } else if (id === 'admin-support-reply-input') {
         // handled on send
     } else if (id === 'fund-wallet-amount-input') {
@@ -31135,6 +31526,15 @@ if (document.readyState === 'loading') {
     init();
 }
 loadSwVersion();
+document.addEventListener('focusin', function (e) {
+    var id = e.target && e.target.id;
+    if (id === 'support-chat-input' || id === 'ai-chat-input' || id === 'admin-support-reply-input') {
+        setTimeout(function () {
+            var w = document.querySelector('.chat-window');
+            if (w) w.scrollTop = w.scrollHeight;
+        }, 300);
+    }
+});
 
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
