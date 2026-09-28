@@ -7553,6 +7553,7 @@ const PAYSTACK_VERIFY_URL = SUPABASE_URL + "/functions/v1/verify-paystack-paymen
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const SEND_PUSH_URL = SUPABASE_URL + "/functions/v1/send-push-notification";
 const SEND_EMAIL_URL = SUPABASE_URL + "/functions/v1/Send-bulk-email";
+const ADMIN_CREDIT_URL = SUPABASE_URL + "/functions/v1/admin-credit-payment";
 const ADMIN_GET_USERS_URL = SUPABASE_URL + "/functions/v1/admin-get-users";
 const SEND_DAILY_REMINDER_URL = SUPABASE_URL + "/functions/v1/send-daily-reminder";
 const ADMIN_WHATSAPP_NUMBER = "2347072853151";
@@ -9122,6 +9123,8 @@ myEnrollmentsLoading: false,
     adminUserEnrollments: [],
     adminUserAiMessages: [],
     adminUserAiError: '',
+    adminCreditBusy: false,
+    adminCreditResult: null,
     settingsCache: {
         cbtQuestionsPerSubject: 40,
         cbtTimeLimit: 100,
@@ -13668,6 +13671,36 @@ async function loadActivationKeys() {
         state.adminKeysLoaded = true;
         render();
     }
+}
+
+async function adminCreditReference() {
+    const ref = (document.getElementById('admin-credit-ref-input')?.value || '').trim();
+    if (!ref) { showToast('Paste a payment reference first.', 'error'); return; }
+    if (state.adminCreditBusy) return;
+    state.adminCreditBusy = true;
+    state.adminCreditResult = null;
+    render();
+    try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
+        if (!accessToken) throw new Error('Please log in again.');
+        const res = await fetch(ADMIN_CREDIT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken, 'apikey': SUPABASE_ANON_KEY },
+            body: JSON.stringify({ reference: ref }),
+        });
+        const data = await res.json().catch(function() { return {}; });
+        if (!res.ok || data.error) {
+            state.adminCreditResult = { ok: false, text: data.error || 'Could not credit this reference.' };
+        } else {
+            state.adminCreditResult = { ok: true, text: data.message || 'Done.' };
+            try { await addLog(null, null, 'admin_credit_reference', 'Admin credited reference ' + ref); } catch (e) {}
+        }
+    } catch (e) {
+        state.adminCreditResult = { ok: false, text: (e && e.message) || 'Network error. Try again.' };
+    }
+    state.adminCreditBusy = false;
+    render();
 }
 
 async function adminGenerateKey(planId) {
@@ -25984,6 +26017,13 @@ function renderAdminActivation() {
         '<select class="field" id="admin-key-plan-select" style="margin-bottom:10px;font-size:13px">' + planOptions + '</select>' +
         '<button class="btn btn-gold" data-action="admin-generate-key" style="padding:10px">Generate Key</button>' +
         '</div>' +
+        '<div class="card" style="margin-bottom:10px">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 4px">🧾 Credit a Paid Reference</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Student paid on Paystack but wasn\'t credited? Paste the payment reference (starts with WALLET- or MYUTME-). It is checked with Paystack first and can only be credited once.</p>' +
+        '<input class="field" id="admin-credit-ref-input" placeholder="e.g. WALLET-1790000000000-12345" style="margin-bottom:8px;font-size:13px" />' +
+        '<button class="btn btn-green" data-action="admin-credit-reference" style="padding:10px">' + (state.adminCreditBusy ? 'Checking…' : 'Verify &amp; Credit') + '</button>' +
+        (state.adminCreditResult ? '<p style="font-size:12px;margin:8px 0 0;color:' + (state.adminCreditResult.ok ? 'var(--green)' : '#dc2626') + '">' + esc(state.adminCreditResult.text) + '</p>' : '') +
+        '</div>' +
         '<p class="section-label">All Generated Keys (' + state.adminKeys.length + ')</p>' +
         keysHtml
     );
@@ -29821,6 +29861,10 @@ if (action === 'browse-filter') {
         return;
     }
 
+    if (action === 'admin-credit-reference') {
+        adminCreditReference();
+        return;
+    }
     if (action === 'admin-generate-key') {
         const planId = document.getElementById('admin-key-plan-select')?.value || '';
         if (!planId) { showToast('Select a plan first.', 'error'); return; }
