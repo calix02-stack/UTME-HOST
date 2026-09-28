@@ -3532,63 +3532,6 @@
     }
     .faq-img-upload-preview img { width: 100%; height: 100%; object-fit: cover; }
 
-    /* Free Access Announcement — orange, continuously left-to-right
-       scrolling marquee shown on the Home screen while the Activation
-       System is switched OFF. A fixed icon sits on the left; the message
-       itself lives in an overflow-hidden track so any length of text is
-       fully supported without ever being clipped — it's simply hidden
-       off-screen at the start/end of each pass rather than cut off. */
-    .free-announce-banner {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 12px;
-        margin-bottom: 12px;
-        border-radius: 12px;
-        background: linear-gradient(90deg, #C9711A 0%, #F5A623 50%, #C9711A 100%);
-        box-shadow: 0 2px 10px rgba(201,113,26,0.35);
-        overflow: hidden;
-    }
-    .free-announce-banner .fab-icon {
-        flex-shrink: 0;
-        font-size: 16px;
-        line-height: 1;
-    }
-    .free-announce-banner .fab-track {
-        position: relative;
-        flex: 1;
-        min-width: 0;
-        height: 18px;
-        overflow: hidden;
-    }
-    .free-announce-banner .fab-text {
-        position: absolute;
-        top: 50%;
-        left: 100%;
-        white-space: nowrap;
-        font-size: 12.5px;
-        font-weight: 700;
-        color: #fff;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        transform: translateY(-50%) translateX(0%);
-        animation: freeAnnounceScroll 18s linear infinite;
-        will-change: left, transform;
-    }
-    @keyframes freeAnnounceScroll {
-        0%   { left: 100%; transform: translateY(-50%) translateX(0%); }
-        100% { left: 0%;   transform: translateY(-50%) translateX(-100%); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-        .free-announce-banner .fab-text {
-            animation: none;
-            position: static;
-            transform: none;
-            display: block;
-            white-space: normal;
-        }
-        .free-announce-banner .fab-track { height: auto; overflow: visible; }
-    }
-
     /* Post-login Activation Banner */
     /* Persistent "Not Activated" signboard — sits at the top of the app,
        cannot be dismissed, but doesn't block interaction with the rest of the app. */
@@ -7153,7 +7096,7 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
     animation: spin .8s linear infinite !important;
 }
 .typing-indicator .dots span { animation: typingDot 1.4s infinite !important; }
-#ptr-ind, .free-announce-banner { display: none !important; }
+#ptr-ind { display: none !important; }
 </style>
 </head>
 <body>
@@ -8571,14 +8514,7 @@ function anyCourseAccess() {
 function isAdmin() {
     return state.profile.email && state.profile.email.toLowerCase() === ADMIN_EMAIL;
 }
-// Master switch for the whole Activation System, controlled from the Admin
-// Panel. While this is OFF, every user is treated as fully unlocked and no
-// activation-related UI (status pills, prompts, restrictions) should show.
-function isActivationSystemOn() {
-    return !!(state.settingsCache && state.settingsCache.activationEnabled === true);
-}
 function isUserActive() {
-    if (!isActivationSystemOn()) return true;
     if (isAdmin()) return true;
     if (!state.authUser) return false;
     if (!state.profile.is_active) return false;
@@ -8587,35 +8523,6 @@ function isUserActive() {
         if (expiry < new Date()) return false;
     }
     return true;
-}
-
-// Checks whether the admin's scheduled "auto turn ON" date has arrived while
-// the Activation System is OFF, and if so flips it ON for every account by
-// updating the shared admin_settings row. Safe to call from any client —
-// it's a no-op unless the system is currently off with a due date.
-async function checkActivationAutoEnable() {
-    try {
-        const s = state.settingsCache;
-        if (!s || s.activationEnabled) return;
-        if (!s.activationAutoEnableDate) return;
-        const target = new Date(s.activationAutoEnableDate);
-        if (isNaN(target.getTime()) || target > new Date()) return;
-
-        const { error } = await supabase.from('admin_settings').upsert([
-            { setting_key: 'activation_enabled', setting_value: true },
-            { setting_key: 'activation_auto_enable_date', setting_value: '' },
-        ], { onConflict: 'setting_key' });
-        if (error) {
-            console.warn('Auto-enable activation error:', error);
-            return;
-        }
-        state.settingsCache.activationEnabled = true;
-        state.settingsCache.activationAutoEnableDate = null;
-        console.log('Activation system auto-enabled on schedule.');
-        render();
-    } catch (e) {
-        console.warn('Auto-enable activation exception:', e);
-    }
 }
 
 // Sends a non-activated user to the Activate page with a friendly, on-brand
@@ -9235,9 +9142,7 @@ myEnrollmentsLoading: false,
         mockSubjectCount: 4,
         underConstruction: false,
         constructionReopenTime: null,
-        activationEnabled: false,
         jambExamDate: null,
-        activationAutoEnableDate: null,
         faqImages: {},
     },
 
@@ -10023,8 +9928,6 @@ function buildSettingsResult(rows) {
             underConstruction: settings.under_construction || false,
             constructionReopenTime: settings.construction_reopen_time || null,
             examCreationEnabled: settings.exam_creation_enabled !== false,
-            activationEnabled: settings.activation_enabled === true,
-            activationAutoEnableDate: settings.activation_auto_enable_date || null,
             jambExamDate: settings.jamb_exam_date || null,
             faqImages: settings.faq_images || {},
             supportMemory: (settings.support_memory && Array.isArray(settings.support_memory.entries)) ? settings.support_memory.entries : [],
@@ -10048,7 +9951,7 @@ async function loadSettings() {
                 const prev = state.settingsCache;
                 state.settingsCache = result;
                 saveOfflineCache('settings', result);
-                if (prev && (prev.activationEnabled !== result.activationEnabled || prev.jambExamDate !== result.jambExamDate)) {
+                if (prev && prev.jambExamDate !== result.jambExamDate) {
                     try { render(); } catch (e) { console.warn('Re-render after settings refresh failed:', e); }
                 }
                 return result;
@@ -11385,7 +11288,7 @@ async function signUp(fullName, username, email, password) {
             state.signupEmail = "";
             state.signupPassword = "";
             state.signupConfirm = "";
-            showToast(isActivationSystemOn() ? "Account created! You need to be activated by admin." : "Account created!", "success");
+            showToast("Account created! Activate your account to unlock full access.", "success");
             // Brand-new account, nothing picked yet — kick off the
             // "choose your 3 subjects" popup right away instead of leaving
             // Practice Hub looking empty until the person stumbles onto
@@ -11398,9 +11301,7 @@ async function signUp(fullName, username, email, password) {
             startLastSeenHeartbeat();
             addLog(data.user.id, username, 'login', 'Signed up and logged in');
             registerDeviceSession();
-            if (isActivationSystemOn()) {
-                state.showActivationBanner = true;
-            }
+            state.showActivationBanner = true;
             render();
             if (state.pendingExamLinkId) {
                 enterMockExamViaLink(state.pendingExamLinkId);
@@ -17846,10 +17747,6 @@ function renderLearningHub() {
     );
 }
 
-// ============================================================
-//  FREE ACCESS ANNOUNCEMENT (Home screen, shown while Activation is OFF)
-// ============================================================
-
 // Plain-language summary of the free-plan limits, shown to non-activated users.
 function renderFreePlanLimitsCard(compact) {
     return (
@@ -17867,7 +17764,7 @@ function renderFreePlanLimitsCard(compact) {
 }
 
 function renderHomeActivationCard() {
-    if (!state.authUser || isAdmin() || !isActivationSystemOn() || isUserActive()) return '';
+    if (!state.authUser || isAdmin() || isUserActive()) return '';
     return (
         '<div class="card" style="margin-bottom:12px;padding:12px 14px;border:1.5px solid var(--gold)">' +
         '<div style="display:flex;align-items:center;gap:10px">' +
@@ -17876,13 +17773,6 @@ function renderHomeActivationCard() {
         '<button class="btn btn-gold btn-sm" data-action="set-view" data-view="activate" style="flex-shrink:0;padding:8px 14px">Activate</button>' +
         '</div></div>'
     );
-}
-
-function renderFreeAccessAnnouncement() {
-    // Scrolling "free access" marquee removed from the Home screen — the
-    // app should simply work with no banner shown, whether Activation is
-    // ON or OFF.
-    return '';
 }
 
 function renderHome() {
@@ -20853,16 +20743,11 @@ function renderProfile() {
         );
     }
     
-    // Build status pill — while the Activation System is OFF, activation
-    // status is not shown to anyone (except the Admin badge, which reflects
-    // role, not activation).
-    const activationOn = isActivationSystemOn();
+    // Build status pill (Admin badge reflects role, not activation).
     let statusPill = '';
     let expiryText = '';
     if (isAdmin()) {
         statusPill = '<span class="acct-status-pill on">👑 Admin</span>';
-    } else if (!activationOn) {
-        statusPill = '';
     } else if (isActive) {
         if (expiry) {
             expiryText = daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left';
@@ -21122,7 +21007,6 @@ function renderActivationSignboard() {
     // Persistent, non-dismissable "not activated" indicator. Unlike a modal,
     // this never blocks the screen — it's a slim strip the user can act on
     // whenever they're ready, and it stays visible until the account is active.
-    if (!isActivationSystemOn()) return '';
     return (
         '<div class="act-signboard" data-action="set-view" data-view="activate" style="cursor:pointer">' +
         '<div class="as-icons">' +
@@ -21139,7 +21023,7 @@ function renderActivationSignboard() {
 }
 
 function renderActivationBanner() {
-    if (!state.showActivationBanner || !isActivationSystemOn()) return '';
+    if (!state.showActivationBanner) return '';
     return (
         '<div class="actban-overlay" data-action="dismiss-activation-banner">' +
         '<div class="actban-modal" data-action="prevent-close">' +
@@ -22538,17 +22422,6 @@ function renderNotifications() {
 //  ACTIVATE
 // ============================================================
 function renderActivate() {
-    // The Activation System is currently switched off in the Admin Panel —
-    // nothing here is relevant, so send the user back home instead of
-    // showing any activation-related content.
-    if (!isActivationSystemOn() && !isAdmin()) {
-        return (
-            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('shield', 30) + '</div>' +
-            '<h2 class="title" style="font-size:14px">Full Access, No Activation Needed</h2>' +
-            '<p class="sub" style="font-size:11px">Every feature is unlocked right now — there\'s nothing to activate.</p>'
-        );
-    }
     const isActive = isUserActive();
     const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
 
@@ -25128,20 +25001,6 @@ function renderAdminSettings() {
         '<p style="font-size:9px;color:var(--faint);margin:0">Students see the countdown to this date. Leave empty to use April 15 each year.</p>' +
         '</div>' +
 
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔐 Activation System</p>' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
-        '<label style="font-size:13px;color:var(--ink)">' +
-        '<input type="checkbox" id="admin-activation-enabled" ' + (s.activationEnabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--green);vertical-align:middle;margin-right:4px" />' +
-        'Activation System ON</label>' +
-        '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' +
-        (s.activationEnabled
-            ? 'Activation is ON — all activation features, prompts, and restrictions are enabled for every user.'
-            : 'Activation is OFF — all activation features, prompts, and restrictions are disabled. The app works freely for everyone.') +
-        '</p>' +
-        '</div>' +
-        
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
         '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔧 Maintenance Mode</p>' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
@@ -29379,9 +29238,6 @@ document.addEventListener('click', function(e) {
         const examCreationEnabled = document.getElementById('admin-exam-creation-enabled')?.checked !== false;
         const underConstruction = document.getElementById('admin-under-construction')?.checked !== false;
         const reopenTime = document.getElementById('admin-reopen-time')?.value || null;
-        const activationEnabled = document.getElementById('admin-activation-enabled')?.checked === true;
-        // Activation is now a pure ON/OFF toggle — no scheduled auto-enable date.
-        const activationAutoEnableDate = null;
         const jambExamDate = (document.getElementById('admin-jamb-date')?.value || '').trim() || null;
         
         state.admin.questionsPerSubject = cbtQs;
@@ -29410,8 +29266,6 @@ document.addEventListener('click', function(e) {
             { setting_key: 'exam_creation_enabled', setting_value: examCreationEnabled },
             { setting_key: 'under_construction', setting_value: underConstruction },
             { setting_key: 'construction_reopen_time', setting_value: nn(reopenTime) },
-            { setting_key: 'activation_enabled', setting_value: activationEnabled },
-            { setting_key: 'activation_auto_enable_date', setting_value: nn(activationAutoEnableDate) },
             { setting_key: 'jamb_exam_date', setting_value: nn(jambExamDate) },
         ];
 
@@ -29437,8 +29291,6 @@ document.addEventListener('click', function(e) {
                 mockSubjectCount: mockSubjectCount,
                 underConstruction: underConstruction,
                 constructionReopenTime: reopenTime,
-                activationEnabled: activationEnabled,
-                activationAutoEnableDate: activationAutoEnableDate,
                 jambExamDate: jambExamDate,
                 faqImages: state.settingsCache.faqImages || {},
                 supportMemory: state.settingsCache.supportMemory || [],
@@ -31386,7 +31238,6 @@ async function init() {
     // Settings keep loading in the background and re-render whenever they
     // land, however long that takes; they never block boot.
     loadSettings().then(function() {
-        checkActivationAutoEnable();
         render();
     });
     // The app itself no longer waits on any of this — state.authReady now
@@ -31575,12 +31426,6 @@ async function init() {
         checkAndDeactivateExpiredUsers();
     }, 5 * 60 * 1000); // Every 5 minutes
 
-    // Check for a due "auto turn Activation ON" date on init and periodically
-    checkActivationAutoEnable();
-    setInterval(function() {
-        checkActivationAutoEnable();
-    }, 5 * 60 * 1000); // Every 5 minutes
-
     loadAllUsers();
     loadLeaderboard('cbt');
     loadNotifications();
@@ -31618,8 +31463,7 @@ async function init() {
         loadSettings().then(function(s) {
             var prev = state.settingsCache;
             state.settingsCache = s;
-            checkActivationAutoEnable();
-            if (prev && s && (prev.activationEnabled !== s.activationEnabled || prev.jambExamDate !== s.jambExamDate)) render();
+            if (prev && s && prev.jambExamDate !== s.jambExamDate) render();
         });
     }, 60000);
 
