@@ -13409,7 +13409,7 @@ async function adminSaveCourse() {
     const title = state.admin.courseTitle.trim();
     const examType = state.admin.courseExamType;
     const subjects = state.admin.courseSubjects || [];
-    const price = parseInt(state.admin.coursePrice || 0);
+    const price = 0; // courses are not sold
     const description = state.admin.courseDescription.trim();
     const imageUrl = state.admin.courseImageData || null;
 
@@ -13533,46 +13533,6 @@ async function adminDeleteCourse(courseId) {
     } catch (e) {
         showNetworkAwareError('Error deleting course.', e);
     }
-}
-
-function payForCourse(course) {
-    if (!state.authUser) { showToast('Please log in first.', 'error'); state.showLogin = true; render(); return; }
-    if (typeof PaystackPop === 'undefined') { loadPaystackThen(function() { payForCourse(course); }); return; }
-    if (!isValidUuid(course.id)) {
-        // Never let someone pay for a course that has no real database row —
-        // the enrollment insert would fail after the charge already went through.
-        showToast('This course isn\'t set up for enrollment yet. Please contact support before paying.', 'error');
-        return;
-    }
-
-    const handler = PaystackPop.setup({
-        key: PAYSTACK_PUBLIC_KEY,
-        email: state.profile.email || (state.authUser.email || 'noemail@example.com'),
-        amount: course.price * 100,
-        currency: 'NGN',
-        ref: 'COURSE-' + Date.now() + '-' + Math.floor(Math.random() * 100000),
-        metadata: { custom_fields: [{ display_name: "Course", variable_name: "course", value: course.title }] },
-        callback: function(response) {
-            showToast('Payment received! Enrolling...', '');
-            supabase.from('course_enrollments').insert([{
-                user_id: state.authUser.id, course_id: course.id, amount: course.price,
-            }]).then(function(result) {
-                if (result.error) {
-                    console.error('Enrollment after payment failed:', result.error);
-                    showToast('Payment succeeded, but enrolling in ' + course.title + ' failed. Please contact support with your payment reference: ' + response.reference, 'error');
-                    return;
-                }
-                showToast('🎉 Enrolled in ' + course.title + '!', 'success');
-                state.myEnrollmentsLoaded = false;
-                loadMyEnrollments();
-            }).catch(function(e) {
-                console.error('Enrollment after payment exception:', e);
-                showToast('Payment succeeded, but enrolling in ' + course.title + ' failed. Please contact support with your payment reference: ' + response.reference, 'error');
-            });
-        },
-        onClose: function() { showToast('Payment window closed.', ''); }
-    });
-    handler.openIframe();
 }
 
 async function loadActivationPlans() {
@@ -13783,6 +13743,8 @@ function payWithPaystack(plan) {
         currency: 'NGN',
         ref: 'MYUTME-' + Date.now() + '-' + Math.floor(Math.random() * 100000),
         metadata: {
+            user_id: state.authUser.id,
+            plan_id: String(plan.id),
             custom_fields: [
                 { display_name: "Plan", variable_name: "plan", value: plan.name },
                 { display_name: "Username", variable_name: "username", value: state.profile.name || 'Guest' },
@@ -13805,16 +13767,20 @@ async function verifyPaystackPayment(reference, planId) {
     render();
 
     try {
+        // Send the user's own login token; the server works out who the user is
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
+        if (!accessToken) throw new Error('Please log in again.');
         const res = await fetch(PAYSTACK_VERIFY_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + accessToken,
+                'apikey': SUPABASE_ANON_KEY,
             },
             body: JSON.stringify({
                 reference: reference,
                 planId: planId,
-                userId: state.authUser.id,
             }),
         });
         const data = await res.json();
@@ -13828,9 +13794,9 @@ async function verifyPaystackPayment(reference, planId) {
 
         state.profile.is_active = true;
         state.profile.activation_expiry = data.expiresAt;
-        state.activateCode = data.keyCode;
+        state.activateCode = '';
         state.activateStatus = 'success';
-        state.activateStatusMsg = '🎉 Payment confirmed! Your account is now active for ' + data.days + ' days. Your license key: ' + data.keyCode;
+        state.activateStatusMsg = '🎉 Payment confirmed! Your account is now active for ' + data.days + ' days. Receipt: ' + reference;
         showToast('Activated successfully!', 'success');
         state.view = 'activate';
         render();
@@ -14893,7 +14859,7 @@ async function loadAdminUserDetail(userId) {
     render();
     try {
         const [enrollRes, aiRes] = await Promise.all([
-            supabase.from('course_enrollments').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+            Promise.resolve({ data: [] }),
             // Newest 500 messages (was: oldest 50, which hid recent chats)
             supabase.from('ai_assistant_messages').select('id, session_id, sender, message, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(500)
         ]);
@@ -17695,7 +17661,6 @@ function renderHome() {
     const cd = getJambCountdown();
 
     if (!state.coursesLoaded) loadCourses();
-    if (state.authUser && !state.myEnrollmentsLoaded) loadMyEnrollments();
 
     const quickActions = [
         { view: 'cbt', label: 'JAMB CBT', icon: 'monitor', color: '#35618C', action: 'start-full-mock-utme' },
@@ -25158,38 +25123,12 @@ function renderAdminUserDetail() {
         '</div>'
     );
 
-    // --- Courses card ---
-    let coursesHtml = '';
-    if (!state.adminUserDetailLoaded) {
-        coursesHtml = '<div class="loading-spinner" style="padding:10px 0"><div class="spinner"></div></div>';
-    } else if (state.adminUserEnrollments.length === 0) {
-        coursesHtml = '<p style="font-size:12px;color:var(--faint);margin:0">Not enrolled in any course yet.</p>';
-    } else {
-        state.adminUserEnrollments.forEach(function(e) {
-            const course = (state.courses || []).find(function(c) { return c.id === e.course_id; });
-            const title = course ? course.title : 'Course (' + e.course_id + ')';
-            const when = e.created_at ? new Date(e.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
-            coursesHtml += (
-                '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)">' +
-                '<div><p style="font-size:12.5px;font-weight:600;margin:0">' + esc(title) + '</p><p style="font-size:10px;color:var(--faint);margin:2px 0 0">Enrolled ' + when + '</p></div>' +
-                '<span style="font-size:12px;font-weight:700;color:var(--green)">₦' + (e.amount || 0).toLocaleString() + '</span>' +
-                '</div>'
-            );
-        });
-    }
-    body += (
-        '<div class="card" style="margin-bottom:12px">' +
-        '<p style="font-weight:700;font-size:13px;margin:0 0 8px">📚 Courses (' + (state.adminUserEnrollments.length || 0) + ')</p>' +
-        coursesHtml +
-        '</div>'
-    );
-
     // --- AI chat history card ---
     let chatHtml = '';
     if (!state.adminUserDetailLoaded) {
         chatHtml = '<div class="loading-spinner" style="padding:10px 0"><div class="spinner"></div></div>';
     } else if (state.adminUserAiError) {
-        chatHtml = '<p style="font-size:12px;color:#dc2626;margin:0">Could not load chats: ' + esc(state.adminUserAiError) + '. If this says "permission denied" or "row-level security", add an admin SELECT policy on ai_assistant_messages in Supabase.</p>';
+        chatHtml = '<p style="font-size:12px;color:#dc2626;margin:0">Could not load chats: ' + esc(state.adminUserAiError) + '. This usually means the Supabase admin rules are missing: run admin_setup.sql in the Supabase SQL Editor, then reopen this user.</p>';
     } else if (state.adminUserAiMessages.length === 0) {
         chatHtml = '<p style="font-size:12px;color:var(--faint);margin:0">No AI Tutor chats yet.</p>';
     } else {
@@ -25928,7 +25867,7 @@ function renderAdminCourses() {
         list += (
             '<div class="admin-mode-card">' +
             '<div class="mode-info"><span class="mode-name" style="font-size:12px">' + esc(c.title) + '</span>' +
-            '<span class="mode-count" style="font-size:10px">' + (c.exam_type||'').toUpperCase() + ' · ₦' + (c.price||0).toLocaleString() + '</span></div>' +
+            '<span class="mode-count" style="font-size:10px">' + (c.exam_type||'').toUpperCase() + '</span></div>' +
             '<div class="mode-actions">' +
             '<span class="edit-icon" data-action="admin-edit-course" data-courseid="' + c.id + '">✏️</span>' +
             '<span class="edit-icon" style="background:var(--danger)" data-action="admin-delete-course" data-courseid="' + c.id + '">🗑️</span>' +
@@ -25943,8 +25882,6 @@ function renderAdminCourses() {
         '<select class="field" id="course-exam-type" style="margin-bottom:8px">' + typeOpts + '</select>' +
         '<label class="field-label">Course Name</label>' +
         '<input class="field" id="course-title-input" placeholder="e.g. JAMB 2027" value="' + esc(state.admin.courseTitle) + '" style="margin-bottom:8px" />' +
-        '<label class="field-label">Price (₦)</label>' +
-        '<input class="field" id="course-price-input" type="number" placeholder="5000" value="' + esc(state.admin.coursePrice) + '" style="margin-bottom:8px" />' +
         '<label class="field-label">Description</label>' +
         '<textarea class="field" id="course-desc-input" rows="2" placeholder="What this course covers..." style="margin-bottom:8px">' + esc(state.admin.courseDescription) + '</textarea>' +
         '<label class="field-label">Course Image</label>' +
@@ -29784,12 +29721,6 @@ if (action === 'browse-filter') {
         setView('subject-modes');
         return;
     }
-    if (action === 'enroll-course') {
-        const courseId = el.getAttribute('data-courseid');
-        const course = state.courses.find(function(c) { return c.id === courseId; });
-        if (course) payForCourse(course);
-        return;
-    }
     if (action === 'toggle-course-subject') {
         const sid = el.getAttribute('data-subject');
         if (!state.admin.courseSubjects) state.admin.courseSubjects = [];
@@ -29801,7 +29732,6 @@ if (action === 'browse-filter') {
     if (action === 'admin-save-course') {
         state.admin.courseExamType = document.getElementById('course-exam-type')?.value || 'jamb';
         state.admin.courseTitle = document.getElementById('course-title-input')?.value || '';
-        state.admin.coursePrice = document.getElementById('course-price-input')?.value || '';
         state.admin.courseDescription = document.getElementById('course-desc-input')?.value || '';
         adminSaveCourse();
         return;
@@ -29814,7 +29744,6 @@ if (action === 'browse-filter') {
         state.admin.courseTitle = c.title;
         state.admin.courseExamType = c.exam_type;
         state.admin.courseSubjects = (c.subject_ids || []).slice();
-        state.admin.coursePrice = String(c.price || 0);
         state.admin.courseDescription = c.description || '';
         state.admin.courseImageData = c.image_url || null;
         render();
