@@ -7103,7 +7103,7 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
 </div>
 
 <script id="supabase-cdn-script" async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
-<script async crossorigin="anonymous" src="https://js.paystack.co/v1/inline.js"></script>
+<script async src="https://js.paystack.co/v1/inline.js"></script>
 <!-- Client-side PDF generation (result breakdowns + analytics summary). No server involved. -->
 <script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <!-- Client-side PDF rendering for the in-app Study Materials viewer. Files
@@ -10548,27 +10548,18 @@ async function loadAppErrors() {
 
 async function checkAndDeactivateExpiredUsers() {
     try {
-        const now = new Date().toISOString();
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('id, username, is_active, activation_expiry')
-            .eq('is_active', true)
-            .lt('activation_expiry', now);
-
+        const { data, error } = await supabase.rpc('deactivate_expired_users');
         if (error) {
             console.warn("Check expired users error:", error);
             return;
         }
-
         if (data && data.length > 0) {
             for (const user of data) {
-                await supabase
-                    .from('profiles')
-                    .update({ is_active: false })
-                    .eq('id', user.id);
-                
                 await addLog(user.id, user.username, 'auto_deactivated', 'Account deactivated due to plan expiry');
-                console.log('Auto-deactivated user:', user.username);
+            }
+            if (state.authUser && data.some(function(u) { return u.id === state.authUser.id; })) {
+                state.profile.is_active = false;
+                render();
             }
             if (state.view === 'admin') {
                 loadAllUsers();
@@ -13546,7 +13537,7 @@ async function adminDeleteCourse(courseId) {
 
 function payForCourse(course) {
     if (!state.authUser) { showToast('Please log in first.', 'error'); state.showLogin = true; render(); return; }
-    if (typeof PaystackPop === 'undefined') { showToast(!isOnline() ? "No internet connection. Please try again." : 'Payment system not loaded. Please try again.', !isOnline() ? 'offline' : 'error'); return; }
+    if (typeof PaystackPop === 'undefined') { loadPaystackThen(function() { payForCourse(course); }); return; }
     if (!isValidUuid(course.id)) {
         // Never let someone pay for a course that has no real database row —
         // the enrollment insert would fail after the charge already went through.
@@ -13650,33 +13641,17 @@ async function adminActivateUserPlan(userId, planId) {
     if (!planId) { showToast("Select a plan first.", "error"); return; }
 
     try {
-        const { data: plan, error: planError } = await supabase
-            .from('activation_plans')
-            .select('*')
-            .eq('id', planId)
-            .single();
+        const { data, error } = await supabase.rpc('admin_activate_user', { p_user: userId, p_plan_id: String(planId) });
+        if (error) throw error;
 
-        if (planError) throw planError;
-
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + plan.days);
-
-        await supabase
-            .from('profiles')
-            .update({
-                is_active: true,
-                activation_expiry: expiryDate.toISOString(),
-            })
-            .eq('id', userId);
-
-        await addLog(userId, null, 'activated_by_admin', 'Activated with plan: ' + plan.name + ' for ' + plan.days + ' days');
+        await addLog(userId, null, 'activated_by_admin', 'Activated with plan: ' + data.plan + ' for ' + data.days + ' days');
 
         showToast("User activated successfully!", "success");
         await loadAllUsers();
         render();
     } catch (e) {
         console.warn("Activate user error:", e);
-        showToast("Error activating user.", "error");
+        showToast("Error activating user: " + ((e && e.message) || 'unknown'), "error");
     }
 }
 
@@ -13684,10 +13659,8 @@ async function adminDeactivateUser(userId) {
     if (!confirm("Deactivate this user?")) return;
 
     try {
-        await supabase
-            .from('profiles')
-            .update({ is_active: false, activation_expiry: null })
-            .eq('id', userId);
+        const { error: deErr } = await supabase.rpc('admin_deactivate_user', { p_user: userId });
+        if (deErr) throw deErr;
 
         await addLog(userId, null, 'deactivated_by_admin', 'User deactivated by admin');
 
@@ -13774,10 +13747,32 @@ async function adminGenerateKey(planId) {
     }
 }
 
+// Loads Paystack on demand if the page-load script failed or was still loading
+let __paystackLoading = false;
+function loadPaystackThen(onReady) {
+    if (typeof PaystackPop !== 'undefined') { onReady(); return; }
+    if (!isOnline()) { showToast("No internet connection. Please try again.", 'offline'); return; }
+    if (__paystackLoading) { showToast('Loading payment system… tap again in a moment.', ''); return; }
+    __paystackLoading = true;
+    showToast('Loading payment system…', '');
+    const tag = document.createElement('script');
+    tag.src = 'https://js.paystack.co/v1/inline.js?t=' + Date.now();
+    tag.onload = function() {
+        __paystackLoading = false;
+        if (typeof PaystackPop !== 'undefined') onReady();
+        else showToast('Payment system could not start. Please try again.', 'error');
+    };
+    tag.onerror = function() {
+        __paystackLoading = false;
+        showToast('Could not reach Paystack. Turn off any ad blocker or VPN, check your network, and try again.', 'error');
+    };
+    document.head.appendChild(tag);
+}
+
 function payWithPaystack(plan) {
     if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
     if (typeof PaystackPop === 'undefined') {
-        showToast(!isOnline() ? "No internet connection. Please try again." : 'Payment system not loaded. Please try again.', !isOnline() ? 'offline' : 'error');
+        loadPaystackThen(function() { payWithPaystack(plan); });
         return;
     }
 
@@ -13860,63 +13855,22 @@ async function redeemActivationKey(rawKey) {
     render();
 
     try {
-        const { data: keyRow, error } = await supabase
-            .from('activation_keys')
-            .select('*')
-            .eq('key_code', keyCode)
-            .maybeSingle();
-
+        // The server checks the key, marks it used and activates the account in ONE step
+        const { data, error } = await supabase.rpc('redeem_activation_key', { p_key: keyCode });
         if (error) {
-            console.warn('Redeem key lookup error:', error);
+            const msg = error.message || '';
             state.activateStatus = 'error';
-            state.activateStatusMsg = 'Error checking key. Please try again.';
+            if (msg.indexOf('INVALID_KEY') !== -1) state.activateStatusMsg = 'Invalid license key. Please check and try again.';
+            else if (msg.indexOf('KEY_USED') !== -1) state.activateStatusMsg = 'This license key has already been used.';
+            else { console.warn('Redeem key error:', error); state.activateStatusMsg = 'Error checking key. Please try again.'; }
             render();
             return;
         }
-        if (!keyRow) {
-            state.activateStatus = 'error';
-            state.activateStatusMsg = 'Invalid license key. Please check and try again.';
-            render();
-            return;
-        }
-        if (keyRow.is_used) {
-            state.activateStatus = 'error';
-            state.activateStatusMsg = 'This license key has already been used.';
-            render();
-            return;
-        }
-
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + (keyRow.days || 30));
-
-        const { error: keyUpdateError } = await supabase
-            .from('activation_keys')
-            .update({
-                is_used: true,
-                used_by: state.authUser.id,
-                used_by_username: state.profile.name,
-                used_at: new Date().toISOString(),
-            })
-            .eq('id', keyRow.id)
-            .eq('is_used', false);
-
-        if (keyUpdateError) {
-            console.warn('Redeem key update error:', keyUpdateError);
-            state.activateStatus = 'error';
-            state.activateStatusMsg = 'This key was just used by someone else. Try another key.';
-            render();
-            return;
-        }
-
-        await supabase.from('profiles').update({
-            is_active: true,
-            activation_expiry: expiryDate.toISOString(),
-        }).eq('id', state.authUser.id);
 
         state.profile.is_active = true;
-        state.profile.activation_expiry = expiryDate.toISOString();
+        state.profile.activation_expiry = data.expiresAt;
         state.activateStatus = 'success';
-        state.activateStatusMsg = '🎉 Activated! Your account is now active for ' + (keyRow.days || 30) + ' days.';
+        state.activateStatusMsg = '🎉 Activated! Your account is now active for ' + data.days + ' days.';
         state.activateCode = '';
         showToast('Account activated!', 'success');
         render();
@@ -30724,7 +30678,10 @@ if (action === 'browse-filter') {
         state.fundWalletAmount = String(amt);
         
         if (typeof PaystackPop === 'undefined') {
-            showToast(!isOnline() ? "No internet connection. Please try again." : 'Payment system not loaded. Please try again.', !isOnline() ? 'offline' : 'error');
+            loadPaystackThen(function() {
+                const b = document.querySelector('[data-action="fund-wallet-paystack"]');
+                if (b) b.click();
+            });
             return;
         }
         
