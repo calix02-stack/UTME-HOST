@@ -7523,7 +7523,7 @@ function updateAppBadge() {
         if (!navigator.setAppBadge) return;
         if (state.notifsUnreadCount > 0) navigator.setAppBadge(state.notifsUnreadCount);
         else navigator.clearAppBadge();
-    } catch (e) {}
+    } catch (e) { console.warn("Ignored error:", e); }
 }
 
 // ============================================================
@@ -7531,8 +7531,8 @@ function updateAppBadge() {
 // ============================================================
 const storage = {
     get(key) { try { const v = localStorage.getItem(key); return v !== null ? v : null; } catch (e) { return null; } },
-    set(key, value) { try { localStorage.setItem(key, value); } catch (e) {} },
-    remove(key) { try { localStorage.removeItem(key); } catch (e) {} },    
+    set(key, value) { try { localStorage.setItem(key, value); } catch (e) { console.warn("Ignored error:", e); } },
+    remove(key) { try { localStorage.removeItem(key); } catch (e) { console.warn("Ignored error:", e); } },    
 }    
 
 // ============================================================
@@ -7949,7 +7949,7 @@ function shareResultCardImage(opts) {
             navigator.share({
                 files: [file],
                 title: opts.title || 'Result',
-            }).catch(function() {});
+            }).catch(function(e) { console.warn("Ignored error:", e); });
             return;
         }
 
@@ -8114,7 +8114,7 @@ function shareLeaderboardImage(opts) {
             navigator.share({
                 files: [file],
                 title: opts.title || 'Leaderboard',
-            }).catch(function() {});
+            }).catch(function(e) { console.warn("Ignored error:", e); });
             return;
         }
 
@@ -8375,9 +8375,17 @@ function getJambCountdown() {
     // hours/minutes/seconds tick live via startJambCountdownTicker().
     const now = new Date();
     const year = now.getFullYear();
-    let target = new Date(year, 3, 15); // April 15, 00:00 local
-    if (now >= target) {
-        target = new Date(year + 1, 3, 15);
+    // Exam date comes from Admin > Settings (YYYY-MM-DD). Falls back to April 15.
+    let target = null;
+    const cfg = state.settingsCache && state.settingsCache.jambExamDate;
+    if (cfg && /^\d{4}-\d{2}-\d{2}$/.test(cfg)) {
+        const parts = cfg.split('-');
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        if (!isNaN(d.getTime()) && d > now) target = d;
+    }
+    if (!target) {
+        target = new Date(year, 3, 15); // April 15, 00:00 local
+        if (now >= target) target = new Date(year + 1, 3, 15);
     }
     const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const days = Math.max(0, Math.round((target - startToday) / 86400000));
@@ -9143,6 +9151,7 @@ myEnrollmentsLoading: false,
         underConstruction: false,
         constructionReopenTime: null,
         activationEnabled: false,
+        jambExamDate: null,
         activationAutoEnableDate: null,
         faqImages: {},
     },
@@ -9770,7 +9779,7 @@ function withNetworkTimeout(promise, ms, label) {
 const OFFLINE_CACHE_PREFIX = 'myutme_cache_';
 
 function saveOfflineCache(key, data) {
-    try { storage.set(OFFLINE_CACHE_PREFIX + key, JSON.stringify({ data: data, savedAt: Date.now() })); } catch (e) {}
+    try { storage.set(OFFLINE_CACHE_PREFIX + key, JSON.stringify({ data: data, savedAt: Date.now() })); } catch (e) { console.warn("Ignored error:", e); }
 }
 function loadOfflineCache(key) {
     try {
@@ -9931,6 +9940,7 @@ function buildSettingsResult(rows) {
             examCreationEnabled: settings.exam_creation_enabled !== false,
             activationEnabled: settings.activation_enabled === true,
             activationAutoEnableDate: settings.activation_auto_enable_date || null,
+            jambExamDate: settings.jamb_exam_date || null,
             faqImages: settings.faq_images || {},
             supportMemory: (settings.support_memory && Array.isArray(settings.support_memory.entries)) ? settings.support_memory.entries : [],
         };
@@ -11009,7 +11019,7 @@ async function detectDeviceName() {
                 return hints.model + ' · ' + browser + ' · ' + deviceTag();
             }
         }
-    } catch (e) {}
+    } catch (e) { console.warn("Ignored error:", e); }
 
     return os + ' · ' + browser + ' · ' + deviceTag();
 }
@@ -11057,7 +11067,7 @@ async function endDeviceSession() {
         await supabase.from('device_sessions')
             .update({ is_active: false, last_active: new Date().toISOString() })
             .eq('user_id', state.authUser.id).eq('device_id', getDeviceId());
-    } catch (e) {}
+    } catch (e) { console.warn("Ignored error:", e); }
 }
 async function loadDeviceSessions() {
     // Guard against duplicate concurrent loads — renderAdminSessions() calls
@@ -11449,7 +11459,7 @@ async function signOut() {
         if (state.authUser) {
             try {
                 await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', state.authUser.id);
-            } catch (e) {}
+            } catch (e) { console.warn("Ignored error:", e); }
             addLog(state.authUser.id, state.profile.name, 'logout', 'Logged out');
             await endDeviceSession();
         }
@@ -11560,7 +11570,7 @@ function saveSessionSnapshot() {
             savedAt: Date.now(),
         };
         storage.set(SNAPSHOT_KEY, JSON.stringify(snap));
-    } catch (e) {}
+    } catch (e) { console.warn("Ignored error:", e); }
 }
 
 function clearSessionSnapshot() {
@@ -13639,16 +13649,6 @@ async function adminDeactivateUser(userId) {
 // ============================================================
 //  ACTIVATION KEYS
 // ============================================================
-function generateKeyString() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    function block() {
-        let s = '';
-        for (let i = 0; i < 4; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
-        return s;
-    }
-    return block() + '-' + block() + '-' + block();
-}
-
 async function loadActivationKeys() {
     try {
         const { data, error } = await supabase
@@ -13694,7 +13694,7 @@ async function adminCreditReference() {
             state.adminCreditResult = { ok: false, text: data.error || 'Could not credit this reference.' };
         } else {
             state.adminCreditResult = { ok: true, text: data.message || 'Done.' };
-            try { await addLog(null, null, 'admin_credit_reference', 'Admin credited reference ' + ref); } catch (e) {}
+            try { await addLog(null, null, 'admin_credit_reference', 'Admin credited reference ' + ref); } catch (e) { console.warn("Ignored error:", e); }
         }
     } catch (e) {
         state.adminCreditResult = { ok: false, text: (e && e.message) || 'Network error. Try again.' };
@@ -13704,40 +13704,18 @@ async function adminCreditReference() {
 }
 
 async function adminGenerateKey(planId) {
-    const plan = state.activationPlans.find(function(p) { return p.id === planId; });
+    const plan = state.activationPlans.find(function(p) { return String(p.id) === String(planId); });
     if (!plan) { showToast('Select a plan first.', 'error'); return; }
 
-    let key = generateKeyString();
-    let attempts = 0;
-    let inserted = null;
-
-    while (attempts < 5 && !inserted) {
-        const { data, error } = await supabase.from('activation_keys').insert([{
-            key_code: key,
-            plan_id: plan.id,
-            plan_name: plan.name,
-            days: plan.days,
-            price: plan.price,
-            is_used: false,
-        }]).select().single();
-
-        if (!error) { inserted = data; break; }
-        if (error.code === '23505') {
-            key = generateKeyString();
-            attempts++;
-            continue;
-        }
+    // The server creates the key with secure randomness and saves it (admin only)
+    const { data, error } = await supabase.rpc('admin_generate_key', { p_plan_id: String(plan.id) });
+    if (error) {
         console.warn('Generate key error:', error);
         showNetworkAwareError('Error generating key: ' + error.message, error);
         return;
     }
-
-    if (inserted) {
-        showToast('Key generated: ' + key, 'success');
-        loadActivationKeys();
-    } else {
-        showToast('Could not generate a unique key, try again.', 'error');
-    }
+    showToast('Key generated: ' + data.key_code, 'success');
+    loadActivationKeys();
 }
 
 // Loads Paystack on demand if the page-load script failed or was still loading
@@ -14000,7 +13978,7 @@ let aiSpeechRecognition = null;
 
 function toggleAiVoiceRecording() {
     if (state.aiRecording) {
-        if (aiSpeechRecognition) { try { aiSpeechRecognition.stop(); } catch (e) {} }
+        if (aiSpeechRecognition) { try { aiSpeechRecognition.stop(); } catch (e) { console.warn("Ignored error:", e); } }
         return;
     }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -16393,7 +16371,7 @@ function syncUrlForView(v) {
     const path = pathForView(v);
     if (!path) return;
     if (window.location.pathname === path) return;
-    try { history.pushState({ myutmeView: v }, '', path); } catch (e) {}
+    try { history.pushState({ myutmeView: v }, '', path); } catch (e) { console.warn("Ignored error:", e); }
 }
 
 // Login/signup are modals, not separate views, but they still deserve
@@ -16404,7 +16382,7 @@ function syncUrlForAuth(kind) {
         if (kind === 'login') history.pushState({ myutmeAuth: 'login' }, '', '/login');
         else if (kind === 'signup') history.pushState({ myutmeAuth: 'signup' }, '', '/signup');
         else syncUrlForView(state.view);
-    } catch (e) {}
+    } catch (e) { console.warn("Ignored error:", e); }
 }
 
 function setView(v, navOpts) {
@@ -16545,7 +16523,7 @@ const root = document.getElementById("root");
 function openOverlay(kind, payload) {
     if (kind === 'doc') state.viewingDocument = payload;
     else if (kind === 'image') state.viewingImage = payload;
-    try { history.pushState({ myutmeOverlay: kind }, ''); } catch (e) {}
+    try { history.pushState({ myutmeOverlay: kind }, ''); } catch (e) { console.warn("Ignored error:", e); }
     render();
 }
 function closeOverlay(fromPopstate) {
@@ -16560,7 +16538,7 @@ function closeOverlay(fromPopstate) {
     // device back button fired 'popstate' already, the entry is already
     // gone and calling history.back() again would skip past it.
     if (!fromPopstate && (hadDoc || hadImage)) {
-        try { history.back(); } catch (e) {}
+        try { history.back(); } catch (e) { console.warn("Ignored error:", e); }
     }
 }
 window.addEventListener('popstate', function() {
@@ -16871,7 +16849,7 @@ function renderNow() {
         if (newActiveEl) {
             newActiveEl.focus();
             if (activeSelStart !== null && typeof newActiveEl.setSelectionRange === 'function') {
-                try { newActiveEl.setSelectionRange(activeSelStart, activeSelEnd); } catch (e) {}
+                try { newActiveEl.setSelectionRange(activeSelStart, activeSelEnd); } catch (e) { console.warn("Ignored error:", e); }
             }
         }
     }
@@ -21244,7 +21222,7 @@ async function saveStudyReminder(enabled) {
     const minute = state.studyReminderMinute;
     const days = state.studyReminderDays;
     let timezone = 'UTC';
-    try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) {}
+    try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { console.warn("Ignored error:", e); }
     const customMsg = getReminderCustomMessage();
 
     const payload = {
@@ -21311,7 +21289,7 @@ function setReminderCustomMessage(msg) {
     try {
         if (msg) storage.set('reminderMsg_' + state.authUser.id, msg.slice(0, 120));
         else storage.remove('reminderMsg_' + state.authUser.id);
-    } catch (e) {}
+    } catch (e) { console.warn("Ignored error:", e); }
 }
 
 // ============================================================
@@ -24829,6 +24807,12 @@ function renderAdminSettings() {
         '</div>' +
 
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
+        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">📅 JAMB Exam Date (countdown)</p>' +
+        '<input class="field" id="admin-jamb-date" type="date" value="' + esc(s.jambExamDate || '') + '" style="font-size:13px;margin-bottom:4px" />' +
+        '<p style="font-size:9px;color:var(--faint);margin:0">Students see the countdown to this date. Leave empty to use April 15 each year.</p>' +
+        '</div>' +
+
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
         '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔐 Activation System</p>' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
         '<label style="font-size:13px;color:var(--ink)">' +
@@ -27752,7 +27736,7 @@ document.addEventListener('click', function(e) {
         window.OfflineDB.getPassageOffline(b, mode).then(function(p) {
             state.admin.engCurrentPassage = p || null;
             render();
-        }).catch(function() {});
+        }).catch(function(e) { console.warn("Ignored error:", e); });
     }
     return;
 }
@@ -29082,6 +29066,7 @@ document.addEventListener('click', function(e) {
         const activationEnabled = document.getElementById('admin-activation-enabled')?.checked === true;
         // Activation is now a pure ON/OFF toggle — no scheduled auto-enable date.
         const activationAutoEnableDate = null;
+        const jambExamDate = (document.getElementById('admin-jamb-date')?.value || '').trim() || null;
         
         state.admin.questionsPerSubject = cbtQs;
         state.admin.cbtTimeLimit = Math.max(1, cbtTime);
@@ -29108,6 +29093,7 @@ document.addEventListener('click', function(e) {
             { setting_key: 'construction_reopen_time', setting_value: reopenTime },
             { setting_key: 'activation_enabled', setting_value: activationEnabled },
             { setting_key: 'activation_auto_enable_date', setting_value: activationAutoEnableDate },
+            { setting_key: 'jamb_exam_date', setting_value: jambExamDate },
         ];
 
         Promise.all(updates.map(function(u) {
@@ -29132,6 +29118,7 @@ document.addEventListener('click', function(e) {
                 constructionReopenTime: reopenTime,
                 activationEnabled: activationEnabled,
                 activationAutoEnableDate: activationAutoEnableDate,
+                jambExamDate: jambExamDate,
                 faqImages: state.settingsCache.faqImages || {},
                 supportMemory: state.settingsCache.supportMemory || [],
             };
@@ -31444,8 +31431,8 @@ function fastWrap(orig, instant, slow) {
     var inflight = null;
     return function() {
         if (inflight) return inflight;
-        try { instant(); } catch (e) {}
-        var timer = setTimeout(function() { try { slow(); } catch (e) {} }, 1500);
+        try { instant(); } catch (e) { console.warn("Ignored error:", e); }
+        var timer = setTimeout(function() { try { slow(); } catch (e) { console.warn("Ignored error:", e); } }, 1500);
         inflight = Promise.resolve(orig.apply(this, arguments)).finally(function() {
             clearTimeout(timer); inflight = null;
         });
