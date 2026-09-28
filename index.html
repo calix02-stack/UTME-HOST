@@ -7368,6 +7368,8 @@ function retryStaleLoadsAfterReconnect() {
     state.activationPlansLoaded = false;
     state.coursesLoaded = false;
     state.myEnrollmentsLoaded = false;
+    state.myKeys = [];
+    state.myKeysLoaded = false;
     state.syllabusLoaded = false;
     state.topicsLoaded = false;
     state.weakQuestionsLoaded = false;
@@ -9087,6 +9089,8 @@ coursesLoaded: false,
 coursesLoading: false,
 myEnrollments: [],
 myEnrollmentsLoaded: false,
+myKeys: [],
+myKeysLoaded: false,
 myEnrollmentsLoading: false,
     myElectives: [], // English + up to 3 elective subject IDs — local/offline, see loadMyElectivesLocal()
     showElectiveOnboarding: false, // first-run "pick your 3 subjects" popup shown right after signup
@@ -9960,8 +9964,12 @@ async function loadSettings() {
                 );
                 if (error) return null;
                 const result = buildSettingsResult(data);
+                const prev = state.settingsCache;
                 state.settingsCache = result;
                 saveOfflineCache('settings', result);
+                if (prev && (prev.activationEnabled !== result.activationEnabled || prev.jambExamDate !== result.jambExamDate)) {
+                    try { render(); } catch (e) { console.warn('Re-render after settings refresh failed:', e); }
+                }
                 return result;
             } catch (e) { return null; }
             finally { _settingsInflight = null; }
@@ -13772,10 +13780,33 @@ function payWithPaystack(plan) {
     handler.openIframe();
 }
 
-async function verifyPaystackPayment(reference, planId) {
-    state.activateStatus = 'checking';
-    state.activateStatusMsg = 'Verifying your payment…';
-    render();
+const PLAN_PENDING_KEY = "myutme_pending_plan_payments";
+function getPendingPlanPayments() {
+    try { return JSON.parse(localStorage.getItem(PLAN_PENDING_KEY) || '[]'); } catch (e) { return []; }
+}
+function setPendingPlanPayments(list) {
+    try { localStorage.setItem(PLAN_PENDING_KEY, JSON.stringify(list)); } catch (e) { console.warn('pending payments save failed', e); }
+}
+// If the student paid but the app closed before the key arrived, get it now (safe to repeat)
+let __planRetryDone = false;
+function retryPendingPlanPayments() {
+    if (__planRetryDone || !state.authUser) return;
+    __planRetryDone = true;
+    getPendingPlanPayments().forEach(function(p) { verifyPaystackPayment(p.ref, p.planId, true); });
+}
+
+async function verifyPaystackPayment(reference, planId, silent) {
+    const pendingList = getPendingPlanPayments();
+    if (!pendingList.some(function(p) { return p.ref === reference; })) {
+        pendingList.push({ ref: reference, planId: planId });
+        setPendingPlanPayments(pendingList);
+    }
+    const dropPending = function() { setPendingPlanPayments(getPendingPlanPayments().filter(function(p) { return p.ref !== reference; })); };
+    if (!silent) {
+        state.activateStatus = 'checking';
+        state.activateStatusMsg = 'Verifying your payment…';
+        render();
+    }
 
     try {
         // Send the user's own login token; the server works out who the user is
@@ -13797,25 +13828,96 @@ async function verifyPaystackPayment(reference, planId) {
         const data = await res.json();
 
         if (!res.ok || data.error) {
+            if (res.status >= 400 && res.status < 500 && res.status !== 401) dropPending();
+            if (silent) return;
             state.activateStatus = 'error';
             state.activateStatusMsg = data.error || 'Payment verification failed. Contact support with your reference: ' + reference;
             render();
             return;
         }
+        dropPending();
 
-        state.profile.is_active = true;
-        state.profile.activation_expiry = data.expiresAt;
-        state.activateCode = '';
+        state.activateCode = data.keyCode || '';
         state.activateStatus = 'success';
-        state.activateStatusMsg = '🎉 Payment confirmed! Your account is now active for ' + data.days + ' days. Receipt: ' + reference;
-        showToast('Activated successfully!', 'success');
-        state.view = 'activate';
+        state.activateStatusMsg = '🎉 Payment confirmed! Your activation key is ready (' + data.days + ' days). Tap Activate to switch on your account. Receipt: ' + reference;
+        state.myKeysLoaded = false;
+        showToast('Payment confirmed! Your key is ready.', 'success');
+        if (!silent) state.view = 'activate';
         render();
     } catch (e) {
+        if (silent) return;
         state.activateStatus = 'error';
-        state.activateStatusMsg = 'Could not verify payment. Contact support with your reference: ' + reference;
+        state.activateStatusMsg = 'Could not verify payment. We saved your payment and will keep trying. Reference: ' + reference;
         render();
     }
+}
+
+async function loadMyKeys() {
+    if (!state.authUser) return;
+    state.myKeysLoaded = true; // set first so render() can't start it twice
+    try {
+        const { data, error } = await supabase.rpc('my_activation_keys');
+        if (error) throw error;
+        state.myKeys = Array.isArray(data) ? data : [];
+        saveOfflineCache('my_keys_' + state.authUser.id, state.myKeys);   // saved on this device too
+    } catch (e) {
+        console.warn('Load my keys error:', e);
+        // Offline or a hiccup: show the last copy saved on this device instead of nothing
+        const cached = loadOfflineCache('my_keys_' + state.authUser.id);
+        state.myKeys = Array.isArray(cached) ? cached : [];
+    }
+    render();
+}
+
+function renderMyKeysView() {
+    if (!state.authUser) {
+        return (
+            '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
+            '<h2 class="title" style="font-size:14px">🔑 My Activation Keys</h2>' +
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to see your keys.</p></div>'
+        );
+    }
+    return (
+        '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
+        '<h2 class="title" style="font-size:14px">🔑 My Activation Keys</h2>' +
+        '<p class="sub" style="font-size:11px">Every key you buy is saved here, even if you close the app.</p>' +
+        renderMyKeysCard(true)
+    );
+}
+
+function renderMyKeysCard(showEmpty) {
+    if (!state.authUser) return '';
+    retryPendingPlanPayments();
+    if (!state.myKeysLoaded) { loadMyKeys(); return showEmpty ? '<div class="loading-spinner"><div class="spinner"></div><p>Loading your keys...</p></div>' : ''; }
+    const keys = state.myKeys || [];
+    if (keys.length === 0) {
+        return showEmpty ? (
+            '<div class="card" style="text-align:center;padding:16px">' +
+            '<p style="font-size:12px;color:var(--muted);margin:0 0 10px">You have no saved keys yet. Keys you buy (Paystack or wallet) are kept here safely.</p>' +
+            '<button class="btn btn-gold" data-action="set-view" data-view="license-plans" style="padding:10px">Get License Key</button>' +
+            '</div>') : '';
+    }
+    let rows = '';
+    keys.forEach(function(k) {
+        rows += (
+            '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)">' +
+            '<div style="flex:1;min-width:0">' +
+            '<p style="font-family:var(--font-mono);font-size:14px;font-weight:800;letter-spacing:0.05em;margin:0;color:' + (k.is_used ? 'var(--faint)' : 'var(--ink)') + '">' + esc(k.key_code) + '</p>' +
+            '<p style="font-size:10px;color:var(--muted);margin:2px 0 0">' + esc(k.plan_name || 'Activation') + ' · ' + (k.days || 0) + ' days' + (k.is_used ? ' · Used' : ' · Ready to use') + '</p>' +
+            '</div>' +
+            (k.is_used ? '' :
+                '<button class="mini-btn" data-action="copy-text" data-copy="' + esc(k.key_code) + '" style="font-size:10px">📋 Copy</button>' +
+                '<button class="mini-btn primary" data-action="activate-key-now" data-key="' + esc(k.key_code) + '" style="font-size:10px">Activate</button>') +
+            '</div>'
+        );
+    });
+    return (
+        '<div class="card" style="margin-bottom:10px;border:1.5px solid var(--gold)">' +
+        '<p style="font-size:12px;font-weight:700;margin:0 0 4px">🔑 Your Activation Keys</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:0 0 6px">Saved safely to your account. Leave the app and come back anytime: your keys stay here. Copy one, or tap Activate.</p>' +
+        rows +
+        '</div>'
+    );
 }
 
 async function redeemActivationKey(rawKey) {
@@ -13849,6 +13951,7 @@ async function redeemActivationKey(rawKey) {
         state.activateStatus = 'success';
         state.activateStatusMsg = '🎉 Activated! Your account is now active for ' + data.days + ' days.';
         state.activateCode = '';
+        state.myKeysLoaded = false;
         showToast('Account activated!', 'success');
         render();
     } catch (e) {
@@ -16494,6 +16597,9 @@ function setView(v, navOpts) {
         state.flashcardDidntKnow = 0;
     }
     // NEW: load transactions when view is set
+    if (v === "my-keys") {
+        state.myKeysLoaded = false;
+    }
     if (v === "transactions") {
         state.walletTransactionsLoaded = false;
         loadWalletTransactions();
@@ -17199,6 +17305,7 @@ const PAGE_TITLES = {
     'privacy': 'Privacy Policy',
     'terms': 'Terms of Service',
     'transactions': 'Transactions',
+    'my-keys': 'My Keys',
     'study-reminder': 'Study Planner',
     'all-courses': 'All Courses',
     'course-detail': 'Course',
@@ -17422,6 +17529,7 @@ if (v === "subject-modes") return renderSubjectModes();
     if (v === "privacy") return renderPrivacyPolicy();
     if (v === "terms") return renderTermsOfService();
     if (v === "transactions") return renderTransactionHistory();
+    if (v === "my-keys") return renderMyKeysView();
     if (v === "study-reminder") return renderStudyReminderPage();
 
     const tile = HOME_TILES.find(function(t) { return t.key === v; });
@@ -20705,7 +20813,7 @@ function renderProfile() {
     // and simply switches to an "Activated" state (green check badge,
     // filled icon, no "Go" button) so the card is a permanent, reliable
     // status indicator instead of vanishing.
-    const showActivateCard = !isAdmin() && activationOn;
+    const showActivateCard = activationOn;
     const activateCardHtml = showActivateCard ? (
         '<div class="activate-feature-card' + (isActive ? ' is-activated' : '') + '"' +
         (isActive ? '' : ' data-action="set-view" data-view="activate"') + '>' +
@@ -20715,7 +20823,7 @@ function renderProfile() {
             : '<svg viewBox="0 0 24 24" width="10" height="10" fill="#fff" stroke="none">' + ICONS.star + '</svg>') +
         '</span>' +
         '</div>' +
-        '<span class="afc-title">' + (isActive ? 'Activated' : 'Activate') + '</span>' +
+        '<span class="afc-title">' + (isAdmin() ? 'Activation is ON (admin)' : (isActive ? 'Activated' : 'Activate')) + '</span>' +
         (isActive
             ? '<span class="afc-btn afc-btn-done">' + svg('checkcircle', 13) + ' Active</span>'
             : '<button class="afc-btn" data-action="set-view" data-view="activate">Go ' + svg('arrowright', 13) + '</button>') +
@@ -20737,6 +20845,9 @@ function renderProfile() {
         { key: 'set-view|study-reminder', icon: 'bell', color: '#E4A93A', title: 'Study Planner', sub: 'Reminders & your own nudge message', badge: 'NEW' },
         { key: 'set-view|support', icon: 'chat', color: '#46527A', title: 'Support', sub: 'Chat with us or WhatsApp' },
     ];
+    if (state.authUser && isActivationSystemOn() && !isAdmin()) {
+        menuItems.unshift({ key: 'set-view|my-keys', icon: 'shield', color: '#B9821F', title: 'My Activation Keys', sub: 'Keys you bought, saved safely' });
+    }
     if (state.pwaInstallAvailable && !isStandaloneApp()) {
         menuItems.push({ key: 'trigger-pwa-install', icon: 'download', color: '#0F6B3F', title: 'Install App', sub: 'Add MyUTME to your home screen' });
     }
@@ -21353,10 +21464,12 @@ async function activateWithWallet(plan) {
         const { data, error } = await supabase.rpc('activate_with_wallet', { p_plan_id: String(plan.id) });
         if (error) throw error;
         state.profile.walletBalance = Number(data.balance);
-        state.profile.is_active = true;
-        state.profile.activation_expiry = data.expiresAt;
+        state.activateCode = data.keyCode || '';
+        state.activateStatus = 'success';
+        state.activateStatusMsg = '🎉 Key bought with your wallet (' + data.days + ' days). Tap Activate to switch on your account.';
+        state.myKeysLoaded = false;
         state.walletTransactionsLoaded = false;
-        showToast('🎉 Activated! ' + data.days + ' days added.', 'success');
+        showToast('Key ready! Tap Activate.', 'success');
         state.view = 'activate';
         render();
     } catch (e) {
@@ -22362,6 +22475,7 @@ function renderActivate() {
                 '<p style="font-family:var(--font-mono);font-size:16px;font-weight:800;letter-spacing:0.05em;color:var(--ink);margin:0 0 10px">' + esc(justActivatedKey) + '</p>' +
                 '<button class="btn btn-outline btn-sm" data-action="copy-text" data-copy="' + esc(justActivatedKey) + '">📋 Copy Key</button>' +
                 '</div>' : '') +
+            renderMyKeysCard() +
             '<div class="card" style="text-align:center;padding:16px">' +
             '<p style="font-size:14px;font-weight:600;color:var(--green);margin:0">Premium Access Active</p>' +
             (expiry ? '<p style="font-size:11px;color:var(--muted);margin:4px 0 0">Expires: ' + expiry.toLocaleDateString() + '</p>' : '') +
@@ -22402,6 +22516,7 @@ function renderActivate() {
         '</ul>' +
         '</div>' +
 
+        renderMyKeysCard() +
         '<div class="card">' +
         '<label class="field-label">Enter Activation License Key</label>' +
         '<div style="display:flex;gap:6px;margin-bottom:4px">' +
@@ -22522,7 +22637,7 @@ function renderLicensePlans() {
         '<button class="btn btn-green" style="margin-top:12px;padding:10px" data-action="checkout-plan">' +
         'Continue — ' + esc(selectedPlan.name) + ' (₦' + selectedPlan.price.toLocaleString() + ')' +
         '</button>' +
-        '<p style="font-size:10px;color:var(--faint);text-align:center;margin-top:6px">' + (state.selectedPaymentMethod === 'wallet' ? 'The plan price is taken from your wallet and your account activates instantly.' : state.selectedPaymentMethod === 'paystack' ? 'You will pay securely with Paystack and activate automatically.' : 'This opens WhatsApp with your order details. Our team will confirm payment and send your license key.') + '</p>' +
+        '<p style="font-size:10px;color:var(--faint);text-align:center;margin-top:6px">' + (state.selectedPaymentMethod === 'wallet' ? 'The plan price is taken from your wallet and you get an activation key to copy and activate yourself.' : state.selectedPaymentMethod === 'paystack' ? 'You will pay securely with Paystack, then get an activation key to copy and activate yourself.' : 'This opens WhatsApp with your order details. Our team will confirm payment and send your license key.') + '</p>' +
 
         '<div class="card" style="margin-top:12px;text-align:center">' +
         '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">Prefer to ask us something first?</p>' +
@@ -29098,7 +29213,9 @@ document.addEventListener('click', function(e) {
 
         Promise.all(updates.map(function(u) {
             return supabase.from('admin_settings').upsert(u, { onConflict: 'setting_key' });
-        })).then(function() {
+        })).then(function(results) {
+            const failed = (results || []).find(function(r) { return r && r.error; });
+            if (failed) throw failed.error;
             state.settingsCache = {
                 cbtQuestionsPerSubject: cbtQs,
                 cbtTimeLimit: Math.max(1, cbtTime),
@@ -29864,6 +29981,13 @@ if (action === 'browse-filter') {
         const code = document.getElementById('activate-code-input')?.value || state.activateCode || '';
         state.activateCode = code;
         redeemActivationKey(code);
+        return;
+    }
+
+    if (action === 'activate-key-now') {
+        const k = el.getAttribute('data-key') || '';
+        state.activateCode = k;
+        redeemActivationKey(k);
         return;
     }
 
