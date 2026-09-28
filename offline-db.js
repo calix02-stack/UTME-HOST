@@ -1,3 +1,4 @@
+
 // offline-db.js
 // ============================================================
 // REBUILT FROM SCRATCH — the original file was lost (not in the
@@ -236,6 +237,38 @@
         return a;
     }
 
+    // ------------------------------------------------------------
+    // CONCURRENCY LIMITER
+    // ------------------------------------------------------------
+    // Used by reconcileAllSubjectFiles below. Browsers cap concurrent
+    // HTTP connections to one origin at roughly 6. reconcileAllSubjectFiles
+    // used to Promise.all() a full-file network fetch for every subject at
+    // once (often 9-10) the instant the app opened. If the person tapped
+    // into a mode right away, that mode's own subject-file fetch (see
+    // loadQuestionsOffline's network fallback below) had to queue behind
+    // this whole burst before it could even start — which is exactly why
+    // the very first mode opened after a cold start/refresh felt slow,
+    // while everything after that (once the burst finished) was instant.
+    // Running only a few subjects at a time takes about the same total
+    // time to finish, but leaves real headroom in the connection pool for
+    // whatever the person taps first.
+    function mapWithConcurrency(items, limit, worker) {
+        var idx = 0;
+        var results = new Array(items.length);
+        function runNext() {
+            if (idx >= items.length) return Promise.resolve();
+            var i = idx++;
+            return Promise.resolve(worker(items[i], i)).then(function (r) {
+                results[i] = r;
+                return runNext();
+            });
+        }
+        var runners = [];
+        var n = Math.max(1, Math.min(limit, items.length));
+        for (var k = 0; k < n; k++) runners.push(runNext());
+        return Promise.all(runners).then(function () { return results; });
+    }
+
     function downloadJson(filename, data) {
         try {
             var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -325,16 +358,6 @@
 
     // ---- Questions (cbt / mock / exam / NOVEL (CBT) / subject) ----
 
-    // Local DB has been observed hanging on some devices/browsers 100% of
-    // the time (not just occasionally) — so waiting on it FIRST before even
-    // trying the network, as the previous version of this function did, was
-    // itself the source of the multi-second spinner. Fix: fire off the
-    // local read and a direct network fetch of the subject file AT THE
-    // SAME TIME, and resolve with whichever comes back first with usable
-    // data. On a device where local IndexedDB genuinely works and is fast,
-    // it still wins the race with no perceptible delay. On a device where
-    // it's broken/hanging, the response time is simply how long the
-    // network fetch takes — no artificial wait tacked on first.
     function filterQuestions(rows, type, year, limit) {
         var filtered = rows.filter(function (q) { return !type || q.type === type; });
         if (year !== undefined && year !== null) {
@@ -346,9 +369,34 @@
         return filtered;
     }
 
+    // Local DB has been observed hanging on some devices/browsers 100% of
+    // the time (not just occasionally) — so waiting on it FIRST before even
+    // trying the network, as an earlier version of this function did, was
+    // itself a source of a multi-second (or infinite) spinner on those
+    // devices. The safety net for that is a network fetch of the same
+    // subject's question file as a fallback.
+    //
+    // Previously that network fetch was started unconditionally, in
+    // parallel, on every single call — meaning every mode load also fired
+    // a full-subject-file network request even on the (overwhelmingly
+    // common) devices where local IndexedDB is perfectly healthy and fast.
+    // That's wasted data/battery for the person, and — worse — a burst of
+    // these from several question loads plus the startup reconcile could
+    // all compete for the browser's small per-origin connection pool at
+    // once, adding to the "first load after a cold start is slow" problem.
+    //
+    // Fix: start the local read; give it a short 350ms head start. If it
+    // answers with real data before that, use it and never touch the
+    // network at all. Only fall back to a network fetch if local hasn't
+    // answered within 350ms (the hang/slow case this exists for), or if
+    // local answers but has nothing for this subject yet, or if local
+    // errors outright. The hang-safety guarantee is unchanged: once the
+    // network fallback has actually been started, its outcome is what
+    // this resolves/rejects with — it does not keep waiting on local,
+    // since local may never come back at all on the affected devices.
     OfflineDB.loadQuestionsOffline = function (type, subjectId, year, limit) {
         var localPromise = storeGetAllByIndex('questions', 'by_type_subject', [type, subjectId]);
-        var networkPromise = fetchSubjectFile(subjectId); // starts immediately, in parallel — not after waiting on local
+        var networkStarted = false;
 
         return new Promise(function (resolve, reject) {
             var settled = false;
@@ -361,25 +409,20 @@
             }
 
             function maybeFail() {
-                if (settled || !localDone || !networkDone) return;
-                reject(localErr || networkErr || new Error('No questions available'));
+                if (settled) return;
+                // Once the network fallback has actually been tried, its
+                // result is authoritative — local may never finish on a
+                // hung connection, and that hang is exactly what this
+                // fallback exists to route around.
+                if (networkStarted) {
+                    if (!networkDone) return;
+                    reject(localErr || networkErr || new Error('No questions available'));
+                    return;
+                }
+                if (localDone) reject(localErr || new Error('No questions available'));
             }
 
-            localPromise.then(function (rows) {
-                localDone = true;
-                if (settled) return;
-                var filtered = filterQuestions(rows, type, year, limit);
-                if (filtered.length > 0) { finish(filtered); return; }
-                maybeFail();
-            }, function (err) {
-                localDone = true;
-                localErr = err;
-                if (settled) return;
-                reportDiagnostic('loadQuestionsOffline: local DB error', { type: type, subjectId: subjectId, error: err && err.message });
-                maybeFail();
-            });
-
-            networkPromise.then(function (file) {
+            function onNetworkResult(file) {
                 networkDone = true;
                 if (settled) return;
                 if (file.notFound || !file.questions || !file.questions.length) { maybeFail(); return; }
@@ -397,19 +440,50 @@
                 } else {
                     maybeFail();
                 }
-            }, function (err) {
+            }
+            function onNetworkError(err) {
                 networkDone = true;
                 networkErr = err;
                 maybeFail();
+            }
+            function startNetwork() {
+                if (networkStarted) return;
+                networkStarted = true;
+                fetchSubjectFile(subjectId).then(onNetworkResult, onNetworkError);
+            }
+
+            // The head start: only reached for — and thus only costs
+            // network data on — a device where local hasn't answered
+            // within 350ms.
+            var localWaitTimer = setTimeout(function () {
+                if (!settled && !localDone) startNetwork();
+            }, 350);
+
+            localPromise.then(function (rows) {
+                clearTimeout(localWaitTimer);
+                localDone = true;
+                if (settled) return;
+                var filtered = filterQuestions(rows, type, year, limit);
+                if (filtered.length > 0) { finish(filtered); return; }
+                // Nothing locally for this subject/type yet — go straight
+                // to network rather than waiting out the rest of the window.
+                startNetwork();
+            }, function (err) {
+                clearTimeout(localWaitTimer);
+                localDone = true;
+                localErr = err;
+                if (settled) return;
+                reportDiagnostic('loadQuestionsOffline: local DB error', { type: type, subjectId: subjectId, error: err && err.message });
+                startNetwork();
             });
 
             // Purely informational — does not delay or change the result,
-            // just tells us in the Errors log if BOTH sources are taking a
-            // while, so a slow case is visible without slowing anything down.
+            // just tells us in the Errors log if this is taking a while,
+            // so a slow case is visible without slowing anything down.
             setTimeout(function () {
                 if (!settled) {
                     reportDiagnostic('loadQuestionsOffline: still waiting after 1200ms', {
-                        type: type, subjectId: subjectId, localDone: localDone, networkDone: networkDone
+                        type: type, subjectId: subjectId, localDone: localDone, networkStarted: networkStarted, networkDone: networkDone
                     });
                 }
             }, 1200);
@@ -624,7 +698,7 @@
         var results = {};
         var networkReached = false;
 
-        return Promise.all(subjectIds.map(function (subjectId) {
+        return mapWithConcurrency(subjectIds, 3, function (subjectId) {
             return fetchSubjectFile(subjectId).then(function (file) {
                 networkReached = true;
                 if (file.notFound) {
@@ -673,7 +747,7 @@
                 // one subject — leave its local data untouched.
                 results[subjectId] = { status: 'error', error: e && e.message };
             });
-        })).then(function () {
+        }).then(function () {
             results.__networkReached = networkReached;
             return results;
         });
