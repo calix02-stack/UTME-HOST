@@ -8603,7 +8603,7 @@ async function checkActivationAutoEnable() {
 
         const { error } = await supabase.from('admin_settings').upsert([
             { setting_key: 'activation_enabled', setting_value: true },
-            { setting_key: 'activation_auto_enable_date', setting_value: null },
+            { setting_key: 'activation_auto_enable_date', setting_value: '' },
         ], { onConflict: 'setting_key' });
         if (error) {
             console.warn('Auto-enable activation error:', error);
@@ -29404,6 +29404,9 @@ document.addEventListener('click', function(e) {
         state.admin.novelQuestionsPerSubject = Math.max(1, novelQs);
         state.admin.reviseTimeLimit = Math.max(1, reviseTime);
 
+        // setting_value is NOT NULL in the DB, so "empty" optional values are
+        // stored as an empty string (readers already treat '' as "not set").
+        const nn = function(v) { return (v === null || v === undefined) ? '' : v; };
         const updates = [
             { setting_key: 'cbt_settings', setting_value: { questions_per_subject: cbtQs, time_limit_minutes: Math.max(1, cbtTime), subject_count: cbtSubjectCount } },
             { setting_key: 'subject_settings', setting_value: { questions_per_subject: subjQs, time_limit_minutes: Math.max(1, subjTime) } },
@@ -29413,10 +29416,10 @@ document.addEventListener('click', function(e) {
             { setting_key: 'calculator_enabled', setting_value: calcEnabled },
             { setting_key: 'exam_creation_enabled', setting_value: examCreationEnabled },
             { setting_key: 'under_construction', setting_value: underConstruction },
-            { setting_key: 'construction_reopen_time', setting_value: reopenTime },
+            { setting_key: 'construction_reopen_time', setting_value: nn(reopenTime) },
             { setting_key: 'activation_enabled', setting_value: activationEnabled },
-            { setting_key: 'activation_auto_enable_date', setting_value: activationAutoEnableDate },
-            { setting_key: 'jamb_exam_date', setting_value: jambExamDate },
+            { setting_key: 'activation_auto_enable_date', setting_value: nn(activationAutoEnableDate) },
+            { setting_key: 'jamb_exam_date', setting_value: nn(jambExamDate) },
         ];
 
         Promise.all(updates.map(function(u) {
