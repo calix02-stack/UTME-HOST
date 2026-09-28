@@ -7692,6 +7692,7 @@ const ICONS = {
     cards: '<rect x="3" y="7" width="14" height="14" rx="2.5"/><path d="M7.5 7V4.5A1.5 1.5 0 0 1 9 3h10.5A1.5 1.5 0 0 1 21 4.5V15a1.5 1.5 0 0 1-1.5 1.5H17"/>',
     download: '<path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M4 19h16"/>',
     lightbulb: '<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.3 1 2.5h6c0-1.2.3-1.9 1-2.5A6 6 0 0 0 12 3Z"/>',
+    wallet: '<path d="M20 12V8a2 2 0 0 0-2-2H5a2 2 0 0 1 0-4h13"/><path d="M3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/><path d="M21 12h-4a2 2 0 0 0 0 4h4z"/>',
     layers: '<path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 12l10 5 10-5"/><path d="M2 17l10 5 10-5"/>',
 };
 function svg(name, size) {
@@ -20749,8 +20750,19 @@ function renderProfile() {
         '</div>'
     );
     
-    // Settings row (balance display removed — not useful to students)
-    const walletHtml = (
+    // Wallet card (balance + top up + history), then the settings row
+    if (typeof retryPendingWalletFundings === 'function') retryPendingWalletFundings();
+    const walletCardHtml = state.authUser ? (
+        '<div class="wallet-row">' +
+        '<div class="wr-icon" data-action="set-view" data-view="transactions" style="cursor:pointer">' + svg('wallet', 22) + '</div>' +
+        '<div class="wr-info" data-action="set-view" data-view="transactions" style="cursor:pointer">' +
+        '<p class="wr-amount">₦' + walletBalance.toLocaleString() + '</p>' +
+        '<p class="wr-label">Wallet balance · tap for history</p>' +
+        '</div>' +
+        '<button class="wr-topup" data-action="open-fund-wallet">+ Top up</button>' +
+        '</div>'
+    ) : '';
+    const walletHtml = walletCardHtml + (
         '<div class="toggle-row" data-action="toggle-dark-mode" style="cursor:pointer">' +
         '<span class="toggle-label">' + (state.darkMode ? '🌙' : '☀️') + ' ' + (state.darkMode ? 'Dark' : 'Light') + ' mode</span>' +
         '<div class="toggle-switch' + (state.darkMode ? ' active' : '') + '"><div class="slider"></div></div>' +
@@ -21398,88 +21410,97 @@ async function activateWithWallet(plan) {
         showToast("Please log in first.", "error");
         return;
     }
-    
     const balance = state.profile.walletBalance || 0;
     if (balance < plan.price) {
-        showToast('Insufficient wallet balance. Please fund your wallet first.', 'error');
+        showToast('Insufficient wallet balance. Please top up your wallet first.', 'error');
         state.view = 'profile';
         state.showFundWallet = true;
         render();
         return;
     }
-    
-    const newBalance = balance - plan.price;
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + plan.days);
-    
     try {
-        await supabase
-            .from('profiles')
-            .update({
-                wallet_balance: newBalance,
-                is_active: true,
-                activation_expiry: expiryDate.toISOString(),
-            })
-            .eq('id', state.authUser.id);
-            
-        await supabase
-            .from('wallet_transactions')
-            .insert([{
-                user_id: state.authUser.id,
-                type: 'purchase',
-                amount: -plan.price,
-                balance_after: newBalance,
-                description: 'Activation: ' + plan.name,
-            }]);
-            
-        state.profile.walletBalance = newBalance;
+        // Server checks the price, balance and updates everything in one step
+        const { data, error } = await supabase.rpc('activate_with_wallet', { p_plan_id: String(plan.id) });
+        if (error) throw error;
+        state.profile.walletBalance = Number(data.balance);
         state.profile.is_active = true;
-        state.profile.activation_expiry = expiryDate.toISOString();
-        showToast('🎉 Activated! ' + plan.days + ' days added.', 'success');
+        state.profile.activation_expiry = data.expiresAt;
+        state.walletTransactionsLoaded = false;
+        showToast('🎉 Activated! ' + data.days + ' days added.', 'success');
         state.view = 'activate';
         render();
     } catch (e) {
         console.warn("Activate with wallet error:", e);
-        showToast("Error activating with wallet. Please try again.", "error");
+        showToast((e && e.message) ? e.message : "Error activating with wallet. Please try again.", "error");
     }
 }
 
 // ============================================================
-//  VERIFY WALLET FUNDING (client-side fallback)
-//  For production, verify server-side to prevent tampering.
+//  VERIFY WALLET FUNDING (server-side)
+//  The browser NEVER changes the balance. It sends the Paystack
+//  reference to the verify-wallet-funding Edge Function, which asks
+//  Paystack whether the payment really succeeded and credits the
+//  wallet on the server (once per reference).
 // ============================================================
-async function verifyWalletFunding(reference, amount) {
-    // client-side fallback (see comment above)
-    const newBalance = (state.profile.walletBalance || 0) + amount;
-    
+const WALLET_VERIFY_URL = SUPABASE_URL + "/functions/v1/verify-wallet-funding";
+const WALLET_PENDING_KEY = "myutme_pending_wallet_refs";
+
+function getPendingWalletRefs() {
+    try { return JSON.parse(localStorage.getItem(WALLET_PENDING_KEY) || '[]'); } catch (e) { return []; }
+}
+function setPendingWalletRefs(list) {
+    try { localStorage.setItem(WALLET_PENDING_KEY, JSON.stringify(list)); } catch (e) { console.warn('pending refs save failed', e); }
+}
+
+async function verifyWalletFunding(reference, silent) {
+    if (!state.authUser) return false;
+    // Remember the reference so it can be retried if the app closes or the network drops
+    const pending = getPendingWalletRefs();
+    if (pending.indexOf(reference) === -1) { pending.push(reference); setPendingWalletRefs(pending); }
     try {
-        await supabase
-            .from('profiles')
-            .update({ wallet_balance: newBalance })
-            .eq('id', state.authUser.id);
-            
-        await supabase
-            .from('wallet_transactions')
-            .insert([{
-                user_id: state.authUser.id,
-                type: 'fund',
-                amount: amount,
-                balance_after: newBalance,
-                description: 'Wallet funding via Paystack',
-                reference: reference,
-            }]);
-            
-        state.profile.walletBalance = newBalance;
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
+        if (!accessToken) throw new Error('Please log in again.');
+        const res = await fetch(WALLET_VERIFY_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + accessToken,
+                'apikey': SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ reference: reference }),
+        });
+        const data = await res.json().catch(function() { return {}; });
+        if (!res.ok || data.error) {
+            // 4xx = Paystack said no / wrong owner: no point retrying forever
+            if (res.status >= 400 && res.status < 500 && res.status !== 401) {
+                setPendingWalletRefs(getPendingWalletRefs().filter(function(r) { return r !== reference; }));
+            }
+            if (!silent) showToast((data.error || 'Could not verify payment.') + ' Reference: ' + reference, 'error');
+            return false;
+        }
+        setPendingWalletRefs(getPendingWalletRefs().filter(function(r) { return r !== reference; }));
+        state.profile.walletBalance = data.balance;
         state.showFundWallet = false;
         state.fundWalletAmount = '';
-        showToast('✅ Wallet funded! New balance: ₦' + newBalance.toLocaleString(), 'success');
+        showToast('✅ Wallet funded! New balance: ₦' + Number(data.balance).toLocaleString(), 'success');
         state.walletTransactionsLoaded = false;
         loadWalletTransactions();
         render();
+        return true;
     } catch (e) {
         console.warn("Verify wallet funding error:", e);
-        showToast("Error processing funding. Please check your transactions.", "error");
+        if (!silent) showToast("Could not confirm your payment yet. We'll retry automatically. Reference: " + reference, "error");
+        return false;
     }
+}
+
+// Retry any payment that was paid but not yet confirmed (runs once per session)
+let __walletRetryDone = false;
+function retryPendingWalletFundings() {
+    if (__walletRetryDone || !state.authUser) return;
+    __walletRetryDone = true;
+    getPendingWalletRefs().forEach(function(ref) { verifyWalletFunding(ref, true); });
 }
 
 // ============================================================
@@ -22477,6 +22498,7 @@ function renderActivate() {
 
 const PAYMENT_METHODS = [
     { key: 'paystack', icon: '💚', label: 'Paystack', desc: 'Card · Bank Transfer · USSD' },
+    { key: 'wallet', icon: '👛', label: 'Wallet', desc: 'Pay from your wallet balance' },
     { key: 'manual', icon: '💬', label: 'Manual Payment', desc: 'Chat with us on WhatsApp to pay & activate' },
 ];
 
@@ -22538,7 +22560,7 @@ function renderLicensePlans() {
             '<div class="payment-method-row' + (isSel ? ' selected' : '') + '" data-action="select-payment-method" data-method="' + pm.key + '">' +
             '<span class="pmr-radio' + (isSel ? ' active' : '') + '"></span>' +
             '<span class="pmr-icon">' + pm.icon + '</span>' +
-            '<div class="pmr-text"><p class="pmr-label">' + esc(pm.label) + '</p><p class="pmr-desc">' + esc(pm.desc) + '</p></div>' +
+            '<div class="pmr-text"><p class="pmr-label">' + esc(pm.label) + '</p><p class="pmr-desc">' + esc(pm.key === 'wallet' ? 'Balance: ₦' + (state.profile.walletBalance || 0).toLocaleString() : pm.desc) + '</p></div>' +
             '</div>'
         );
     });
@@ -22570,7 +22592,7 @@ function renderLicensePlans() {
         '<button class="btn btn-green" style="margin-top:12px;padding:10px" data-action="checkout-plan">' +
         'Continue — ' + esc(selectedPlan.name) + ' (₦' + selectedPlan.price.toLocaleString() + ')' +
         '</button>' +
-        '<p style="font-size:10px;color:var(--faint);text-align:center;margin-top:6px">This opens WhatsApp with your order details. Our team will confirm payment and send your license key.</p>' +
+        '<p style="font-size:10px;color:var(--faint);text-align:center;margin-top:6px">' + (state.selectedPaymentMethod === 'wallet' ? 'The plan price is taken from your wallet and your account activates instantly.' : state.selectedPaymentMethod === 'paystack' ? 'You will pay securely with Paystack and activate automatically.' : 'This opens WhatsApp with your order details. Our team will confirm payment and send your license key.') + '</p>' +
 
         '<div class="card" style="margin-top:12px;text-align:center">' +
         '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">Prefer to ask us something first?</p>' +
@@ -29997,6 +30019,10 @@ if (action === 'browse-filter') {
             payWithPaystack(plan);
             return;
         }
+        if (state.selectedPaymentMethod === 'wallet') {
+            activateWithWallet(plan);
+            return;
+        }
 
         const msg = 'Hello, I want to activate my MyUTME account.\n\n' +
             '📦 Plan: ' + plan.name + '\n' +
@@ -30709,6 +30735,7 @@ if (action === 'browse-filter') {
             currency: 'NGN',
             ref: 'WALLET-' + Date.now() + '-' + Math.floor(Math.random() * 100000),
             metadata: {
+                user_id: state.authUser.id,
                 custom_fields: [
                     { display_name: "Purpose", variable_name: "purpose", value: "Wallet Funding" },
                     { display_name: "Username", variable_name: "username", value: state.profile.name || 'Guest' },
@@ -30716,7 +30743,7 @@ if (action === 'browse-filter') {
             },
             callback: function(response) {
                 showToast('Payment received! Verifying...', '');
-                verifyWalletFunding(response.reference, amt);
+                verifyWalletFunding(response.reference);
             },
             onClose: function() {
                 showToast('Payment window closed.', '');
