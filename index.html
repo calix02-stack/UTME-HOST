@@ -9164,6 +9164,14 @@ myEnrollmentsLoading: false,
     calcPosition: { x: null, y: null },
     showPassword: {},
     activateIconDismissed: false,
+    payTab: 'airtime',
+    payNetwork: 'mtn',
+    payPhone: '',
+    payAmount: '',
+    payDataPlan: '',
+    payBusy: false,
+    payMsg: '',
+    payMsgType: '',
     showActivationBanner: false,
     pwaInstallAvailable: false,
     
@@ -13834,6 +13842,79 @@ async function verifyPaystackPayment(reference, planId, silent) {
     }
 }
 
+async function submitAirtimePurchase() {
+    if (state.payBusy) return;
+    const amt = Math.round(Number(state.payAmount));
+    if (!state.payPhone || !/^0\d{10}$/.test(state.payPhone)) {
+        state.payMsg = 'Enter a valid 11-digit phone number.'; state.payMsgType = 'error'; render(); return;
+    }
+    if (!amt || amt < 50) {
+        state.payMsg = 'Minimum airtime amount is \u20A650.'; state.payMsgType = 'error'; render(); return;
+    }
+    state.payBusy = true; state.payMsg = 'Processing your purchase...'; state.payMsgType = ''; render();
+    try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
+        if (!accessToken) throw new Error('Please log in again.');
+        const res = await fetch(BUY_AIRTIME_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken, 'apikey': SUPABASE_ANON_KEY },
+            body: JSON.stringify({ network: state.payNetwork, phone: state.payPhone, amount: amt }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            if (typeof data.balance === 'number') state.profile.walletBalance = data.balance;
+            state.payMsg = data.error || 'Purchase failed.'; state.payMsgType = 'error';
+        } else {
+            state.profile.walletBalance = data.balance;
+            state.payMsg = data.message || 'Airtime purchased!'; state.payMsgType = 'success';
+            state.payAmount = ''; state.payPhone = '';
+            state.walletTransactionsLoaded = false;
+        }
+    } catch (e) {
+        state.payMsg = 'Could not reach the server. Please try again.'; state.payMsgType = 'error';
+    }
+    state.payBusy = false;
+    render();
+}
+
+async function submitDataPurchase() {
+    if (state.payBusy) return;
+    const plans = DATA_PLANS[state.payNetwork] || [];
+    const plan = plans.find(function(p) { return p.code === state.payDataPlan; });
+    if (!state.payPhone || !/^0\d{10}$/.test(state.payPhone)) {
+        state.payMsg = 'Enter a valid 11-digit phone number.'; state.payMsgType = 'error'; render(); return;
+    }
+    if (!plan) {
+        state.payMsg = 'Please choose a data plan.'; state.payMsgType = 'error'; render(); return;
+    }
+    state.payBusy = true; state.payMsg = 'Processing your purchase...'; state.payMsgType = ''; render();
+    try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
+        if (!accessToken) throw new Error('Please log in again.');
+        const res = await fetch(BUY_DATA_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken, 'apikey': SUPABASE_ANON_KEY },
+            body: JSON.stringify({ network: state.payNetwork, phone: state.payPhone, variationCode: plan.code, displayAmount: plan.amount }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            if (typeof data.balance === 'number') state.profile.walletBalance = data.balance;
+            state.payMsg = data.error || 'Purchase failed.'; state.payMsgType = 'error';
+        } else {
+            state.profile.walletBalance = data.balance;
+            state.payMsg = data.message || 'Data purchased!'; state.payMsgType = 'success';
+            state.payDataPlan = ''; state.payPhone = '';
+            state.walletTransactionsLoaded = false;
+        }
+    } catch (e) {
+        state.payMsg = 'Could not reach the server. Please try again.'; state.payMsgType = 'error';
+    }
+    state.payBusy = false;
+    render();
+}
+
 async function loadMyKeys() {
     if (!state.authUser) return;
     state.myKeysLoaded = true; // set first so render() can't start it twice
@@ -17266,6 +17347,7 @@ const PAGE_TITLES = {
     'mysubjects': 'Practice Hub',
     'ai-assistant': 'MyUTME AI Tutor',
     'mockexam': 'Mock Arena',
+    'pay': 'Pay',
     'profile': 'Account',
     'profile-edit': 'Edit Profile',
     'notifications': 'Notifications',
@@ -17449,6 +17531,7 @@ function renderBottomNav() {
     { key: 'mysubjects', label: 'Practice Hub', icon: 'bookopen' },
     { key: 'ai-assistant', label: 'AI Tutor', icon: 'sparkles' },
     { key: 'mockexam', label: 'Mock Arena', icon: 'target' },
+    { key: 'pay', label: 'Pay', icon: 'wallet' },
     { key: 'profile', label: 'Account', icon: 'user' },
 ];
     let html = '<div class="bottom-nav">';
@@ -17488,6 +17571,7 @@ function renderView() {
     if (v === "profile-edit") return renderProfileEdit();
     if (v === "leaderboard") return renderLeaderboard();
     if (v === "activate") return renderActivate();
+    if (v === "pay") return renderPay();
     if (v === "license-plans") return renderLicensePlans();
     if (v === "help-center") return renderHelpCenter();
     if (v === "support") return renderSupportChat();
@@ -21474,6 +21558,37 @@ async function activateWithWallet(plan) {
 //  wallet on the server (once per reference).
 // ============================================================
 const WALLET_VERIFY_URL = SUPABASE_URL + "/functions/v1/verify-wallet-funding";
+const BUY_AIRTIME_URL = SUPABASE_URL + "/functions/v1/buy-airtime";
+const BUY_DATA_URL = SUPABASE_URL + "/functions/v1/buy-data";
+
+// Fixed data plans shown in the Pay page. These match VTpass's own
+// variation codes at the time this was written — VTpass can add, remove
+// or reprice plans, so check GET /service-variations?serviceID=<x>-data
+// on your VTpass dashboard occasionally and update this list to match.
+const DATA_PLANS = {
+    mtn: [
+        { code: 'mtn-10mb-100', label: '100MB - 24hrs', amount: 100 },
+        { code: 'mtn-100mb-1000', label: '1.5GB - 30 days', amount: 1000 },
+        { code: 'mtn-500mb-2000', label: '4.5GB - 30 days', amount: 2000 },
+        { code: 'mtn-1gb-3500', label: '10GB - 30 days', amount: 3500 },
+        { code: 'mtn-100hr-5000', label: '15GB - 30 days', amount: 5000 },
+    ],
+    airtel: [
+        { code: 'airtel-100mb-100', label: '100MB - 1 day', amount: 100 },
+        { code: 'airtel-1gb-500', label: '1GB - 1 day', amount: 500 },
+        { code: 'airtel-2gb-1000', label: '2GB - 30 days', amount: 1000 },
+        { code: 'airtel-5gb-2000', label: '5GB - 30 days', amount: 2000 },
+    ],
+    glo: [
+        { code: 'glo-1gb-1000', label: '1.2GB - 30 days', amount: 1000 },
+        { code: 'glo-2gb-2000', label: '2.9GB - 30 days', amount: 2000 },
+        { code: 'glo-5gb-5000', label: '7.7GB - 30 days', amount: 5000 },
+    ],
+    '9mobile': [
+        { code: '9mobile-1gb-1000', label: '1.1GB - 30 days', amount: 1000 },
+        { code: '9mobile-2gb-2000', label: '2.5GB - 30 days', amount: 2000 },
+    ],
+};
 const WALLET_PENDING_KEY = "myutme_pending_wallet_refs";
 
 function getPendingWalletRefs() {
@@ -22421,6 +22536,90 @@ function renderNotifications() {
 // ============================================================
 //  ACTIVATE
 // ============================================================
+function renderPay() {
+    if (!state.authUser) {
+        return (
+            '<div class="card" style="text-align:center;padding:28px 16px">' +
+            svg('wallet', 34) +
+            '<p style="font-weight:700;margin:12px 0 4px">Log in to use Pay</p>' +
+            '<p style="font-size:12px;color:var(--muted);margin:0 0 14px">Fund your wallet and buy airtime or data.</p>' +
+            '<button class="btn btn-primary" data-action="set-view" data-view="home">Go to Home</button>' +
+            '</div>'
+        );
+    }
+    if (typeof retryPendingWalletFundings === 'function') retryPendingWalletFundings();
+    const balance = state.profile.walletBalance || 0;
+    const networks = [
+        { key: 'mtn', label: 'MTN' },
+        { key: 'airtel', label: 'Airtel' },
+        { key: 'glo', label: 'Glo' },
+        { key: '9mobile', label: '9mobile' },
+    ];
+    const tab = state.payTab || 'airtime';
+
+    let msgHtml = '';
+    if (state.payMsg) {
+        const border = state.payMsgType === 'success' ? 'var(--green)' : state.payMsgType === 'error' ? '#C0392B' : 'var(--line)';
+        const color = state.payMsgType === 'success' ? 'var(--green)' : state.payMsgType === 'error' ? '#C0392B' : 'var(--muted)';
+        msgHtml = '<div class="card" style="text-align:center;padding:12px;margin-bottom:12px;border:1.5px solid ' + border + '"><p style="font-size:12px;font-weight:700;margin:0;color:' + color + '">' + esc(state.payMsg) + '</p></div>';
+    }
+
+    const networkBtns = networks.map(function(n) {
+        return '<button class="mini-btn' + (state.payNetwork === n.key ? ' primary' : '') + '" data-action="pay-set-network" data-network="' + n.key + '" style="flex:1">' + n.label + '</button>';
+    }).join('');
+
+    let formHtml = '';
+    if (tab === 'airtime') {
+        const quick = [100, 200, 500, 1000];
+        formHtml = (
+            '<label class="field-label">Phone number</label>' +
+            '<input class="field" id="pay-phone-input" type="tel" placeholder="080XXXXXXXX" value="' + esc(state.payPhone || '') + '" style="margin-bottom:10px" />' +
+            '<label class="field-label">Amount (\u20A6)</label>' +
+            '<input class="field" id="pay-amount-input" type="number" min="50" placeholder="e.g. 500" value="' + esc(state.payAmount || '') + '" style="margin-bottom:8px" />' +
+            '<div style="display:flex;gap:6px;margin-bottom:12px">' +
+            quick.map(function(a) { return '<button class="mini-btn" data-action="pay-quick-amount" data-amount="' + a + '" style="flex:1">\u20A6' + a + '</button>'; }).join('') +
+            '</div>' +
+            '<button class="btn btn-green" style="width:100%;padding:12px" data-action="buy-airtime"' + (state.payBusy ? ' disabled' : '') + '>' + (state.payBusy ? 'Processing…' : 'Buy Airtime') + '</button>'
+        );
+    } else {
+        const plans = DATA_PLANS[state.payNetwork] || [];
+        const planBtns = plans.map(function(p) {
+            return '<button class="mini-btn' + (state.payDataPlan === p.code ? ' primary' : '') + '" data-action="pay-set-plan" data-plan="' + p.code + '" style="width:100%;justify-content:space-between;display:flex;margin-bottom:6px">' +
+                '<span>' + esc(p.label) + '</span><span style="font-weight:800">\u20A6' + p.amount.toLocaleString() + '</span></button>';
+        }).join('');
+        formHtml = (
+            '<label class="field-label">Phone number</label>' +
+            '<input class="field" id="pay-phone-input" type="tel" placeholder="080XXXXXXXX" value="' + esc(state.payPhone || '') + '" style="margin-bottom:10px" />' +
+            '<label class="field-label">Choose a plan</label>' +
+            '<div style="margin-bottom:10px">' + (planBtns || '<p style="font-size:12px;color:var(--muted)">No plans listed for this network yet.</p>') + '</div>' +
+            '<button class="btn btn-green" style="width:100%;padding:12px" data-action="buy-data"' + (state.payBusy ? ' disabled' : '') + '>' + (state.payBusy ? 'Processing…' : 'Buy Data') + '</button>'
+        );
+    }
+
+    return (
+        '<div class="wallet-row" style="margin-bottom:14px">' +
+        '<div class="wr-icon" data-action="set-view" data-view="transactions" style="cursor:pointer">' + svg('wallet', 22) + '</div>' +
+        '<div class="wr-info" data-action="set-view" data-view="transactions" style="cursor:pointer">' +
+        '<p class="wr-amount">\u20A6' + balance.toLocaleString() + '</p>' +
+        '<p class="wr-label">Wallet balance · tap for history</p>' +
+        '</div>' +
+        '<button class="wr-topup" data-action="open-fund-wallet">+ Top up</button>' +
+        '</div>' +
+
+        msgHtml +
+
+        '<div class="card" style="padding:16px">' +
+        '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+        '<button class="mini-btn' + (tab === 'airtime' ? ' primary' : '') + '" data-action="pay-set-tab" data-tab="airtime" style="flex:1">Airtime</button>' +
+        '<button class="mini-btn' + (tab === 'data' ? ' primary' : '') + '" data-action="pay-set-tab" data-tab="data" style="flex:1">Data</button>' +
+        '</div>' +
+        '<label class="field-label">Network</label>' +
+        '<div style="display:flex;gap:6px;margin-bottom:14px">' + networkBtns + '</div>' +
+        formHtml +
+        '</div>'
+    );
+}
+
 function renderActivate() {
     const isActive = isUserActive();
     const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
@@ -26684,6 +26883,37 @@ document.addEventListener('click', function(e) {
     if (action === 'dismiss-activate-icon') {
         state.activateIconDismissed = true;
         render();
+        return;
+    }
+
+    if (action === 'pay-set-tab') {
+        state.payTab = el.getAttribute('data-tab');
+        state.payMsg = ''; state.payMsgType = '';
+        render();
+        return;
+    }
+    if (action === 'pay-set-network') {
+        state.payNetwork = el.getAttribute('data-network');
+        state.payDataPlan = '';
+        render();
+        return;
+    }
+    if (action === 'pay-quick-amount') {
+        state.payAmount = el.getAttribute('data-amount');
+        render();
+        return;
+    }
+    if (action === 'pay-set-plan') {
+        state.payDataPlan = el.getAttribute('data-plan');
+        render();
+        return;
+    }
+    if (action === 'buy-airtime') {
+        submitAirtimePurchase();
+        return;
+    }
+    if (action === 'buy-data') {
+        submitDataPurchase();
         return;
     }
 
@@ -31141,6 +31371,10 @@ document.addEventListener('input', function(e) {
         // handled on send
     } else if (id === 'fund-wallet-amount-input') {
         state.fundWalletAmount = e.target.value;
+    } else if (id === 'pay-phone-input') {
+        state.payPhone = e.target.value;
+    } else if (id === 'pay-amount-input') {
+        state.payAmount = e.target.value;
     } else if (id === 'study-reminder-hour') {
         const val = parseInt(e.target.value, 10);
         if (!isNaN(val) && val >= 0 && val <= 23) state.studyReminderHour = val;
