@@ -7098,6 +7098,31 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
 .typing-indicator .dots span { animation: typingDot 1.4s infinite !important; }
 #ptr-ind { display: none !important; }
 </style>
+<style>
+.pp{padding-bottom:90px}.pp-hero{background:linear-gradient(135deg,#0F6B3F,#0A4A2B);color:#fff;border-radius:20px;padding:18px;margin-bottom:16px}
+.pp-hero small{opacity:.8;font-size:12px}.pp-hero b{display:block;font-size:28px;margin:2px 0 12px}
+.pp-hero .r{display:flex;gap:8px}.pp-hero button{flex:1;border:0;border-radius:999px;padding:9px;font-weight:700;font-size:12px;background:rgba(255,255,255,.18);color:#fff}
+.pp-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.pp-tile{border:0;background:var(--card-bg);border-radius:20px;padding:22px 10px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:center;gap:10px;font-weight:700;color:var(--ink);font-size:14px}
+.pp-ic{width:64px;height:64px;border-radius:20px;display:flex;align-items:center;justify-content:center}
+.pp-top{display:flex;align-items:center;gap:10px;margin-bottom:14px}.pp-top button{border:0;background:var(--card-bg);width:36px;height:36px;border-radius:50%;box-shadow:var(--shadow-sm);font-size:18px;color:var(--ink)}
+.pp-nets{display:flex;gap:10px;margin-bottom:14px}.pp-net{flex:1;border:2px solid transparent;background:var(--card-bg);border-radius:16px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--ink)}
+.pp-net.on{border-color:#0F6B3F;background:#E8F5E9;color:#0A4A2B}
+.pp-list{max-height:calc(100vh - 400px);min-height:220px;overflow-y:auto;background:var(--card-bg);border-radius:16px;box-shadow:var(--shadow-sm)}
+.pp-row{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;padding:14px;text-align:left;color:var(--ink)}
+.pp-row.on{background:#E8F5E9}.pp-row b{font-size:15px}.pp-row span{display:block;font-size:11px;color:var(--muted)}.pp-row em{font-style:normal;font-weight:800;color:#0F6B3F}
+.pp-pills{display:flex;gap:8px;overflow-x:auto;margin-bottom:10px}.pp-pills button{flex-shrink:0;border:0;border-radius:999px;padding:7px 15px;font-size:12px;font-weight:700;background:var(--card-bg);color:var(--ink)}.pp-pills .on{background:#0F6B3F;color:#fff}
+.pp-cta{position:sticky;bottom:10px;margin-top:12px;width:100%;border:0;border-radius:999px;padding:15px;font-weight:800;font-size:15px;background:#0F6B3F;color:#fff}.pp-cta:disabled{opacity:.45}
+.pp-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px}.pp-chips button{border:0;border-radius:12px;padding:14px 4px;font-weight:800;background:var(--card-bg);color:var(--ink);box-shadow:var(--shadow-sm)}.pp-chips .on{background:#0F6B3F;color:#fff}
+.pp-sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:flex-end}.pp-sheet>div{background:var(--modal-bg);width:100%;border-radius:24px 24px 0 0;padding:20px 18px 26px;max-height:92vh;overflow:auto;color:var(--ink)}
+.pp-sum{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.pp-sum span{color:var(--muted)}
+.pp-load{position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#0A4A2B;font-weight:700}
+.pp-spin{position:relative;width:96px;height:96px}.pp-spin:before{content:"";position:absolute;inset:0;border-radius:50%;border:4px solid #E8F5E9;border-top-color:#0F6B3F;animation:ppr 1s linear infinite}
+.pp-spin img{position:absolute;inset:16px;width:64px;height:64px;border-radius:16px;animation:ppp 1.4s ease-in-out infinite}
+@keyframes ppr{to{transform:rotate(360deg)}}@keyframes ppp{50%{transform:scale(.88)}}
+.pp-adm{border:1.5px dashed #E4A93A;background:#FFF8E8;border-radius:16px;padding:14px;margin-bottom:14px;color:#5a4310}.pp-adm input{width:100%;margin:6px 0;padding:10px;border-radius:10px;border:1px solid var(--input-border);font-size:13px}
+.pp-mk{display:flex;gap:6px;align-items:center;padding:0 14px 10px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--line)}.pp-mk input{width:80px;padding:6px;border-radius:8px;border:1px solid var(--input-border)}.pp-mk button{border:0;border-radius:8px;background:#E4A93A;color:#fff;padding:6px 10px;font-weight:700}
+</style>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -13928,7 +13953,7 @@ async function submitDataPurchase() {
         const res = await fetch(BUY_DATA_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken, 'apikey': SUPABASE_ANON_KEY },
-            body: JSON.stringify({ network: state.payNetwork, phone: state.payPhone, variationCode: plan.code, displayAmount: plan.amount }),
+            body: JSON.stringify({ network: state.payNetwork, phone: state.payPhone, variationCode: plan.code, displayAmount: planPrice(state.payNetwork, plan).price }),
         });
         const data = await res.json();
         if (!res.ok || data.error) {
@@ -22701,143 +22726,84 @@ function renderNotifications() {
 // ============================================================
 //  ACTIVATE
 // ============================================================
-function renderPay() {
-    if (!state.authUser) {
-        return (
-            '<div class="card" style="text-align:center;padding:28px 16px">' +
-            svg('wallet', 34) +
-            '<p style="font-weight:700;margin:12px 0 4px">Log in to use Pay</p>' +
-            '<p style="font-size:12px;color:var(--muted);margin:0 0 14px">Fund your wallet and buy airtime or data.</p>' +
-            '<button class="btn btn-primary" data-action="set-view" data-view="home">Go to Home</button>' +
-            '</div>'
-        );
-    }
-    if (typeof retryPendingWalletFundings === 'function') retryPendingWalletFundings();
-    const balance = state.profile.walletBalance || 0;
-    const networks = [
-        { key: 'mtn', label: 'MTN', color: '#FFCC08' },
-        { key: 'airtel', label: 'Airtel', color: '#E30613' },
-        { key: 'glo', label: 'Glo', color: '#5FB446' },
-        { key: '9mobile', label: '9mobile', color: '#00A651' },
-    ];
-    const tab = state.payTab || 'airtime';
 
-    let msgHtml = '';
-    if (state.payMsg) {
-        const border = state.payMsgType === 'success' ? 'var(--green)' : state.payMsgType === 'error' ? '#C0392B' : 'var(--line)';
-        const color = state.payMsgType === 'success' ? 'var(--green)' : state.payMsgType === 'error' ? '#C0392B' : 'var(--muted)';
-        msgHtml = '<div class="card" style="text-align:center;padding:12px;margin-bottom:12px;border:1.5px solid ' + border + '"><p style="font-size:12px;font-weight:700;margin:0;color:' + color + '">' + esc(state.payMsg) + '</p></div>';
-    }
+// ===== PAY (OPay-style) =====
+const MYUTME_LOGO='https://myutme.com.ng/icon-192.png';
+function netLogo(k,z){z=z||40;const L={
+mtn:'<svg width="'+z+'" height="'+z+'" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#FFCC08"/><ellipse cx="24" cy="24" rx="19" ry="11" fill="none" stroke="#000" stroke-width="2.5"/><text x="24" y="28.5" text-anchor="middle" font-family="Arial" font-weight="900" font-size="12" fill="#000">MTN</text></svg>',
+airtel:'<svg width="'+z+'" height="'+z+'" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#E30613"/><text x="24" y="30" text-anchor="middle" font-family="Arial" font-weight="800" font-size="20" fill="#fff">a</text><text x="24" y="41" text-anchor="middle" font-family="Arial" font-weight="700" font-size="7" fill="#fff">airtel</text></svg>',
+glo:'<svg width="'+z+'" height="'+z+'" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#50B651"/><circle cx="24" cy="24" r="17" fill="none" stroke="#fff" stroke-width="3"/><text x="24" y="30" text-anchor="middle" font-family="Arial" font-weight="900" font-size="16" fill="#fff">glo</text></svg>',
+'9mobile':'<svg width="'+z+'" height="'+z+'" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#006B3F"/><text x="24" y="31" text-anchor="middle" font-family="Arial" font-weight="900" font-size="22" fill="#B5D334">9</text><text x="24" y="42" text-anchor="middle" font-family="Arial" font-weight="700" font-size="6" fill="#fff">mobile</text></svg>'};return L[k]||'';}
+const PAY_NETS=[['mtn','MTN'],['airtel','Airtel'],['glo','Glo'],['9mobile','9mobile']];
+function gainPct(){return state.gainPct!=null?Number(state.gainPct):9;}
+function planPrice(net,p){const o=(state.planPrices||{})[net+'|'+p.code]||(state.planNorm||{})[net+'|'+parseFloat(p.code)];const cost=o&&o.cost!=null?Number(o.cost):Math.round(p.amount/1.09);
+ const gain=Math.ceil(cost*gainPct()/100);return{cost:cost,markup:gain,price:cost+gain,set:!!o};}
+async function loadPlanPrices(){if(state.planPricesLoaded)return;state.planPricesLoaded=true;state.planPrices={};
+ try{const r=await supabase.from('plan_prices').select('*');state.planNorm={};(r.data||[]).forEach(function(x){state.planPrices[x.network+'|'+x.code]=x;const k=x.network+'|'+parseFloat(x.code);state.planNorm[k]=(k in state.planNorm)?null:x;});
+  const g=await supabase.from('pay_settings').select('*').eq('key','gain_pct').maybeSingle();if(g.data)state.gainPct=Number(g.data.value);render();}catch(e){console.warn(e);}}
+async function payConfirmAndBuy(){const c=state.payConfirm;if(!c||state.payProcessing)return;
+ const pw=(document.getElementById('pay-pw-input')||{}).value||'';
+ if(!pw){state.payConfirmErr='Enter your password to continue.';render();return;}
+ state.payProcessing=true;state.payConfirmErr='';render();
+ try{const r=await supabase.auth.signInWithPassword({email:state.authUser.email||state.profile.email,password:pw});
+  if(r.error){state.payProcessing=false;state.payConfirmErr='Incorrect password.';render();return;}}
+ catch(e){state.payProcessing=false;state.payConfirmErr='Could not verify password. Try again.';render();return;}
+ state.payMsg='';
+ if(c.type==='data')await submitDataPurchase();else await submitAirtimePurchase();
+ state.payProcessing=false;state.payResult={ok:state.payMsgType==='success',msg:state.payMsg,c:c};state.payConfirm=null;render();}
+async function adminManualFund(){if(!isAdmin())return;
+ const em=(document.getElementById('mf-email')||{}).value||'',amt=Math.round(Number((document.getElementById('mf-amt')||{}).value));
+ if(!em||!amt||amt<1){showToast('Enter user email and amount.','error');return;}
+ const r=await supabase.rpc('admin_fund_user',{p_email:em.trim().toLowerCase(),p_amount:amt});
+ if(r.error){showToast(r.error.message||'Funding failed.','error');return;}
+ showToast('Funded '+em+' with \u20A6'+amt.toLocaleString(),'success');}
+async function adminSyncPrices(){if(!isAdmin())return;showToast('Fetching latest prices...','');
+ try{const sd=await supabase.auth.getSession();const r=await fetch(SUPABASE_URL+'/functions/v1/sync-plan-prices',{method:'POST',headers:{'Authorization':'Bearer '+sd.data.session.access_token,'apikey':SUPABASE_ANON_KEY}});
+  const d=await r.json();if(!r.ok||d.error){showToast(d.error||'Sync failed','error');return;}
+  state.planPricesLoaded=false;await loadPlanPrices();showToast('Prices updated ('+d.updated+' plans)','success');}catch(e){showToast('Could not reach the server.','error');}}
+async function adminSaveGain(){if(!isAdmin())return;const v=Number((document.getElementById('gain-pct')||{}).value);
+ if(!isFinite(v)||v<0||v>100){showToast('Gain must be between 0% and 100%.','error');return;}
+ const r=await supabase.from('pay_settings').upsert({key:'gain_pct',value:v});
+ if(r.error){showToast(r.error.message,'error');return;}
+ state.gainPct=v;showToast('Gain set to '+v+'% on every plan','success');render();}
+async function adminSaveMarkup(code){if(!isAdmin())return;
+ const v=Math.round(Number((document.getElementById('mk-'+code)||{}).value));
+ if(!isFinite(v)||v<1){showToast('Enter the normal price from ClubKonnect.','error');return;}
+ const row={network:state.payNetwork,code:code,cost:v,markup:0};
+ const r=await supabase.from('plan_prices').upsert(row);
+ if(r.error){showToast(r.error.message,'error');return;}
+ state.planPrices[state.payNetwork+'|'+code]=row;showToast('Normal price saved','success');render();}
 
-    const networkBtns = networks.map(function(n) {
-        const active = state.payNetwork === n.key;
-        return '<button data-action="pay-set-network" data-network="' + n.key + '" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:12px;border:1.5px solid ' + (active ? n.color : 'var(--line)') + ';background:' + (active ? n.color + '18' : 'transparent') + ';cursor:pointer">' +
-            '<span style="width:26px;height:26px;border-radius:50%;background:' + n.color + ';display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800">' + esc(n.label[0]) + '</span>' +
-            '<span style="font-size:11px;font-weight:700;color:' + (active ? n.color : 'var(--text)') + '">' + n.label + '</span>' +
-            '</button>';
-    }).join('');
-
-    // Categorize a plan by its duration, parsed straight from its label
-    // (e.g. "7 days" → weekly). Falls back to monthly if no match.
-    function planCategory(label) {
-        const m = String(label).match(/(\d+)\s*days?/i);
-        const days = m ? parseInt(m[1], 10) : 30;
-        if (days <= 2) return 'daily';
-        if (days <= 14) return 'weekly';
-        if (days <= 31) return 'monthly';
-        return 'xtra';
-    }
-    const CATEGORIES = [
-        { key: 'daily', label: 'Daily' },
-        { key: 'weekly', label: 'Weekly' },
-        { key: 'monthly', label: 'Monthly' },
-        { key: 'xtra', label: 'XtraValue' },
-    ];
-
-    let formHtml = '';
-    if (tab === 'airtime') {
-        const quick = [100, 200, 500, 1000, 2000, 5000];
-        const quickCards = quick.map(function(a) {
-            const active = String(state.payAmount) === String(a);
-            return '<button data-action="pay-quick-amount" data-amount="' + a + '" style="padding:14px 6px;border-radius:12px;border:1.5px solid ' + (active ? 'var(--green)' : 'var(--line)') + ';background:' + (active ? 'var(--green)' : '#fff') + ';color:' + (active ? '#fff' : 'var(--text)') + ';font-weight:800;font-size:14px">\u20A6' + a.toLocaleString() + '</button>';
-        }).join('');
-        formHtml = (
-            '<label class="field-label">Phone number</label>' +
-            '<input class="field" id="pay-phone-input" type="tel" placeholder="080XXXXXXXX" value="' + esc(state.payPhone || '') + '" style="margin-bottom:14px" />' +
-            '<label class="field-label">Select amount</label>' +
-            '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px">' + quickCards + '</div>' +
-            '<label class="field-label">Or enter a custom amount (\u20A6)</label>' +
-            '<input class="field" id="pay-amount-input" type="number" min="50" placeholder="e.g. 750" value="' + esc(state.payAmount || '') + '" style="margin-bottom:14px" />' +
-            '<button class="btn btn-green" style="width:100%;padding:12px" data-action="buy-airtime"' + (state.payBusy ? ' disabled' : '') + '>' + (state.payBusy ? 'Processing…' : 'Buy Airtime') + '</button>'
-        );
-    } else {
-        const allPlans = DATA_PLANS[state.payNetwork] || [];
-        const category = state.payDataCategory || 'monthly';
-        const plans = allPlans.filter(function(p) { return planCategory(p.label) === category; });
-
-        const catTabs = CATEGORIES.map(function(c) {
-            const active = category === c.key;
-            const count = allPlans.filter(function(p) { return planCategory(p.label) === c.key; }).length;
-            if (!count) return '';
-            return '<button data-action="pay-set-category" data-category="' + c.key + '" style="flex-shrink:0;padding:7px 14px;border-radius:999px;border:1.5px solid ' + (active ? 'var(--green)' : 'var(--line)') + ';background:' + (active ? 'var(--green)' : '#fff') + ';color:' + (active ? '#fff' : 'var(--text)') + ';font-size:12px;font-weight:700;white-space:nowrap">' + c.label + '</button>';
-        }).join('');
-
-        const planCards = plans.map(function(p) {
-            const active = state.payDataPlan === p.code;
-            const parts = String(p.label).split(' - ');
-            const size = parts[0] || p.label;
-            const duration = parts[1] || '';
-            return '<button data-action="pay-set-plan" data-plan="' + p.code + '" style="text-align:left;padding:12px 10px;border-radius:12px;border:1.5px solid ' + (active ? 'var(--green)' : 'var(--line)') + ';background:' + (active ? 'var(--green)1a' : '#fff') + '">' +
-                '<div style="font-size:15px;font-weight:800;color:' + (active ? 'var(--green)' : 'var(--text)') + '">' + esc(size) + '</div>' +
-                '<div style="font-size:11px;color:var(--muted);margin:2px 0 6px">' + esc(duration) + '</div>' +
-                '<div style="font-size:13px;font-weight:800">\u20A6' + p.amount.toLocaleString() + '</div>' +
-                '</button>';
-        }).join('');
-
-        formHtml = (
-            '<label class="field-label">Phone number</label>' +
-            '<input class="field" id="pay-phone-input" type="tel" placeholder="080XXXXXXXX" value="' + esc(state.payPhone || '') + '" style="margin-bottom:14px" />' +
-            '<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px">' + catTabs + '</div>' +
-            '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;max-height:360px;overflow-y:auto;padding:2px">' +
-            (planCards || '<p style="font-size:12px;color:var(--muted);grid-column:1/-1">No plans in this category.</p>') +
-            '</div>' +
-            '<button class="btn btn-green" style="width:100%;padding:12px" data-action="buy-data"' + (state.payBusy ? ' disabled' : '') + '>' + (state.payBusy ? 'Processing…' : 'Buy Data') + '</button>'
-        );
-    }
-
-    return (
-        '<div class="wallet-row" style="margin-bottom:14px">' +
-        '<div class="wr-icon" data-action="set-view" data-view="transactions" style="cursor:pointer">' + svg('wallet', 22) + '</div>' +
-        '<div class="wr-info" data-action="set-view" data-view="transactions" style="cursor:pointer">' +
-        '<p class="wr-amount">\u20A6' + balance.toLocaleString() + '</p>' +
-        '<p class="wr-label">Wallet balance · tap for history</p>' +
-        '</div>' +
-        '<button class="wr-topup" data-action="open-fund-wallet">+ Top up</button>' +
-        '</div>' +
-
-        (isAdmin() ? (
-            '<div class="card" style="padding:14px;margin-bottom:14px;border:1.5px dashed #E4A93A;background:#FFF8E8">' +
-            '<p style="font-size:12px;font-weight:800;color:#B9821F;margin:0 0 8px">\u26A0\uFE0F ADMIN ONLY — Test Funds (not real money)</p>' +
-            '<div style="display:flex;gap:8px">' +
-            '<input class="field" id="admin-fake-fund-amount" type="number" min="1" placeholder="e.g. 5000" style="flex:1;font-size:13px" />' +
-            '<button class="btn btn-outline" style="flex-shrink:0;padding:10px 14px;font-size:12px" data-action="admin-fake-fund"' + (state.payBusy ? ' disabled' : '') + '>Add</button>' +
-            '</div>' +
-            '</div>'
-        ) : '') +
-
-        msgHtml +
-
-        '<div class="card" style="padding:16px">' +
-        '<div style="display:flex;gap:8px;margin-bottom:14px">' +
-        '<button class="mini-btn' + (tab === 'airtime' ? ' primary' : '') + '" data-action="pay-set-tab" data-tab="airtime" style="flex:1">Airtime</button>' +
-        '<button class="mini-btn' + (tab === 'data' ? ' primary' : '') + '" data-action="pay-set-tab" data-tab="data" style="flex:1">Data</button>' +
-        '</div>' +
-        '<label class="field-label">Network</label>' +
-        '<div style="display:flex;gap:6px;margin-bottom:14px">' + networkBtns + '</div>' +
-        formHtml +
-        '</div>'
-    );
-}
+function renderPay(){
+ if(!state.authUser)return '<div class="card" style="text-align:center;padding:28px 16px">'+svg('wallet',34)+'<p style="font-weight:700;margin:12px 0 4px">Log in to use Pay</p><button class="btn btn-primary" data-action="set-view" data-view="home">Go to Home</button></div>';
+ if(typeof retryPendingWalletFundings==='function')retryPendingWalletFundings();loadPlanPrices();
+ const bal=state.profile.walletBalance||0,scr=state.payScreen||'home',net=state.payNetwork||'mtn',N=function(n){return '\u20A6'+Number(n).toLocaleString();};
+ const nn=(PAY_NETS.find(function(x){return x[0]===net;})||[])[1];
+ let h='<div class="pp">';
+ // overlays
+ if(state.payProcessing)h+='<div class="pp-load"><div class="pp-spin"><img src="'+MYUTME_LOGO+'" alt="MyUTME"></div><span>Processing payment…</span></div>';
+ else if(state.payResult){const r=state.payResult;h+='<div class="pp-load" style="padding:24px;text-align:center"><div style="width:84px;height:84px;border-radius:50%;background:'+(r.ok?'#0F6B3F':'#C0392B')+';color:#fff;font-size:44px;display:flex;align-items:center;justify-content:center">'+(r.ok?'\u2713':'\u2715')+'</div><div style="font-size:20px">'+(r.ok?'Payment successful':'Payment failed')+'</div><div style="font-size:13px;color:var(--muted);font-weight:500">'+esc(r.msg||'')+'</div><div style="font-size:26px;color:#111">'+N(r.c.amount)+'</div><button class="pp-cta" style="position:static;max-width:320px" data-action="pay-done">Done</button></div>';}
+ else if(state.payConfirm){const c=state.payConfirm;h+='<div class="pp-sheet"><div><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">Confirm order</b><button data-action="pay-cancel" style="border:0;background:none;font-size:22px;color:var(--ink)">\u2715</button></div><div style="text-align:center;margin:14px 0">'+netLogo(net,56)+'<div style="font-size:30px;font-weight:800;margin-top:8px">'+N(c.amount)+'</div></div><div class="pp-sum"><span>Product</span><b>'+esc(c.label)+'</b></div><div class="pp-sum"><span>Network</span><b>'+nn+'</b></div><div class="pp-sum"><span>Phone</span><b>'+esc(state.payPhone)+'</b></div><div class="pp-sum"><span>Wallet balance</span><b>'+N(bal)+'</b></div><label class="field-label" style="margin-top:14px;display:block">Enter your password to pay</label><input class="field" id="pay-pw-input" type="password" autocomplete="current-password" placeholder="Account password">'+(state.payConfirmErr?'<p style="color:#C0392B;font-size:12px;margin-top:6px">'+esc(state.payConfirmErr)+'</p>':'')+'<button class="pp-cta" style="position:static" data-action="pay-confirm">Pay '+N(c.amount)+'</button></div></div>';}
+ // hero
+ h+='<div class="pp-hero"><small>Wallet balance</small><b>'+N(bal)+'</b><div class="r"><button data-action="open-fund-wallet">+ Top up</button><button data-action="set-view" data-view="transactions">History</button></div></div>';
+ if(scr==='home'){
+  h+='<div class="pp-tiles"><button class="pp-tile" data-action="pay-open" data-screen="airtime"><span class="pp-ic" style="background:#E8F5E9"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#0F6B3F" stroke-width="2" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>Airtime</button><button class="pp-tile" data-action="pay-open" data-screen="data"><span class="pp-ic" style="background:#FFF3D6"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#C4901F" stroke-width="2" stroke-linecap="round"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="#C4901F"/></svg></span>Data</button></div>';
+  if(isAdmin())h+='<div class="pp-adm"><b style="font-size:13px">ADMIN \u00B7 Fund a user manually</b><input id="mf-email" type="email" placeholder="User email"><input id="mf-amt" type="number" placeholder="Amount (\u20A6)"><button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-manual-fund">Fund account</button><hr style="border:0;border-top:1px dashed #E4A93A;margin:12px 0"><b style="font-size:13px">ADMIN \u00B7 Normal prices</b><button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:6px 0 12px" data-action="admin-sync-prices">Refresh prices from ClubKonnect</button><b style="font-size:13px">ADMIN \u00B7 Gain percentage</b><input id="gain-pct" type="number" min="0" max="100" step="0.5" value="'+gainPct()+'" placeholder="e.g. 9"><button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-save-gain">Save gain %</button><p style="font-size:11px;margin-top:8px">Selling price = normal price + gain %. Normal prices update automatically every day.</p></div>';
+ }else{
+  h+='<div class="pp-top"><button data-action="pay-open" data-screen="home">\u2039</button><b style="font-size:17px">'+(scr==='data'?'Buy Data':'Buy Airtime')+'</b></div><div class="pp-nets">'+PAY_NETS.map(function(n){return '<button class="pp-net'+(net===n[0]?' on':'')+'" data-action="pay-set-network" data-network="'+n[0]+'">'+netLogo(n[0],38)+n[1]+'</button>';}).join('')+'</div><input class="field" id="pay-phone-input" type="tel" placeholder="Phone number e.g. 080XXXXXXXX" value="'+esc(state.payPhone||'')+'" style="margin-bottom:14px">';
+  if(scr==='airtime'){
+   h+='<div class="pp-chips">'+[100,200,500,1000,2000,5000].map(function(a){return '<button class="'+(String(state.payAmount)===String(a)?'on':'')+'" data-action="pay-quick-amount" data-amount="'+a+'">'+N(a)+'</button>';}).join('')+'</div><input class="field" id="pay-amount-input" type="number" min="50" placeholder="Or enter amount (min \u20A650)" value="'+esc(state.payAmount||'')+'"><button class="pp-cta" data-action="pay-review">Continue</button>';
+  }else{
+   const all=DATA_PLANS[net]||[],cat=state.payDataCategory||'monthly';
+   const cf=function(l){const m=String(l).match(/(\d+)\s*days?/i),d=m?+m[1]:30;return d<=2?'daily':d<=14?'weekly':d<=31?'monthly':'xtra';};
+   h+='<div class="pp-pills">'+[['daily','Daily'],['weekly','Weekly'],['monthly','Monthly'],['xtra','XtraValue']].map(function(c){return all.some(function(p){return cf(p.label)===c[0];})?'<button class="'+(cat===c[0]?'on':'')+'" data-action="pay-set-category" data-category="'+c[0]+'">'+c[1]+'</button>':'';}).join('')+'</div><div class="pp-list">';
+   all.filter(function(p){return cf(p.label)===cat;}).forEach(function(p){const q=planPrice(net,p),pt=String(p.label).split(' - ');
+    h+='<button class="pp-row'+(state.payDataPlan===p.code?' on':'')+'" data-action="pay-set-plan" data-plan="'+p.code+'"><div><b>'+esc(pt[0])+'</b><span>'+esc(pt[1]||'')+'</span></div><em>'+N(q.price)+'</em></button>';
+    if(isAdmin())h+='<div class="pp-mk">Normal \u20A6'+q.cost.toLocaleString()+(q.set?' (auto)':' <i style="color:#C0392B">estimate</i>')+' + gain \u20A6'+q.markup.toLocaleString()+' ('+gainPct()+'%)</div>';});
+   h+='</div><button class="pp-cta" data-action="pay-review"'+(state.payDataPlan?'':' disabled')+'>Continue</button>';
+  }
+ }
+ return h+'</div>';}
 
 function renderActivate() {
     const isActive = isUserActive();
@@ -27105,6 +27071,28 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'pay-open') { state.payScreen = el.getAttribute('data-screen'); state.payMsg=''; render(); return; }
+    if (action === 'pay-cancel') { state.payConfirm = null; state.payConfirmErr=''; render(); return; }
+    if (action === 'pay-done') { state.payResult = null; state.payScreen='home'; render(); return; }
+    if (action === 'pay-confirm') { payConfirmAndBuy(); return; }
+    if (action === 'admin-sync-prices') { adminSyncPrices(); return; }
+    if (action === 'admin-save-gain') { adminSaveGain(); return; }
+    if (action === 'admin-manual-fund') { adminManualFund(); return; }
+    if (action === 'admin-save-markup') { adminSaveMarkup(el.getAttribute('data-plan')); return; }
+    if (action === 'pay-review') {
+        const ph = state.payPhone || '';
+        if (!/^0\d{10}$/.test(ph)) { showToast('Enter a valid 11-digit phone number.', 'error'); return; }
+        if (state.payScreen === 'data') {
+            const p = (DATA_PLANS[state.payNetwork] || []).find(function(x){ return x.code === state.payDataPlan; });
+            if (!p) { showToast('Choose a data plan.', 'error'); return; }
+            state.payConfirm = { type: 'data', label: p.label, amount: planPrice(state.payNetwork, p).price };
+        } else {
+            const a = Math.round(Number(state.payAmount));
+            if (!a || a < 50) { showToast('Minimum airtime amount is \u20A650.', 'error'); return; }
+            state.payConfirm = { type: 'airtime', label: 'Airtime', amount: a };
+        }
+        state.payConfirmErr = ''; render(); return;
+    }
     if (action === 'pay-set-tab') {
         state.payTab = el.getAttribute('data-tab');
         state.payMsg = ''; state.payMsgType = '';
