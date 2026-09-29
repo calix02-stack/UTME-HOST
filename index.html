@@ -7102,9 +7102,9 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
 .pp{padding-bottom:90px}.pp-hero{background:linear-gradient(135deg,#0F6B3F,#0A4A2B);color:#fff;border-radius:20px;padding:18px;margin-bottom:16px}
 .pp-hero small{opacity:.8;font-size:12px}.pp-hero b{display:block;font-size:28px;margin:2px 0 12px}
 .pp-hero .r{display:flex;gap:8px}.pp-hero button{flex:1;border:0;border-radius:999px;padding:9px;font-weight:700;font-size:12px;background:rgba(255,255,255,.18);color:#fff}
-.pp-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.pp-tile{border:0;background:var(--card-bg);border-radius:20px;padding:22px 10px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:center;gap:10px;font-weight:700;color:var(--ink);font-size:14px}
-.pp-ic{width:64px;height:64px;border-radius:20px;display:flex;align-items:center;justify-content:center}
+.pp-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.pp-tile{border:0;background:var(--card-bg);border-radius:20px;padding:18px 6px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:700;color:var(--ink);font-size:13px}
+.pp-ic{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center}
 .pp-top{display:flex;align-items:center;gap:10px;margin-bottom:14px}.pp-top button{border:0;background:var(--card-bg);width:36px;height:36px;border-radius:50%;box-shadow:var(--shadow-sm);font-size:18px;color:var(--ink)}
 .pp-nets{display:flex;gap:10px;margin-bottom:14px}.pp-net{flex:1;border:2px solid transparent;background:var(--card-bg);border-radius:16px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--ink)}
 .pp-net.on{border-color:#0F6B3F;background:#E8F5E9;color:#0A4A2B}
@@ -7120,6 +7120,15 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
 .pp-spin{position:relative;width:96px;height:96px}.pp-spin:before{content:"";position:absolute;inset:0;border-radius:50%;border:4px solid #E8F5E9;border-top-color:#0F6B3F;animation:ppr 1s linear infinite}
 .pp-spin img{position:absolute;inset:16px;width:64px;height:64px;border-radius:16px;animation:ppp 1.4s ease-in-out infinite}
 @keyframes ppr{to{transform:rotate(360deg)}}@keyframes ppp{50%{transform:scale(.88)}}
+.pp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+.pp-plan{border:2px solid transparent;background:var(--card-bg);border-radius:14px;padding:12px 4px 10px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink);text-align:center;min-height:86px}
+.pp-plan b{font-size:15px;font-weight:800;line-height:1.15}
+.pp-plan span{font-size:10.5px;color:var(--muted)}
+.pp-plan em{font-style:normal;font-weight:800;font-size:12.5px;color:#0F6B3F;margin-top:2px}
+.pp-plan.on{border-color:#0F6B3F;background:#E8F5E9}
+[data-theme="dark"] .pp-plan.on{background:#12301f}
+.pp-adm-row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px}
+.pp-adm-row span{color:var(--muted);font-size:11px}
 .pp-adm{border:1.5px dashed #E4A93A;background:#FFF8E8;border-radius:16px;padding:14px;margin-bottom:14px;color:#5a4310}.pp-adm input{width:100%;margin:6px 0;padding:10px;border-radius:10px;border:1px solid var(--input-border);font-size:13px}
 .pp-mk{display:flex;gap:6px;align-items:center;padding:0 14px 10px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--line)}.pp-mk input{width:80px;padding:6px;border-radius:8px;border:1px solid var(--input-border)}.pp-mk button{border:0;border-radius:8px;background:#E4A93A;color:#fff;padding:6px 10px;font-weight:700}
 </style>
@@ -14715,7 +14724,7 @@ const SUPPORT_KB = [
       not: ['paid', 'not activated', 'after payment', 'charged', 'failed', 'declined', 'deducted', 'debited'],
       a: 'Go to Account → the Activate card.\n1. Enter your license key (12 characters like A1B2-C3D4-E5F6), or\n2. Pay online with Paystack, or pay manually via WhatsApp and you\'ll receive a key\nOnce active, the card shows your expiry date. The current price is shown on the Activate card. Already paid but still locked? Tell me and I\'ll flag it.' },
     { k: ['+wallet', 'fund wallet', 'wallet balance', 'top up', 'top-up'],
-      a: 'Your wallet balance shows on the Account page, and you can add money from the wallet card there.\nIf a top-up left your bank but the balance didn\'t change, send me the payment reference here and I\'ll flag it.' },
+      a: 'Your wallet balance shows on the Account page, and you can add money from the Pay page (tap + Top up).\nIf a top-up left your bank but the balance didn\'t change, send me the payment reference here and I\'ll flag it.' },
     { k: ['charged twice', 'double charge', 'debited twice', 'deducted twice', 'paid twice'],
       esc: true,
       a: 'Sorry about that. Please send both payment references (or bank alert screenshots) here so our team can verify and fix it.' },
@@ -17587,13 +17596,12 @@ function renderBottomNav() {
     { key: 'home', label: 'Home', icon: 'home' },
     { key: 'mysubjects', label: 'Practice Hub', icon: 'bookopen' },
     { key: 'ai-assistant', label: 'AI Tutor', icon: 'sparkles' },
-    { key: 'mockexam', label: 'Mock Arena', icon: 'target' },
     { key: 'pay', label: 'Pay', icon: 'wallet' },
     { key: 'profile', label: 'Account', icon: 'user' },
 ];
     let html = '<div class="bottom-nav">';
     items.forEach(function(it) {
-        const isActive = state.view === it.key;
+        const isActive = state.view === it.key || (it.key === 'mysubjects' && state.view === 'mockexam');
         html += '<button class="bottom-nav-item' + (isActive ? ' active' : '') +
             '" data-action="set-view" data-view="' + it.key + '">' +
             svg(it.icon, 20) +
@@ -17786,6 +17794,7 @@ const atMax = mySubjectIds.length === 4;
     const modes = [
         { view: 'cbt', label: 'JAMB CBT', sub: 'Full timed practice', icon: 'monitor', tint: '#35618C' },
         { view: 'exam', label: 'Past Questions', sub: '2021 – 2026', icon: 'clipboard', tint: '#A65640' },
+        { view: 'mockexam', label: 'Mock Arena', sub: 'Create or join a mock exam', icon: 'target', tint: '#6E5296' },
         { view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
         { view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#3E7C74' },
         { view: 'revise', label: 'Revise Weak', sub: 'Retry missed Qs', icon: 'rotate', tint: '#0F6B3F' },
@@ -20935,7 +20944,6 @@ function renderProfile() {
         '<p class="wr-amount">₦' + walletBalance.toLocaleString() + '</p>' +
         '<p class="wr-label">Wallet balance · tap for history</p>' +
         '</div>' +
-        '<button class="wr-topup" data-action="open-fund-wallet">+ Top up</button>' +
         '</div>'
     ) : '';
     const walletHtml = walletCardHtml + (
@@ -22750,7 +22758,7 @@ async function payConfirmAndBuy(){const c=state.payConfirm;if(!c||state.payProce
  catch(e){state.payProcessing=false;state.payConfirmErr='Could not verify password. Try again.';render();return;}
  state.payMsg='';
  if(c.type==='data')await submitDataPurchase();else await submitAirtimePurchase();
- state.payProcessing=false;state.payResult={ok:state.payMsgType==='success',msg:state.payMsg,c:c};state.payConfirm=null;render();}
+ state.payProcessing=false;state.payResult={ok:state.payMsgType==='success',msg:state.payMsg,c:c};state.payConfirm=null;state.planPricesLoaded=false;render();}
 async function adminManualFund(){if(!isAdmin())return;
  const em=(document.getElementById('mf-email')||{}).value||'',amt=Math.round(Number((document.getElementById('mf-amt')||{}).value));
  if(!em||!amt||amt<1){showToast('Enter user email and amount.','error');return;}
@@ -22787,8 +22795,7 @@ function renderPay(){
  // hero
  h+='<div class="pp-hero"><small>Wallet balance</small><b>'+N(bal)+'</b><div class="r"><button data-action="open-fund-wallet">+ Top up</button><button data-action="set-view" data-view="transactions">History</button></div></div>';
  if(scr==='home'){
-  h+='<div class="pp-tiles"><button class="pp-tile" data-action="pay-open" data-screen="airtime"><span class="pp-ic" style="background:#E8F5E9"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#0F6B3F" stroke-width="2" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>Airtime</button><button class="pp-tile" data-action="pay-open" data-screen="data"><span class="pp-ic" style="background:#FFF3D6"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#C4901F" stroke-width="2" stroke-linecap="round"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="#C4901F"/></svg></span>Data</button></div>';
-  if(isAdmin())h+='<div class="pp-adm"><b style="font-size:13px">ADMIN \u00B7 Fund a user manually</b><input id="mf-email" type="email" placeholder="User email"><input id="mf-amt" type="number" placeholder="Amount (\u20A6)"><button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-manual-fund">Fund account</button><hr style="border:0;border-top:1px dashed #E4A93A;margin:12px 0"><b style="font-size:13px">ADMIN \u00B7 Normal prices</b><button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:6px 0 12px" data-action="admin-sync-prices">Refresh prices from ClubKonnect</button><b style="font-size:13px">ADMIN \u00B7 Gain percentage</b><input id="gain-pct" type="number" min="0" max="100" step="0.5" value="'+gainPct()+'" placeholder="e.g. 9"><button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-save-gain">Save gain %</button><p style="font-size:11px;margin-top:8px">Selling price = normal price + gain %. Normal prices update automatically every day.</p></div>';
+  h+='<div class="pp-tiles"><button class="pp-tile" data-action="pay-open" data-screen="airtime"><span class="pp-ic" style="background:#E8F5E9"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#0F6B3F" stroke-width="2" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>Airtime</button><button class="pp-tile" data-action="pay-open" data-screen="data"><span class="pp-ic" style="background:#FFF3D6"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#C4901F" stroke-width="2" stroke-linecap="round"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="#C4901F"/></svg></span>Data</button><button class="pp-tile" data-action="set-view" data-view="activate"><span class="pp-ic" style="background:#EDE7F6"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#6E5296" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 3M14 9l2 2"/></svg></span>Activate</button></div>';
  }else{
   h+='<div class="pp-top"><button data-action="pay-open" data-screen="home">\u2039</button><b style="font-size:17px">'+(scr==='data'?'Buy Data':'Buy Airtime')+'</b></div><div class="pp-nets">'+PAY_NETS.map(function(n){return '<button class="pp-net'+(net===n[0]?' on':'')+'" data-action="pay-set-network" data-network="'+n[0]+'">'+netLogo(n[0],38)+n[1]+'</button>';}).join('')+'</div><input class="field" id="pay-phone-input" type="tel" placeholder="Phone number e.g. 080XXXXXXXX" value="'+esc(state.payPhone||'')+'" style="margin-bottom:14px">';
   if(scr==='airtime'){
@@ -22796,10 +22803,9 @@ function renderPay(){
   }else{
    const all=DATA_PLANS[net]||[],cat=state.payDataCategory||'monthly';
    const cf=function(l){const m=String(l).match(/(\d+)\s*days?/i),d=m?+m[1]:30;return d<=2?'daily':d<=14?'weekly':d<=31?'monthly':'xtra';};
-   h+='<div class="pp-pills">'+[['daily','Daily'],['weekly','Weekly'],['monthly','Monthly'],['xtra','XtraValue']].map(function(c){return all.some(function(p){return cf(p.label)===c[0];})?'<button class="'+(cat===c[0]?'on':'')+'" data-action="pay-set-category" data-category="'+c[0]+'">'+c[1]+'</button>':'';}).join('')+'</div><div class="pp-list">';
+   h+='<div class="pp-pills">'+[['daily','Daily'],['weekly','Weekly'],['monthly','Monthly'],['xtra','XtraValue']].map(function(c){return all.some(function(p){return cf(p.label)===c[0];})?'<button class="'+(cat===c[0]?'on':'')+'" data-action="pay-set-category" data-category="'+c[0]+'">'+c[1]+'</button>':'';}).join('')+'</div><div class="pp-grid">';
    all.filter(function(p){return cf(p.label)===cat;}).forEach(function(p){const q=planPrice(net,p),pt=String(p.label).split(' - ');
-    h+='<button class="pp-row'+(state.payDataPlan===p.code?' on':'')+'" data-action="pay-set-plan" data-plan="'+p.code+'"><div><b>'+esc(pt[0])+'</b><span>'+esc(pt[1]||'')+'</span></div><em>'+N(q.price)+'</em></button>';
-    if(isAdmin())h+='<div class="pp-mk">Normal \u20A6'+q.cost.toLocaleString()+(q.set?' (auto)':' <i style="color:#C0392B">estimate</i>')+' + gain \u20A6'+q.markup.toLocaleString()+' ('+gainPct()+'%)</div>';});
+    h+='<button class="pp-plan'+(state.payDataPlan===p.code?' on':'')+'" data-action="pay-set-plan" data-plan="'+p.code+'"><b>'+esc(pt[0])+'</b><span>'+esc(pt[1]||'')+'</span><em>'+N(q.price)+'</em></button>';});
    h+='</div><button class="pp-cta" data-action="pay-review"'+(state.payDataPlan?'':' disabled')+'>Continue</button>';
   }
  }
@@ -23118,6 +23124,7 @@ const ADMIN_TABS = [
     { key: "reminders", label: "⏰ Reminders" },
     { key: "mock", label: "🎯 Mock" },
     { key: "activation", label: "🔑 Activation" },
+    { key: "pay", label: "💳 Pay" },
     { key: "courses", label: "🎓 Courses" },
     { key: "flagged", label: "🚩 Flagged" },
     { key: "support", label: "💬 Support" },
@@ -23155,6 +23162,7 @@ function renderAdmin() {
     else if (state.adminTab === "reminders") body = renderAdminReminders();
     else if (state.adminTab === "mock") body = renderAdminMock();
     else if (state.adminTab === "activation") body = renderAdminActivation();
+    else if (state.adminTab === "pay") body = renderAdminPay();
     else if (state.adminTab === "courses") body = renderAdminCourses();
     else if (state.adminTab === "flagged") body = renderAdminFlagged();
     else if (state.adminTab === "support") body = renderAdminSupport();
@@ -23169,6 +23177,36 @@ function renderAdmin() {
         '<p class="sub" style="font-size:11px">Manage questions, settings, and content.</p>' +
         '<div class="admin-tabs">' + tabBar + '</div>' +
         body
+    );
+}
+
+
+function renderAdminPay() {
+    if (!isAdmin()) return '';
+    loadPlanPrices();
+    const net = state.payNetwork || 'mtn';
+    const N = function(n) { return '\u20A6' + Number(n).toLocaleString(); };
+    let nets = '<div class="pp-nets">' + PAY_NETS.map(function(n) {
+        return '<button class="pp-net' + (net === n[0] ? ' on' : '') + '" data-action="pay-set-network" data-network="' + n[0] + '">' + netLogo(n[0], 34) + n[1] + '</button>';
+    }).join('') + '</div>';
+    let rows = '';
+    (DATA_PLANS[net] || []).forEach(function(p) {
+        const q = planPrice(net, p);
+        rows += '<div class="pp-adm-row"><div><b>' + esc(String(p.label)) + '</b><br><span>Normal ' + N(q.cost) + (q.set ? ' (auto)' : ' (estimate)') + ' + gain ' + N(q.markup) + '</span></div><b style="color:#0F6B3F">' + N(q.price) + '</b></div>';
+    });
+    return (
+        '<div class="pp-adm"><b style="font-size:13px">Fund a user manually</b>' +
+        '<input id="mf-email" type="email" placeholder="User email">' +
+        '<input id="mf-amt" type="number" placeholder="Amount (\u20A6)">' +
+        '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-manual-fund">Fund account</button></div>' +
+        '<div class="pp-adm"><b style="font-size:13px">Normal prices</b>' +
+        '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:6px 0 12px" data-action="admin-sync-prices">Refresh prices from ClubKonnect</button>' +
+        '<b style="font-size:13px">Gain percentage</b>' +
+        '<input id="gain-pct" type="number" min="0" max="100" step="0.5" value="' + gainPct() + '" placeholder="e.g. 9">' +
+        '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-save-gain">Save gain %</button>' +
+        '<p style="font-size:11px;margin-top:8px">Selling price = normal price + gain %. Normal prices update automatically every day.</p></div>' +
+        '<p class="section-label">Data plan prices</p>' + nets +
+        '<div class="card" style="padding:4px 12px">' + (rows || '<p style="font-size:12px;color:var(--faint);padding:10px 0">No plans.</p>') + '</div>'
     );
 }
 
@@ -29125,6 +29163,7 @@ document.addEventListener('click', function(e) {
         state.adminQuestionsKey = null;
         state.admin.viewModeQuestions = false;
         state.admin.viewingMockAttempts = null;
+        if (state.adminTab === 'pay') { state.planPricesLoaded = false; loadPlanPrices(); }
         if (state.adminTab === 'analytics' && !state.analyticsLoading) { state.analyticsLoaded = false; loadAnalyticsData(); }
         if (state.adminTab === 'documents') state.docsLoaded = false;
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
