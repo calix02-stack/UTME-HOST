@@ -1,4 +1,3 @@
-
 // MyUTME service worker
 const CACHE_NAME = "myutme-cache-v12";
 
