@@ -21627,8 +21627,155 @@ const BUY_AIRTIME_URL = SUPABASE_URL + "/functions/v1/buy-airtime";
 const BUY_DATA_URL = SUPABASE_URL + "/functions/v1/buy-data";
 const ADMIN_FAKE_FUND_URL = SUPABASE_URL + "/functions/v1/admin-fake-fund";
 
-// Data plans now come from the cb_plans table (ConnectBridge Stock Plans), loaded in loadPlanPrices().
-const DATA_PLANS = { mtn: [], airtel: [], glo: [], '9mobile': [] };
+// ClubKonnect data plans (source: nellobytesystems.com/APIDatabundlePlansV2.asp, Sept 2026).
+// code = ClubKonnect DataPlan ID (PRODUCT_ID), amount = ClubKonnect normal price in naira.
+// Normal prices can be overridden from the plan_prices table (see loadPlanPrices).
+const DATA_PLANS = {
+  mtn: [
+    {code:'500',label:'500 MB - 7 days (SME)',amount:297},
+    {code:'500.00',label:'500 MB - 30 days (SME)',amount:307},
+    {code:'1000',label:'1 GB - 7 days (SME)',amount:410},
+    {code:'1000.00',label:'1 GB - 30 days (SME)',amount:563},
+    {code:'2000',label:'2 GB - 7 days (SME)',amount:820},
+    {code:'2000.00',label:'2 GB - 30 days (SME)',amount:1117},
+    {code:'3000',label:'3 GB - 7 days (SME)',amount:1230},
+    {code:'3000.00',label:'3 GB - 30 days (SME)',amount:1629},
+    {code:'5000.00',label:'5 GB - 30 days (SME)',amount:2511},
+    {code:'100.01',label:'110MB Daily Plan - 1 day (Awoof Data)',amount:97},
+    {code:'200.01',label:'230MB Daily Plan - 1 day (Awoof Data)',amount:194},
+    {code:'350.01',label:'500MB Daily Plan - 1 day (Awoof Data)',amount:340},
+    {code:'500.01',label:'1GB Daily Plan + 1.5mins. - 1 day (Awoof Data)',amount:485},
+    {code:'750.01',label:'2.5GB Daily Plan - 1 day (Awoof Data)',amount:728},
+    {code:'900.01',label:'2.5GB 2-Day Plan - 2 days (Awoof Data)',amount:873},
+    {code:'1000.01',label:'3.2GB 2-Day Plan - 2 days (Awoof Data)',amount:970},
+    {code:'500.02',label:'500MB Weekly Plan - 7 days (Direct Data)',amount:485},
+    {code:'800.01',label:'1GB Weekly Plan - 7 days (Direct Data)',amount:776},
+    {code:'1000.03',label:'1.5GB Weekly Plan - 7 days (Direct Data)',amount:970},
+    {code:'1500.03',label:'3.5GB Weekly Plan - 7 days (Direct Data)',amount:1455},
+    {code:'2500.01',label:'6GB Weekly Plan - 7 days (Direct Data)',amount:2425},
+    {code:'3500.01',label:'11GB Weekly Bundle - 7 days (Direct Data)',amount:3395},
+    {code:'1500.02',label:'2GB+2mins Monthly Plan - 30 days (Direct Data)',amount:1455},
+    {code:'2000.01',label:'2.7GB+2mins Monthly Plan - 30 days (Direct Data)',amount:1940},
+    {code:'2500.02',label:'3.5GB+5mins Monthly Plan - 30 days (Direct Data)',amount:2425},
+    {code:'3500.02',label:'7GB Monthly Plan - 30 days (Direct Data)',amount:3395},
+    {code:'4500.01',label:'10GB+10mins Monthly Plan - 30 days (Direct Data)',amount:4365},
+    {code:'5500.01',label:'12.5GB Monthly Plan - 30 days (Direct Data)',amount:5335},
+    {code:'6500.01',label:'16.5GB+10mins Monthly Plan - 30 days (Direct Data)',amount:6305},
+    {code:'7500.01',label:'20GB Monthly Plan - 30 days (Direct Data)',amount:7275},
+    {code:'9000.01',label:'25GB Monthly Plan - 30 days (Direct Data)',amount:8730},
+    {code:'11000.01',label:'36GB Monthly Plan - 30 days (Direct Data)',amount:10670},
+    {code:'18000.01',label:'75GB Monthly Plan - 30 days (Direct Data)',amount:17460},
+    {code:'35000.01',label:'165GB Monthly Plan - 30 days (Direct Data)',amount:33950},
+    {code:'40000.01',label:'150GB 2-Month Plan - 60 days (Direct Data)',amount:38800},
+    {code:'5000.01',label:'20GB Weekly Plan - 7 days (Direct Data)',amount:4850},
+    {code:'90000.03',label:'480GB 3-Month Plan - 90 days (Direct Data)',amount:87300}
+  ],
+  airtel: [
+    {code:'499.91',label:'1GB - 1 day (Awoof Data)',amount:485},
+    {code:'599.91',label:'1.5GB - 2 days (Awoof Data)',amount:582},
+    {code:'749.91',label:'2GB - 2 days (Awoof Data)',amount:727},
+    {code:'999.91',label:'3GB - 2 days (Awoof Data)',amount:970},
+    {code:'1499.91',label:'5GB - 2 days (Awoof Data)',amount:1455},
+    {code:'499.92',label:'500MB - 7 days (Direct Data)',amount:485},
+    {code:'799.91',label:'1GB - 7 days (Direct Data)',amount:776},
+    {code:'999.92',label:'1.5GB - 7 days (Direct Data)',amount:970},
+    {code:'1499.92',label:'3.5GB - 7 days (Direct Data)',amount:1455},
+    {code:'2499.91',label:'6GB - 7 days (Direct Data)',amount:2425},
+    {code:'2999.91',label:'10GB - 7 days (Direct Data)',amount:2910},
+    {code:'4999.91',label:'18GB - 7 days (Direct Data)',amount:4850},
+    {code:'1499.93',label:'2GB - 30 days (Direct Data)',amount:1455},
+    {code:'1999.91',label:'3GB - 30 days (Direct Data)',amount:1940},
+    {code:'2499.92',label:'4GB - 30 days (Direct Data)',amount:2425},
+    {code:'2999.92',label:'8GB - 30 days (Direct Data)',amount:2910},
+    {code:'3999.91',label:'10GB - 30 days (Direct Data)',amount:3880},
+    {code:'4999.92',label:'13GB - 30 days (Direct Data)',amount:4850},
+    {code:'5999.91',label:'18GB - 30 days (Direct Data)',amount:5820},
+    {code:'7999.91',label:'25GB - 30 days (Direct Data)',amount:7760},
+    {code:'9999.91',label:'35GB - 30 days (Direct Data)',amount:9700},
+    {code:'14999.91',label:'60GB - 30 days (Direct Data)',amount:14550},
+    {code:'19999.91',label:'100GB - 30 days (Direct Data)',amount:19400},
+    {code:'29999.91',label:'160GB - 30 days (Direct Data)',amount:29100},
+    {code:'39999.91',label:'210GB - 30 days (Direct Data)',amount:38800},
+    {code:'49999.91',label:'300GB - 90 days (Direct Data)',amount:48500},
+    {code:'59999.91',label:'350GB - 90 days (Direct Data)',amount:58200}
+  ],
+  glo: [
+    {code:'200',label:'200 MB - 14 days (SME)',amount:94},
+    {code:'500',label:'500 MB - 7 days (SME)',amount:230},
+    {code:'1000.11',label:'1 GB - 3 days (SME)',amount:392},
+    {code:'3000.11',label:'3 GB - 3 days (SME)',amount:1176},
+    {code:'5000.11',label:'5 GB - 3 days (SME)',amount:1960},
+    {code:'1000.12',label:'1 GB - 7 days (SME)',amount:409},
+    {code:'3000.12',label:'3 GB - 7 days (SME)',amount:1228},
+    {code:'5000.12',label:'5 GB - 7 days (SME)',amount:2046},
+    {code:'1000.21',label:'1 GB - 14 days (SME Night Plan)',amount:409},
+    {code:'3000.21',label:'3 GB - 14 days (SME Night Plan)',amount:1228},
+    {code:'5000.21',label:'5 GB - 14 days (SME Night Plan)',amount:2046},
+    {code:'10000.21',label:'10 GB - 14 days (SME Night Plan)',amount:4093},
+    {code:'1000',label:'1 GB - 30 days (SME)',amount:461},
+    {code:'2000',label:'2 GB - 30 days (SME)',amount:922},
+    {code:'3000',label:'3 GB - 30 days (SME)',amount:1383},
+    {code:'5000',label:'5 GB - 30 days (SME)',amount:2306},
+    {code:'10000',label:'10 GB - 30 days (SME)',amount:4612},
+    {code:'100.01',label:'125MB - 1 day (Awoof Data)',amount:97},
+    {code:'200.01',label:'260MB - 2 days (Awoof Data)',amount:194},
+    {code:'500.01',label:'1.5GB - 14 days (Direct Data)',amount:485},
+    {code:'1000.01',label:'2.6GB - 30 days (Direct Data)',amount:970},
+    {code:'1500.01',label:'5GB - 30 days (Direct Data)',amount:1455},
+    {code:'2000.01',label:'6.15GB - 30 days (Direct Data)',amount:1940},
+    {code:'2500.01',label:'7.5GB - 30 days (Direct Data)',amount:2425},
+    {code:'3000.01',label:'10GB - 30 days (Direct Data)',amount:2910},
+    {code:'4000.01',label:'12.5GB - 30 days (Direct Data)',amount:3880},
+    {code:'5000.01',label:'16GB - 30 days (Direct Data)',amount:4850},
+    {code:'8000.01',label:'28GB - 30 days (Direct Data)',amount:7760},
+    {code:'10000.01',label:'38GB - 30 days (Direct Data)',amount:9700},
+    {code:'15000.01',label:'64GB - 30 days (Direct Data)',amount:14550},
+    {code:'20000.01',label:'107GB - 30 days (Direct Data)',amount:19400},
+    {code:'500.02',label:'2GB - 1 day (Awoof Data)',amount:485},
+    {code:'1500.02',label:'6GB - 7 days (Direct Data)',amount:1455},
+    {code:'500.03',label:'2.5GB - 2 days Weekend Plan Sat & Sun (Awoof Data)',amount:485},
+    {code:'200.02',label:'875MB - 1 day Weekend Plan Sun (Awoof Data)',amount:194},
+    {code:'30000.01',label:'165GB - 30 days (Direct Data)',amount:29100},
+    {code:'36000.01',label:'220GB - 30 days (Direct Data)',amount:38800},
+    {code:'50000.01',label:'320GB - 30 days (Direct Data)',amount:48500},
+    {code:'60000.01',label:'380GB - 30 days (Direct Data)',amount:58200},
+    {code:'75000.01',label:'475GB - 30 days (Direct Data)',amount:72750},
+    {code:'150000.03',label:'1TB (1000GB) - 365 days (Direct Data)',amount:150000}
+  ],
+  '9mobile': [
+    {code:'50',label:'50 MB - 30 days (SME)',amount:25},
+    {code:'100',label:'100 MB - 30 days (SME)',amount:51},
+    {code:'300',label:'300 MB - 30 days (SME)',amount:153},
+    {code:'500',label:'500 MB - 30 days (SME)',amount:246},
+    {code:'1000',label:'1 GB - 30 days (SME)',amount:492},
+    {code:'2000',label:'2 GB - 30 days (SME)',amount:984},
+    {code:'3000',label:'3 GB - 30 days (SME)',amount:1476},
+    {code:'4000',label:'4 GB - 30 days (SME)',amount:1968},
+    {code:'5000',label:'5 GB - 30 days (SME)',amount:2460},
+    {code:'10000',label:'10 GB - 30 days (SME)',amount:4920},
+    {code:'15000',label:'15 GB - 30 days (SME)',amount:7380},
+    {code:'20000',label:'20 GB - 30 days (SME)',amount:9840},
+    {code:'25000',label:'25 GB - 30 days (SME)',amount:12300},
+    {code:'100.01',label:'100MB - 1 day (Awoof Data)',amount:93},
+    {code:'150.01',label:'180MB - 1 day (Awoof Data)',amount:140},
+    {code:'200.01',label:'250MB - 1 day (Awoof Data)',amount:186},
+    {code:'350.01',label:'450MB - 1 day (Awoof Data)',amount:326},
+    {code:'500.01',label:'650MB - 3 days (Awoof Data)',amount:465},
+    {code:'1500.01',label:'1.75GB - 7 days (Direct Data)',amount:1395},
+    {code:'600.01',label:'650MB - 14 days (Direct Data)',amount:558},
+    {code:'1000.01',label:'1.1GB - 30 days (Direct Data)',amount:930},
+    {code:'1200.01',label:'1.4GB - 30 days (Direct Data)',amount:1116},
+    {code:'2000.01',label:'2.44GB - 30 days (Direct Data)',amount:1860},
+    {code:'2500.01',label:'3.17GB - 30 days (Direct Data)',amount:2325},
+    {code:'3000.01',label:'3.91GB - 30 days (Direct Data)',amount:2790},
+    {code:'4000.01',label:'5.10GB - 30 days (Direct Data)',amount:3720},
+    {code:'5000.01',label:'6.5GB - 30 days (Direct Data)',amount:4650},
+    {code:'12000.01',label:'16GB - 30 days (Direct Data)',amount:11160},
+    {code:'18500.01',label:'24.3GB - 30 days (Direct Data)',amount:17205},
+    {code:'20000.01',label:'26.5GB - 30 days (Direct Data)',amount:18600},
+    {code:'30000.01',label:'39GB - 60 days (Direct Data)',amount:27900}
+  ]
+};
 const WALLET_PENDING_KEY = "myutme_pending_wallet_refs";
 
 function getPendingWalletRefs() {
@@ -22586,13 +22733,11 @@ glo:'<svg width="'+z+'" height="'+z+'" viewBox="0 0 48 48"><circle cx="24" cy="2
 '9mobile':'<svg width="'+z+'" height="'+z+'" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#006B3F"/><text x="24" y="31" text-anchor="middle" font-family="Arial" font-weight="900" font-size="22" fill="#B5D334">9</text><text x="24" y="42" text-anchor="middle" font-family="Arial" font-weight="700" font-size="6" fill="#fff">mobile</text></svg>'};return L[k]||'';}
 const PAY_NETS=[['mtn','MTN'],['airtel','Airtel'],['glo','Glo'],['9mobile','9mobile']];
 function gainPct(){return state.gainPct!=null?Number(state.gainPct):9;}
-function planPrice(net,p){const o=(state.planPrices||{})[net+'|'+p.code]||(state.planNorm||{})[net+'|'+parseFloat(p.code)];const cost=o&&o.cost!=null?Number(o.cost):Math.round(p.amount/1.09);
+function planPrice(net,p){const o=(state.planPrices||{})[net+'|'+p.code]||(state.planNorm||{})[net+'|'+parseFloat(p.code)];const cost=o&&o.cost!=null?Number(o.cost):Number(p.amount);
  const gain=Math.ceil(cost*gainPct()/100);return{cost:cost,markup:gain,price:cost+gain,set:!!o};}
 async function loadPlanPrices(){if(state.planPricesLoaded)return;state.planPricesLoaded=true;state.planPrices={};state.planNorm={};
- try{const r=await supabase.from('cb_plans').select('*').eq('active',true).order('cost');
-  const dp={mtn:[],airtel:[],glo:[],'9mobile':[]};
-  (r.data||[]).forEach(function(x){(dp[x.network]=dp[x.network]||[]).push({code:String(x.plan_id),label:x.label,amount:Number(x.cost)});state.planPrices[x.network+'|'+x.plan_id]={cost:Number(x.cost)};});
-  Object.keys(dp).forEach(function(k){DATA_PLANS[k]=dp[k];});
+ try{const r=await supabase.from('plan_prices').select('*');
+  (r.data||[]).forEach(function(x){state.planPrices[x.network+'|'+x.code]={cost:Number(x.cost)};});
   const g=await supabase.from('pay_settings').select('*').eq('key','gain_pct').maybeSingle();if(g.data)state.gainPct=Number(g.data.value);render();}catch(e){console.warn(e);}}
 async function payConfirmAndBuy(){const c=state.payConfirm;if(!c||state.payProcessing)return;
  const pw=(document.getElementById('pay-pw-input')||{}).value||'';
@@ -22610,10 +22755,6 @@ async function adminManualFund(){if(!isAdmin())return;
  const r=await supabase.rpc('admin_fund_user',{p_email:em.trim().toLowerCase(),p_amount:amt});
  if(r.error){showToast(r.error.message||'Funding failed.','error');return;}
  showToast('Funded '+em+' with \u20A6'+amt.toLocaleString(),'success');}
-async function adminTestCB(){if(!isAdmin())return;showToast('Testing ConnectBridge...','');
- try{const sd=await supabase.auth.getSession();const r=await fetch(SUPABASE_URL+'/functions/v1/connectbridge-test',{method:'POST',headers:{'Authorization':'Bearer '+sd.data.session.access_token,'apikey':SUPABASE_ANON_KEY}});
-  const d=await r.json();if(d.ok){showToast('Connected. ConnectBridge wallet: \u20A6'+Number(d.wallet).toLocaleString()+' (key sent as: '+d.header_format+')','success');alert('ConnectBridge test\nWallet: '+d.wallet+'\nKey format: '+d.header_format+'\n\n'+(d.probe||[]).map(function(x){return x.path+' -> '+(x.status||x.error)+' ('+(x.size||0)+' chars)\n'+(x.snippet||'');}).join('\n\n'));}
-  else{showToast((d.error||'Failed')+(d.detail?' \u2014 '+d.detail:''),'error');}}catch(e){showToast('Could not reach the server.','error');}}
 async function adminSyncPrices(){if(!isAdmin())return;showToast('Fetching latest prices...','');
  try{const sd=await supabase.auth.getSession();const r=await fetch(SUPABASE_URL+'/functions/v1/sync-plan-prices',{method:'POST',headers:{'Authorization':'Bearer '+sd.data.session.access_token,'apikey':SUPABASE_ANON_KEY}});
   const d=await r.json();if(!r.ok||d.error){showToast(d.error||'Sync failed','error');return;}
@@ -22636,7 +22777,7 @@ function renderPay(){
  if(typeof retryPendingWalletFundings==='function')retryPendingWalletFundings();loadPlanPrices();
  const bal=state.profile.walletBalance||0,scr=state.payScreen||'home',net=state.payNetwork||'mtn',N=function(n){return '\u20A6'+Number(n).toLocaleString();};
  const nn=(PAY_NETS.find(function(x){return x[0]===net;})||[])[1];
- let h='<div class="pp"><div style="background:#111827;color:#fff;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;font-weight:700">NEW BUILD v3 \u00B7 ConnectBridge (ClubKonnect removed)</div>';
+ let h='<div class="pp">';
  // overlays
  if(state.payProcessing)h+='<div class="pp-load"><div class="pp-spin"><img src="'+MYUTME_LOGO+'" alt="MyUTME"></div><span>Processing payment…</span></div>';
  else if(state.payResult){const r=state.payResult;h+='<div class="pp-load" style="padding:24px;text-align:center"><div style="width:84px;height:84px;border-radius:50%;background:'+(r.ok?'#0F6B3F':'#C0392B')+';color:#fff;font-size:44px;display:flex;align-items:center;justify-content:center">'+(r.ok?'\u2713':'\u2715')+'</div><div style="font-size:20px">'+(r.ok?'Payment successful':'Payment failed')+'</div><div style="font-size:13px;color:var(--muted);font-weight:500">'+esc(r.msg||'')+'</div><div style="font-size:26px;color:#111">'+N(r.c.amount)+'</div><button class="pp-cta" style="position:static;max-width:320px" data-action="pay-done">Done</button></div>';}
@@ -23041,7 +23182,7 @@ function renderAdminPay() {
     let rows = '';
     (DATA_PLANS[net] || []).forEach(function(p) {
         const q = planPrice(net, p);
-        rows += '<div class="pp-adm-row"><div><b>' + esc(String(p.label)) + '</b><br><span>Normal ' + N(q.cost) + (q.set ? ' (auto)' : ' (estimate)') + ' + gain ' + N(q.markup) + '</span></div><b style="color:#0F6B3F">' + N(q.price) + '</b></div>';
+        rows += '<div class="pp-adm-row"><div><b>' + esc(String(p.label)) + '</b><br><span>Normal ' + N(q.cost) + (q.set ? ' (custom)' : ' (ClubKonnect)') + ' + gain ' + N(q.markup) + '</span></div><b style="color:#0F6B3F">' + N(q.price) + '</b></div>';
     });
     return (
         '<div class="pp-adm"><b style="font-size:13px">Fund a user manually</b>' +
@@ -23049,11 +23190,10 @@ function renderAdminPay() {
         '<input id="mf-amt" type="number" placeholder="Amount (\u20A6)">' +
         '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-manual-fund">Fund account</button></div>' +
         '<div class="pp-adm"><b style="font-size:13px">Normal prices</b>' +
-        '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:0 0 12px;background:#1f2937" data-action="admin-test-cb">Test ConnectBridge connection (free)</button>' +
         '<b style="font-size:13px">Gain percentage</b>' +
         '<input id="gain-pct" type="number" min="0" max="100" step="0.5" value="' + gainPct() + '" placeholder="e.g. 9">' +
         '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-save-gain">Save gain %</button>' +
-        '<p style="font-size:11px;margin-top:8px">Selling price = normal price + gain %. Plans and normal prices come from your ConnectBridge Stock Plans (table cb_plans).</p></div>' +
+        '<p style="font-size:11px;margin-top:8px">Selling price = normal price + gain %. Normal prices come from ClubKonnect.</p></div>' +
         '<p class="section-label">Data plan prices</p>' + nets +
         '<div class="card" style="padding:4px 12px">' + (rows || '<p style="font-size:12px;color:var(--faint);padding:10px 0">No plans.</p>') + '</div>'
     );
@@ -26962,7 +27102,6 @@ document.addEventListener('click', function(e) {
     if (action === 'pay-cancel') { state.payConfirm = null; state.payConfirmErr=''; render(); return; }
     if (action === 'pay-done') { state.payResult = null; state.payScreen='home'; render(); return; }
     if (action === 'pay-confirm') { payConfirmAndBuy(); return; }
-    if (action === 'admin-test-cb') { adminTestCB(); return; }
     if (action === 'admin-sync-prices') { adminSyncPrices(); return; }
     if (action === 'admin-save-gain') { adminSaveGain(); return; }
     if (action === 'admin-manual-fund') { adminManualFund(); return; }
