@@ -22765,6 +22765,10 @@ async function adminManualFund(){if(!isAdmin())return;
  const r=await supabase.rpc('admin_fund_user',{p_email:em.trim().toLowerCase(),p_amount:amt});
  if(r.error){showToast(r.error.message||'Funding failed.','error');return;}
  showToast('Funded '+em+' with \u20A6'+amt.toLocaleString(),'success');}
+async function adminTestCB(){if(!isAdmin())return;showToast('Testing ConnectBridge...','');
+ try{const sd=await supabase.auth.getSession();const r=await fetch(SUPABASE_URL+'/functions/v1/connectbridge-test',{method:'POST',headers:{'Authorization':'Bearer '+sd.data.session.access_token,'apikey':SUPABASE_ANON_KEY}});
+  const d=await r.json();if(d.ok){showToast('Connected. ConnectBridge wallet: \u20A6'+Number(d.wallet).toLocaleString()+' (key sent as: '+d.header_format+')','success');alert('ConnectBridge test\nWallet: '+d.wallet+'\nKey format: '+d.header_format+'\n\n'+(d.probe||[]).map(function(x){return x.path+' -> '+(x.status||x.error)+' ('+(x.size||0)+' chars)\n'+(x.snippet||'');}).join('\n\n'));}
+  else{showToast((d.error||'Failed')+(d.detail?' \u2014 '+d.detail:''),'error');}}catch(e){showToast('Could not reach the server.','error');}}
 async function adminSyncPrices(){if(!isAdmin())return;showToast('Fetching latest prices...','');
  try{const sd=await supabase.auth.getSession();const r=await fetch(SUPABASE_URL+'/functions/v1/sync-plan-prices',{method:'POST',headers:{'Authorization':'Bearer '+sd.data.session.access_token,'apikey':SUPABASE_ANON_KEY}});
   const d=await r.json();if(!r.ok||d.error){showToast(d.error||'Sync failed','error');return;}
@@ -23201,6 +23205,7 @@ function renderAdminPay() {
         '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-manual-fund">Fund account</button></div>' +
         '<div class="pp-adm"><b style="font-size:13px">Normal prices</b>' +
         '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:6px 0 12px" data-action="admin-sync-prices">Refresh prices from ClubKonnect</button>' +
+        '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:0 0 12px;background:#1f2937" data-action="admin-test-cb">Test ConnectBridge connection (free)</button>' +
         '<b style="font-size:13px">Gain percentage</b>' +
         '<input id="gain-pct" type="number" min="0" max="100" step="0.5" value="' + gainPct() + '" placeholder="e.g. 9">' +
         '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-save-gain">Save gain %</button>' +
@@ -27113,6 +27118,7 @@ document.addEventListener('click', function(e) {
     if (action === 'pay-cancel') { state.payConfirm = null; state.payConfirmErr=''; render(); return; }
     if (action === 'pay-done') { state.payResult = null; state.payScreen='home'; render(); return; }
     if (action === 'pay-confirm') { payConfirmAndBuy(); return; }
+    if (action === 'admin-test-cb') { adminTestCB(); return; }
     if (action === 'admin-sync-prices') { adminSyncPrices(); return; }
     if (action === 'admin-save-gain') { adminSaveGain(); return; }
     if (action === 'admin-manual-fund') { adminManualFund(); return; }
