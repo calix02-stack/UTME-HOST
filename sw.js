@@ -1,5 +1,6 @@
+
 // MyUTME service worker
-const CACHE_NAME = "myutme-cache-v11";
+const CACHE_NAME = "myutme-cache-v12";
 
 const APP_SHELL = [
   "./",
@@ -12,6 +13,8 @@ const APP_SHELL = [
 
 // How long to give a background revalidation fetch before giving up.
 const FETCH_TIMEOUT_MS = 8000;
+// The app page itself: try the network first, but fall back to the saved copy quickly.
+const PAGE_TIMEOUT_MS = 4000;
 
 function fetchWithTimeout(request, timeoutMs = FETCH_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
@@ -71,8 +74,31 @@ self.addEventListener("fetch", (event) => {
 
   const isAppScript = url.pathname.endsWith(".js") && /offline-db/.test(url.pathname);
 
-  if (isAppShell || isQuestionDataFile || isAppScript) {
-    const ignoreSearch = isQuestionDataFile || isAppScript;
+  // The app page: NETWORK FIRST so a newly uploaded index.html shows immediately.
+  // If the network is slow or offline, the saved copy is used (offline still works).
+  if (isAppShell) {
+    event.respondWith(
+      fetchWithTimeout(event.request, PAGE_TIMEOUT_MS)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() =>
+          caches
+            .match(event.request)
+            .then((cached) => cached || caches.match("./index.html"))
+            .then((cached) => cached || Response.error())
+        )
+    );
+    return;
+  }
+
+  // Question data and offline script: show saved copy instantly, refresh in the background.
+  if (isQuestionDataFile || isAppScript) {
+    const ignoreSearch = true;
     event.respondWith(
       caches.match(event.request, { ignoreSearch }).then((cached) => {
         const revalidate = fetchWithTimeout(event.request)
