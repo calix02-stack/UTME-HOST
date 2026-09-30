@@ -21627,166 +21627,8 @@ const BUY_AIRTIME_URL = SUPABASE_URL + "/functions/v1/buy-airtime";
 const BUY_DATA_URL = SUPABASE_URL + "/functions/v1/buy-data";
 const ADMIN_FAKE_FUND_URL = SUPABASE_URL + "/functions/v1/admin-fake-fund";
 
-// Fixed data plans shown in the Pay page. These are REAL ClubKonnect
-// DataPlan codes and costs, copied from clubkonnect.com/APIDocs.asp on
-// the day this was written. `amount` here is what we CHARGE the user
-// (cost + a markup), not ClubKonnect's raw cost — see the comment above
-// each network for the underlying cost. ClubKonnect can add, remove or
-// reprice plans over time: check https://www.nellobytesystems.com/APIDatabundlePlansV2.asp?UserID=
-// occasionally and update this list (and the cost comments) to match.
-// Fixed data plans shown in the Pay page. This is the FULL list of
-// ClubKonnect DataPlan codes (daily, weekly and monthly) for each
-// network, copied from clubkonnect.com/APIDocs.asp. `amount` is what
-// we CHARGE the user (ClubKonnect's own cost + ~9% markup, rounded up
-// to the nearest ₦10). ClubKonnect can add, remove or reprice plans
-// over time — check https://www.nellobytesystems.com/APIDatabundlePlansV2.asp?UserID=
-// occasionally and update this list to match.
-const DATA_PLANS = {
-    mtn: [
-        { code: '500', label: '500MB - 7 days', amount: 330 },
-        { code: '500.00', label: '500MB - 30 days', amount: 340 },
-        { code: '1000', label: '1GB - 7 days', amount: 450 },
-        { code: '1000.00', label: '1GB - 30 days', amount: 620 },
-        { code: '2000', label: '2GB - 7 days', amount: 900 },
-        { code: '2000.00', label: '2GB - 30 days', amount: 1220 },
-        { code: '3000', label: '3GB - 7 days', amount: 1350 },
-        { code: '3000.00', label: '3GB - 30 days', amount: 1780 },
-        { code: '5000.00', label: '5GB - 30 days', amount: 2740 },
-        { code: '100.01', label: '110MB - 1 day', amount: 110 },
-        { code: '200.01', label: '230MB - 1 day', amount: 210 },
-        { code: '350.01', label: '500MB - 1 day', amount: 360 },
-        { code: '500.01', label: '1GB - 1 day', amount: 520 },
-        { code: '750.01', label: '2.5GB - 1 day', amount: 770 },
-        { code: '900.01', label: '2.5GB - 2 days', amount: 930 },
-        { code: '1000.01', label: '3.2GB - 2 days', amount: 1030 },
-        { code: '500.02', label: '500MB - 7 days', amount: 520 },
-        { code: '800.01', label: '1GB - 7 days', amount: 830 },
-        { code: '1000.03', label: '1.5GB - 7 days', amount: 1030 },
-        { code: '1500.03', label: '3.5GB - 7 days', amount: 1540 },
-        { code: '2500.01', label: '6GB - 7 days', amount: 2570 },
-        { code: '3500.01', label: '11GB - 7 days', amount: 3590 },
-        { code: '1500.02', label: '2GB - 30 days', amount: 1540 },
-        { code: '2000.01', label: '2.7GB - 30 days', amount: 2060 },
-        { code: '2500.02', label: '3.5GB - 30 days', amount: 2570 },
-        { code: '3500.02', label: '7GB - 30 days', amount: 3590 },
-        { code: '4500.01', label: '10GB - 30 days', amount: 4620 },
-        { code: '5500.01', label: '12.5GB - 30 days', amount: 5650 },
-        { code: '6500.01', label: '16.5GB - 30 days', amount: 6670 },
-        { code: '7500.01', label: '20GB - 30 days', amount: 7700 },
-        { code: '9000.01', label: '25GB - 30 days', amount: 9240 },
-        { code: '11000.01', label: '36GB - 30 days', amount: 11290 },
-        { code: '18000.01', label: '75GB - 30 days', amount: 18470 },
-        { code: '35000.01', label: '165GB - 30 days', amount: 35900 },
-        { code: '40000.01', label: '150GB - 60 days', amount: 41030 },
-        { code: '5000.01', label: '20GB - 7 days', amount: 5130 },
-        { code: '90000.03', label: '480GB - 90 days', amount: 92310 },
-    ],
-    airtel: [
-        { code: '499.91', label: '1GB - 1 day', amount: 520 },
-        { code: '599.91', label: '1.5GB - 2 days', amount: 620 },
-        { code: '749.91', label: '2GB - 2 days', amount: 770 },
-        { code: '999.91', label: '3GB - 2 days', amount: 1030 },
-        { code: '1499.91', label: '5GB - 2 days', amount: 1540 },
-        { code: '499.92', label: '500MB - 7 days', amount: 520 },
-        { code: '799.91', label: '1GB - 7 days', amount: 830 },
-        { code: '999.92', label: '1.5GB - 7 days', amount: 1030 },
-        { code: '1499.92', label: '3.5GB - 7 days', amount: 1540 },
-        { code: '2499.91', label: '6GB - 7 days', amount: 2570 },
-        { code: '2999.91', label: '10GB - 7 days', amount: 3080 },
-        { code: '4999.91', label: '18GB - 7 days', amount: 5130 },
-        { code: '1499.93', label: '2GB - 30 days', amount: 1540 },
-        { code: '1999.91', label: '3GB - 30 days', amount: 2060 },
-        { code: '2499.92', label: '4GB - 30 days', amount: 2570 },
-        { code: '2999.92', label: '8GB - 30 days', amount: 3080 },
-        { code: '3999.91', label: '10GB - 30 days', amount: 4110 },
-        { code: '4999.92', label: '13GB - 30 days', amount: 5130 },
-        { code: '5999.91', label: '18GB - 30 days', amount: 6160 },
-        { code: '7999.91', label: '25GB - 30 days', amount: 8210 },
-        { code: '9999.91', label: '35GB - 30 days', amount: 10260 },
-        { code: '14999.91', label: '60GB - 30 days', amount: 15390 },
-        { code: '19999.91', label: '100GB - 30 days', amount: 20520 },
-        { code: '29999.91', label: '160GB - 30 days', amount: 30770 },
-        { code: '39999.91', label: '210GB - 30 days', amount: 41030 },
-        { code: '49999.91', label: '300GB - 90 days', amount: 51280 },
-        { code: '59999.91', label: '350GB - 90 days', amount: 61540 },
-    ],
-    glo: [
-        { code: '200', label: '200MB - 14 days', amount: 110 },
-        { code: '500', label: '500MB - 7 days', amount: 260 },
-        { code: '1000.11', label: '1GB - 3 days', amount: 430 },
-        { code: '3000.11', label: '3GB - 3 days', amount: 1290 },
-        { code: '5000.11', label: '5GB - 3 days', amount: 2140 },
-        { code: '1000.12', label: '1GB - 7 days', amount: 450 },
-        { code: '3000.12', label: '3GB - 7 days', amount: 1340 },
-        { code: '5000.12', label: '5GB - 7 days', amount: 2240 },
-        { code: '1000.21', label: '1GB - 14 days (Night)', amount: 450 },
-        { code: '3000.21', label: '3GB - 14 days (Night)', amount: 1340 },
-        { code: '5000.21', label: '5GB - 14 days (Night)', amount: 2240 },
-        { code: '10000.21', label: '10GB - 14 days (Night)', amount: 4470 },
-        { code: '1000', label: '1GB - 30 days', amount: 510 },
-        { code: '2000', label: '2GB - 30 days', amount: 1010 },
-        { code: '3000', label: '3GB - 30 days', amount: 1510 },
-        { code: '5000', label: '5GB - 30 days', amount: 2520 },
-        { code: '10000', label: '10GB - 30 days', amount: 5030 },
-        { code: '100.01', label: '125MB - 1 day', amount: 110 },
-        { code: '200.01', label: '260MB - 2 days', amount: 210 },
-        { code: '500.01', label: '1.5GB - 14 days', amount: 510 },
-        { code: '1000.01', label: '2.6GB - 30 days', amount: 1010 },
-        { code: '1500.01', label: '5GB - 30 days', amount: 1520 },
-        { code: '2000.01', label: '6.15GB - 30 days', amount: 2020 },
-        { code: '2500.01', label: '7.5GB - 30 days', amount: 2530 },
-        { code: '3000.01', label: '10GB - 30 days', amount: 3030 },
-        { code: '4000.01', label: '12.5GB - 30 days', amount: 4040 },
-        { code: '5000.01', label: '16GB - 30 days', amount: 5050 },
-        { code: '8000.01', label: '28GB - 30 days', amount: 8080 },
-        { code: '10000.01', label: '38GB - 30 days', amount: 10100 },
-        { code: '15000.01', label: '64GB - 30 days', amount: 15150 },
-        { code: '20000.01', label: '107GB - 30 days', amount: 20200 },
-        { code: '500.02', label: '2GB - 1 day', amount: 510 },
-        { code: '1500.02', label: '6GB - 7 days', amount: 1520 },
-        { code: '500.03', label: '2.5GB - Weekend (Sat&Sun)', amount: 510 },
-        { code: '200.02', label: '875MB - Weekend (Sun)', amount: 210 },
-        { code: '30000.01', label: '165GB - 30 days', amount: 30300 },
-        { code: '36000.01', label: '220GB - 30 days', amount: 40390 },
-        { code: '50000.01', label: '320GB - 30 days', amount: 50490 },
-        { code: '60000.01', label: '380GB - 30 days', amount: 60590 },
-        { code: '75000.01', label: '475GB - 30 days', amount: 75730 },
-        { code: '150000.03', label: '1TB - 365 days', amount: 156150 },
-    ],
-    '9mobile': [
-        { code: '50', label: '50MB - 30 days', amount: 30 },
-        { code: '100', label: '100MB - 30 days', amount: 60 },
-        { code: '300', label: '300MB - 30 days', amount: 170 },
-        { code: '500', label: '500MB - 30 days', amount: 270 },
-        { code: '1000', label: '1GB - 30 days', amount: 540 },
-        { code: '2000', label: '2GB - 30 days', amount: 1080 },
-        { code: '3000', label: '3GB - 30 days', amount: 1610 },
-        { code: '4000', label: '4GB - 30 days', amount: 2150 },
-        { code: '5000', label: '5GB - 30 days', amount: 2690 },
-        { code: '10000', label: '10GB - 30 days', amount: 5370 },
-        { code: '15000', label: '15GB - 30 days', amount: 8050 },
-        { code: '20000', label: '20GB - 30 days', amount: 10730 },
-        { code: '25000', label: '25GB - 30 days', amount: 13410 },
-        { code: '100.01', label: '100MB - 1 day', amount: 100 },
-        { code: '150.01', label: '180MB - 1 day', amount: 150 },
-        { code: '200.01', label: '250MB - 1 day', amount: 190 },
-        { code: '350.01', label: '450MB - 1 day', amount: 330 },
-        { code: '500.01', label: '650MB - 3 days', amount: 480 },
-        { code: '1500.01', label: '1.75GB - 7 days', amount: 1420 },
-        { code: '600.01', label: '650MB - 14 days', amount: 570 },
-        { code: '1000.01', label: '1.1GB - 30 days', amount: 950 },
-        { code: '1200.01', label: '1.4GB - 30 days', amount: 1140 },
-        { code: '2000.01', label: '2.44GB - 30 days', amount: 1890 },
-        { code: '2500.01', label: '3.17GB - 30 days', amount: 2360 },
-        { code: '3000.01', label: '3.91GB - 30 days', amount: 2830 },
-        { code: '4000.01', label: '5.10GB - 30 days', amount: 3780 },
-        { code: '5000.01', label: '6.5GB - 30 days', amount: 4720 },
-        { code: '12000.01', label: '16GB - 30 days', amount: 11320 },
-        { code: '18500.01', label: '24.3GB - 30 days', amount: 17450 },
-        { code: '20000.01', label: '26.5GB - 30 days', amount: 18860 },
-        { code: '30000.01', label: '39GB - 60 days', amount: 28290 },
-    ],
-};
+// Data plans now come from the cb_plans table (ConnectBridge Stock Plans), loaded in loadPlanPrices().
+const DATA_PLANS = { mtn: [], airtel: [], glo: [], '9mobile': [] };
 const WALLET_PENDING_KEY = "myutme_pending_wallet_refs";
 
 function getPendingWalletRefs() {
@@ -22746,8 +22588,11 @@ const PAY_NETS=[['mtn','MTN'],['airtel','Airtel'],['glo','Glo'],['9mobile','9mob
 function gainPct(){return state.gainPct!=null?Number(state.gainPct):9;}
 function planPrice(net,p){const o=(state.planPrices||{})[net+'|'+p.code]||(state.planNorm||{})[net+'|'+parseFloat(p.code)];const cost=o&&o.cost!=null?Number(o.cost):Math.round(p.amount/1.09);
  const gain=Math.ceil(cost*gainPct()/100);return{cost:cost,markup:gain,price:cost+gain,set:!!o};}
-async function loadPlanPrices(){if(state.planPricesLoaded)return;state.planPricesLoaded=true;state.planPrices={};
- try{const r=await supabase.from('plan_prices').select('*');state.planNorm={};(r.data||[]).forEach(function(x){state.planPrices[x.network+'|'+x.code]=x;const k=x.network+'|'+parseFloat(x.code);state.planNorm[k]=(k in state.planNorm)?null:x;});
+async function loadPlanPrices(){if(state.planPricesLoaded)return;state.planPricesLoaded=true;state.planPrices={};state.planNorm={};
+ try{const r=await supabase.from('cb_plans').select('*').eq('active',true).order('cost');
+  const dp={mtn:[],airtel:[],glo:[],'9mobile':[]};
+  (r.data||[]).forEach(function(x){(dp[x.network]=dp[x.network]||[]).push({code:String(x.plan_id),label:x.label,amount:Number(x.cost)});state.planPrices[x.network+'|'+x.plan_id]={cost:Number(x.cost)};});
+  Object.keys(dp).forEach(function(k){DATA_PLANS[k]=dp[k];});
   const g=await supabase.from('pay_settings').select('*').eq('key','gain_pct').maybeSingle();if(g.data)state.gainPct=Number(g.data.value);render();}catch(e){console.warn(e);}}
 async function payConfirmAndBuy(){const c=state.payConfirm;if(!c||state.payProcessing)return;
  const pw=(document.getElementById('pay-pw-input')||{}).value||'';
@@ -22780,7 +22625,7 @@ async function adminSaveGain(){if(!isAdmin())return;const v=Number((document.get
  state.gainPct=v;showToast('Gain set to '+v+'% on every plan','success');render();}
 async function adminSaveMarkup(code){if(!isAdmin())return;
  const v=Math.round(Number((document.getElementById('mk-'+code)||{}).value));
- if(!isFinite(v)||v<1){showToast('Enter the normal price from ClubKonnect.','error');return;}
+ if(!isFinite(v)||v<1){showToast('Enter the normal price.','error');return;}
  const row={network:state.payNetwork,code:code,cost:v,markup:0};
  const r=await supabase.from('plan_prices').upsert(row);
  if(r.error){showToast(r.error.message,'error');return;}
@@ -22791,7 +22636,7 @@ function renderPay(){
  if(typeof retryPendingWalletFundings==='function')retryPendingWalletFundings();loadPlanPrices();
  const bal=state.profile.walletBalance||0,scr=state.payScreen||'home',net=state.payNetwork||'mtn',N=function(n){return '\u20A6'+Number(n).toLocaleString();};
  const nn=(PAY_NETS.find(function(x){return x[0]===net;})||[])[1];
- let h='<div class="pp">';
+ let h='<div class="pp"><div style="background:#111827;color:#fff;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;font-weight:700">NEW BUILD v3 \u00B7 ConnectBridge (ClubKonnect removed)</div>';
  // overlays
  if(state.payProcessing)h+='<div class="pp-load"><div class="pp-spin"><img src="'+MYUTME_LOGO+'" alt="MyUTME"></div><span>Processing payment…</span></div>';
  else if(state.payResult){const r=state.payResult;h+='<div class="pp-load" style="padding:24px;text-align:center"><div style="width:84px;height:84px;border-radius:50%;background:'+(r.ok?'#0F6B3F':'#C0392B')+';color:#fff;font-size:44px;display:flex;align-items:center;justify-content:center">'+(r.ok?'\u2713':'\u2715')+'</div><div style="font-size:20px">'+(r.ok?'Payment successful':'Payment failed')+'</div><div style="font-size:13px;color:var(--muted);font-weight:500">'+esc(r.msg||'')+'</div><div style="font-size:26px;color:#111">'+N(r.c.amount)+'</div><button class="pp-cta" style="position:static;max-width:320px" data-action="pay-done">Done</button></div>';}
@@ -23204,12 +23049,11 @@ function renderAdminPay() {
         '<input id="mf-amt" type="number" placeholder="Amount (\u20A6)">' +
         '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-manual-fund">Fund account</button></div>' +
         '<div class="pp-adm"><b style="font-size:13px">Normal prices</b>' +
-        '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:6px 0 12px" data-action="admin-sync-prices">Refresh prices from ClubKonnect</button>' +
         '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:0 0 12px;background:#1f2937" data-action="admin-test-cb">Test ConnectBridge connection (free)</button>' +
         '<b style="font-size:13px">Gain percentage</b>' +
         '<input id="gain-pct" type="number" min="0" max="100" step="0.5" value="' + gainPct() + '" placeholder="e.g. 9">' +
         '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-save-gain">Save gain %</button>' +
-        '<p style="font-size:11px;margin-top:8px">Selling price = normal price + gain %. Normal prices update automatically every day.</p></div>' +
+        '<p style="font-size:11px;margin-top:8px">Selling price = normal price + gain %. Plans and normal prices come from your ConnectBridge Stock Plans (table cb_plans).</p></div>' +
         '<p class="section-label">Data plan prices</p>' + nets +
         '<div class="card" style="padding:4px 12px">' + (rows || '<p style="font-size:12px;color:var(--faint);padding:10px 0">No plans.</p>') + '</div>'
     );
