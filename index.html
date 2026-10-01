@@ -21211,127 +21211,29 @@ function renderVaBlock() {
         '</div>';
 }
 
-// ============================================================
-//  BANK TRANSFER FUNDING (Paystack "Pay with Transfer", shown inside the app)
-//  The server creates a temporary account for one payment. The app shows the
-//  details + countdown, then checks the payment with verify-wallet-funding.
-// ============================================================
-const CREATE_TRANSFER_URL = SUPABASE_URL + "/functions/v1/create-transfer-charge";
-let __tfPoll = null, __tfTick = null;
-
-function tfExpired() {
-    return !state.tf || !state.tf.expires_at || (new Date(state.tf.expires_at).getTime() <= Date.now());
-}
-function tfFormatLeft() {
-    if (!state.tf) return '';
-    const ms = Math.max(0, new Date(state.tf.expires_at).getTime() - Date.now());
-    const m = Math.floor(ms / 60000), sec = Math.floor((ms % 60000) / 1000);
-    return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
-}
-function stopTfTimers() {
-    if (__tfPoll) { clearInterval(__tfPoll); __tfPoll = null; }
-    if (__tfTick) { clearInterval(__tfTick); __tfTick = null; }
-}
-function clearTransfer() {
-    stopTfTimers();
-    state.tf = null; state.tfMsg = '';
-}
-function startTfTimers() {
-    stopTfTimers();
-    __tfTick = setInterval(function() {
-        const el = document.getElementById('tf-countdown');
-        if (el) el.textContent = tfExpired() ? 'Expired' : tfFormatLeft();
-        if (state.tf && tfExpired() && !state.tfExpiredShown) { state.tfExpiredShown = true; render(); }
-    }, 1000);
-    let checks = 0;
-    __tfPoll = setInterval(async function() {
-        if (!state.tf) { stopTfTimers(); return; }
-        checks++;
-        // keep checking a little past expiry (a late transfer can still land), then stop
-        if (new Date(state.tf.expires_at).getTime() + 180000 < Date.now()) { stopTfTimers(); return; }
-        const ok = await verifyWalletFunding(state.tf.reference, true);
-        if (ok) clearTransfer();
-    }, 6000);
-}
-
-async function createTransferCharge() {
-    if (state.tfBusy) return;
-    const input = document.getElementById('fund-wallet-amount-input');
-    const amt = parseInt((input && input.value) || state.fundWalletAmount || 0, 10);
-    if (!amt || amt < 100) { showToast('Enter an amount of at least ₦100.', 'error'); return; }
-    state.fundWalletAmount = String(amt);
-    state.tfBusy = true; state.tfMsg = ''; render();
-    try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
-        if (!accessToken) throw new Error('Please log in again.');
-        const res = await fetch(CREATE_TRANSFER_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken, 'apikey': SUPABASE_ANON_KEY },
-            body: JSON.stringify({ amount: amt }),
-        });
-        const data = await res.json().catch(function() { return {}; });
-        if (!res.ok || data.error || !data.account_number) {
-            state.tfMsg = data.error || 'Could not get an account number. Please try again or use card.';
-        } else {
-            state.tf = data; state.tfExpiredShown = false;
-            startTfTimers();
-        }
-    } catch (e) {
-        state.tfMsg = (e && e.message) ? e.message : 'Could not reach the server. Please try again.';
-    }
-    state.tfBusy = false;
-    render();
-}
-
-function renderTransferView() {
-    const t = state.tf;
-    const expired = tfExpired();
-    const box = 'border:1.5px solid #0F6B3F;border-radius:16px;padding:14px;margin-bottom:12px;background:var(--card-bg)';
-    return '<div style="' + box + '">' +
-        '<div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.4px">TRANSFER EXACTLY</div>' +
-        '<div style="font-size:24px;font-weight:800;color:#0F6B3F;margin:2px 0 10px">₦' + Number(t.amount).toLocaleString() + '</div>' +
-        '<div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.4px">ACCOUNT NUMBER</div>' +
-        '<div style="font-size:28px;font-weight:800;letter-spacing:1.5px;margin:2px 0">' + esc(t.account_number) + '</div>' +
-        '<div style="font-size:13px;font-weight:700">' + esc(t.bank_name) + '</div>' +
-        '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">' + esc(t.account_name || '') + '</div>' +
-        '<button class="btn btn-green" style="padding:9px;font-size:13px" data-action="va-copy" data-value="' + esc(t.account_number) + '">Copy account number</button>' +
-        '<div style="margin-top:10px;font-size:12px;color:var(--muted)">' + (expired
-            ? '<b style="color:#C0392B">This account has expired.</b> Do not transfer to it. Get a new one below.'
-            : 'Expires in <b id="tf-countdown" style="color:var(--ink)">' + tfFormatLeft() + '</b>. Your wallet is credited automatically after you pay.') + '</div>' +
-        '</div>' +
-        (expired ? '' : '<button class="btn btn-green" style="padding:10px;font-size:13px" data-action="tf-check">I have paid, check now</button>') +
-        '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="tf-new">' + (expired ? 'Get a new account number' : 'Change amount') + '</button>';
-}
-
 function renderFundWalletModal() {
     if (!state.showFundWallet) return '';
-    if (state.tf && tfExpired() && !__tfPoll) { state.tf = null; }
-
+    
     const amount = state.fundWalletAmount || '';
     const quickAmounts = [1000, 2000, 5000, 10000];
     let quickBtns = '';
     quickAmounts.forEach(function(a) {
         quickBtns += '<button class="qbtn" data-action="fund-quick-amount" data-amount="' + a + '">₦' + a.toLocaleString() + '</button>';
     });
-
-    const head = '<div class="flag-overlay" data-action="close-fund-wallet"><div class="flag-modal" data-action="prevent-close">' +
-        '<h3 style="font-family:var(--font-serif);margin:0 0 2px;font-size:18px;color:var(--ink)">💳 Fund Wallet</h3>';
-    const foot = '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="close-fund-wallet">Close</button></div></div>';
-
-    if (state.tf) {
-        return head + '<p class="sub" style="font-size:11px">Send the money from any bank app</p>' + renderTransferView() + foot;
-    }
-
-    return head +
-        '<p class="sub" style="font-size:11px">Pay by bank transfer or by card</p>' +
+    
+    return (
+        '<div class="flag-overlay" data-action="close-fund-wallet">' +
+        '<div class="flag-modal" data-action="prevent-close">' +
+        '<h3 style="font-family:var(--font-serif);margin:0 0 2px;font-size:18px;color:var(--ink)">💳 Fund Wallet</h3>' +
+        '<p class="sub" style="font-size:11px">Enter an amount. You can pay by card, bank transfer or USSD without leaving the app.</p>' +
         '<label class="field-label">Amount (₦)</label>' +
         '<input class="field" id="fund-wallet-amount-input" type="number" placeholder="e.g. 2000" value="' + esc(amount) + '" style="margin-bottom:8px;font-size:16px;font-weight:700" />' +
         '<div class="fund-quick-btns">' + quickBtns + '</div>' +
-        (state.tfMsg ? '<p style="color:#C0392B;font-size:12px;margin:6px 0 0">' + esc(state.tfMsg) + '</p>' : '') +
-        '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:6px"' + (state.tfBusy ? ' disabled' : '') + ' data-action="fund-wallet-transfer">' + (state.tfBusy ? 'Getting account number…' : '🏦 Pay by bank transfer') + '</button>' +
-        '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="fund-wallet-paystack">Pay with card (Paystack)</button>' +
-        foot;
+        '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:4px" data-action="fund-wallet-paystack">Pay with Paystack</button>' +
+        '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="close-fund-wallet">Cancel</button>' +
+        '</div>' +
+        '</div>'
+    );
 }
 
 // ============================================================
@@ -22681,7 +22583,6 @@ function renderPay(){
  const bal=state.profile.walletBalance||0,N=function(n){return '\u20A6'+Number(n).toLocaleString();};
  let h='<div class="pp">';
  h+='<div class="pp-hero"><small>Wallet balance</small><b>'+N(bal)+'</b><div class="r"><button data-action="open-fund-wallet">+ Top up</button><button data-action="set-view" data-view="transactions">History</button></div></div>';
- h+=renderVaBlock();
  h+='<div class="pp-tiles"><button class="pp-tile" data-action="set-view" data-view="activate"><span class="pp-ic" style="background:#EDE7F6"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#6E5296" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 3M14 9l2 2"/></svg></span>Activate</button></div>';
  return h+'</div>';}
 
@@ -31082,17 +30983,6 @@ if (action === 'browse-filter') {
     //  NEW: FUND WALLET
     // ============================================================
     if (action === 'va-create') { createVirtualAccount(); return; }
-    if (action === 'fund-wallet-transfer') { createTransferCharge(); return; }
-    if (action === 'tf-check') {
-        if (state.tf) {
-            verifyWalletFunding(state.tf.reference, true).then(function(ok) {
-                if (ok) clearTransfer();
-                else showToast('Not received yet. It can take a minute. We keep checking automatically.', '');
-            });
-        }
-        return;
-    }
-    if (action === 'tf-new') { clearTransfer(); render(); return; }
     if (action === 'va-copy') {
         const v = el.getAttribute('data-value') || '';
         try { navigator.clipboard.writeText(v).then(function() { showToast('Account number copied', 'success'); }, function() { showToast(v, ''); }); }
@@ -31968,7 +31858,12 @@ document.addEventListener('focusin', function (e) {
 
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
-        navigator.serviceWorker.register("sw.js").catch(function (err) {
+        navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (reg) {
+            reg.update().catch(function () {});
+            document.addEventListener("visibilitychange", function () {
+                if (document.visibilityState === "visible") reg.update().catch(function () {});
+            });
+        }).catch(function (err) {
             console.warn("SW registration failed:", err);
         });
     });
