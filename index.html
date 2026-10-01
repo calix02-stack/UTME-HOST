@@ -21223,7 +21223,7 @@ function renderFundWalletModal() {
             '<p class="sub" style="font-size:12px">Amount: <b>₦' + Number(ps.amount).toLocaleString() + '</b><br>' +
             'This page stays for <b id="pay-countdown">' + payLeftText() + '</b>. Paid already? Your wallet is credited automatically, or tap the button below.</p>' +
             '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:4px" data-action="pay-check">Check my payment</button>' +
-            '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="pay-reopen">Open payment window again</button>' +
+            '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="pay-reopen">' + (ps.authUrl ? 'Open my payment page again' : 'Open payment window again') + '</button>' +
             '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="pay-cancel">Cancel this payment</button>' +
             '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="close-fund-wallet">Hide (it will come back)</button>' +
             '</div></div>'
@@ -21241,11 +21241,12 @@ function renderFundWalletModal() {
         '<div class="flag-overlay" data-action="close-fund-wallet">' +
         '<div class="flag-modal" data-action="prevent-close">' +
         '<h3 style="font-family:var(--font-serif);margin:0 0 2px;font-size:18px;color:var(--ink)">💳 Fund Wallet</h3>' +
-        '<p class="sub" style="font-size:11px">Enter an amount. You can pay by card, bank transfer or USSD without leaving the app.</p>' +
+        '<p class="sub" style="font-size:11px">Enter an amount, then pay by card, bank transfer or USSD on the secure Paystack payment page.</p>' +
         '<label class="field-label">Amount (₦)</label>' +
         '<input class="field" id="fund-wallet-amount-input" type="number" placeholder="e.g. 2000" value="' + esc(amount) + '" style="margin-bottom:8px;font-size:16px;font-weight:700" />' +
         '<div class="fund-quick-btns">' + quickBtns + '</div>' +
-        '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:4px" data-action="fund-wallet-paystack">Pay with Paystack</button>' +
+        '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:4px"' + (state.payBusy ? ' disabled' : '') + ' data-action="fund-wallet-browser">' + (state.payBusy ? 'Opening…' : 'Pay with Paystack (opens payment page)') + '</button>' +
+        '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="fund-wallet-paystack">Pay inside the app instead</button>' +
         '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="close-fund-wallet">Cancel</button>' +
         '</div>' +
         '</div>'
@@ -21695,6 +21696,53 @@ function startPayTimers() {
         verifyWalletFunding(o.ref, true);
     }, 7000);
 }
+const INIT_PAYMENT_URL = SUPABASE_URL + "/functions/v1/initialize-wallet-payment";
+
+// Pay on Paystack's own page (opens in the browser). It keeps working even if this app is closed or
+// restarted, and the same link always shows the same payment / account number.
+async function startBrowserPayment(amt, win) {
+    if (state.payBusy) { if (win) win.close(); return; }
+    state.payBusy = true; render();
+    try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
+        if (!accessToken) throw new Error('Please log in again.');
+        const res = await fetch(INIT_PAYMENT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken, 'apikey': SUPABASE_ANON_KEY },
+            body: JSON.stringify({ amount: amt, callback_url: location.origin + location.pathname }),
+        });
+        const data = await res.json().catch(function() { return {}; });
+        if (!res.ok || data.error || !data.authorization_url) throw new Error(data.error || 'Could not start the payment. Please try again.');
+        const sess = { ref: data.reference, amount: amt, startedAt: Date.now(), expiresAt: Date.now() + PAY_SESSION_MS, authUrl: data.authorization_url };
+        savePaySession(sess);
+        startPayTimers();
+        state.payBusy = false;
+        if (win) { win.location.href = data.authorization_url; }
+        else { window.location.href = data.authorization_url; }
+        render();
+    } catch (e) {
+        state.payBusy = false;
+        if (win) { try { win.close(); } catch (x) {} }
+        showToast((e && e.message) ? e.message : 'Could not start the payment.', 'error');
+        render();
+    }
+}
+
+// When Paystack sends the user back to the app after paying (?reference=WALLET-...), confirm the payment.
+function handlePaystackReturn() {
+    try {
+        const u = new URL(location.href);
+        const ref = u.searchParams.get('reference') || u.searchParams.get('trxref');
+        if (ref && ref.indexOf('WALLET-') === 0 && state.authUser) {
+            u.searchParams.delete('reference'); u.searchParams.delete('trxref');
+            history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+            showToast('Checking your payment…', '');
+            verifyWalletFunding(ref);
+        }
+    } catch (e) {}
+}
+
 function openPaystackForSession(o) {
     if (typeof PaystackPop === 'undefined') {
         loadPaystackThen(function() { openPaystackForSession(o); });
@@ -31140,6 +31188,14 @@ if (action === 'browse-filter') {
         openPaystackForSession(sess);
         return;
     }
+    if (action === 'fund-wallet-browser') {
+        const amt = parseInt(document.getElementById('fund-wallet-amount-input')?.value || 0);
+        if (!amt || amt < 100) { showToast('Enter an amount of at least ₦100.', 'error'); return; }
+        state.fundWalletAmount = String(amt);
+        const win = window.open('', '_blank'); // must open right now, inside the tap
+        startBrowserPayment(amt, win);
+        return;
+    }
     if (action === 'pay-check') {
         const o = getPaySession();
         if (o) {
@@ -31151,7 +31207,8 @@ if (action === 'browse-filter') {
     }
     if (action === 'pay-reopen') {
         const o = getPaySession();
-        if (o) openPaystackForSession(o);
+        if (o && o.authUrl) { if (!window.open(o.authUrl, '_blank')) window.location.href = o.authUrl; }
+        else if (o) openPaystackForSession(o);
         return;
     }
     if (action === 'pay-cancel') {
@@ -31666,6 +31723,7 @@ async function init() {
         console.warn('seedOfflineDataIfNeeded is not defined — skipping offline seed.');
     }
     render();
+    handlePaystackReturn(); // back from Paystack's payment page
     resumePaySession(); // reopen the Pay page if a payment was in progress
 
     // Exam Link: ?examlink=<mockExamId> in the URL. Checked after auth
