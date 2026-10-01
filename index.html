@@ -190,7 +190,7 @@
        normal drag-to-refresh in the browser tab did nothing — which is not
        what was wanted. Leaving this as the default (auto) lets the real
        native pull-to-refresh work. */
-    overscroll-behavior-y: auto;
+    overscroll-behavior-y: none; /* never let the browser pull-to-refresh the app */
     height: 100%;
     overflow: hidden;
 }
@@ -509,7 +509,7 @@
            html/body rule above — swallowed the drag-down-at-the-top gesture
            so it could never reach the browser's native reload action. Set
            to auto so a real drag-to-refresh works, same as any normal site. */
-        overscroll-behavior-y: auto;
+        overscroll-behavior-y: none; /* never let the browser pull-to-refresh the app */
     }
     .view::-webkit-scrollbar { display: none; }
 
@@ -7097,6 +7097,7 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
 }
 .typing-indicator .dots span { animation: typingDot 1.4s infinite !important; }
 #ptr-ind { display: none !important; }
+html, body { overscroll-behavior: none !important; }
 </style>
 <style>
 .pp{padding-bottom:90px}.pp-hero{background:linear-gradient(135deg,#0F6B3F,#0A4A2B);color:#fff;border-radius:20px;padding:18px;margin-bottom:16px}
@@ -21213,6 +21214,21 @@ function renderVaBlock() {
 
 function renderFundWalletModal() {
     if (!state.showFundWallet) return '';
+    const ps = getPaySession();
+    if (ps) {
+        return (
+            '<div class="flag-overlay" data-action="prevent-close">' +
+            '<div class="flag-modal" data-action="prevent-close">' +
+            '<h3 style="font-family:var(--font-serif);margin:0 0 2px;font-size:18px;color:var(--ink)">⏳ Payment in progress</h3>' +
+            '<p class="sub" style="font-size:12px">Amount: <b>₦' + Number(ps.amount).toLocaleString() + '</b><br>' +
+            'This page stays for <b id="pay-countdown">' + payLeftText() + '</b>. Paid already? Your wallet is credited automatically, or tap the button below.</p>' +
+            '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:4px" data-action="pay-check">Check my payment</button>' +
+            '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="pay-reopen">Open payment window again</button>' +
+            '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="pay-cancel">Cancel this payment</button>' +
+            '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="close-fund-wallet">Hide (it will come back)</button>' +
+            '</div></div>'
+        );
+    }
     
     const amount = state.fundWalletAmount || '';
     const quickAmounts = [1000, 2000, 5000, 10000];
@@ -21631,6 +21647,100 @@ function setPendingWalletRefs(list) {
     try { localStorage.setItem(WALLET_PENDING_KEY, JSON.stringify(list)); } catch (e) { console.warn('pending refs save failed', e); }
 }
 
+// ============================================================
+//  PAYMENT IN PROGRESS (survives the app being closed / restarted)
+//  Saved the moment the user taps "Pay with Paystack". If they leave to
+//  their bank app and the app restarts, it reopens straight on the Pay
+//  page with a "Payment in progress" screen for PAY_SESSION_MS.
+// ============================================================
+const PAY_SESSION_KEY = "myutme_pay_session";
+const PAY_SESSION_MS = 20 * 60 * 1000; // 20 minutes
+let __payTick = null, __payPoll = null;
+
+function getPaySession() {
+    try {
+        const o = JSON.parse(localStorage.getItem(PAY_SESSION_KEY) || 'null');
+        if (!o || !o.ref || !o.expiresAt) return null;
+        if (Date.now() > o.expiresAt) { localStorage.removeItem(PAY_SESSION_KEY); return null; }
+        return o;
+    } catch (e) { return null; }
+}
+function savePaySession(o) { try { localStorage.setItem(PAY_SESSION_KEY, JSON.stringify(o)); } catch (e) {} }
+function stopPayTimers() {
+    if (__payTick) { clearInterval(__payTick); __payTick = null; }
+    if (__payPoll) { clearInterval(__payPoll); __payPoll = null; }
+}
+function clearPaySession() {
+    try { localStorage.removeItem(PAY_SESSION_KEY); } catch (e) {}
+    stopPayTimers();
+}
+function payLeftText() {
+    const o = getPaySession();
+    if (!o) return '00:00';
+    const ms = Math.max(0, o.expiresAt - Date.now());
+    const m = Math.floor(ms / 60000), sec = Math.floor((ms % 60000) / 1000);
+    return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+function startPayTimers() {
+    stopPayTimers();
+    __payTick = setInterval(function() {
+        if (!getPaySession()) { stopPayTimers(); state.showFundWallet = false; render(); return; }
+        const el = document.getElementById('pay-countdown');
+        if (el) el.textContent = payLeftText();
+    }, 1000);
+    // quietly check whether the money has arrived
+    __payPoll = setInterval(function() {
+        const o = getPaySession();
+        if (!o) { stopPayTimers(); return; }
+        verifyWalletFunding(o.ref, true);
+    }, 7000);
+}
+function openPaystackForSession(o) {
+    if (typeof PaystackPop === 'undefined') {
+        loadPaystackThen(function() { openPaystackForSession(o); });
+        return;
+    }
+    const handler = PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: state.profile.email || (state.authUser.email || 'noemail@example.com'),
+        amount: o.amount * 100,
+        currency: 'NGN',
+        ref: o.ref,
+        metadata: {
+            user_id: state.authUser.id,
+            custom_fields: [
+                { display_name: "Purpose", variable_name: "purpose", value: "Wallet Funding" },
+                { display_name: "Username", variable_name: "username", value: state.profile.name || 'Guest' },
+            ]
+        },
+        callback: function(response) {
+            showToast('Payment received! Verifying...', '');
+            verifyWalletFunding(response.reference);
+        },
+        onClose: function() {
+            // keep the "Payment in progress" screen so they can tap "Check my payment"
+            if (getPaySession()) { state.showFundWallet = true; render(); }
+        }
+    });
+    handler.openIframe();
+}
+function resumePaySession() {
+    const o = getPaySession();
+    if (!o || !state.authUser) return;
+    state.view = 'pay';
+    state.showFundWallet = true;
+    state.fundWalletAmount = String(o.amount);
+    render();
+    startPayTimers();
+    verifyWalletFunding(o.ref, true); // maybe they already paid
+}
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+        const o = getPaySession();
+        if (o && state.authUser) { if (!state.showFundWallet) { state.showFundWallet = true; render(); } verifyWalletFunding(o.ref, true); }
+    }
+});
+
 async function verifyWalletFunding(reference, silent) {
     if (!state.authUser) return false;
     // Remember the reference so it can be retried if the app closes or the network drops
@@ -21659,6 +21769,7 @@ async function verifyWalletFunding(reference, silent) {
             return false;
         }
         setPendingWalletRefs(getPendingWalletRefs().filter(function(r) { return r !== reference; }));
+        clearPaySession();
         state.profile.walletBalance = data.balance;
         state.showFundWallet = false;
         state.fundWalletAmount = '';
@@ -30991,7 +31102,9 @@ if (action === 'browse-filter') {
     }
     if (action === 'open-fund-wallet') {
         state.showFundWallet = true;
-        state.fundWalletAmount = '';
+        const ps = getPaySession();
+        if (ps) { state.fundWalletAmount = String(ps.amount); startPayTimers(); }
+        else state.fundWalletAmount = '';
         render();
         return;
     }
@@ -31016,37 +31129,35 @@ if (action === 'browse-filter') {
             return;
         }
         state.fundWalletAmount = String(amt);
-        
-        if (typeof PaystackPop === 'undefined') {
-            loadPaystackThen(function() {
-                const b = document.querySelector('[data-action="fund-wallet-paystack"]');
-                if (b) b.click();
-            });
-            return;
-        }
-        
-        const handler = PaystackPop.setup({
-            key: PAYSTACK_PUBLIC_KEY,
-            email: state.profile.email || (state.authUser.email || 'noemail@example.com'),
-            amount: amt * 100,
-            currency: 'NGN',
+        const sess = {
             ref: 'WALLET-' + Date.now() + '-' + Math.floor(Math.random() * 100000),
-            metadata: {
-                user_id: state.authUser.id,
-                custom_fields: [
-                    { display_name: "Purpose", variable_name: "purpose", value: "Wallet Funding" },
-                    { display_name: "Username", variable_name: "username", value: state.profile.name || 'Guest' },
-                ]
-            },
-            callback: function(response) {
-                showToast('Payment received! Verifying...', '');
-                verifyWalletFunding(response.reference);
-            },
-            onClose: function() {
-                showToast('Payment window closed.', '');
-            }
-        });
-        handler.openIframe();
+            amount: amt,
+            startedAt: Date.now(),
+            expiresAt: Date.now() + PAY_SESSION_MS,
+        };
+        savePaySession(sess);   // remembered even if the app is closed or restarted
+        startPayTimers();
+        openPaystackForSession(sess);
+        return;
+    }
+    if (action === 'pay-check') {
+        const o = getPaySession();
+        if (o) {
+            verifyWalletFunding(o.ref, true).then(function(ok) {
+                if (!ok) showToast('Not received yet. Bank transfers can take a minute. We keep checking automatically.', '');
+            });
+        }
+        return;
+    }
+    if (action === 'pay-reopen') {
+        const o = getPaySession();
+        if (o) openPaystackForSession(o);
+        return;
+    }
+    if (action === 'pay-cancel') {
+        clearPaySession();
+        state.fundWalletAmount = '';
+        render();
         return;
     }
 
@@ -31555,6 +31666,7 @@ async function init() {
         console.warn('seedOfflineDataIfNeeded is not defined — skipping offline seed.');
     }
     render();
+    resumePaySession(); // reopen the Pay page if a payment was in progress
 
     // Exam Link: ?examlink=<mockExamId> in the URL. Checked after auth
     // state is known and offline questions are seeded, so both the
@@ -31680,6 +31792,7 @@ async function init() {
 // Clicking it is handled by the normal data-action dispatcher in
 // handleAction(), which calls refreshApp() below.
 function refreshApp() {
+    if (typeof getPaySession === 'function' && getPaySession()) { showToast('A payment is in progress. Finish or cancel it before refreshing.', ''); return; }
     const btn = document.querySelector('.topbar-refresh-btn');
     if (btn) btn.classList.add('is-spinning');
     // A real location.reload() is a full browser navigation — offline,
