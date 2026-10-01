@@ -1,5 +1,13 @@
-// MyUTME service worker
-const CACHE_NAME = "myutme-cache-v12";
+// MyUTME service worker (v13) — always loads the NEWEST app, still works offline.
+//
+// WHAT CHANGED vs v12:
+//  - Page + offline-db.js: fetched fresh from the network EVERY time with cache:"no-store"
+//    (this bypasses the browser/host HTTP cache, which is what kept serving the old index.html).
+//  - The saved copy is used ONLY if the network fails or takes longer than PAGE_TIMEOUT_MS.
+//  - Cache name bumped to v13 so all v12 data is deleted on activate.
+//  - Question data files keep the "instant + refresh in background" behaviour (good for offline use),
+//    but the background refresh now also bypasses the HTTP cache.
+const CACHE_NAME = "myutme-cache-v13";
 
 const APP_SHELL = [
   "./",
@@ -10,26 +18,17 @@ const APP_SHELL = [
   "./offline-db.js",
 ];
 
-// How long to give a background revalidation fetch before giving up.
 const FETCH_TIMEOUT_MS = 8000;
-// The app page itself: try the network first, but fall back to the saved copy quickly.
-const PAGE_TIMEOUT_MS = 4000;
+// Only fall back to the saved page if the network has not answered in this long (very slow / no internet).
+const PAGE_TIMEOUT_MS = 12000;
 
-function fetchWithTimeout(request, timeoutMs = FETCH_TIMEOUT_MS) {
+// fetch that skips the browser's HTTP cache, with a timeout
+function freshFetch(request, timeoutMs = FETCH_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error("Network request timed out"));
-    }, timeoutMs);
-
-    fetch(request).then(
-      (response) => {
-        clearTimeout(timer);
-        resolve(response);
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      }
+    const timer = setTimeout(() => reject(new Error("Network request timed out")), timeoutMs);
+    fetch(request, { cache: "no-store" }).then(
+      (response) => { clearTimeout(timer); resolve(response); },
+      (err) => { clearTimeout(timer); reject(err); }
     );
   });
 }
@@ -37,7 +36,13 @@ function fetchWithTimeout(request, timeoutMs = FETCH_TIMEOUT_MS) {
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      Promise.all(APP_SHELL.map((url) => cache.add(url).catch(() => null)))
+      Promise.all(
+        APP_SHELL.map((url) =>
+          fetch(url, { cache: "no-store" })
+            .then((res) => (res && res.ok ? cache.put(url, res) : null))
+            .catch(() => null)
+        )
+      )
     )
   );
   self.skipWaiting();
@@ -45,15 +50,11 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) return caches.delete(key);
-        })
-      )
-    )
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : null))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -73,11 +74,10 @@ self.addEventListener("fetch", (event) => {
 
   const isAppScript = url.pathname.endsWith(".js") && /offline-db/.test(url.pathname);
 
-  // The app page: NETWORK FIRST so a newly uploaded index.html shows immediately.
-  // If the network is slow or offline, the saved copy is used (offline still works).
-  if (isAppShell) {
+  // The app page and offline-db.js: NETWORK FIRST, always fresh. Saved copy only if offline/very slow.
+  if (isAppShell || isAppScript) {
     event.respondWith(
-      fetchWithTimeout(event.request, PAGE_TIMEOUT_MS)
+      freshFetch(event.request, PAGE_TIMEOUT_MS)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const clone = networkResponse.clone();
@@ -87,25 +87,23 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(() =>
           caches
-            .match(event.request)
-            .then((cached) => cached || caches.match("./index.html"))
+            .match(event.request, { ignoreSearch: isAppScript })
+            .then((cached) => cached || (isAppShell ? caches.match("./index.html") : null))
             .then((cached) => cached || Response.error())
         )
     );
     return;
   }
 
-  // Question data and offline script: show saved copy instantly, refresh in the background.
-  if (isQuestionDataFile || isAppScript) {
-    const ignoreSearch = true;
+  // Question data: show saved copy instantly, refresh in the background (fresh, not from HTTP cache).
+  if (isQuestionDataFile) {
     event.respondWith(
-      caches.match(event.request, { ignoreSearch }).then((cached) => {
-        const revalidate = fetchWithTimeout(event.request)
+      caches.match(event.request, { ignoreSearch: true }).then((cached) => {
+        const revalidate = freshFetch(event.request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               const clone = networkResponse.clone();
-              const key = isAppScript ? new Request(url.origin + url.pathname) : event.request;
-              caches.open(CACHE_NAME).then((cache) => cache.put(key, clone));
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
             }
             return networkResponse;
           })
@@ -121,9 +119,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Everything else on your site (icons, manifest...): saved copy first, refreshed in the background.
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const fetchPromise = fetchWithTimeout(event.request)
+      const fetchPromise = freshFetch(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const clone = networkResponse.clone();
@@ -137,6 +136,7 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+// ---- Push notifications (unchanged from v12) ----
 self.addEventListener("push", (event) => {
   let data = {};
   try {
