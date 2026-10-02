@@ -3533,82 +3533,6 @@
     .faq-img-upload-preview img { width: 100%; height: 100%; object-fit: cover; }
 
     /* Post-login Activation Banner */
-    /* Persistent "Not Activated" signboard — sits at the top of the app,
-       cannot be dismissed, but doesn't block interaction with the rest of the app. */
-    .act-signboard {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
-        background: linear-gradient(90deg, #B9821F 0%, var(--gold) 50%, #B9821F 100%);
-        color: #2b1d05;
-        position: relative;
-        z-index: 5;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-    }
-    .act-signboard .as-icons {
-        display: flex;
-        align-items: center;
-        flex-shrink: 0;
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        background: rgba(255,255,255,0.35);
-        position: relative;
-        justify-content: center;
-    }
-    .act-signboard .as-icons svg:first-child {
-        width: 22px;
-        height: 22px;
-    }
-    .act-signboard .as-icons .as-badge {
-        position: absolute;
-        bottom: -4px;
-        right: -4px;
-        width: 18px;
-        height: 18px;
-        border-radius: 999px;
-        background: var(--danger);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid #b9821f;
-    }
-    .act-signboard .as-badge svg { width: 10px; height: 10px; stroke: #fff; }
-    .act-signboard .as-text {
-        flex: 1;
-        min-width: 0;
-    }
-    .act-signboard .as-title {
-        font-size: 12.5px;
-        font-weight: 800;
-        margin: 0 0 1px;
-        letter-spacing: 0.01em;
-    }
-    .act-signboard .as-sub {
-        font-size: 10.5px;
-        margin: 0;
-        opacity: 0.85;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .act-signboard .as-btn {
-        flex-shrink: 0;
-        background: var(--ink);
-        color: #fff;
-        border: none;
-        border-radius: 999px;
-        padding: 8px 14px;
-        font-size: 11.5px;
-        font-weight: 700;
-        cursor: pointer;
-        white-space: nowrap;
-    }
-    .act-signboard .as-btn:hover { background: #0a1a10; }
-    @media (max-width: 360px) {
-        .act-signboard .as-sub { display: none; }
-    }
 
     /* Featured "Activate" card — matches the requested reference design:
        a white/natural rounded card with a dark green icon tile (laptop +
@@ -7100,18 +7024,25 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
 html, body { overscroll-behavior: none !important; }
 </style>
 <style>
-.pp{padding-bottom:90px}.pp-hero{background:linear-gradient(135deg,#0F6B3F,#0A4A2B);color:#fff;border-radius:20px;padding:18px;margin-bottom:16px}
-.pp-hero small{opacity:.8;font-size:12px}.pp-hero b{display:block;font-size:28px;margin:2px 0 12px}
-.pp-hero .r{display:flex;gap:8px}.pp-hero button{flex:1;border:0;border-radius:999px;padding:9px;font-weight:700;font-size:12px;background:rgba(255,255,255,.18);color:#fff}
-.pp-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
-.pp-tile{border:0;background:var(--card-bg);border-radius:20px;padding:18px 6px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:700;color:var(--ink);font-size:13px}
-.pp-ic{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center}
-.pp-top{display:flex;align-items:center;gap:10px;margin-bottom:14px}.pp-top button{border:0;background:var(--card-bg);width:36px;height:36px;border-radius:50%;box-shadow:var(--shadow-sm);font-size:18px;color:var(--ink)}
-.pp-cta{position:sticky;bottom:10px;margin-top:12px;width:100%;border:0;border-radius:999px;padding:15px;font-weight:800;font-size:15px;background:#0F6B3F;color:#fff}.pp-cta:disabled{opacity:.45}
-.pp-spin{position:relative;width:96px;height:96px}.pp-spin:before{content:"";position:absolute;inset:0;border-radius:50%;border:4px solid #E8F5E9;border-top-color:#0F6B3F;animation:ppr 1s linear infinite}
-.pp-spin img{position:absolute;inset:16px;width:64px;height:64px;border-radius:16px;animation:ppp 1.4s ease-in-out infinite}
-@keyframes ppr{to{transform:rotate(360deg)}}@keyframes ppp{50%{transform:scale(.88)}}
-.pp-adm{border:1.5px dashed #E4A93A;background:#FFF8E8;border-radius:16px;padding:14px;margin-bottom:14px;color:#5a4310}.pp-adm input{width:100%;margin:6px 0;padding:10px;border-radius:10px;border:1px solid var(--input-border);font-size:13px}
+.myk-card{border:1.5px solid var(--gold);border-radius:16px;padding:12px;margin-bottom:12px;background:var(--card-bg)}
+.myk-h{font-size:13px;font-weight:800;margin:0 0 2px;color:var(--ink)}
+.myk-sub{font-size:10px;color:var(--muted);margin:0 0 6px;line-height:1.4}
+.myk-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+.myk-row:last-child{border-bottom:0;padding-bottom:0}
+.myk-main{flex:1;min-width:0}
+.myk-key{font-family:var(--font-mono);font-size:14px;font-weight:800;letter-spacing:.05em;margin:0;color:var(--ink);word-break:break-all}
+.myk-meta{font-size:10px;color:var(--muted);margin:2px 0 0;line-height:1.4}
+.myk-pill{font-size:9px;font-weight:800;padding:3px 9px;border-radius:999px;color:#fff;white-space:nowrap}
+.myk-pill.pending{background:#E4A93A}.myk-pill.rejected{background:#C0392B}.myk-pill.used{background:var(--faint)}
+.paid-plan{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:12px;padding:9px 10px;margin-bottom:6px;cursor:pointer;background:var(--bg)}
+.paid-plan.on{border-color:var(--green);background:rgba(15,107,63,.08)}
+.paid-plan .pp-n{flex:1;font-size:12px;font-weight:700;color:var(--ink);margin:0}
+.paid-plan .pp-s{font-size:10px;color:var(--muted);margin:1px 0 0}
+.paid-plan .pp-p{font-family:var(--font-mono);font-size:13px;font-weight:800;color:var(--ink)}
+.paid-seg{display:flex;gap:6px;margin-bottom:8px}
+.paid-seg button{flex:1;border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 4px;font-size:11px;font-weight:700;color:var(--ink);cursor:pointer;font-family:inherit}
+.paid-seg button.on{border-color:var(--green);background:rgba(15,107,63,.08);color:var(--green)}
+.claim-card{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;background:var(--card-bg)}
 </style>
 </head>
 <body>
@@ -7139,7 +7070,6 @@ html, body { overscroll-behavior: none !important; }
 </div>
 
 <script id="supabase-cdn-script" async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
-<script async src="https://js.paystack.co/v1/inline.js"></script>
 <!-- Client-side PDF generation (result breakdowns + analytics summary). No server involved. -->
 <script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <!-- Client-side PDF rendering for the in-app Study Materials viewer. Files
@@ -7586,8 +7516,6 @@ const GOLD = "#E4A93A";
 const SUPPORT_BOT_NAME = "Support";
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/GwSJGQCaWbL0Hd4hw6Pu8W";
-const PAYSTACK_PUBLIC_KEY = "pk_live_58e6b5b2ecc81730786fb95ec444a77422a4b2b4";
-const PAYSTACK_VERIFY_URL = SUPABASE_URL + "/functions/v1/verify-paystack-payment";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const SEND_PUSH_URL = SUPABASE_URL + "/functions/v1/send-push-notification";
 const SEND_EMAIL_URL = SUPABASE_URL + "/functions/v1/Send-bulk-email";
@@ -7597,6 +7525,8 @@ const SEND_DAILY_REMINDER_URL = SUPABASE_URL + "/functions/v1/send-daily-reminde
 const ADMIN_WHATSAPP_NUMBER = "2347072853151";
 const SUPPORT_WHATSAPP_NUMBER = "2348071826114"; // displayed as 08071826114, wa.me needs country code without leading 0
 const SUPPORT_WHATSAPP_DISPLAY = "08071826114";
+// Bank details shown on the Activate screen for manual transfer. Fill these in.
+const BANK_DETAILS = { bank: "", number: "", name: "" };
 
 const SUBJECT_PALETTE = ["#3B5FA0", "#B5502E", "#6E5296", "#3E7C74", "#A67C2E", "#46527A", "#0F6B3F", "#97527A",
     "#B5703A", "#4A6FA0", "#A6453F", "#2E8577", "#6B4F82", "#2E7D68", "#96382B", "#315E82", "#B08968", "#3A5F82"
@@ -9178,10 +9108,7 @@ myEnrollmentsLoading: false,
     calcJustEvaluated: false,
     calcPosition: { x: null, y: null },
     showPassword: {},
-    activateIconDismissed: false,
     payBusy: false,
-    payMsg: '',
-    payMsgType: '',
     showActivationBanner: false,
     pwaInstallAvailable: false,
     
@@ -9216,11 +9143,13 @@ analyticsSubTab: 'overview',
     showAvatarUpload: false,
     avatarUploadFile: null,
     showFundWallet: false,
-    va: null,
-    vaLoaded: false,
-    vaBusy: false,
-    vaPhone: '',
-    vaMsg: '',
+    showPaidModal: false,
+    paidDraft: null,
+    myClaims: [],
+    myClaimsLoaded: false,
+    adminClaims: [],
+    adminClaimsLoaded: false,
+    adminClaimBusy: false,
     fundWalletAmount: '',
     walletTransactions: [],
     walletTransactionsLoaded: false,
@@ -13610,6 +13539,8 @@ async function adminAddPlan() {
 }
 
 async function adminDeletePlan(planId) {
+    const pending = await countPendingClaimsForPlan(planId);
+    if (pending > 0) { showToast(pending + ' payment request(s) are waiting on this plan. Confirm or reject them first.', 'error'); return; }
     if (!confirm("Delete this activation plan?")) return;
 
     try {
@@ -13686,13 +13617,7 @@ async function loadActivationKeys() {
     }
 }
 
-async function adminCreditReference() {
-    const ref = (document.getElementById('admin-credit-ref-input')?.value || '').trim();
-    if (!ref) { showToast('Paste a payment reference first.', 'error'); return; }
-    if (state.adminCreditBusy) return;
-    state.adminCreditBusy = true;
-    state.adminCreditResult = null;
-    render();
+async function creditReferenceOnServer(ref) {
     try {
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
@@ -13703,17 +13628,107 @@ async function adminCreditReference() {
             body: JSON.stringify({ reference: ref }),
         });
         const data = await res.json().catch(function() { return {}; });
-        if (!res.ok || data.error) {
-            state.adminCreditResult = { ok: false, text: data.error || 'Could not credit this reference.' };
-        } else {
-            state.adminCreditResult = { ok: true, text: data.message || 'Done.' };
-            try { await addLog(null, null, 'admin_credit_reference', 'Admin credited reference ' + ref); } catch (e) { console.warn("Ignored error:", e); }
-        }
+        if (!res.ok || data.error) return { ok: false, text: data.error || 'Could not credit this reference.' };
+        try { await addLog(null, null, 'admin_credit_reference', 'Admin credited reference ' + ref); } catch (e) { console.warn("Ignored error:", e); }
+        return { ok: true, text: data.message || 'Done.' };
     } catch (e) {
-        state.adminCreditResult = { ok: false, text: (e && e.message) || 'Network error. Try again.' };
+        return { ok: false, text: (e && e.message) || 'Network error. Try again.' };
     }
+}
+
+async function adminCreditReference() {
+    const ref = (document.getElementById('admin-credit-ref-input')?.value || '').trim();
+    if (!ref) { showToast('Paste a payment reference first.', 'error'); return; }
+    if (state.adminCreditBusy) return;
+    state.adminCreditBusy = true;
+    state.adminCreditResult = null;
+    render();
+    state.adminCreditResult = await creditReferenceOnServer(ref);
     state.adminCreditBusy = false;
     render();
+}
+
+// ============================================================
+//  PAYMENT REQUESTS ("I've paid") - ADMIN
+// ============================================================
+async function loadAdminClaims() {
+    if (!isAdmin()) return;
+    try {
+        const { data, error } = await supabase.from('payment_claims').select('*').order('created_at', { ascending: false }).limit(100);
+        if (error) throw error;
+        state.adminClaims = data || [];
+    } catch (e) {
+        console.warn('Load admin claims error:', e);
+        state.adminClaims = [];
+    }
+    state.adminClaimsLoaded = true;
+    render();
+}
+
+function adminPendingClaimCount() {
+    return (state.adminClaims || []).filter(function(c) { return c.status === 'pending'; }).length;
+}
+
+// A plan with unconfirmed payment requests cannot be edited or deleted.
+async function countPendingClaimsForPlan(planId) {
+    try {
+        const r = await supabase.from('payment_claims').select('id', { count: 'exact', head: true })
+            .eq('plan_id', String(planId)).eq('status', 'pending');
+        if (r.error) return 0;
+        return r.count || 0;
+    } catch (e) { return 0; }
+}
+
+async function adminConfirmClaim(id) {
+    const c = (state.adminClaims || []).find(function(x) { return String(x.id) === String(id); });
+    if (!c || c.status !== 'pending' || state.adminClaimBusy) return;
+    const isWallet = c.pay_type === 'wallet';
+    const q = isWallet
+        ? 'Credit reference ' + c.reference + ' to ' + (c.username || c.email) + '\'s wallet and confirm?'
+        : 'Confirm you received ₦' + Number(c.amount).toLocaleString() + ' from ' + c.account_name + ' and issue a ' + c.plan_name + ' key to ' + (c.username || c.email) + '?';
+    if (!confirm(q)) return;
+    state.adminClaimBusy = true; render();
+    try {
+        if (isWallet) {
+            const r = await creditReferenceOnServer(c.reference);
+            if (!r.ok && !confirm('Reference check said: ' + r.text + '\n\nMark this request as confirmed anyway?')) { state.adminClaimBusy = false; render(); return; }
+        }
+        // lock the request first so it cannot be confirmed twice
+        const up = await supabase.from('payment_claims').update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
+            .eq('id', c.id).eq('status', 'pending').select();
+        if (up.error || !up.data || !up.data.length) throw new Error('Could not update this request. It may already be handled.');
+        if (!isWallet) {
+            const g = await supabase.rpc('admin_generate_key', { p_plan_id: String(c.plan_id) });
+            if (g.error || !g.data || !g.data.key_code) {
+                await supabase.from('payment_claims').update({ status: 'pending', confirmed_at: null }).eq('id', c.id);
+                throw new Error((g.error && g.error.message) || 'Could not generate the key. Check that the plan still exists.');
+            }
+            await supabase.from('payment_claims').update({ key_code: g.data.key_code }).eq('id', c.id);
+            showToast('Confirmed. Key ' + g.data.key_code + ' sent to the user.', 'success');
+        } else {
+            showToast('Confirmed and wallet credited.', 'success');
+        }
+        try { await addLog(c.user_id, c.username, 'payment_claim_confirmed', c.plan_name + ' ₦' + c.amount); } catch (e) {}
+    } catch (e) {
+        showToast((e && e.message) || 'Could not confirm.', 'error');
+    }
+    state.adminClaimBusy = false;
+    await loadAdminClaims();
+}
+
+async function adminRejectClaim(id) {
+    const c = (state.adminClaims || []).find(function(x) { return String(x.id) === String(id); });
+    if (!c || c.status !== 'pending' || state.adminClaimBusy) return;
+    const reason = prompt('Reason shown to the user (e.g. "Payment not received"):', 'Payment not received');
+    if (reason === null) return;
+    state.adminClaimBusy = true; render();
+    try {
+        const up = await supabase.from('payment_claims').update({ status: 'rejected', admin_note: reason.trim() || null }).eq('id', c.id).eq('status', 'pending').select();
+        if (up.error || !up.data || !up.data.length) throw new Error('Could not update this request.');
+        showToast('Request rejected.', 'success');
+    } catch (e) { showToast((e && e.message) || 'Could not reject.', 'error'); }
+    state.adminClaimBusy = false;
+    await loadAdminClaims();
 }
 
 async function adminGenerateKey(planId) {
@@ -13729,163 +13744,6 @@ async function adminGenerateKey(planId) {
     }
     showToast('Key generated: ' + data.key_code, 'success');
     loadActivationKeys();
-}
-
-// Loads Paystack on demand if the page-load script failed or was still loading
-let __paystackLoading = false;
-function loadPaystackThen(onReady) {
-    if (typeof PaystackPop !== 'undefined') { onReady(); return; }
-    if (!isOnline()) { showToast("No internet connection. Please try again.", 'offline'); return; }
-    if (__paystackLoading) { showToast('Loading payment system… tap again in a moment.', ''); return; }
-    __paystackLoading = true;
-    showToast('Loading payment system…', '');
-    const tag = document.createElement('script');
-    tag.src = 'https://js.paystack.co/v1/inline.js?t=' + Date.now();
-    tag.onload = function() {
-        __paystackLoading = false;
-        if (typeof PaystackPop !== 'undefined') onReady();
-        else showToast('Payment system could not start. Please try again.', 'error');
-    };
-    tag.onerror = function() {
-        __paystackLoading = false;
-        showToast('Could not reach Paystack. Turn off any ad blocker or VPN, check your network, and try again.', 'error');
-    };
-    document.head.appendChild(tag);
-}
-
-function payWithPaystack(plan) {
-    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
-    if (typeof PaystackPop === 'undefined') {
-        loadPaystackThen(function() { payWithPaystack(plan); });
-        return;
-    }
-
-    const handler = PaystackPop.setup({
-        key: PAYSTACK_PUBLIC_KEY,
-        email: state.profile.email || (state.authUser.email || 'noemail@example.com'),
-        amount: plan.price * 100,
-        currency: 'NGN',
-        ref: 'MYUTME-' + Date.now() + '-' + Math.floor(Math.random() * 100000),
-        metadata: {
-            user_id: state.authUser.id,
-            plan_id: String(plan.id),
-            custom_fields: [
-                { display_name: "Plan", variable_name: "plan", value: plan.name },
-                { display_name: "Username", variable_name: "username", value: state.profile.name || 'Guest' },
-            ]
-        },
-        callback: function(response) {
-            showToast('Payment received! Verifying...', '');
-            verifyPaystackPayment(response.reference, plan.id);
-        },
-        onClose: function() {
-            showToast('Payment window closed.', '');
-        }
-    });
-    handler.openIframe();
-}
-
-const PLAN_PENDING_KEY = "myutme_pending_plan_payments";
-function getPendingPlanPayments() {
-    try { return JSON.parse(localStorage.getItem(PLAN_PENDING_KEY) || '[]'); } catch (e) { return []; }
-}
-function setPendingPlanPayments(list) {
-    try { localStorage.setItem(PLAN_PENDING_KEY, JSON.stringify(list)); } catch (e) { console.warn('pending payments save failed', e); }
-}
-// If the student paid but the app closed before the key arrived, get it now (safe to repeat)
-let __planRetryDone = false;
-function retryPendingPlanPayments() {
-    if (__planRetryDone || !state.authUser) return;
-    __planRetryDone = true;
-    getPendingPlanPayments().forEach(function(p) { verifyPaystackPayment(p.ref, p.planId, true); });
-}
-
-async function verifyPaystackPayment(reference, planId, silent) {
-    const pendingList = getPendingPlanPayments();
-    if (!pendingList.some(function(p) { return p.ref === reference; })) {
-        pendingList.push({ ref: reference, planId: planId });
-        setPendingPlanPayments(pendingList);
-    }
-    const dropPending = function() { setPendingPlanPayments(getPendingPlanPayments().filter(function(p) { return p.ref !== reference; })); };
-    if (!silent) {
-        state.activateStatus = 'checking';
-        state.activateStatusMsg = 'Verifying your payment…';
-        render();
-    }
-
-    try {
-        // Send the user's own login token; the server works out who the user is
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
-        if (!accessToken) throw new Error('Please log in again.');
-        const res = await fetch(PAYSTACK_VERIFY_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + accessToken,
-                'apikey': SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({
-                reference: reference,
-                planId: planId,
-            }),
-        });
-        const data = await res.json();
-
-        if (!res.ok || data.error) {
-            if (res.status >= 400 && res.status < 500 && res.status !== 401) dropPending();
-            if (silent) return;
-            state.activateStatus = 'error';
-            state.activateStatusMsg = data.error || 'Payment verification failed. Contact support with your reference: ' + reference;
-            render();
-            return;
-        }
-        dropPending();
-
-        state.activateCode = data.keyCode || '';
-        state.activateStatus = 'success';
-        state.activateStatusMsg = '🎉 Payment confirmed! Your activation key is ready (' + data.days + ' days). Tap Activate to switch on your account. Receipt: ' + reference;
-        state.myKeysLoaded = false;
-        showToast('Payment confirmed! Your key is ready.', 'success');
-        if (!silent) state.view = 'activate';
-        render();
-    } catch (e) {
-        if (silent) return;
-        state.activateStatus = 'error';
-        state.activateStatusMsg = 'Could not verify payment. We saved your payment and will keep trying. Reference: ' + reference;
-        render();
-    }
-}
-
-async function adminFakeFundWallet(amount) {
-    if (!isAdmin() || state.payBusy) return;
-    const amt = Math.round(Number(amount));
-    if (!amt || amt < 1) {
-        state.payMsg = 'Enter a valid amount.'; state.payMsgType = 'error'; render(); return;
-    }
-    state.payBusy = true; state.payMsg = 'Adding test funds...'; state.payMsgType = ''; render();
-    try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
-        if (!accessToken) throw new Error('Please log in again.');
-        const res = await fetch(ADMIN_FAKE_FUND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken, 'apikey': SUPABASE_ANON_KEY },
-            body: JSON.stringify({ amount: amt }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) {
-            state.payMsg = data.error || 'Could not add test funds.'; state.payMsgType = 'error';
-        } else {
-            state.profile.walletBalance = data.balance;
-            state.payMsg = 'Added \u20A6' + amt.toLocaleString() + ' test funds (not real money).'; state.payMsgType = 'success';
-            state.walletTransactionsLoaded = false;
-        }
-    } catch (e) {
-        state.payMsg = 'Could not reach the server. Please try again.'; state.payMsgType = 'error';
-    }
-    state.payBusy = false;
-    render();
 }
 
 async function loadMyKeys() {
@@ -13909,7 +13767,7 @@ function renderMyKeysView() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-            '<h2 class="title" style="font-size:14px">🔑 My Activation Keys</h2>' +
+            '<h2 class="title" style="font-size:14px">🔑 My Activation Key</h2>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to see your keys.</p></div>'
         );
     }
@@ -13921,39 +13779,239 @@ function renderMyKeysView() {
     );
 }
 
+// ============================================================
+//  MY ACTIVATION KEY  (keys from wallet/Paystack purchases + confirmed "I've paid" requests)
+// ============================================================
+function claimWhatsAppText(c) {
+    return 'Hello MyUTME Support, I have made a payment and I am waiting for confirmation.\n\n' +
+        '📦 Plan: ' + (c.plan_name || '') + '\n' +
+        '💰 Amount paid: ₦' + Number(c.amount || 0).toLocaleString() + '\n' +
+        '👤 Name on account: ' + (c.account_name || '') + '\n' +
+        (c.reference ? '🔗 Reference: ' + c.reference + '\n' : '') +
+        '✉️ Email: ' + (state.profile.email || '') + '\n' +
+        '🧾 Order code: ' + getOrderCode();
+}
+
 function renderMyKeysCard(showEmpty) {
     if (!state.authUser) return '';
-    retryPendingPlanPayments();
-    if (!state.myKeysLoaded) { loadMyKeys(); return showEmpty ? '<div class="loading-spinner"><div class="spinner"></div><p>Loading your keys...</p></div>' : ''; }
+    if (!state.myKeysLoaded) loadMyKeys();
+    if (!state.myClaimsLoaded) loadMyClaims();
     const keys = state.myKeys || [];
-    if (keys.length === 0) {
-        return showEmpty ? (
-            '<div class="card" style="text-align:center;padding:16px">' +
-            '<p style="font-size:12px;color:var(--muted);margin:0 0 10px">You have no saved keys yet. Keys you buy (Paystack or wallet) are kept here safely.</p>' +
-            '<button class="btn btn-gold" data-action="set-view" data-view="license-plans" style="padding:10px">Get License Key</button>' +
-            '</div>') : '';
-    }
+    const claims = state.myClaims || [];
+    const seen = {};
+    keys.forEach(function(k) { seen[String(k.key_code || '').toUpperCase()] = true; });
+    const weekAgo = Date.now() - 7 * 86400000;
     let rows = '';
+
+    claims.forEach(function(c) {
+        const when = esc(formatTimeAgo(c.created_at));
+        if (c.status === 'pending') {
+            rows += (
+                '<div class="myk-row"><div class="myk-main">' +
+                '<p style="font-size:12px;font-weight:700;margin:0;color:var(--ink)">' + esc(c.plan_name || 'Activation') + ' · ₦' + Number(c.amount || 0).toLocaleString() + '</p>' +
+                '<p class="myk-meta">Sent ' + when + ' · we verify within 2 hours or when admin is online. Your key will appear here.</p>' +
+                '</div><span class="myk-pill pending">PENDING</span>' +
+                '<button class="mini-btn" style="font-size:10px" data-action="claim-whatsapp" data-id="' + esc(String(c.id)) + '">💬 Text support</button></div>'
+            );
+        } else if (c.status === 'rejected' && new Date(c.created_at).getTime() > weekAgo) {
+            rows += (
+                '<div class="myk-row"><div class="myk-main">' +
+                '<p style="font-size:12px;font-weight:700;margin:0;color:var(--ink)">' + esc(c.plan_name || 'Activation') + ' · ₦' + Number(c.amount || 0).toLocaleString() + '</p>' +
+                '<p class="myk-meta">We could not confirm this payment' + (c.admin_note ? ': ' + esc(c.admin_note) : '.') + ' Text support on WhatsApp with your receipt.</p>' +
+                '</div><span class="myk-pill rejected">NOT CONFIRMED</span>' +
+                '<button class="mini-btn" style="font-size:10px" data-action="claim-whatsapp" data-id="' + esc(String(c.id)) + '">💬 Text support</button></div>'
+            );
+        } else if (c.status === 'confirmed' && !c.activated_at) {
+            if (c.pay_type === 'wallet') {
+                rows += (
+                    '<div class="myk-row"><div class="myk-main">' +
+                    '<p style="font-size:12px;font-weight:700;margin:0;color:var(--ink)">Wallet credited · ' + esc(c.plan_name || 'Activation') + '</p>' +
+                    '<p class="myk-meta">Your payment was confirmed. Tap Activate to use your wallet for this plan.</p>' +
+                    '</div><button class="mini-btn primary" style="font-size:10px" data-action="claim-activate-wallet" data-id="' + esc(String(c.id)) + '">Activate</button></div>'
+                );
+            } else if (c.key_code && !seen[String(c.key_code).toUpperCase()]) {
+                rows += (
+                    '<div class="myk-row"><div class="myk-main">' +
+                    '<p class="myk-key">' + esc(c.key_code) + '</p>' +
+                    '<p class="myk-meta">' + esc(c.plan_name || 'Activation') + ' · ' + (c.plan_days || 0) + ' days · Payment confirmed</p>' +
+                    '</div>' +
+                    '<button class="mini-btn" style="font-size:10px" data-action="copy-text" data-copy="' + esc(c.key_code) + '">📋 Copy</button>' +
+                    '<button class="mini-btn primary" style="font-size:10px" data-action="activate-key-now" data-key="' + esc(c.key_code) + '">Activate</button></div>'
+                );
+            }
+        }
+    });
+
     keys.forEach(function(k) {
         rows += (
-            '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)">' +
-            '<div style="flex:1;min-width:0">' +
-            '<p style="font-family:var(--font-mono);font-size:14px;font-weight:800;letter-spacing:0.05em;margin:0;color:' + (k.is_used ? 'var(--faint)' : 'var(--ink)') + '">' + esc(k.key_code) + '</p>' +
-            '<p style="font-size:10px;color:var(--muted);margin:2px 0 0">' + esc(k.plan_name || 'Activation') + ' · ' + (k.days || 0) + ' days' + (k.is_used ? ' · Used' : ' · Ready to use') + '</p>' +
+            '<div class="myk-row"><div class="myk-main">' +
+            '<p class="myk-key" style="color:' + (k.is_used ? 'var(--faint)' : 'var(--ink)') + '">' + esc(k.key_code) + '</p>' +
+            '<p class="myk-meta">' + esc(k.plan_name || 'Activation') + ' · ' + (k.days || 0) + ' days' + (k.is_used ? ' · Used' : ' · Ready to use') + '</p>' +
             '</div>' +
-            (k.is_used ? '<span style="font-size:10px;font-weight:800;color:#fff;background:var(--faint);padding:3px 9px;border-radius:999px">USED</span>' :
-                '<button class="mini-btn" data-action="copy-text" data-copy="' + esc(k.key_code) + '" style="font-size:10px">📋 Copy</button>' +
-                '<button class="mini-btn primary" data-action="activate-key-now" data-key="' + esc(k.key_code) + '" style="font-size:10px">Activate</button>') +
+            (k.is_used ? '<span class="myk-pill used">USED</span>' :
+                '<button class="mini-btn" style="font-size:10px" data-action="copy-text" data-copy="' + esc(k.key_code) + '">📋 Copy</button>' +
+                '<button class="mini-btn primary" style="font-size:10px" data-action="activate-key-now" data-key="' + esc(k.key_code) + '">Activate</button>') +
             '</div>'
         );
     });
+
+    if (!rows) {
+        if (!showEmpty) return '';
+        return (
+            '<div class="myk-card" style="text-align:center">' +
+            '<p class="myk-h">🔑 My Activation Key</p>' +
+            '<p class="myk-sub">No key yet. Once you pay and it is confirmed, your key appears here.</p>' +
+            '<button class="btn btn-gold" data-action="set-view" data-view="activate" style="padding:10px">Get License Key</button>' +
+            '</div>'
+        );
+    }
     return (
-        '<div class="card" style="margin-bottom:10px;border:1.5px solid var(--gold)">' +
-        '<p style="font-size:12px;font-weight:700;margin:0 0 4px">🔑 Your Activation Keys</p>' +
-        '<p style="font-size:10px;color:var(--muted);margin:0 0 6px">Saved safely to your account. Leave the app and come back anytime: your keys stay here. Copy one, or tap Activate.</p>' +
+        '<div class="myk-card">' +
+        '<p class="myk-h">🔑 My Activation Key</p>' +
+        '<p class="myk-sub">Saved to your account. Leave the app and come back anytime. Copy a key or tap Activate.</p>' +
         rows +
         '</div>'
     );
+}
+
+async function loadMyClaims() {
+    if (!state.authUser) return;
+    state.myClaimsLoaded = true; // set first so render() can't start it twice
+    try {
+        const { data, error } = await supabase.from('payment_claims').select('*')
+            .eq('user_id', state.authUser.id).order('created_at', { ascending: false }).limit(20);
+        if (error) throw error;
+        const prev = state.myClaims || [];
+        state.myClaims = data || [];
+        prev.forEach(function(p) {
+            if (p.status !== 'pending') return;
+            const n = state.myClaims.find(function(c) { return c.id === p.id; });
+            if (n && n.status === 'confirmed') showToast('✅ Payment confirmed! Your activation is ready.', 'success');
+        });
+        // balance may have been credited by admin
+        try {
+            const r = await supabase.from('profiles').select('wallet_balance').eq('id', state.authUser.id).maybeSingle();
+            if (r && r.data && r.data.wallet_balance != null) state.profile.walletBalance = Number(r.data.wallet_balance) || 0;
+        } catch (e2) {}
+    } catch (e) {
+        console.warn('Load claims error:', e);
+    }
+    render();
+}
+
+function openPaidModal(planId) {
+    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    if (!state.activationPlansLoaded) loadActivationPlans().then(function() { render(); });
+    const plan = planId ? state.activationPlans.find(function(p) { return String(p.id) === String(planId); }) : null;
+    state.paidDraft = {
+        planId: plan ? String(plan.id) : '',
+        type: 'transfer',
+        name: '',
+        amount: plan ? String(plan.price) : '',
+        amountTouched: false,
+        ref: '',
+        busy: false,
+    };
+    state.showPaidModal = true;
+    render();
+}
+
+function renderPaidModal() {
+    if (!state.showPaidModal || !state.paidDraft) return '';
+    const d = state.paidDraft;
+    const plans = (state.activationPlans || []).slice().sort(function(a, b) { return (a.days || 0) - (b.days || 0); });
+    let planRows = '';
+    if (!state.activationPlansLoaded) planRows = '<p style="font-size:12px;color:var(--muted)">Loading plans…</p>';
+    else if (!plans.length) planRows = '<p style="font-size:12px;color:var(--muted)">No plans available right now.</p>';
+    plans.forEach(function(p) {
+        const on = String(p.id) === String(d.planId);
+        planRows += (
+            '<div class="paid-plan' + (on ? ' on' : '') + '" data-action="paid-select-plan" data-planid="' + esc(String(p.id)) + '">' +
+            '<span class="lp-radio' + (on ? ' on' : '') + '"></span>' +
+            '<div style="flex:1;min-width:0"><p class="pp-n">' + esc(p.name) + '</p><p class="pp-s">' + esc(planDuration(p)) + '</p></div>' +
+            '<span class="pp-p">₦' + Number(p.price).toLocaleString() + '</span></div>'
+        );
+    });
+    const isWallet = d.type === 'wallet';
+    return (
+        '<div class="flag-overlay" data-action="close-paid-modal">' +
+        '<div class="flag-modal" data-action="prevent-close" style="max-height:88vh;overflow-y:auto">' +
+        '<h3 style="font-family:var(--font-serif);margin:0 0 2px;font-size:18px;color:var(--ink)">I\'ve paid</h3>' +
+        '<p class="sub" style="font-size:11px;line-height:1.45">Pick the plan you paid for and tell us who paid. We verify within 2 hours, or when admin is online. Your key then appears under My Activation Key.</p>' +
+        '<label class="field-label">1. Plan you paid for</label>' + planRows +
+        '<label class="field-label" style="margin-top:6px">2. How did you pay?</label>' +
+        '<div class="paid-seg">' +
+        '<button class="' + (!isWallet ? 'on' : '') + '" data-action="paid-type" data-type="transfer">Bank transfer</button>' +
+        '<button class="' + (isWallet ? 'on' : '') + '" data-action="paid-type" data-type="wallet">Paystack / wallet</button>' +
+        '</div>' +
+        '<label class="field-label">3. Name on the account you paid from</label>' +
+        '<input class="field" id="paid-name-input" placeholder="e.g. Ade Johnson" value="' + esc(d.name || '') + '" style="margin-bottom:8px;font-size:14px" />' +
+        '<label class="field-label">4. Amount you paid (₦)</label>' +
+        '<input class="field" id="paid-amount-input" type="number" inputmode="numeric" placeholder="e.g. 1000" value="' + esc(String(d.amount || '')) + '" style="margin-bottom:8px;font-size:14px" />' +
+        (isWallet ?
+            '<label class="field-label">5. Paystack reference</label>' +
+            '<input class="field" id="paid-ref-input" placeholder="e.g. WALLET-1790000000000-12345" value="' + esc(d.ref || '') + '" style="margin-bottom:4px;font-size:13px" />' +
+            '<p style="font-size:10px;color:var(--muted);margin:0 0 8px">Paid on Paystack but your wallet was not credited? Paste the reference. Admin checks it with Paystack and credits your wallet.</p>'
+            : '') +
+        '<button class="btn btn-green" style="padding:11px;font-size:13px;margin-top:4px"' + (d.busy ? ' disabled' : '') + ' data-action="submit-paid">' + (d.busy ? 'Sending…' : 'Submit payment for confirmation') + '</button>' +
+        '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="paid-whatsapp">💬 Text support on WhatsApp instead</button>' +
+        '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="close-paid-modal">Cancel</button>' +
+        '</div></div>'
+    );
+}
+
+async function submitPaymentClaim() {
+    const d = state.paidDraft;
+    if (!d || d.busy) return;
+    const plan = (state.activationPlans || []).find(function(p) { return String(p.id) === String(d.planId); });
+    if (!plan) { showToast('Select the plan you paid for first.', 'error'); return; }
+    const name = (d.name || '').trim();
+    const amount = Math.round(Number(d.amount));
+    const ref = (d.ref || '').trim();
+    if (name.length < 3) { showToast('Enter the name on the account you paid from.', 'error'); return; }
+    if (!amount || amount < 1) { showToast('Enter the amount you paid.', 'error'); return; }
+    if (d.type === 'wallet' && ref.length < 6) { showToast('Paste your Paystack reference.', 'error'); return; }
+    if ((state.myClaims || []).some(function(c) { return c.status === 'pending' && String(c.plan_id) === String(plan.id); })) {
+        showToast('You already have a pending request for this plan. Please wait for confirmation.', 'error'); return;
+    }
+    d.busy = true; render();
+    try {
+        // plan details are copied into the request, so editing the plan later cannot change what you paid for
+        const { error } = await supabase.from('payment_claims').insert([{
+            user_id: state.authUser.id,
+            username: state.profile.name || '',
+            email: state.profile.email || '',
+            plan_id: String(plan.id),
+            plan_name: plan.name,
+            plan_days: plan.days,
+            plan_price: plan.price,
+            amount: amount,
+            account_name: name,
+            pay_type: d.type,
+            reference: ref || null,
+            status: 'pending',
+        }]);
+        if (error) throw error;
+        state.showPaidModal = false;
+        state.paidDraft = null;
+        state.myClaimsLoaded = false;
+        showToast('Sent! We will verify within 2 hours or when admin is online.', 'success');
+        render();
+    } catch (e) {
+        console.warn('Submit claim error:', e);
+        d.busy = false;
+        const msg = (e && e.message) || '';
+        if (msg.indexOf('duplicate') !== -1) showToast('You already have a pending request for this plan.', 'error');
+        else showToast('Could not send your request. Please text support on WhatsApp.', 'error');
+        render();
+    }
+}
+
+async function markClaimActivated(claimId) {
+    if (!claimId) return;
+    try { await supabase.rpc('mark_claim_activated', { p_claim_id: claimId }); } catch (e) { console.warn('mark claim error', e); }
+    const c = (state.myClaims || []).find(function(x) { return String(x.id) === String(claimId); });
+    if (c) c.activated_at = new Date().toISOString();
 }
 
 async function redeemActivationKey(rawKey) {
@@ -13982,6 +14040,8 @@ async function redeemActivationKey(rawKey) {
             return;
         }
 
+        const doneClaim = (state.myClaims || []).find(function(c) { return c.key_code && String(c.key_code).toUpperCase() === keyCode; });
+        if (doneClaim) markClaimActivated(doneClaim.id);
         state.profile.is_active = true;
         state.profile.activation_expiry = data.expiresAt;
         state.activateStatus = 'success';
@@ -14629,9 +14689,9 @@ const SUPPORT_KB = [
       a: 'Accounts that are not activated get every feature, but each attempt is capped at 8 questions. Activate on Account (the Activate card) with a license key or by paying, and you get the full sets.' },
     { k: ['how to activate', 'how do i activate', 'how can i activate', 'how to subscribe', 'buy key', 'get a key', 'where to buy', 'how much', 'subscription price', 'payment method', 'how to pay'],
       not: ['paid', 'not activated', 'after payment', 'charged', 'failed', 'declined', 'deducted', 'debited'],
-      a: 'Go to Account → the Activate card.\n1. Enter your license key (12 characters like A1B2-C3D4-E5F6), or\n2. Pay online with Paystack, or pay manually via WhatsApp and you\'ll receive a key\nOnce active, the card shows your expiry date. The current price is shown on the Activate card. Already paid but still locked? Tell me and I\'ll flag it.' },
+      a: 'Go to Account → the Activate card.\n1. Enter your license key (12 characters like A1B2-C3D4-E5F6), or\n2. Pay online with Paystack, or pay manually via WhatsApp and you\'ll receive a key\nOnce active, the card shows your expiry date. The current price is shown on the Activate card. Already paid but still locked? Go to Account → Activate → I\'ve paid, pick your plan and send your name and amount. We verify within 2 hours or when admin is online, and your key appears under My Activation Key.' },
     { k: ['+wallet', 'fund wallet', 'wallet balance', 'top up', 'top-up'],
-      a: 'Your wallet balance shows on the Account page, and you can add money from the Pay page (tap + Top up).\nIf a top-up left your bank but the balance didn\'t change, send me the payment reference here and I\'ll flag it.' },
+      a: 'Your wallet balance shows on the Account page, and you can add money right there (tap + Top up).\nIf a top-up left your bank but the balance didn\'t change, send me the payment reference here and I\'ll flag it.' },
     { k: ['charged twice', 'double charge', 'debited twice', 'deducted twice', 'paid twice'],
       esc: true,
       a: 'Sorry about that. Please send both payment references (or bank alert screenshots) here so our team can verify and fix it.' },
@@ -16571,6 +16631,7 @@ function setView(v, navOpts) {
         if (!state.notifsLoaded) loadNotifications();
         if (!state.mockLoaded) loadMockExams();
         if (!state.activationPlansLoaded) loadActivationPlans();
+        loadAdminClaims();
         loadFlaggedCount();
         if (!state.admin.logsLoaded) loadLogs();
         checkAndDeactivateExpiredUsers();
@@ -16635,6 +16696,9 @@ function setView(v, navOpts) {
     // NEW: load transactions when view is set
     if (v === "my-keys") {
         state.myKeysLoaded = false;
+    }
+    if (v === 'profile' || v === 'activate' || v === 'my-keys') {
+        state.myClaimsLoaded = false;
     }
     if (v === "transactions") {
         state.walletTransactionsLoaded = false;
@@ -16909,6 +16973,9 @@ function renderNow() {
     }
     if (state.showFundWallet) {
         html += __modalWrap('fundWallet', true, renderFundWalletModal());
+    }
+    if (state.showPaidModal) {
+        html += __modalWrap('paid', true, renderPaidModal());
     }
     if (state.showActivationBanner) {
         html += renderActivationBanner();
@@ -17320,13 +17387,11 @@ const PAGE_TITLES = {
     'mysubjects': 'Practice Hub',
     'ai-assistant': 'MyUTME AI Tutor',
     'mockexam': 'Mock Arena',
-    'pay': 'Pay',
     'profile': 'Account',
     'profile-edit': 'Edit Profile',
     'notifications': 'Notifications',
     'leaderboard': 'Leaderboard',
     'activate': 'Activate',
-    'license-plans': 'Buy License',
     'help-center': 'Help Center',
     'support': 'Support',
     'study-circle': 'Study Circle',
@@ -17503,12 +17568,12 @@ function renderBottomNav() {
     { key: 'home', label: 'Home', icon: 'home' },
     { key: 'mysubjects', label: 'Practice Hub', icon: 'bookopen' },
     { key: 'ai-assistant', label: 'AI Tutor', icon: 'sparkles' },
-    { key: 'pay', label: 'Pay', icon: 'wallet' },
+    { key: 'mockexam', label: 'Mock Arena', icon: 'target' },
     { key: 'profile', label: 'Account', icon: 'user' },
 ];
     let html = '<div class="bottom-nav">';
     items.forEach(function(it) {
-        const isActive = state.view === it.key || (it.key === 'mysubjects' && state.view === 'mockexam');
+        const isActive = state.view === it.key;
         html += '<button class="bottom-nav-item' + (isActive ? ' active' : '') +
             '" data-action="set-view" data-view="' + it.key + '">' +
             svg(it.icon, 20) +
@@ -17543,8 +17608,6 @@ function renderView() {
     if (v === "profile-edit") return renderProfileEdit();
     if (v === "leaderboard") return renderLeaderboard();
     if (v === "activate") return renderActivate();
-    if (v === "pay") return renderPay();
-    if (v === "license-plans") return renderLicensePlans();
     if (v === "help-center") return renderHelpCenter();
     if (v === "support") return renderSupportChat();
     if (v === "study-circle") return renderStudyCircle();
@@ -20851,6 +20914,7 @@ function renderProfile() {
         '<p class="wr-amount">₦' + walletBalance.toLocaleString() + '</p>' +
         '<p class="wr-label">Wallet balance · tap for history</p>' +
         '</div>' +
+        '<button class="wr-topup" data-action="open-fund-wallet">+ Top up</button>' +
         '</div>'
     ) : '';
     const walletHtml = walletCardHtml + (
@@ -20889,7 +20953,12 @@ function renderProfile() {
     // (activated or not). Not activated: "Activate". Activated: "Activated"
     // with days left, and tapping it lets them top up / renew.
     if (state.authUser && !isAdmin()) {
-        menuItems.unshift(isActive
+        if (!state.myClaimsLoaded) loadMyClaims();
+        const _pend = (state.myClaims || []).some(function(c) { return c.status === 'pending'; });
+        const _ready = (state.myClaims || []).some(function(c) { return c.status === 'confirmed' && !c.activated_at; });
+        menuItems.unshift(_ready ? { key: 'set-view|activate', icon: 'key', color: '#0F6B3F', title: 'Your key is ready', sub: 'Tap to activate your account', badge: 'READY' }
+          : _pend ? { key: 'set-view|activate', icon: 'key', color: '#E4A93A', title: 'Payment pending', sub: 'We are verifying your payment', badge: 'WAIT' }
+          : isActive
             ? { key: 'set-view|activate', icon: 'checkcircle', color: '#0F6B3F', title: 'Activated', sub: (expiry ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left · ' : '') + 'Top up activation', badge: 'TOP UP' }
             : { key: 'set-view|activate', icon: 'key', color: '#E4A93A', title: 'Activate', sub: 'Unlock full CBT access & all features', badge: 'GO' });
     }
@@ -21059,25 +21128,6 @@ function renderProfileEdit() {
 // ============================================================
 //  POST-LOGIN ACTIVATION BANNER
 // ============================================================
-function renderActivationSignboard() {
-    // Persistent, non-dismissable "not activated" indicator. Unlike a modal,
-    // this never blocks the screen — it's a slim strip the user can act on
-    // whenever they're ready, and it stays visible until the account is active.
-    return (
-        '<div class="act-signboard" data-action="set-view" data-view="activate" style="cursor:pointer">' +
-        '<div class="as-icons">' +
-        svg('monitor', 20) +
-        '<span class="as-badge">' + svg('shield', 10) + '</span>' +
-        '</div>' +
-        '<div class="as-text">' +
-        '<p class="as-title">Account Not Activated</p>' +
-        '<p class="as-sub">Activate to unlock full CBT access &amp; features</p>' +
-        '</div>' +
-        '<button class="as-btn" data-action="set-view" data-view="activate">Activate</button>' +
-        '</div>'
-    );
-}
-
 function renderActivationBanner() {
     if (!state.showActivationBanner) return '';
     return (
@@ -21122,96 +21172,6 @@ function renderActivationBanner() {
 }
 
 
-// ============================================================
-//  PERSONAL ACCOUNT NUMBER (Paystack dedicated virtual account)
-//  Each user gets their own bank account number. Money sent to it
-//  is credited to their wallet automatically by the paystack-webhook function.
-// ============================================================
-const CREATE_VA_URL = SUPABASE_URL + "/functions/v1/create-virtual-account";
-let __vaPoll = null;
-
-async function loadVirtualAccount(force) {
-    if (!state.authUser) return;
-    if (state.vaUserId !== state.authUser.id) { state.vaUserId = state.authUser.id; state.va = null; state.vaLoaded = false; state.vaMsg = ''; }
-    if (state.vaLoaded && !force) return;
-    state.vaLoaded = true;
-    try {
-        const r = await supabase.from('virtual_accounts').select('*').eq('user_id', state.authUser.id).maybeSingle();
-        state.va = r && r.data ? r.data : null;
-    } catch (e) { console.warn('Load virtual account error:', e); }
-    render();
-}
-
-function startVaPolling() {
-    if (__vaPoll) return;
-    let tries = 0;
-    __vaPoll = setInterval(async function() {
-        tries++;
-        await loadVirtualAccount(true);
-        if ((state.va && state.va.account_number) || tries >= 15) { clearInterval(__vaPoll); __vaPoll = null; }
-    }, 4000);
-}
-
-async function createVirtualAccount() {
-    if (state.vaBusy) return;
-    const ph = String(state.vaPhone || '').replace(/\s+/g, '');
-    if (!/^0\d{10}$/.test(ph)) { state.vaMsg = 'Enter a valid 11-digit phone number.'; render(); return; }
-    state.vaBusy = true; state.vaMsg = ''; render();
-    try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
-        if (!accessToken) throw new Error('Please log in again.');
-        const res = await fetch(CREATE_VA_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken, 'apikey': SUPABASE_ANON_KEY },
-            body: JSON.stringify({ phone: ph }),
-        });
-        const data = await res.json().catch(function() { return {}; });
-        if (!res.ok || data.error) {
-            state.vaMsg = data.error || 'Could not create your account number.';
-        } else if (data.account && data.account.account_number) {
-            state.va = data.account;
-        } else {
-            state.va = { status: 'pending' };
-            state.vaMsg = '';
-            startVaPolling();
-        }
-    } catch (e) {
-        state.vaMsg = 'Could not reach the server. Please try again.';
-    }
-    state.vaBusy = false;
-    render();
-}
-
-function renderVaBlock() {
-    if (!state.authUser) return '';
-    loadVirtualAccount();
-    const va = state.va;
-    const box = 'border:1.5px solid #0F6B3F;border-radius:16px;padding:14px;margin-bottom:14px;background:var(--card-bg)';
-    if (va && va.account_number) {
-        return '<div style="' + box + '">' +
-            '<div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.4px">YOUR PERSONAL ACCOUNT NUMBER</div>' +
-            '<div style="font-size:28px;font-weight:800;letter-spacing:1.5px;color:#0F6B3F;margin:4px 0">' + esc(va.account_number) + '</div>' +
-            '<div style="font-size:13px;font-weight:700">' + esc(va.bank_name || 'Bank') + '</div>' +
-            '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">' + esc(va.account_name || '') + '</div>' +
-            '<button class="btn btn-green" style="padding:9px;font-size:13px" data-action="va-copy" data-value="' + esc(va.account_number) + '">Copy account number</button>' +
-            '<p style="font-size:11px;color:var(--muted);margin:8px 0 0">Transfer any amount from any bank app. Your wallet is credited automatically within a minute or two.</p>' +
-            '</div>';
-    }
-    if (va && va.status === 'pending') {
-        return '<div style="' + box + ';text-align:center"><div class="spinner" style="margin:0 auto 8px"></div>' +
-            '<p style="font-size:13px;font-weight:700;margin:0">Setting up your account number…</p>' +
-            '<p style="font-size:11px;color:var(--muted);margin:4px 0 0">This can take a minute. It will appear here.</p></div>';
-    }
-    return '<div style="' + box + '">' +
-        '<div style="font-size:14px;font-weight:800;margin-bottom:2px">Get your own account number</div>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Transfer money to it from any bank app and your wallet is funded automatically. It stays yours permanently.</p>' +
-        '<input class="field" id="va-phone-input" type="tel" placeholder="Your phone number e.g. 080XXXXXXXX" value="' + esc(state.vaPhone || '') + '" style="margin-bottom:8px" />' +
-        (state.vaMsg ? '<p style="color:#C0392B;font-size:12px;margin:0 0 8px">' + esc(state.vaMsg) + '</p>' : '') +
-        '<button class="btn btn-green" style="padding:10px;font-size:13px"' + (state.vaBusy ? ' disabled' : '') + ' data-action="va-create">' + (state.vaBusy ? 'Creating…' : 'Get my account number') + '</button>' +
-        '</div>';
-}
-
 function renderFundWalletModal() {
     if (!state.showFundWallet) return '';
     const ps = getPaySession();
@@ -21245,8 +21205,7 @@ function renderFundWalletModal() {
         '<label class="field-label">Amount (₦)</label>' +
         '<input class="field" id="fund-wallet-amount-input" type="number" placeholder="e.g. 2000" value="' + esc(amount) + '" style="margin-bottom:8px;font-size:16px;font-weight:700" />' +
         '<div class="fund-quick-btns">' + quickBtns + '</div>' +
-        '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:4px"' + (state.payBusy ? ' disabled' : '') + ' data-action="fund-wallet-browser">' + (state.payBusy ? 'Opening…' : 'Pay with Paystack (opens payment page)') + '</button>' +
-        '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="fund-wallet-paystack">Pay inside the app instead</button>' +
+        '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:4px"' + (state.payBusy ? ' disabled' : '') + ' data-action="fund-wallet-browser">' + (state.payBusy ? 'Opening…' : 'Pay with Paystack (opens in your browser)') + '</button>' +
         '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="close-fund-wallet">Cancel</button>' +
         '</div>' +
         '</div>'
@@ -21302,6 +21261,7 @@ function renderTransactionHistory() {
         '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
         '<h2 class="title" style="font-size:14px">💳 Transaction History</h2>' +
         '<p class="sub" style="font-size:11px">Wallet balance: <strong style="color:var(--green)">₦' + balance.toLocaleString() + '</strong></p>' +
+        '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-bottom:10px" data-action="open-fund-wallet">+ Top up wallet</button>' +
         rows
     );
 }
@@ -21637,7 +21597,6 @@ async function activateWithWallet(plan) {
 //  wallet on the server (once per reference).
 // ============================================================
 const WALLET_VERIFY_URL = SUPABASE_URL + "/functions/v1/verify-wallet-funding";
-const ADMIN_FAKE_FUND_URL = SUPABASE_URL + "/functions/v1/admin-fake-fund";
 
 const WALLET_PENDING_KEY = "myutme_pending_wallet_refs";
 
@@ -21700,7 +21659,7 @@ const INIT_PAYMENT_URL = SUPABASE_URL + "/functions/v1/initialize-wallet-payment
 
 // Pay on Paystack's own page (opens in the browser). It keeps working even if this app is closed or
 // restarted, and the same link always shows the same payment / account number.
-async function startBrowserPayment(amt, win) {
+async function startBrowserPayment(amt, win, planId) {
     if (state.payBusy) { if (win) win.close(); return; }
     state.payBusy = true; render();
     try {
@@ -21714,7 +21673,8 @@ async function startBrowserPayment(amt, win) {
         });
         const data = await res.json().catch(function() { return {}; });
         if (!res.ok || data.error || !data.authorization_url) throw new Error(data.error || 'Could not start the payment. Please try again.');
-        const sess = { ref: data.reference, amount: amt, startedAt: Date.now(), expiresAt: Date.now() + PAY_SESSION_MS, authUrl: data.authorization_url };
+        const sess = { ref: data.reference, amount: amt, planId: planId || null, startedAt: Date.now(), expiresAt: Date.now() + PAY_SESSION_MS, authUrl: data.authorization_url };
+        if (planId) setRefPlan(data.reference, planId);
         savePaySession(sess);
         startPayTimers();
         state.payBusy = false;
@@ -21743,39 +21703,10 @@ function handlePaystackReturn() {
     } catch (e) {}
 }
 
-function openPaystackForSession(o) {
-    if (typeof PaystackPop === 'undefined') {
-        loadPaystackThen(function() { openPaystackForSession(o); });
-        return;
-    }
-    const handler = PaystackPop.setup({
-        key: PAYSTACK_PUBLIC_KEY,
-        email: state.profile.email || (state.authUser.email || 'noemail@example.com'),
-        amount: o.amount * 100,
-        currency: 'NGN',
-        ref: o.ref,
-        metadata: {
-            user_id: state.authUser.id,
-            custom_fields: [
-                { display_name: "Purpose", variable_name: "purpose", value: "Wallet Funding" },
-                { display_name: "Username", variable_name: "username", value: state.profile.name || 'Guest' },
-            ]
-        },
-        callback: function(response) {
-            showToast('Payment received! Verifying...', '');
-            verifyWalletFunding(response.reference);
-        },
-        onClose: function() {
-            // keep the "Payment in progress" screen so they can tap "Check my payment"
-            if (getPaySession()) { state.showFundWallet = true; render(); }
-        }
-    });
-    handler.openIframe();
-}
 function resumePaySession() {
     const o = getPaySession();
     if (!o || !state.authUser) return;
-    state.view = 'pay';
+    state.view = 'profile';
     state.showFundWallet = true;
     state.fundWalletAmount = String(o.amount);
     render();
@@ -21818,6 +21749,7 @@ async function verifyWalletFunding(reference, silent) {
         }
         setPendingWalletRefs(getPendingWalletRefs().filter(function(r) { return r !== reference; }));
         clearPaySession();
+        const planToActivate = takeRefPlan(reference);
         state.profile.walletBalance = data.balance;
         state.showFundWallet = false;
         state.fundWalletAmount = '';
@@ -21825,12 +21757,34 @@ async function verifyWalletFunding(reference, silent) {
         state.walletTransactionsLoaded = false;
         loadWalletTransactions();
         render();
+        if (planToActivate) autoActivatePlan(planToActivate);
         return true;
     } catch (e) {
         console.warn("Verify wallet funding error:", e);
         if (!silent) showToast("Could not confirm your payment yet. We'll retry automatically. Reference: " + reference, "error");
         return false;
     }
+}
+
+// Remember which plan a browser payment was for, so the key is issued the moment the money lands.
+const REF_PLAN_KEY = "myutme_ref_plans";
+function setRefPlan(ref, planId) {
+    try { const m = JSON.parse(localStorage.getItem(REF_PLAN_KEY) || '{}'); m[ref] = String(planId); localStorage.setItem(REF_PLAN_KEY, JSON.stringify(m)); } catch (e) {}
+}
+function takeRefPlan(ref) {
+    try {
+        const m = JSON.parse(localStorage.getItem(REF_PLAN_KEY) || '{}');
+        const p = m[ref] || null;
+        if (p) { delete m[ref]; localStorage.setItem(REF_PLAN_KEY, JSON.stringify(m)); }
+        return p;
+    } catch (e) { return null; }
+}
+async function autoActivatePlan(planId) {
+    if (!state.activationPlansLoaded || !state.activationPlans.length) await loadActivationPlans();
+    const plan = state.activationPlans.find(function(p) { return String(p.id) === String(planId); });
+    if (!plan) { showToast('Wallet funded. Open Activate to get your key.', ''); return; }
+    showToast('Payment received. Getting your key…', '');
+    activateWithWallet(plan);
 }
 
 // Retry any payment that was paid but not yet confirmed (runs once per session)
@@ -22729,65 +22683,29 @@ function renderNotifications() {
 //  ACTIVATE
 // ============================================================
 
-// ===== PAY (OPay-style) =====
-async function adminManualFund(){if(!isAdmin())return;
- const em=(document.getElementById('mf-email')||{}).value||'',amt=Math.round(Number((document.getElementById('mf-amt')||{}).value));
- if(!em||!amt||amt<1){showToast('Enter user email and amount.','error');return;}
- const r=await supabase.rpc('admin_fund_user',{p_email:em.trim().toLowerCase(),p_amount:amt});
- if(r.error){showToast(r.error.message||'Funding failed.','error');return;}
- showToast('Funded '+em+' with \u20A6'+amt.toLocaleString(),'success');}
-function renderPay(){
- if(!state.authUser)return '<div class="card" style="text-align:center;padding:28px 16px">'+svg('wallet',34)+'<p style="font-weight:700;margin:12px 0 4px">Log in to use Pay</p><button class="btn btn-primary" data-action="set-view" data-view="home">Go to Home</button></div>';
- if(typeof retryPendingWalletFundings==='function')retryPendingWalletFundings();
- const bal=state.profile.walletBalance||0,N=function(n){return '\u20A6'+Number(n).toLocaleString();};
- let h='<div class="pp">';
- h+='<div class="pp-hero"><small>Wallet balance</small><b>'+N(bal)+'</b><div class="r"><button data-action="open-fund-wallet">+ Top up</button><button data-action="set-view" data-view="transactions">History</button></div></div>';
- h+='<div class="pp-tiles"><button class="pp-tile" data-action="set-view" data-view="activate"><span class="pp-ic" style="background:#EDE7F6"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#6E5296" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 3M14 9l2 2"/></svg></span>Activate</button></div>';
- return h+'</div>';}
+function renderPaymentStatus() {
+    const c = (state.myClaims || []).find(function(x) { return x.status === 'pending'; });
+    if (!c) return '';
+    const step = function(n, label, st) {
+        const col = st === 'done' ? 'var(--green)' : st === 'now' ? '#E4A93A' : 'var(--line)';
+        return '<div style="flex:1;text-align:center"><div style="width:22px;height:22px;border-radius:50%;background:' + col + ';color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 4px">' + (st === 'done' ? '✓' : n) + '</div><p style="font-size:10px;margin:0;color:var(--ink);font-weight:' + (st === 'now' ? '800' : '600') + '">' + label + '</p></div>';
+    };
+    return (
+        '<div class="card" style="margin-bottom:10px;padding:12px;border:1.5px solid #E4A93A">' +
+        '<p style="font-size:13px;font-weight:800;margin:0 0 2px;color:var(--ink)">⏳ Payment status</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + esc(c.plan_name || '') + ' · ₦' + Number(c.amount || 0).toLocaleString() + ' · sent ' + esc(formatTimeAgo(c.created_at)) + '</p>' +
+        '<div style="display:flex;align-items:flex-start;gap:4px">' + step(1, 'Submitted', 'done') + step(2, 'Verifying', 'now') + step(3, 'Key ready', 'todo') + '</div>' +
+        '<p style="font-size:11px;color:var(--muted);margin:10px 0 8px;line-height:1.45">We verify within 2 hours, or sooner when admin is online. Your key will appear below.</p>' +
+        '<button class="mini-btn" style="font-size:11px" data-action="claim-whatsapp" data-id="' + esc(String(c.id)) + '">💬 Text support on WhatsApp</button>' +
+        '</div>'
+    );
+}
 
 function renderActivate() {
-    const isActive = isUserActive();
-    const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
-
-    let statusBox = "";
-    if (state.activateStatus === 'success') {
-        statusBox = '<div class="explanation-box" style="border-left-color:var(--green)"><p style="margin:0;color:var(--green);font-weight:600;font-size:13px">' +
-            esc(state.activateStatusMsg) + '</p></div>';
-    } else if (state.activateStatus === 'error') {
-        statusBox = '<div class="explanation-box" style="border-left-color:var(--danger);background:#fce4ec"><p style="margin:0;color:#B23420;font-weight:600;font-size:13px">' +
-            esc(state.activateStatusMsg) + '</p></div>';
-    } else if (state.activateStatus === 'checking') {
-        statusBox = '<p style="font-size:11px;color:var(--muted);margin-top:6px">Checking key…</p>';
-    }
-
-    if (isActive && !isAdmin()) {
-        // Right after payment/redemption, activateCode still holds the key for
-        // this session — show it clearly instead of hiding it behind the
-        // "already activated" card, so the student can actually see and save it.
-        const justActivatedKey = (state.activateStatus === 'success' && state.activateCode) ? state.activateCode : null;
-        return (
-            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('shield', 30) + '</div>' +
-            '<h2 class="title" style="font-size:14px">You\'re Activated! ✅</h2>' +
-            '<p class="sub" style="font-size:11px">Your account has full access.</p>' +
-            (justActivatedKey ?
-                '<div class="card" style="text-align:center;padding:16px;border:1.5px solid var(--gold);margin-bottom:10px">' +
-                '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">🔑 Your activation key — save this somewhere safe</p>' +
-                '<p style="font-family:var(--font-mono);font-size:16px;font-weight:800;letter-spacing:0.05em;color:var(--ink);margin:0 0 10px">' + esc(justActivatedKey) + '</p>' +
-                '<button class="btn btn-outline btn-sm" data-action="copy-text" data-copy="' + esc(justActivatedKey) + '">📋 Copy Key</button>' +
-                '</div>' : '') +
-            renderMyKeysCard() +
-            '<div class="card" style="text-align:center;padding:16px">' +
-            '<p style="font-size:14px;font-weight:600;color:var(--green);margin:0">Premium Access Active</p>' +
-            (expiry ? '<p style="font-size:11px;color:var(--muted);margin:4px 0 0">Expires: ' + expiry.toLocaleDateString() + '</p>' : '') +
-            '<button class="btn btn-gold" data-action="set-view" data-view="license-plans" style="padding:10px;margin-top:12px">Top up activation</button>' +
-            '</div>'
-        );
-    }
-
+    const home = '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>';
     if (!state.authUser) {
         return (
-            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
+            home +
             '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 30) + '</div>' +
             '<h2 class="title" style="font-size:14px">Activate Your Account</h2>' +
             '<p class="sub" style="font-size:11px">Unlock unlimited mock exams &amp; past questions</p>' +
@@ -22798,48 +22716,90 @@ function renderActivate() {
             '</div>'
         );
     }
+    if (!state.activationPlansLoaded) {
+        loadActivationPlans().then(function() { render(); });
+        return home + '<div class="loading-spinner"><div class="spinner"></div><p>Loading plans...</p></div>';
+    }
+    const isActive = isUserActive() && !isAdmin();
+    const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
+    const plans = state.activationPlans.slice().sort(function(a, b) { return (a.days || 0) - (b.days || 0); });
+    if (plans.length && (!state.selectedPlanId || !plans.find(function(p) { return p.id === state.selectedPlanId; }))) state.selectedPlanId = plans[0].id;
+    const plan = plans.find(function(p) { return p.id === state.selectedPlanId; });
+    const method = state.selectedPaymentMethod === 'wallet' || state.selectedPaymentMethod === 'manual' ? state.selectedPaymentMethod : 'paystack';
 
-    const hasCode = !!(state.activateCode && state.activateCode.trim());
+    let statusBox = '';
+    if (state.activateStatus === 'success') statusBox = '<div class="explanation-box" style="border-left-color:var(--green)"><p style="margin:0;color:var(--green);font-weight:600;font-size:13px">' + esc(state.activateStatusMsg) + '</p></div>';
+    else if (state.activateStatus === 'error') statusBox = '<div class="explanation-box" style="border-left-color:var(--danger);background:#fce4ec"><p style="margin:0;color:#B23420;font-weight:600;font-size:13px">' + esc(state.activateStatusMsg) + '</p></div>';
+    else if (state.activateStatus === 'checking') statusBox = '<p style="font-size:11px;color:var(--muted);margin-top:6px">Checking…</p>';
+
+    let planCards = '';
+    plans.forEach(function(p) {
+        const on = p.id === state.selectedPlanId;
+        planCards += (
+            '<div class="lp-card' + (on ? ' selected' : '') + '" data-action="select-plan" data-planid="' + p.id + '">' +
+            '<div class="lp-top"><span class="lp-radio' + (on ? ' on' : '') + '"></span><p class="lp-name">' + esc(p.name) + '</p></div>' +
+            '<p class="lp-price">₦' + Number(p.price).toLocaleString() + '</p>' +
+            '<p class="lp-tag">' + esc(planTagline(p)) + '</p>' +
+            '<p class="lp-exp">⏱️ Expires in ' + esc(planDuration(p)) + '</p></div>'
+        );
+    });
+
+    const wallet = state.profile.walletBalance || 0;
+    const short = plan ? wallet < plan.price : false;
+    const methods = [
+        { key: 'wallet', icon: 'wallet', label: 'Wallet', desc: 'Balance ₦' + wallet.toLocaleString() + (short ? ' · top up needed' : ' · instant key') },
+        { key: 'paystack', icon: 'card', label: 'Paystack', desc: 'Card · Bank transfer · USSD, opens in your browser' },
+        { key: 'manual', icon: 'whatsapp', label: 'Bank transfer', desc: 'Pay to our account, then tap I\'ve paid' },
+    ];
+    let methodRows = '';
+    methods.forEach(function(pm) {
+        const on = method === pm.key;
+        methodRows += (
+            '<div class="lp-method' + (on ? ' selected' : '') + '" data-action="select-payment-method" data-method="' + pm.key + '">' +
+            '<span class="lp-radio' + (on ? ' on' : '') + '"></span><span class="lp-micon">' + svg(pm.icon, 20) + '</span>' +
+            '<div class="lp-mtxt"><p class="lp-mlabel">' + esc(pm.label) + '</p><p class="lp-mdesc">' + esc(pm.desc) + '</p></div></div>'
+        );
+    });
+
+    let detail = '', btn = '';
+    if (plan) {
+        const price = '₦' + Number(plan.price).toLocaleString();
+        if (method === 'manual') {
+            const hasBank = BANK_DETAILS.number;
+            const row = function(l, v, copy) { return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)"><div><p style="font-size:10px;color:var(--muted);margin:0">' + l + '</p><p style="font-size:14px;font-weight:800;margin:0;color:var(--ink)">' + esc(v) + '</p></div>' + (copy ? '<button class="mini-btn" style="font-size:10px" data-action="copy-text" data-copy="' + esc(copy) + '">📋 Copy</button>' : '') + '</div>'; };
+            detail = '<div class="card" style="margin-top:8px;padding:12px">' +
+                (hasBank ? row('Bank', BANK_DETAILS.bank) + row('Account number', BANK_DETAILS.number, BANK_DETAILS.number) + row('Account name', BANK_DETAILS.name) + row('Amount to send', price, String(plan.price))
+                    : '<p style="font-size:12px;margin:0;color:var(--ink)">Tap <b>Get account details</b> to chat with us on WhatsApp. Send ' + price + ', then come back and tap I\'ve paid.</p>') +
+                '</div>';
+            btn = '<button class="act-primary" style="margin-top:12px" data-action="open-paid-modal" data-planid="' + esc(String(plan.id)) + '">I\'ve paid ' + price + '</button>' +
+                '<button class="act-link" style="margin:8px 0 0;font-size:12px" data-action="plan-whatsapp">💬 ' + (hasBank ? 'Need help? Chat on WhatsApp' : 'Get account details on WhatsApp') + '</button>';
+        } else {
+            detail = '<p class="lp-hint" style="margin-top:8px">' + (method === 'wallet'
+                ? (short ? 'Your wallet is low. You\'ll be asked to top up first.' : 'The price is taken from your wallet and your key is ready instantly.')
+                : 'Paystack opens in your browser so it can\'t be cancelled. Your key appears below once you pay.') + '</p>';
+            btn = '<button class="act-primary" style="margin-top:12px" data-action="checkout-plan">' + (method === 'wallet' ? 'Pay ' + price + ' from wallet' : 'Pay ' + price + ' with Paystack') + ' ' + svg('arrowright', 16) + '</button>' +
+                '<button class="act-link" style="margin:8px 0 0;font-size:12px" data-action="open-paid-modal" data-planid="' + esc(String(plan.id)) + '">Already paid? Tap I\'ve paid</button>';
+        }
+    }
+
     return (
-        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg('zap', 30) + '</div>' +
-        '<h2 class="title" style="font-size:14px">Activate Your Account</h2>' +
-        '<p class="sub" style="font-size:11px">Unlock unlimited mock exams &amp; past questions</p>' +
-
-        (state.activateRedirectReason ?
-            '<div class="activate-redirect-note"><span class="icon">🔑</span><p>' + esc(state.activateRedirectReason) + '</p></div>' : '') +
-
-        '<div class="act-info">' +
-        '<div class="act-info-icon">' + svg('help', 18) + '</div>' +
-        '<div><p class="act-info-h">What\'s an Activation License?</p>' +
-        '<p class="act-info-p">Your license unlocks all past questions, subject materials and flashcards for the period you choose. Pick from flexible plans to fit your exam date.</p></div>' +
-        '</div>' +
-
-        renderFreePlanLimitsCard(false) +
-        renderMyKeysCard() +
-
-        '<p class="section-label" style="margin-top:14px">Enter your activation license</p>' +
-        '<div class="act-input-wrap">' +
-        '<input id="activate-code-input" class="act-input" placeholder="e.g. XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" value="' + esc(state.activateCode) + '" />' +
-        '<button class="act-paste" data-action="paste-activation-code">Paste</button>' +
-        '</div>' +
+        home +
+        '<div class="feature-icon" style="background:linear-gradient(145deg,#E4A93A 0%,#b9821f 100%)">' + svg(isActive ? 'shield' : 'zap', 30) + '</div>' +
+        '<h2 class="title" style="font-size:14px">' + (isActive ? 'You\'re Activated ✅' : 'Activate Your Account') + '</h2>' +
+        '<p class="sub" style="font-size:11px">' + (isActive ? 'Full access' + (expiry ? ' until ' + expiry.toLocaleDateString() : '') + '. Renew any time below.' : 'Unlock unlimited mock exams &amp; past questions') + '</p>' +
+        (state.activateRedirectReason ? '<div class="activate-redirect-note"><span class="icon">🔑</span><p>' + esc(state.activateRedirectReason) + '</p></div>' : '') +
         statusBox +
-        '<button class="act-primary" data-action="activate-submit">Activate Now</button>' +
-
-        '<div class="act-or"><span>OR</span></div>' +
-
-        '<div class="act-getcard">' +
-        '<h3>Don\'t have a license yet?</h3>' +
-        '<div class="act-order">' +
-        '<div class="act-order-txt"><p class="act-order-l">YOUR ORDER CODE</p>' +
-        '<p class="act-order-c">' + esc(getOrderCode()) + '</p>' +
-        '<p class="act-order-s">Your unique order code — quote it if you contact support</p></div>' +
-        '<button class="act-copy" data-action="copy-text" data-copy="' + esc(getOrderCode()) + '" aria-label="Copy order code">' + svg('copy', 18) + '</button>' +
-        '</div>' +
-        '<button class="act-primary" data-action="set-view" data-view="license-plans" style="margin-top:12px">Get License Key ' + svg('arrowright', 16) + '</button>' +
-        '<button class="act-link" data-action="set-view" data-view="help-center">Visit Help Center →</button>' +
-        '</div>' +
-
+        renderPaymentStatus() +
+        renderMyKeysCard() +
+        (plans.length ?
+            '<p class="lp-section">1. Choose a plan</p><div class="lp-row">' + planCards + '</div>' +
+            '<p class="lp-section">2. Choose how to pay</p>' + methodRows + detail + btn
+            : '<div class="card"><p style="text-align:center;color:var(--muted);padding:12px 0;font-size:13px">No plans available right now. Please check back soon.</p></div>') +
+        '<p class="lp-section" style="margin-top:16px">Have a key already?</p>' +
+        '<div class="act-input-wrap"><input id="activate-code-input" class="act-input" placeholder="e.g. XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" value="' + esc(state.activateCode) + '" />' +
+        '<button class="act-paste" data-action="paste-activation-code">Paste</button></div>' +
+        '<button class="act-primary" data-action="activate-submit">Activate with key</button>' +
+        renderFreePlanLimitsCard(false) +
         renderHelpFooterCard()
     );
 }
@@ -22873,12 +22833,6 @@ document.addEventListener('input', function(e) {
     }
 });
 
-const PAYMENT_METHODS = [
-    { key: 'paystack', icon: '💚', label: 'Paystack', desc: 'Card · Bank Transfer · USSD' },
-    { key: 'wallet', icon: '👛', label: 'Wallet', desc: 'Pay from your wallet balance' },
-    { key: 'manual', icon: '💬', label: 'Manual Payment', desc: 'Chat with us on WhatsApp to pay & activate' },
-];
-
 function planTagline(plan) {
     const d = Number(plan.days) || 0;
     if (plan.description) return plan.description;
@@ -22895,96 +22849,6 @@ function planDuration(plan) {
     return d + ' day' + (d === 1 ? '' : 's');
 }
 
-function renderLicensePlans() {
-    const backBtn = '<button class="back-link" data-action="set-view" data-view="activate">' + svg("chevleft", 14) + ' Activate</button>';
-    if (!state.activationPlansLoaded) {
-        loadActivationPlans();
-        return backBtn + '<div class="loading-spinner"><div class="spinner"></div><p>Loading plans...</p></div>';
-    }
-    if (state.activationPlans.length === 0) {
-        return backBtn + '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">No plans available right now. Please check back soon.</p></div>';
-    }
-    if (!state.selectedPlanId || !state.activationPlans.find(function(p) { return p.id === state.selectedPlanId; })) {
-        state.selectedPlanId = state.activationPlans[0].id;
-    }
-    const selectedPlan = state.activationPlans.find(function(p) { return p.id === state.selectedPlanId; });
-    const plans = state.activationPlans.slice().sort(function(a, b) { return (a.days || 0) - (b.days || 0); });
-    // Mark the middle-priced plan as "popular" when there are 3+ plans
-    const popularId = plans.length >= 3 ? plans[Math.floor(plans.length / 2)].id : null;
-
-    let planCards = '';
-    plans.forEach(function(plan) {
-        const isSel = plan.id === state.selectedPlanId;
-        planCards += (
-            '<div class="lp-card' + (isSel ? ' selected' : '') + '" data-action="select-plan" data-planid="' + plan.id + '">' +
-            '<div class="lp-top"><span class="lp-radio' + (isSel ? ' on' : '') + '"></span>' +
-            '<p class="lp-name">' + esc(plan.name) + '</p>' +
-            (plan.id === popularId ? '<span class="lp-pop">★ POPULAR</span>' : '') + '</div>' +
-            '<p class="lp-price">₦' + Number(plan.price).toLocaleString() + '</p>' +
-            '<p class="lp-tag">' + esc(planTagline(plan)) + '</p>' +
-            '<p class="lp-exp">⏱️ Expires in ' + esc(planDuration(plan)) + '</p>' +
-            '</div>'
-        );
-    });
-
-    const perks = ['Full Past Question access', 'All subject materials', 'All flashcards materials', 'CBT & Mock Exam with real JAMB-style scoring', 'Weak-question tracking & smart revision'];
-    let perksHtml = '';
-    perks.forEach(function(p) { perksHtml += '<li><span class="lp-tick">' + svg('check', 12) + '</span>' + esc(p) + '</li>'; });
-
-    const wallet = state.profile.walletBalance || 0;
-    const insufficient = wallet < selectedPlan.price;
-    const methods = [
-        { key: 'paystack', icon: 'card', label: 'Paystack', desc: 'Card • Bank Transfer • USSD' },
-        { key: 'wallet', icon: 'wallet', label: 'Wallet', desc: 'Balance: ₦' + wallet.toLocaleString() + (insufficient ? ' • Top up needed' : ' • Instant activation') },
-        { key: 'manual', icon: 'whatsapp', label: 'Manual Payment', desc: 'Pay by transfer & confirm on WhatsApp' },
-    ];
-    let methodRows = '';
-    methods.forEach(function(pm) {
-        const isSel = state.selectedPaymentMethod === pm.key;
-        methodRows += (
-            '<div class="lp-method' + (isSel ? ' selected' : '') + '" data-action="select-payment-method" data-method="' + pm.key + '">' +
-            '<span class="lp-radio' + (isSel ? ' on' : '') + '"></span>' +
-            '<span class="lp-micon">' + svg(pm.icon, 20) + '</span>' +
-            '<div class="lp-mtxt"><p class="lp-mlabel">' + esc(pm.label) + '</p><p class="lp-mdesc">' + esc(pm.desc) + '</p></div>' +
-            '</div>'
-        );
-    });
-
-    const hint = state.selectedPaymentMethod === 'wallet'
-        ? (insufficient ? 'Your wallet balance is low — you\'ll be asked to fund your wallet first.' : 'The price is deducted from your wallet and your license activates instantly.')
-        : state.selectedPaymentMethod === 'paystack'
-            ? 'This will open secure Paystack checkout'
-            : 'This opens WhatsApp with your order details. We\'ll confirm payment and send your license key.';
-    const btnLabel = state.selectedPaymentMethod === 'manual'
-        ? 'Continue on WhatsApp'
-        : 'Pay ₦' + Number(selectedPlan.price).toLocaleString() + ' for ' + planDuration(selectedPlan);
-
-    return (
-        backBtn +
-        '<h2 class="title" style="font-size:15px;margin-top:2px">Buy License</h2>' +
-        '<p class="sub" style="font-size:11px;margin-bottom:10px">One-time payment · Access works only during license period</p>' +
-
-        '<div class="lp-order"><div><p class="act-order-l">YOUR ORDER CODE</p><p class="act-order-c" style="font-size:15px">' + esc(getOrderCode()) + '</p></div>' +
-        '<button class="act-copy-txt" data-action="copy-text" data-copy="' + esc(getOrderCode()) + '">Copy</button></div>' +
-        '<button class="act-link" style="text-align:left;margin:4px 0 0;font-size:11px" data-action="set-view" data-view="help-center">What\'s this? ⓘ</button>' +
-
-        '<p class="lp-section">How long do you need?</p>' +
-        '<div class="lp-row">' + planCards + '</div>' +
-
-        '<hr class="lp-hr" />' +
-        '<p class="lp-section">What you get (during license period)</p>' +
-        '<ul class="lp-perks">' + perksHtml + '</ul>' +
-
-        '<p class="lp-section">Choose payment method</p>' +
-        methodRows +
-
-        '<button class="act-primary" style="margin-top:14px" data-action="checkout-plan">' + esc(btnLabel) + ' ' + svg('arrowright', 16) + '</button>' +
-        '<p class="lp-hint">' + esc(hint) + '</p>' +
-
-        renderHelpFooterCard()
-    );
-}
-
 // ============================================================
 //  HELP CENTER (built-in FAQs + WhatsApp support)
 // ============================================================
@@ -22996,6 +22860,7 @@ const HELP_FAQS = [
     { cat: 'Activation', q: 'Does my license expire?', a: 'Yes. Access works only during your license period, and you can see the expiry date on the Activate page. When it ends, just buy a new license to continue.' },
     { cat: 'Payments', q: 'Which payment methods can I use?', a: 'Paystack (card, bank transfer, USSD), your in-app Wallet balance, or Manual Payment where you pay by transfer and confirm with us on WhatsApp.' },
     { cat: 'Payments', q: 'How does Wallet payment work?', a: 'If you have enough money in your wallet, pick Wallet as the payment method and the price is deducted instantly. If your balance is low, fund your wallet first from Account → Wallet.' },
+    { cat: 'Payments', q: 'What does the I\'ve paid button do?', a: 'Pick the plan you paid for, enter the name on the account you paid from and the amount, then submit. We verify within 2 hours or when admin is online. Once confirmed, your activation key appears under My Activation Key on Account. You can also text support on WhatsApp.' },
     { cat: 'Payments', q: 'How does Manual Payment work?', a: 'Choose Manual Payment and continue on WhatsApp. We send our account details, you pay and share your proof, and we send your license key after confirming.' },
     { cat: 'Payments', q: 'My payment failed but I was debited', a: 'Do not pay again. Failed debits are normally reversed by your bank within 24 hours. If your wallet or license is still missing after that, contact support with your payment reference.' },
     { cat: 'Using the app', q: 'Why are some questions locked?', a: 'Free accounts can only practice the first set of questions in each paper. Activating your account unlocks everything.' },
@@ -23058,7 +22923,7 @@ const ADMIN_TABS = [
     { key: "reminders", label: "⏰ Reminders" },
     { key: "mock", label: "🎯 Mock" },
     { key: "activation", label: "🔑 Activation" },
-    { key: "pay", label: "💳 Pay" },
+    { key: "payments", label: "💳 Payments" },
     { key: "courses", label: "🎓 Courses" },
     { key: "flagged", label: "🚩 Flagged" },
     { key: "support", label: "💬 Support" },
@@ -23080,7 +22945,8 @@ function renderAdmin() {
     let tabBar = "";
     ADMIN_TABS.forEach(function(t) {
         const isFlagged = t.key === "flagged";
-        const badge = isFlagged && state.flaggedCount > 0 ? ' <span class="flag-badge">' + state.flaggedCount + '</span>' : '';
+        const badge = isFlagged && state.flaggedCount > 0 ? ' <span class="flag-badge">' + state.flaggedCount + '</span>'
+            : (t.key === 'payments' && adminPendingClaimCount() > 0 ? ' <span class="flag-badge">' + adminPendingClaimCount() + '</span>' : '');
         tabBar += '<button class="admin-tab' + (state.adminTab === t.key ? ' active' : '') +
             '" data-action="admin-tab" data-tab="' + t.key + '">' + t.label + badge + '</button>';
     });
@@ -23096,7 +22962,7 @@ function renderAdmin() {
     else if (state.adminTab === "reminders") body = renderAdminReminders();
     else if (state.adminTab === "mock") body = renderAdminMock();
     else if (state.adminTab === "activation") body = renderAdminActivation();
-    else if (state.adminTab === "pay") body = renderAdminPay();
+    else if (state.adminTab === "payments") body = renderAdminPayments();
     else if (state.adminTab === "courses") body = renderAdminCourses();
     else if (state.adminTab === "flagged") body = renderAdminFlagged();
     else if (state.adminTab === "support") body = renderAdminSupport();
@@ -23115,13 +22981,73 @@ function renderAdmin() {
 }
 
 
-function renderAdminPay() {
-    if (!isAdmin()) return '';
+async function adminManualFund() {
+    if (!isAdmin()) return;
+    const em = (document.getElementById('mf-email') || {}).value || '';
+    const amt = Math.round(Number((document.getElementById('mf-amt') || {}).value));
+    if (!em || !amt || amt < 1) { showToast('Enter user email and amount.', 'error'); return; }
+    const r = await supabase.rpc('admin_fund_user', { p_email: em.trim().toLowerCase(), p_amount: amt });
+    if (r.error) { showToast(r.error.message || 'Funding failed.', 'error'); return; }
+    showToast('Funded ' + em + ' with ₦' + amt.toLocaleString(), 'success');
+}
+
+function renderAdminClaimCard(c, resolved) {
+    const isWallet = c.pay_type === 'wallet';
+    const planNow = (state.activationPlans || []).find(function(p) { return String(p.id) === String(c.plan_id); });
+    const warn = [];
+    if (!resolved && Number(c.amount) < Number(c.plan_price || 0)) warn.push('⚠ Paid ₦' + Number(c.amount).toLocaleString() + ' but plan was ₦' + Number(c.plan_price).toLocaleString());
+    if (!resolved && !planNow) warn.push('⚠ This plan no longer exists');
+    const statusPill = c.status === 'confirmed' ? '<span class="user-status active" style="font-size:8px">✅ Confirmed</span>'
+        : c.status === 'rejected' ? '<span class="user-status inactive" style="font-size:8px">✖ Rejected</span>' : '';
     return (
-        '<div class="pp-adm"><b style="font-size:13px">Fund a user manually</b>' +
-        '<input id="mf-email" type="email" placeholder="User email">' +
-        '<input id="mf-amt" type="number" placeholder="Amount (\u20A6)">' +
-        '<button class="pp-cta" style="position:static;padding:11px;font-size:13px;margin:4px 0 0" data-action="admin-manual-fund">Fund account</button></div>'
+        '<div class="claim-card">' +
+        '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">' +
+        '<div style="min-width:0"><p style="font-size:13px;font-weight:800;margin:0;color:var(--ink)">' + esc(c.username || 'User') + '</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:1px 0 0;word-break:break-all">' + esc(c.email || '') + '</p></div>' +
+        '<div style="text-align:right;flex-shrink:0"><p style="font-family:var(--font-mono);font-size:14px;font-weight:800;margin:0;color:var(--ink)">₦' + Number(c.amount).toLocaleString() + '</p>' +
+        '<p style="font-size:9px;color:var(--muted);margin:1px 0 0">' + esc(formatTimeAgo(c.created_at)) + '</p></div></div>' +
+        '<p style="font-size:11px;margin:6px 0 0;color:var(--ink)">📦 ' + esc(c.plan_name || '') + ' · ' + (c.plan_days || 0) + ' days · ₦' + Number(c.plan_price || 0).toLocaleString() + '</p>' +
+        '<p style="font-size:11px;margin:2px 0 0;color:var(--ink)">👤 Paid from: <b>' + esc(c.account_name || '') + '</b> · ' + (isWallet ? 'Paystack / wallet' : 'Bank transfer') + '</p>' +
+        (c.reference ? '<p style="font-size:11px;margin:2px 0 0;font-family:var(--font-mono);word-break:break-all">🔗 ' + esc(c.reference) + '</p>' : '') +
+        (c.key_code ? '<p style="font-size:11px;margin:2px 0 0;font-family:var(--font-mono)">🔑 ' + esc(c.key_code) + '</p>' : '') +
+        (c.admin_note ? '<p style="font-size:10px;margin:2px 0 0;color:var(--muted)">Note: ' + esc(c.admin_note) + '</p>' : '') +
+        warn.map(function(w) { return '<p style="font-size:10px;margin:4px 0 0;color:#B23420;font-weight:700">' + esc(w) + '</p>'; }).join('') +
+        (resolved ? '<div style="margin-top:6px">' + statusPill + '</div>' :
+            '<div style="display:flex;gap:6px;margin-top:8px">' +
+            '<button class="btn btn-green" style="flex:2;padding:9px;font-size:12px"' + (state.adminClaimBusy ? ' disabled' : '') + ' data-action="admin-claim-confirm" data-id="' + esc(String(c.id)) + '">' + (isWallet ? 'Credit wallet &amp; confirm' : 'Confirm &amp; send key') + '</button>' +
+            '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px"' + (state.adminClaimBusy ? ' disabled' : '') + ' data-action="admin-claim-reject" data-id="' + esc(String(c.id)) + '">Reject</button>' +
+            '</div>') +
+        '</div>'
+    );
+}
+
+function renderAdminPayments() {
+    if (!isAdmin()) return '';
+    if (!state.adminClaimsLoaded) {
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading payment requests...</p></div>';
+    }
+    const all = state.adminClaims || [];
+    const pending = all.filter(function(c) { return c.status === 'pending'; });
+    const done = all.filter(function(c) { return c.status !== 'pending'; }).slice(0, 20);
+    return (
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+        '<p class="section-label" style="margin:0">Waiting for confirmation (' + pending.length + ')</p>' +
+        '<button class="mini-btn" style="font-size:10px" data-action="admin-claims-refresh">↻ Refresh</button></div>' +
+        (pending.length ? pending.map(function(c) { return renderAdminClaimCard(c, false); }).join('')
+            : '<p style="font-size:12px;color:var(--faint);text-align:center;padding:12px 0">No payment requests waiting.</p>') +
+        '<div class="card" style="margin:10px 0">' + 
+        '<p style="font-size:13px;font-weight:600;margin:0 0 4px">🧾 Credit a Paid Reference</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Student paid on Paystack but wasn\'t credited? Paste the payment reference (starts with WALLET- or MYUTME-). It is checked with Paystack first and can only be credited once.</p>' +
+        '<input class="field" id="admin-credit-ref-input" placeholder="e.g. WALLET-1790000000000-12345" style="margin-bottom:8px;font-size:13px" />' +
+        '<button class="btn btn-green" data-action="admin-credit-reference" style="padding:10px">' + (state.adminCreditBusy ? 'Checking…' : 'Verify &amp; Credit') + '</button>' +
+        (state.adminCreditResult ? '<p style="font-size:12px;margin:8px 0 0;color:' + (state.adminCreditResult.ok ? 'var(--green)' : '#dc2626') + '">' + esc(state.adminCreditResult.text) + '</p>' : '') 
+         + '</div>' +
+        '<div class="card" style="margin-bottom:10px">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 6px">Fund a user manually</p>' +
+        '<input class="field" id="mf-email" type="email" placeholder="User email" style="margin-bottom:6px;font-size:13px" />' +
+        '<input class="field" id="mf-amt" type="number" placeholder="Amount (₦)" style="margin-bottom:8px;font-size:13px" />' +
+        '<button class="btn btn-green" style="padding:10px" data-action="admin-manual-fund">Fund account</button></div>' +
+        (done.length ? '<p class="section-label">Recently handled</p>' + done.map(function(c) { return renderAdminClaimCard(c, true); }).join('') : '')
     );
 }
 
@@ -26446,6 +26372,7 @@ function renderAdminActivation() {
                 '<div>' +
                 '<span class="plan-name" style="font-size:12px">' + esc(plan.name) + '</span>' +
                 '<span style="font-size:10px;color:var(--muted);margin-left:6px">' + plan.days + ' days</span>' +
+                (function() { const n = (state.adminClaims || []).filter(function(c) { return c.status === 'pending' && String(c.plan_id) === String(plan.id); }).length; return n ? '<span style="font-size:9px;font-weight:800;color:#fff;background:#E4A93A;padding:2px 7px;border-radius:999px;margin-left:6px">🔒 ' + n + ' pending</span>' : ''; })() +
                 '</div>' +
                 '<div>' +
                 '<span class="plan-price" style="font-size:13px">₦' + plan.price.toLocaleString() + '</span>' +
@@ -26512,13 +26439,6 @@ function renderAdminActivation() {
         '<label class="field-label">Choose a plan</label>' +
         '<select class="field" id="admin-key-plan-select" style="margin-bottom:10px;font-size:13px">' + planOptions + '</select>' +
         '<button class="btn btn-gold" data-action="admin-generate-key" style="padding:10px">Generate Key</button>' +
-        '</div>' +
-        '<div class="card" style="margin-bottom:10px">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 4px">🧾 Credit a Paid Reference</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Student paid on Paystack but wasn\'t credited? Paste the payment reference (starts with WALLET- or MYUTME-). It is checked with Paystack first and can only be credited once.</p>' +
-        '<input class="field" id="admin-credit-ref-input" placeholder="e.g. WALLET-1790000000000-12345" style="margin-bottom:8px;font-size:13px" />' +
-        '<button class="btn btn-green" data-action="admin-credit-reference" style="padding:10px">' + (state.adminCreditBusy ? 'Checking…' : 'Verify &amp; Credit') + '</button>' +
-        (state.adminCreditResult ? '<p style="font-size:12px;margin:8px 0 0;color:' + (state.adminCreditResult.ok ? 'var(--green)' : '#dc2626') + '">' + esc(state.adminCreditResult.text) + '</p>' : '') +
         '</div>' +
         '<p class="section-label">All Generated Keys (' + state.adminKeys.length + ')</p>' +
         keysHtml
@@ -27018,19 +26938,51 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    if (action === 'dismiss-activate-icon') {
-        state.activateIconDismissed = true;
+    // ============================================================
+    //  PAY & ACTIVATE FROM ACCOUNT  /  "I'VE PAID"
+    // ============================================================
+    if (action === 'open-paid-modal') { openPaidModal(el.getAttribute('data-planid') || ''); return; }
+    if (action === 'close-paid-modal') { state.showPaidModal = false; state.paidDraft = null; render(); return; }
+    if (action === 'paid-select-plan') {
+        if (!state.paidDraft) return;
+        const pid = el.getAttribute('data-planid');
+        const plan = state.activationPlans.find(function(p) { return String(p.id) === String(pid); });
+        state.paidDraft.planId = pid;
+        if (plan && !state.paidDraft.amountTouched) state.paidDraft.amount = String(plan.price);
         render();
         return;
     }
-
-    if (action === 'admin-manual-fund') { adminManualFund(); return; }
-    if (action === 'admin-fake-fund') {
-        const input = document.getElementById('admin-fake-fund-amount');
-        const amt = input ? input.value : 0;
-        adminFakeFundWallet(amt);
+    if (action === 'paid-type') {
+        if (!state.paidDraft) return;
+        state.paidDraft.type = el.getAttribute('data-type') === 'wallet' ? 'wallet' : 'transfer';
+        render();
         return;
     }
+    if (action === 'submit-paid') { submitPaymentClaim(); return; }
+    if (action === 'paid-whatsapp') {
+        const d = state.paidDraft || {};
+        const plan = state.activationPlans.find(function(p) { return String(p.id) === String(d.planId); });
+        const msg = claimWhatsAppText({ plan_name: plan ? plan.name : '(not chosen yet)', amount: d.amount || (plan ? plan.price : 0), account_name: d.name || '', reference: d.ref || '' });
+        window.open('https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg), '_blank');
+        return;
+    }
+    if (action === 'claim-whatsapp') {
+        const c = (state.myClaims || []).find(function(x) { return String(x.id) === el.getAttribute('data-id'); });
+        if (c) window.open('https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(claimWhatsAppText(c)), '_blank');
+        return;
+    }
+    if (action === 'claim-activate-wallet') {
+        const c = (state.myClaims || []).find(function(x) { return String(x.id) === el.getAttribute('data-id'); });
+        const plan = c ? state.activationPlans.find(function(p) { return String(p.id) === String(c.plan_id); }) : null;
+        if (!plan) { showToast('That plan is no longer available. Please text support.', 'error'); return; }
+        activateWithWallet(plan).then(function() { if (state.view === 'activate') markClaimActivated(c.id); });
+        return;
+    }
+    if (action === 'admin-claim-confirm') { adminConfirmClaim(el.getAttribute('data-id')); return; }
+    if (action === 'admin-claim-reject') { adminRejectClaim(el.getAttribute('data-id')); return; }
+    if (action === 'admin-claims-refresh') { loadAdminClaims(); return; }
+
+    if (action === 'admin-manual-fund') { adminManualFund(); return; }
 
     if (action === 'dismiss-activation-banner') {
         state.showActivationBanner = false;
@@ -29022,6 +28974,7 @@ document.addEventListener('click', function(e) {
         state.admin.viewModeQuestions = false;
         state.admin.viewingMockAttempts = null;
         if (state.adminTab === 'analytics' && !state.analyticsLoading) { state.analyticsLoaded = false; loadAnalyticsData(); }
+        if (state.adminTab === 'payments') loadAdminClaims();
         if (state.adminTab === 'documents') state.docsLoaded = false;
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
         else if (state.adminTab === 'reminders') { state.dailyReminderLoaded = false; loadDailyReminderSettings(); }
@@ -30334,6 +30287,8 @@ if (action === 'browse-filter') {
         const days = parseInt(document.getElementById('edit-plan-days-' + planId)?.value || 0);
         const price = parseInt(document.getElementById('edit-plan-price-' + planId)?.value || 0);
         if (!name || days <= 0) { showToast('Enter plan name and days.', 'error'); return; }
+        countPendingClaimsForPlan(planId).then(function(pending) {
+        if (pending > 0) { showToast(pending + ' payment request(s) are waiting on this plan. Confirm or reject them before editing it.', 'error'); return; }
         supabase.from('activation_plans').update({ name: name, days: days, price: price }).eq('id', planId).then(function() {
             showToast('Plan updated!', 'success');
             state.admin.editingPlanId = null;
@@ -30341,6 +30296,7 @@ if (action === 'browse-filter') {
         }).catch(function(err) {
             console.error('Update plan error:', err);
             showNetworkAwareError('Error updating plan.', err);
+        });
         });
         return;
     }
@@ -30461,7 +30417,8 @@ if (action === 'browse-filter') {
         if (!plan) { showToast('Select a plan first.', 'error'); return; }
 
         if (state.selectedPaymentMethod === 'paystack') {
-            payWithPaystack(plan);
+            const win = window.open('', '_blank'); // must open right now, inside the tap
+            startBrowserPayment(Number(plan.price), win, plan.id);
             return;
         }
         if (state.selectedPaymentMethod === 'wallet') {
@@ -30469,6 +30426,12 @@ if (action === 'browse-filter') {
             return;
         }
 
+        openPaidModal(plan.id);
+        return;
+    }
+
+    if (action === 'plan-whatsapp') {
+        const plan = state.activationPlans.find(function(p) { return p.id === state.selectedPlanId; });
         const msg = 'Hello, I want to activate my MyUTME account.\n\n' +
             '📦 Plan: ' + plan.name + '\n' +
             '💰 Amount: ₦' + plan.price.toLocaleString() + '\n' +
@@ -31141,13 +31104,6 @@ if (action === 'browse-filter') {
     // ============================================================
     //  NEW: FUND WALLET
     // ============================================================
-    if (action === 'va-create') { createVirtualAccount(); return; }
-    if (action === 'va-copy') {
-        const v = el.getAttribute('data-value') || '';
-        try { navigator.clipboard.writeText(v).then(function() { showToast('Account number copied', 'success'); }, function() { showToast(v, ''); }); }
-        catch (e) { showToast(v, ''); }
-        return;
-    }
     if (action === 'open-fund-wallet') {
         state.showFundWallet = true;
         const ps = getPaySession();
@@ -31170,24 +31126,6 @@ if (action === 'browse-filter') {
         render();
         return;
     }
-    if (action === 'fund-wallet-paystack') {
-        const amt = parseInt(document.getElementById('fund-wallet-amount-input')?.value || 0);
-        if (!amt || amt <= 0) {
-            showToast('Please enter a valid amount.', 'error');
-            return;
-        }
-        state.fundWalletAmount = String(amt);
-        const sess = {
-            ref: 'WALLET-' + Date.now() + '-' + Math.floor(Math.random() * 100000),
-            amount: amt,
-            startedAt: Date.now(),
-            expiresAt: Date.now() + PAY_SESSION_MS,
-        };
-        savePaySession(sess);   // remembered even if the app is closed or restarted
-        startPayTimers();
-        openPaystackForSession(sess);
-        return;
-    }
     if (action === 'fund-wallet-browser') {
         const amt = parseInt(document.getElementById('fund-wallet-amount-input')?.value || 0);
         if (!amt || amt < 100) { showToast('Enter an amount of at least ₦100.', 'error'); return; }
@@ -31208,24 +31146,12 @@ if (action === 'browse-filter') {
     if (action === 'pay-reopen') {
         const o = getPaySession();
         if (o && o.authUrl) { if (!window.open(o.authUrl, '_blank')) window.location.href = o.authUrl; }
-        else if (o) openPaystackForSession(o);
         return;
     }
     if (action === 'pay-cancel') {
         clearPaySession();
         state.fundWalletAmount = '';
         render();
-        return;
-    }
-
-    // ============================================================
-    //  NEW: ACTIVATE WITH WALLET (from checkout)
-    // ============================================================
-    if (action === 'activate-with-wallet') {
-        const planId = el.getAttribute('data-planid');
-        const plan = state.activationPlans.find(function(p) { return p.id === planId; });
-        if (!plan) { showToast('Plan not found.', 'error'); return; }
-        activateWithWallet(plan);
         return;
     }
 
@@ -31500,8 +31426,12 @@ document.addEventListener('input', function(e) {
         state.admin.supportMemA = e.target.value;
     } else if (id === 'admin-support-reply-input') {
         // handled on send
-    } else if (id === 'va-phone-input') {
-        state.vaPhone = e.target.value;
+    } else if (id === 'paid-name-input') {
+        if (state.paidDraft) state.paidDraft.name = e.target.value;
+    } else if (id === 'paid-amount-input') {
+        if (state.paidDraft) { state.paidDraft.amount = e.target.value; state.paidDraft.amountTouched = true; }
+    } else if (id === 'paid-ref-input') {
+        if (state.paidDraft) state.paidDraft.ref = e.target.value;
     } else if (id === 'fund-wallet-amount-input') {
         state.fundWalletAmount = e.target.value;
     } else if (id === 'study-reminder-hour') {
@@ -31790,6 +31720,13 @@ async function init() {
     setInterval(function() {
         checkAndDeactivateExpiredUsers();
     }, 5 * 60 * 1000); // Every 5 minutes
+
+    // check for payment confirmations while a request is pending (user) or the Payments tab is open (admin)
+    setInterval(function() {
+        if (document.visibilityState !== 'visible' || !state.authUser) return;
+        if ((state.myClaims || []).some(function(c) { return c.status === 'pending'; })) loadMyClaims();
+        if (isAdmin() && state.view === 'admin' && state.adminTab === 'payments') loadAdminClaims();
+    }, 45000);
 
     loadAllUsers();
     loadLeaderboard('cbt');
