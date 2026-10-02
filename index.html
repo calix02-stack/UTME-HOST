@@ -3672,52 +3672,45 @@
     .actban-hero {
         background: linear-gradient(160deg, var(--green) 0%, var(--green-dark) 100%);
         border-radius: 22px 22px 0 0;
-        padding: 26px 20px 18px;
+        padding: 28px 20px 20px;
         text-align: center;
         color: #fff;
         position: relative;
+        overflow: hidden;
     }
-    .actban-hero .afc-icon {
-        margin: 0 auto 10px;
-        background: rgba(255,255,255,0.18);
+    .actban-hero::before, .actban-hero::after {
+        content: ""; position: absolute; border-radius: 50%; background: rgba(255,255,255,0.07); pointer-events: none;
     }
+    .actban-hero::before { width: 150px; height: 150px; top: -60px; right: -40px; }
+    .actban-hero::after { width: 100px; height: 100px; bottom: -50px; left: -30px; }
     .actban-hero .close-x {
-        position: absolute;
-        top: 10px;
-        right: 12px;
-        color: #fff;
-        background: rgba(255,255,255,0.18);
-        width: 26px;
-        height: 26px;
-        border-radius: 999px;
-        font-size: 16px;
-        line-height: 1;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: none;
+        position: absolute; top: 10px; right: 12px; z-index: 2; color: #fff; background: rgba(255,255,255,0.18);
+        width: 28px; height: 28px; border-radius: 999px; font-size: 17px; line-height: 1; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; border: none;
     }
-    .actban-body { padding: 16px 20px 20px; }
-    .actban-feature {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        margin-bottom: 12px;
+    .ab-icon-wrap { position: relative; width: 68px; height: 68px; margin: 0 auto 12px; z-index: 1; }
+    .ab-icon {
+        width: 68px; height: 68px; border-radius: 22px; background: rgba(255,255,255,0.16);
+        border: 1.5px solid rgba(255,255,255,0.35); display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.18);
     }
-    .actban-feature .fi {
-        flex-shrink: 0;
-        width: 32px;
-        height: 32px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 15px;
-        background: rgba(228,169,58,0.15);
+    .ab-icon svg { width: 32px; height: 32px; display: block; }
+    .ab-star {
+        position: absolute; top: -7px; right: -7px; width: 24px; height: 24px; border-radius: 50%;
+        background: #E4A93A; border: 2px solid var(--green); display: flex; align-items: center; justify-content: center;
     }
-    .actban-feature .ft { font-size: 13px; color: var(--ink); font-weight: 600; margin: 0 0 2px; }
-    .actban-feature .fs { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.4; }
+    .ab-star svg { width: 11px; height: 11px; display: block; }
+    .ab-price {
+        display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 800;
+        background: rgba(228,169,58,0.95); color: #3a2a05; position: relative; z-index: 1;
+    }
+    .actban-body { padding: 16px 16px 18px; }
+    .ab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .ab-tile { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+    .ab-tile .fi { font-size: 18px; display: block; margin-bottom: 4px; }
+    .ab-tile .ft { font-size: 12px; font-weight: 800; color: var(--ink); margin: 0; line-height: 1.25; }
+    .ab-tile .fs { font-size: 10.5px; color: var(--muted); margin: 2px 0 0; line-height: 1.35; }
+    .ab-trust { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: center; font-size: 10.5px; font-weight: 700; color: var(--green); margin: 0 0 12px; }
 
     /* SUBMIT MODAL - Full screen review */
     .submit-overlay {
@@ -7042,7 +7035,8 @@ html, body { overscroll-behavior: none !important; }
 .paid-seg{display:flex;gap:6px;margin-bottom:8px}
 .paid-seg button{flex:1;border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 4px;font-size:11px;font-weight:700;color:var(--ink);cursor:pointer;font-family:inherit}
 .paid-seg button.on{border-color:var(--green);background:rgba(15,107,63,.08);color:var(--green)}
-.claim-card{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;background:var(--card-bg)}
+.claim-card{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;background:var(--card-bg);overflow:hidden}
+.claim-clip{font-size:11px;margin:2px 0 0;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 </style>
 </head>
 <body>
@@ -13682,38 +13676,52 @@ async function countPendingClaimsForPlan(planId) {
 async function adminConfirmClaim(id) {
     const c = (state.adminClaims || []).find(function(x) { return String(x.id) === String(id); });
     if (!c || c.status !== 'pending' || state.adminClaimBusy) return;
-    const isWallet = c.pay_type === 'wallet';
-    const q = isWallet
-        ? 'Credit reference ' + c.reference + ' to ' + (c.username || c.email) + '\'s wallet and confirm?'
-        : 'Confirm you received ₦' + Number(c.amount).toLocaleString() + ' from ' + c.account_name + ' and issue a ' + c.plan_name + ' key to ' + (c.username || c.email) + '?';
-    if (!confirm(q)) return;
+    if (!confirm('Confirm you received ₦' + Number(c.amount).toLocaleString() + ' from ' + c.account_name + ' and send a ' + c.plan_name + ' key to ' + (c.username || c.email) + '?')) return;
     state.adminClaimBusy = true; render();
     try {
-        if (isWallet) {
-            const r = await creditReferenceOnServer(c.reference);
-            if (!r.ok && !confirm('Reference check said: ' + r.text + '\n\nMark this request as confirmed anyway?')) { state.adminClaimBusy = false; render(); return; }
-        }
         // lock the request first so it cannot be confirmed twice
         const up = await supabase.from('payment_claims').update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
             .eq('id', c.id).eq('status', 'pending').select();
         if (up.error || !up.data || !up.data.length) throw new Error('Could not update this request. It may already be handled.');
-        if (!isWallet) {
-            const g = await supabase.rpc('admin_generate_key', { p_plan_id: String(c.plan_id) });
-            if (g.error || !g.data || !g.data.key_code) {
-                await supabase.from('payment_claims').update({ status: 'pending', confirmed_at: null }).eq('id', c.id);
-                throw new Error((g.error && g.error.message) || 'Could not generate the key. Check that the plan still exists.');
-            }
-            await supabase.from('payment_claims').update({ key_code: g.data.key_code }).eq('id', c.id);
-            showToast('Confirmed. Key ' + g.data.key_code + ' sent to the user.', 'success');
-        } else {
-            showToast('Confirmed and wallet credited.', 'success');
+        const g = await supabase.rpc('admin_generate_key', { p_plan_id: String(c.plan_id) });
+        const key = g.data && (g.data.key_code || (Array.isArray(g.data) && g.data[0] && g.data[0].key_code));
+        if (g.error || !key) {
+            await supabase.from('payment_claims').update({ status: 'pending', confirmed_at: null }).eq('id', c.id);
+            throw new Error((g.error && g.error.message) || 'Could not generate the key. Check that the plan still exists.');
         }
+        const sv = await supabase.from('payment_claims').update({ key_code: key }).eq('id', c.id);
+        if (sv.error) throw new Error('Key ' + key + ' was made but could not be saved to the user. Send it to them manually.');
+        showToast('Confirmed. Key ' + key + ' sent to the user.', 'success');
         try { await addLog(c.user_id, c.username, 'payment_claim_confirmed', c.plan_name + ' ₦' + c.amount); } catch (e) {}
     } catch (e) {
         showToast((e && e.message) || 'Could not confirm.', 'error');
     }
     state.adminClaimBusy = false;
     await loadAdminClaims();
+}
+
+// Activate a user directly after checking the payment yourself (Paystack dashboard / bank)
+async function adminActivateByReference() {
+    const q = ((document.getElementById('aa-user') || {}).value || '').trim();
+    const planId = (document.getElementById('aa-plan') || {}).value;
+    const ref = ((document.getElementById('aa-ref') || {}).value || '').trim();
+    if (!q) { showToast('Enter the username or email.', 'error'); return; }
+    if (!planId) { showToast('Choose a plan.', 'error'); return; }
+    let u = null;
+    const byName = await supabase.from('profiles').select('id, username').eq('username', q).maybeSingle();
+    u = byName.data;
+    if (!u) { const byMail = await supabase.from('profiles').select('id, username').eq('email', q.toLowerCase()).maybeSingle(); u = byMail.data; }
+    if (!u) { showToast('No user found with that username or email.', 'error'); return; }
+    const plan = state.activationPlans.find(function(p) { return String(p.id) === String(planId); });
+    if (!confirm('Activate ' + u.username + ' on ' + (plan ? plan.name : 'this plan') + '?')) return;
+    await adminActivateUserPlan(u.id, planId);
+    try { await addLog(u.id, u.username, 'activated_by_reference', ref ? 'Reference: ' + ref : 'No reference'); } catch (e) {}
+    // close any waiting request from this user for that plan
+    try {
+        await supabase.from('payment_claims').update({ status: 'confirmed', confirmed_at: new Date().toISOString(), admin_note: 'Activated by admin' })
+            .eq('user_id', u.id).eq('plan_id', String(planId)).eq('status', 'pending');
+    } catch (e) {}
+    loadAdminClaims();
 }
 
 async function adminRejectClaim(id) {
@@ -13787,7 +13795,6 @@ function claimWhatsAppText(c) {
         '📦 Plan: ' + (c.plan_name || '') + '\n' +
         '💰 Amount paid: ₦' + Number(c.amount || 0).toLocaleString() + '\n' +
         '👤 Name on account: ' + (c.account_name || '') + '\n' +
-        (c.reference ? '🔗 Reference: ' + c.reference + '\n' : '') +
         '✉️ Email: ' + (state.profile.email || '') + '\n' +
         '🧾 Order code: ' + getOrderCode();
 }
@@ -13822,14 +13829,7 @@ function renderMyKeysCard(showEmpty) {
                 '<button class="mini-btn" style="font-size:10px" data-action="claim-whatsapp" data-id="' + esc(String(c.id)) + '">💬 Text support</button></div>'
             );
         } else if (c.status === 'confirmed' && !c.activated_at) {
-            if (c.pay_type === 'wallet') {
-                rows += (
-                    '<div class="myk-row"><div class="myk-main">' +
-                    '<p style="font-size:12px;font-weight:700;margin:0;color:var(--ink)">Wallet credited · ' + esc(c.plan_name || 'Activation') + '</p>' +
-                    '<p class="myk-meta">Your payment was confirmed. Tap Activate to use your wallet for this plan.</p>' +
-                    '</div><button class="mini-btn primary" style="font-size:10px" data-action="claim-activate-wallet" data-id="' + esc(String(c.id)) + '">Activate</button></div>'
-                );
-            } else if (c.key_code && !seen[String(c.key_code).toUpperCase()]) {
+            if (c.key_code && !seen[String(c.key_code).toUpperCase()]) {
                 rows += (
                     '<div class="myk-row"><div class="myk-main">' +
                     '<p class="myk-key">' + esc(c.key_code) + '</p>' +
@@ -13842,7 +13842,9 @@ function renderMyKeysCard(showEmpty) {
         }
     });
 
-    keys.forEach(function(k) {
+    const unused = keys.filter(function(k) { return !k.is_used; });
+    const used = keys.filter(function(k) { return k.is_used; }).slice(0, 2);
+    unused.concat(used).forEach(function(k) {
         rows += (
             '<div class="myk-row"><div class="myk-main">' +
             '<p class="myk-key" style="color:' + (k.is_used ? 'var(--faint)' : 'var(--ink)') + '">' + esc(k.key_code) + '</p>' +
@@ -13905,11 +13907,9 @@ function openPaidModal(planId) {
     const plan = planId ? state.activationPlans.find(function(p) { return String(p.id) === String(planId); }) : null;
     state.paidDraft = {
         planId: plan ? String(plan.id) : '',
-        type: 'transfer',
         name: '',
         amount: plan ? String(plan.price) : '',
         amountTouched: false,
-        ref: '',
         busy: false,
     };
     state.showPaidModal = true;
@@ -13932,27 +13932,16 @@ function renderPaidModal() {
             '<span class="pp-p">₦' + Number(p.price).toLocaleString() + '</span></div>'
         );
     });
-    const isWallet = d.type === 'wallet';
     return (
         '<div class="flag-overlay" data-action="close-paid-modal">' +
         '<div class="flag-modal" data-action="prevent-close" style="max-height:88vh;overflow-y:auto">' +
         '<h3 style="font-family:var(--font-serif);margin:0 0 2px;font-size:18px;color:var(--ink)">I\'ve paid</h3>' +
-        '<p class="sub" style="font-size:11px;line-height:1.45">Pick the plan you paid for and tell us who paid. We verify within 2 hours, or when admin is online. Your key then appears under My Activation Key.</p>' +
+        '<p class="sub" style="font-size:11px;line-height:1.45">Pick the plan you paid for and tell us who paid. We check the payment within 2 hours, or sooner when admin is online. Your key then appears under My Activation Key.</p>' +
         '<label class="field-label">1. Plan you paid for</label>' + planRows +
-        '<label class="field-label" style="margin-top:6px">2. How did you pay?</label>' +
-        '<div class="paid-seg">' +
-        '<button class="' + (!isWallet ? 'on' : '') + '" data-action="paid-type" data-type="transfer">Bank transfer</button>' +
-        '<button class="' + (isWallet ? 'on' : '') + '" data-action="paid-type" data-type="wallet">Paystack / wallet</button>' +
-        '</div>' +
-        '<label class="field-label">3. Name on the account you paid from</label>' +
-        '<input class="field" id="paid-name-input" placeholder="e.g. Ade Johnson" value="' + esc(d.name || '') + '" style="margin-bottom:8px;font-size:14px" />' +
-        '<label class="field-label">4. Amount you paid (₦)</label>' +
+        '<label class="field-label" style="margin-top:6px">2. Name on the account you paid from</label>' +
+        '<input class="field" id="paid-name-input" maxlength="60" placeholder="e.g. Ade Johnson" value="' + esc(d.name || '') + '" style="margin-bottom:8px;font-size:14px" />' +
+        '<label class="field-label">3. Amount you paid (₦)</label>' +
         '<input class="field" id="paid-amount-input" type="number" inputmode="numeric" placeholder="e.g. 1000" value="' + esc(String(d.amount || '')) + '" style="margin-bottom:8px;font-size:14px" />' +
-        (isWallet ?
-            '<label class="field-label">5. Paystack reference</label>' +
-            '<input class="field" id="paid-ref-input" placeholder="e.g. WALLET-1790000000000-12345" value="' + esc(d.ref || '') + '" style="margin-bottom:4px;font-size:13px" />' +
-            '<p style="font-size:10px;color:var(--muted);margin:0 0 8px">Paid on Paystack but your wallet was not credited? Paste the reference. Admin checks it with Paystack and credits your wallet.</p>'
-            : '') +
         '<button class="btn btn-green" style="padding:11px;font-size:13px;margin-top:4px"' + (d.busy ? ' disabled' : '') + ' data-action="submit-paid">' + (d.busy ? 'Sending…' : 'Submit payment for confirmation') + '</button>' +
         '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="paid-whatsapp">💬 Text support on WhatsApp instead</button>' +
         '<button class="btn btn-outline" style="padding:10px;font-size:13px;margin-top:6px" data-action="close-paid-modal">Cancel</button>' +
@@ -13967,10 +13956,9 @@ async function submitPaymentClaim() {
     if (!plan) { showToast('Select the plan you paid for first.', 'error'); return; }
     const name = (d.name || '').trim();
     const amount = Math.round(Number(d.amount));
-    const ref = (d.ref || '').trim();
     if (name.length < 3) { showToast('Enter the name on the account you paid from.', 'error'); return; }
     if (!amount || amount < 1) { showToast('Enter the amount you paid.', 'error'); return; }
-    if (d.type === 'wallet' && ref.length < 6) { showToast('Paste your Paystack reference.', 'error'); return; }
+    if (amount > 10000000) { showToast('Enter a valid amount.', 'error'); return; }
     if ((state.myClaims || []).some(function(c) { return c.status === 'pending' && String(c.plan_id) === String(plan.id); })) {
         showToast('You already have a pending request for this plan. Please wait for confirmation.', 'error'); return;
     }
@@ -13987,8 +13975,7 @@ async function submitPaymentClaim() {
             plan_price: plan.price,
             amount: amount,
             account_name: name,
-            pay_type: d.type,
-            reference: ref || null,
+            pay_type: 'transfer',
             status: 'pending',
         }]);
         if (error) throw error;
@@ -16700,6 +16687,7 @@ function setView(v, navOpts) {
     if (v === 'profile' || v === 'activate' || v === 'my-keys') {
         state.myClaimsLoaded = false;
     }
+    if (v === 'activate' && state.activateStatus === 'error') { state.activateStatus = ''; state.activateStatusMsg = ''; }
     if (v === "transactions") {
         state.walletTransactionsLoaded = false;
         loadWalletTransactions();
@@ -20955,7 +20943,7 @@ function renderProfile() {
     if (state.authUser && !isAdmin()) {
         if (!state.myClaimsLoaded) loadMyClaims();
         const _pend = (state.myClaims || []).some(function(c) { return c.status === 'pending'; });
-        const _ready = (state.myClaims || []).some(function(c) { return c.status === 'confirmed' && !c.activated_at; });
+        const _ready = (state.myClaims || []).some(function(c) { return c.status === 'confirmed' && c.key_code && !c.activated_at; });
         menuItems.unshift(_ready ? { key: 'set-view|activate', icon: 'key', color: '#0F6B3F', title: 'Your key is ready', sub: 'Tap to activate your account', badge: 'READY' }
           : _pend ? { key: 'set-view|activate', icon: 'key', color: '#E4A93A', title: 'Payment pending', sub: 'We are verifying your payment', badge: 'WAIT' }
           : isActive
@@ -21130,44 +21118,37 @@ function renderProfileEdit() {
 // ============================================================
 function renderActivationBanner() {
     if (!state.showActivationBanner) return '';
+    const prices = (state.activationPlans || []).map(function(p) { return Number(p.price); }).filter(function(n) { return n > 0; });
+    const from = prices.length ? Math.min.apply(null, prices) : 0;
+    const feats = [
+        ['📚', 'Unlimited JAMB CBT', 'Every subject, no limits'],
+        ['📝', 'Past Questions', '2021 – 2026, by subject'],
+        ['✨', 'AI Tutor', 'Instant answers, any time'],
+        ['🎯', 'Mock Arena', 'Live timed exams &amp; ranking'],
+        ['📖', 'Novel CBT', 'Set texts &amp; comprehension'],
+        ['🗂️', 'Study Materials', 'Past question files'],
+        ['🔁', 'Revise Weak Qs', 'Retry what you missed'],
+        ['📊', 'Result Analysis', 'Track your progress'],
+    ];
     return (
         '<div class="actban-overlay" data-action="dismiss-activation-banner">' +
         '<div class="actban-modal" data-action="prevent-close">' +
         '<div class="actban-hero">' +
         '<button class="close-x" data-action="dismiss-activation-banner" aria-label="Dismiss">×</button>' +
-        '<div class="afc-icon" style="position:relative;width:46px;height:46px;border-radius:14px">' + svg('monitor', 22).replace('stroke="currentColor"', 'stroke="#fff"') +
-        '<span class="afc-badge"><svg viewBox="0 0 24 24" width="10" height="10" fill="#fff" stroke="none">' + ICONS.star + '</svg></span>' +
-        '</div>' +
-        '<h2 style="font-family:var(--font-serif);font-size:19px;margin:0 0 4px;color:#fff">Unlock Full Access</h2>' +
-        '<p style="font-size:12.5px;margin:0;opacity:0.95">Your account isn\'t activated yet — here\'s what one year of activation unlocks</p>' +
+        '<div class="ab-icon-wrap"><div class="ab-icon">' + svg('monitor', 32).replace('stroke="currentColor"', 'stroke="#fff"') + '</div>' +
+        '<span class="ab-star"><svg viewBox="0 0 24 24" fill="#fff" stroke="none">' + ICONS.star + '</svg></span></div>' +
+        '<h2 style="font-family:var(--font-serif);font-size:21px;margin:0 0 4px;color:#fff;position:relative;z-index:1">Unlock Full Access</h2>' +
+        '<p style="font-size:12.5px;margin:0;opacity:0.95;position:relative;z-index:1;line-height:1.4">Your account isn\'t activated yet. Activate to use everything below.</p>' +
+        (from ? '<span class="ab-price">Plans from ₦' + from.toLocaleString() + '</span>' : '') +
         '</div>' +
         '<div class="actban-body">' +
-
-        // Only the features that actually change once activated (not
-        // generic marketing lines) — each tied to a real, findable part
-        // of the app, matching what "Activate" actually unlocks.
-        '<div class="actban-feature">' +
-        '<span class="fi">📚</span>' +
-        '<div><p class="ft">Unlimited CBT &amp; Past Questions</p>' +
-        '<p class="fs">Practice every JAMB subject and every past question year, not just a limited sample.</p></div>' +
+        '<div class="ab-grid">' +
+        feats.map(function(f) { return '<div class="ab-tile"><span class="fi">' + f[0] + '</span><p class="ft">' + f[1] + '</p><p class="fs">' + f[2] + '</p></div>'; }).join('') +
         '</div>' +
-
-        '<div class="actban-feature">' +
-        '<span class="fi">✨</span>' +
-        '<div><p class="ft">AI Tutor</p>' +
-        '<p class="fs">Ask questions and get instant explanations from your personal AI study assistant, any time.</p></div>' +
-        '</div>' +
-
-        '<div class="actban-feature">' +
-        '<span class="fi">🎯</span>' +
-        '<div><p class="ft">Mock Arena</p>' +
-        '<p class="fs">Create or join live timed exams and track your rank on the leaderboard.</p></div>' +
-        '</div>' +
-
-        '<button class="btn btn-green" style="width:100%;padding:12px;margin-top:4px;font-size:14px" data-action="activation-banner-activate">Activate My Account</button>' +
+        '<p class="ab-trust"><span>✓ Key issued after payment</span><span>✓ Wallet, Paystack or transfer</span></p>' +
+        '<button class="btn btn-green" style="width:100%;padding:12px;font-size:14px" data-action="activation-banner-activate">Activate My Account</button>' +
         '<button class="btn btn-outline" style="width:100%;padding:10px;margin-top:8px;font-size:13px" data-action="dismiss-activation-banner">Maybe later</button>' +
-        '</div>' +
-        '</div></div>'
+        '</div></div></div>'
     );
 }
 
@@ -22992,7 +22973,6 @@ async function adminManualFund() {
 }
 
 function renderAdminClaimCard(c, resolved) {
-    const isWallet = c.pay_type === 'wallet';
     const planNow = (state.activationPlans || []).find(function(p) { return String(p.id) === String(c.plan_id); });
     const warn = [];
     if (!resolved && Number(c.amount) < Number(c.plan_price || 0)) warn.push('⚠ Paid ₦' + Number(c.amount).toLocaleString() + ' but plan was ₦' + Number(c.plan_price).toLocaleString());
@@ -23007,14 +22987,14 @@ function renderAdminClaimCard(c, resolved) {
         '<div style="text-align:right;flex-shrink:0"><p style="font-family:var(--font-mono);font-size:14px;font-weight:800;margin:0;color:var(--ink)">₦' + Number(c.amount).toLocaleString() + '</p>' +
         '<p style="font-size:9px;color:var(--muted);margin:1px 0 0">' + esc(formatTimeAgo(c.created_at)) + '</p></div></div>' +
         '<p style="font-size:11px;margin:6px 0 0;color:var(--ink)">📦 ' + esc(c.plan_name || '') + ' · ' + (c.plan_days || 0) + ' days · ₦' + Number(c.plan_price || 0).toLocaleString() + '</p>' +
-        '<p style="font-size:11px;margin:2px 0 0;color:var(--ink)">👤 Paid from: <b>' + esc(c.account_name || '') + '</b> · ' + (isWallet ? 'Paystack / wallet' : 'Bank transfer') + '</p>' +
-        (c.reference ? '<p style="font-size:11px;margin:2px 0 0;font-family:var(--font-mono);word-break:break-all">🔗 ' + esc(c.reference) + '</p>' : '') +
+        '<p class="claim-clip">👤 Paid from: <b>' + esc(c.account_name || '') + '</b></p>' +
+        (c.reference ? '<p class="claim-clip" style="font-family:var(--font-mono)">🔗 ' + esc(c.reference) + '</p>' : '') +
         (c.key_code ? '<p style="font-size:11px;margin:2px 0 0;font-family:var(--font-mono)">🔑 ' + esc(c.key_code) + '</p>' : '') +
-        (c.admin_note ? '<p style="font-size:10px;margin:2px 0 0;color:var(--muted)">Note: ' + esc(c.admin_note) + '</p>' : '') +
+        (c.admin_note ? '<p class="claim-clip" style="font-size:10px;color:var(--muted)">Note: ' + esc(c.admin_note) + '</p>' : '') +
         warn.map(function(w) { return '<p style="font-size:10px;margin:4px 0 0;color:#B23420;font-weight:700">' + esc(w) + '</p>'; }).join('') +
         (resolved ? '<div style="margin-top:6px">' + statusPill + '</div>' :
             '<div style="display:flex;gap:6px;margin-top:8px">' +
-            '<button class="btn btn-green" style="flex:2;padding:9px;font-size:12px"' + (state.adminClaimBusy ? ' disabled' : '') + ' data-action="admin-claim-confirm" data-id="' + esc(String(c.id)) + '">' + (isWallet ? 'Credit wallet &amp; confirm' : 'Confirm &amp; send key') + '</button>' +
+            '<button class="btn btn-green" style="flex:2;padding:9px;font-size:12px"' + (state.adminClaimBusy ? ' disabled' : '') + ' data-action="admin-claim-confirm" data-id="' + esc(String(c.id)) + '">' + 'Confirm &amp; send key' + '</button>' +
             '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px"' + (state.adminClaimBusy ? ' disabled' : '') + ' data-action="admin-claim-reject" data-id="' + esc(String(c.id)) + '">Reject</button>' +
             '</div>') +
         '</div>'
@@ -23035,8 +23015,15 @@ function renderAdminPayments() {
         '<button class="mini-btn" style="font-size:10px" data-action="admin-claims-refresh">↻ Refresh</button></div>' +
         (pending.length ? pending.map(function(c) { return renderAdminClaimCard(c, false); }).join('')
             : '<p style="font-size:12px;color:var(--faint);text-align:center;padding:12px 0">No payment requests waiting.</p>') +
+        '<div class="card" style="margin:10px 0">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 2px">✅ Activate a user by reference</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px;line-height:1.4">Checked the payment on Paystack or your bank? Enter the user and plan to activate them right away.</p>' +
+        '<input class="field" id="aa-user" placeholder="Username or email" style="margin-bottom:6px;font-size:13px" />' +
+        '<select class="field" id="aa-plan" style="margin-bottom:6px;font-size:13px">' + (state.activationPlans || []).map(function(p) { return '<option value="' + esc(String(p.id)) + '">' + esc(p.name) + ' · ₦' + Number(p.price).toLocaleString() + '</option>'; }).join('') + '</select>' +
+        '<input class="field" id="aa-ref" placeholder="Reference (optional, saved in logs)" style="margin-bottom:8px;font-size:13px" />' +
+        '<button class="btn btn-green" style="padding:10px" data-action="admin-activate-ref">Activate user</button></div>' +
         '<div class="card" style="margin:10px 0">' + 
-        '<p style="font-size:13px;font-weight:600;margin:0 0 4px">🧾 Credit a Paid Reference</p>' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 4px">💰 Top up balance by reference</p>' +
         '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Student paid on Paystack but wasn\'t credited? Paste the payment reference (starts with WALLET- or MYUTME-). It is checked with Paystack first and can only be credited once.</p>' +
         '<input class="field" id="admin-credit-ref-input" placeholder="e.g. WALLET-1790000000000-12345" style="margin-bottom:8px;font-size:13px" />' +
         '<button class="btn btn-green" data-action="admin-credit-reference" style="padding:10px">' + (state.adminCreditBusy ? 'Checking…' : 'Verify &amp; Credit') + '</button>' +
@@ -26952,17 +26939,11 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
-    if (action === 'paid-type') {
-        if (!state.paidDraft) return;
-        state.paidDraft.type = el.getAttribute('data-type') === 'wallet' ? 'wallet' : 'transfer';
-        render();
-        return;
-    }
     if (action === 'submit-paid') { submitPaymentClaim(); return; }
     if (action === 'paid-whatsapp') {
         const d = state.paidDraft || {};
         const plan = state.activationPlans.find(function(p) { return String(p.id) === String(d.planId); });
-        const msg = claimWhatsAppText({ plan_name: plan ? plan.name : '(not chosen yet)', amount: d.amount || (plan ? plan.price : 0), account_name: d.name || '', reference: d.ref || '' });
+        const msg = claimWhatsAppText({ plan_name: plan ? plan.name : '(not chosen yet)', amount: d.amount || (plan ? plan.price : 0), account_name: d.name || '' });
         window.open('https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg), '_blank');
         return;
     }
@@ -26971,13 +26952,7 @@ document.addEventListener('click', function(e) {
         if (c) window.open('https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(claimWhatsAppText(c)), '_blank');
         return;
     }
-    if (action === 'claim-activate-wallet') {
-        const c = (state.myClaims || []).find(function(x) { return String(x.id) === el.getAttribute('data-id'); });
-        const plan = c ? state.activationPlans.find(function(p) { return String(p.id) === String(c.plan_id); }) : null;
-        if (!plan) { showToast('That plan is no longer available. Please text support.', 'error'); return; }
-        activateWithWallet(plan).then(function() { if (state.view === 'activate') markClaimActivated(c.id); });
-        return;
-    }
+    if (action === 'admin-activate-ref') { adminActivateByReference(); return; }
     if (action === 'admin-claim-confirm') { adminConfirmClaim(el.getAttribute('data-id')); return; }
     if (action === 'admin-claim-reject') { adminRejectClaim(el.getAttribute('data-id')); return; }
     if (action === 'admin-claims-refresh') { loadAdminClaims(); return; }
@@ -31430,8 +31405,6 @@ document.addEventListener('input', function(e) {
         if (state.paidDraft) state.paidDraft.name = e.target.value;
     } else if (id === 'paid-amount-input') {
         if (state.paidDraft) { state.paidDraft.amount = e.target.value; state.paidDraft.amountTouched = true; }
-    } else if (id === 'paid-ref-input') {
-        if (state.paidDraft) state.paidDraft.ref = e.target.value;
     } else if (id === 'fund-wallet-amount-input') {
         state.fundWalletAmount = e.target.value;
     } else if (id === 'study-reminder-hour') {
