@@ -10824,6 +10824,7 @@ async function loadNews() {
         if ((r[0].data || []).length || !state.news.length) state.news = r[0].data || [];
         saveNewsCache(state.news);
         const uid = state.authUser && state.authUser.id;
+        state.newsLikeRows = r[1].data || [];
         state.newsLikes = {}; state.newsMyLikes = {}; state.newsCommentCounts = {};
         (r[1].data || []).forEach(function(l) { state.newsLikes[l.news_id] = (state.newsLikes[l.news_id] || 0) + 1; if ((uid && l.user_id === uid) || (!uid && l.guest_id && l.guest_id === newsGuestId())) state.newsMyLikes[l.news_id] = true; });
         (r[2].data || []).forEach(function(c) { state.newsCommentCounts[c.news_id] = (state.newsCommentCounts[c.news_id] || 0) + 1; });
@@ -10867,15 +10868,33 @@ function newsGuestId() {
     return g;
 }
 // Anyone can like (guests too, using an anonymous id kept on their phone). Only logged-in users can comment.
+// Did the person using the app right now already like this news? (checked against the saved likes, so it
+// is right even if the news loaded before they finished logging in.)
+function isNewsLikedNow(id) {
+    const uid = state.authUser && state.authUser.id, gid = uid ? null : newsGuestId();
+    const key = uid || gid;
+    if (state._nlIdent !== key) { state.newsMyLikes = {}; state._nlIdent = key; }
+    if (state.newsMyLikes[id] !== undefined) return !!state.newsMyLikes[id];
+    return (state.newsLikeRows || []).some(function(l) { return l.news_id === id && ((uid && l.user_id === uid) || (gid && l.guest_id === gid)); });
+}
 async function toggleNewsLike(id) {
-    const uid = state.authUser && state.authUser.id, was = !!state.newsMyLikes[id];
+    const uid = state.authUser && state.authUser.id, was = isNewsLikedNow(id);
     state.newsMyLikes[id] = !was; state.newsLikes[id] = Math.max(0, (state.newsLikes[id] || 0) + (was ? -1 : 1)); render();
     const who = uid ? { user_id: uid } : { guest_id: newsGuestId() };
     const q = was
         ? (uid ? supabase.from('news_post_likes').delete().eq('news_id', id).eq('user_id', uid) : supabase.from('news_post_likes').delete().eq('news_id', id).eq('guest_id', who.guest_id))
         : supabase.from('news_post_likes').insert([Object.assign({ news_id: id }, who)]);
     const { error } = await q;
-    if (error) { state.newsMyLikes[id] = was; state.newsLikes[id] = Math.max(0, (state.newsLikes[id] || 0) + (was ? 1 : -1)); render(); showNetworkAwareError('Could not update your like.', error); }
+    if (error) {
+        if (!was && (error.code === '23505' || /duplicate key/i.test(error.message || ''))) {
+            // the like was already saved earlier — just show it as liked, no error
+            state.newsMyLikes[id] = true; state.newsLikes[id] = Math.max(0, (state.newsLikes[id] || 1) - 1); render(); return;
+        }
+        state.newsMyLikes[id] = was; state.newsLikes[id] = Math.max(0, (state.newsLikes[id] || 0) + (was ? 1 : -1)); render(); showNetworkAwareError('Could not update your like.', error); return;
+    }
+    // keep the saved list in step
+    state.newsLikeRows = (state.newsLikeRows || []).filter(function(l) { return !(l.news_id === id && ((uid && l.user_id === uid) || (!uid && l.guest_id === who.guest_id))); });
+    if (!was) state.newsLikeRows.push(Object.assign({ news_id: id, user_id: null, guest_id: null }, who));
 }
 async function postNewsComment(id) {
     if (newsNeedLogin()) return;
@@ -11066,7 +11085,7 @@ function renderNewsDetail() {
     if (!state.newsLoaded && !state.news.length) { newsAutoLoad(); return back + '<div class="loading-spinner"><div class="spinner"></div><p>Loading...</p></div>'; }
     const n = state.news.find(function(x) { return x.id === id; });
     if (!n) return back + '<p style="text-align:center;color:var(--faint);padding:40px 0">This news item is no longer available.</p>';
-    const liked = !!state.newsMyLikes[id];
+    const liked = isNewsLikedNow(id);
     const paras = String(n.body || '').split(/\n+/).filter(function(t) { return t.trim(); }).map(function(t) { return '<p>' + esc(t) + '</p>'; }).join('');
     const rail = '<div class="nw-rail">' +
         '<div class="nw-icw"><button class="nw-ic' + (liked ? ' on' : '') + '" data-action="news-like" aria-label="Like">' + nwIcon('heart', 28) + '</button><span class="nw-cnt">' + (state.newsLikes[id] || 0) + '</span><span class="nw-lbl">Likes</span></div>' +
