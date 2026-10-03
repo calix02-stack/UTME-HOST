@@ -10743,6 +10743,7 @@ async function loadNews() {
     state.newsLoading = true; newsLastAttempt = Date.now();
     let ok = false;
     try {
+        await waitForSupabaseReady(6000);
         const r = await withNetworkTimeout(Promise.all([
             supabase.from('news_posts').select('*').order('created_at', { ascending: false }).limit(30),
             supabase.from('news_post_likes').select('news_id,user_id'),
@@ -10765,7 +10766,7 @@ async function loadNews() {
     else {
         // never leave the news "empty forever": keep what we have, and quietly try again
         state.newsLoaded = state.news.length > 0;
-        if (newsRetries < 6) { clearTimeout(newsRetryTimer); newsRetryTimer = setTimeout(loadNews, 4000 * (++newsRetries)); }
+        clearTimeout(newsRetryTimer); newsRetryTimer = setTimeout(loadNews, Math.min(30000, 3000 * (++newsRetries)));   // keeps trying until it loads
     }
     render();
 }
@@ -10901,8 +10902,24 @@ function renderNewsStrip() {
 function newsAdHtml(big) {
     if (isAdmin() || !navigator.onLine) return '';
     return big
-        ? '<div class="nw-ad"><span class="al">Advertisement</span><iframe src="/ad.html" width="300" height="250" scrolling="no" frameborder="0" title="Advertisement"></iframe></div>'
-        : '<div class="nw-ad sm"><span class="al">Advertisement</span><iframe src="/ad-small.html" width="320" height="50" scrolling="no" frameborder="0" title="Advertisement"></iframe></div>';
+        ? '<div class="nw-ad"><span class="al">Advertisement</span><div class="adframe" data-src="/ad.html" data-w="300" data-h="250" style="width:300px;height:250px;max-width:100%;margin:0 auto"></div></div>'
+        : '<div class="nw-ad sm"><span class="al">Advertisement</span><div class="adframe" data-src="/ad-small.html" data-w="320" data-h="50" style="width:320px;height:50px;max-width:100%;margin:0 auto"></div></div>';
+}
+// The app redraws itself many times while opening (login check, settings, courses, news...). An ad frame
+// created during that would be thrown away before it finishes loading, so ads never appeared until a refresh.
+// So we only drop the real ad frames in once the screen has stayed still for a moment.
+let adFillTimer = null;
+function scheduleAds() { clearTimeout(adFillTimer); adFillTimer = setTimeout(fillAds, 900); }
+function fillAds() {
+    document.querySelectorAll('.adframe').forEach(function(box) {
+        if (box.firstChild) return;
+        const f = document.createElement('iframe');
+        f.src = box.getAttribute('data-src');
+        f.width = box.getAttribute('data-w'); f.height = box.getAttribute('data-h');
+        f.setAttribute('scrolling', 'no'); f.setAttribute('frameborder', '0'); f.title = 'Advertisement';
+        f.style.cssText = 'border:0;width:100%;height:100%;display:block';
+        box.appendChild(f);
+    });
 }
 function adBox() { return newsAdHtml(false); }   // thin 320x50 banner
 function renderNewsFeed() {
@@ -16847,6 +16864,7 @@ function render() {
 }
 
 function renderNow() {
+    scheduleAds();
     if (state.phase === "splash") {
         root.innerHTML = renderSplash();
         return;
@@ -31527,6 +31545,7 @@ async function init() {
     handleExamResultLinkFromUrl();
     handleLiveExamLinkFromUrl();
     handleNewsLinkFromUrl();
+    if (!state.newsLoaded) loadNews();
 
     // Auto-reconcile per-subject question files — runs on every app open so
     // the offline DB is kept exactly in sync with what's on GitHub: same
