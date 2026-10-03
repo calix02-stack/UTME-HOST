@@ -6150,6 +6150,8 @@
     .nw-ad{margin:14px auto;text-align:center;max-width:320px}
     .nw-ad .al{display:block;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
     .nw-ad iframe{border:0;width:300px;height:250px;max-width:100%;background:var(--card-bg);border-radius:6px}
+    .nw-ad.sm{margin:10px auto;max-width:340px}
+    .nw-ad.sm iframe{width:320px;height:50px}
 
     /* In-app notification banner */
     #inapp-notif-banner {
@@ -10734,9 +10736,12 @@ function newsFmtDate(d) { try { return new Date(d).toLocaleDateString('en-GB', {
 function newsSnippet(t, n) { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n).trim() + '…' : t; }
 function newsSaveDraft() { const t = document.getElementById('news-comment-input'); if (t) state.newsDraft = t.value; }
 
+let newsLastLoad = 0, newsLastAttempt = 0, newsRetries = 0, newsRetryTimer = null;
+function newsAutoLoad() { if (!state.newsLoading && Date.now() - newsLastAttempt > 5000) loadNews(); }
 async function loadNews() {
     if (state.newsLoading) return;
-    state.newsLoading = true;
+    state.newsLoading = true; newsLastAttempt = Date.now();
+    let ok = false;
     try {
         const r = await withNetworkTimeout(Promise.all([
             supabase.from('news_posts').select('*').order('created_at', { ascending: false }).limit(30),
@@ -10750,12 +10755,23 @@ async function loadNews() {
         state.newsLikes = {}; state.newsMyLikes = {}; state.newsCommentCounts = {};
         (r[1].data || []).forEach(function(l) { state.newsLikes[l.news_id] = (state.newsLikes[l.news_id] || 0) + 1; if (uid && l.user_id === uid) state.newsMyLikes[l.news_id] = true; });
         (r[2].data || []).forEach(function(c) { state.newsCommentCounts[c.news_id] = (state.newsCommentCounts[c.news_id] || 0) + 1; });
+        ok = true;
     } catch (e) {
         console.warn('News load failed:', e);
         if (!state.news.length) state.news = loadOfflineCache('news') || [];
     }
-    state.newsLoaded = true; state.newsLoading = false; render();
+    state.newsLoading = false;
+    if (ok) { state.newsLoaded = true; newsLastLoad = Date.now(); newsRetries = 0; }
+    else {
+        // never leave the news "empty forever": keep what we have, and quietly try again
+        state.newsLoaded = state.news.length > 0;
+        if (newsRetries < 6) { clearTimeout(newsRetryTimer); newsRetryTimer = setTimeout(loadNews, 4000 * (++newsRetries)); }
+    }
+    render();
 }
+// refresh news when the app comes back to the screen or the internet returns
+document.addEventListener('visibilitychange', function() { if (!document.hidden && Date.now() - newsLastLoad > 60000) loadNews(); });
+window.addEventListener('online', function() { newsRetries = 0; loadNews(); });
 async function loadNewsComments(id) {
     state.newsCommentsFor = id;
     try {
@@ -10856,7 +10872,7 @@ async function adminDeleteNews(id) {
     state.news = state.news.filter(function(n) { return n.id !== id; }); render();
 }
 function renderAdminNewsList() {
-    if (!state.newsLoaded) { loadNews(); return ''; }
+    if (!state.newsLoaded) { newsAutoLoad(); return ''; }
     if (!state.news.length) return '<p style="font-size:11px;color:var(--faint);margin:12px 0 0">No news posted yet.</p>';
     let h = '<p style="font-size:12px;font-weight:600;margin:16px 0 6px">Posted news</p>';
     state.news.forEach(function(n) {
@@ -10871,7 +10887,8 @@ function renderAdminNewsList() {
 }
 // ----- screens -----
 function renderNewsStrip() {
-    if (!state.newsLoaded) { loadNews(); return ''; }
+    if (!state.news.length) { const c = loadOfflineCache('news'); if (c && c.length) state.news = c; }   // show saved news instantly
+    if (!state.newsLoaded) newsAutoLoad();
     const n = state.news[0]; if (!n) return '';
     if (storage.get('newsStripDismissed') === String(n.id)) return '';   // hidden until newer news is posted
     return '<div class="nw-strip" data-action="news-open" data-id="' + n.id + '">' +
@@ -10881,21 +10898,30 @@ function renderNewsStrip() {
 }
 // Ad box (Adsterra 300x250). Loaded inside its own small frame (ad.html) so it can never cover the screen.
 // Not shown to the admin (clicking your own ads can get the account banned) or when offline.
-function newsAdHtml() {
+function newsAdHtml(big) {
     if (isAdmin() || !navigator.onLine) return '';
-    return '<div class="nw-ad"><span class="al">Advertisement</span><iframe src="/ad.html" width="300" height="250" scrolling="no" frameborder="0" title="Advertisement"></iframe></div>';
+    return big
+        ? '<div class="nw-ad"><span class="al">Advertisement</span><iframe src="/ad.html" width="300" height="250" scrolling="no" frameborder="0" title="Advertisement"></iframe></div>'
+        : '<div class="nw-ad sm"><span class="al">Advertisement</span><iframe src="/ad-small.html" width="320" height="50" scrolling="no" frameborder="0" title="Advertisement"></iframe></div>';
 }
+function adBox() { return newsAdHtml(false); }   // thin 320x50 banner
 function renderNewsFeed() {
-    if (!state.newsLoaded) { loadNews(); return '<div class="loading-spinner"><div class="spinner"></div><p>Loading news...</p></div>'; }
+    if (!state.news.length) { const c = loadOfflineCache('news'); if (c && c.length) state.news = c; }
+    if (!state.newsLoaded && !state.news.length) {
+        newsAutoLoad();
+        return state.newsLoading || newsRetries === 0 ? '<div class="loading-spinner"><div class="spinner"></div><p>Loading news...</p></div>'
+            : '<div style="text-align:center;padding:40px 0"><p style="font-size:13px;color:var(--muted)">Could not load news.</p><button class="btn btn-green" style="padding:10px;max-width:200px" data-action="news-retry">Try again</button></div>';
+    }
     const mast = '<div class="nw-mast"><div class="k">' + esc(new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) + '</div><h1>MyUTME <b>News</b></h1><div class="k">Updates for JAMB candidates</div></div>';
     if (!state.news.length) return mast + '<p style="text-align:center;color:var(--faint);padding:40px 0;font-size:13px">No news yet. Check back soon.</p>';
     const meta = function(n) { return '<div class="nw-meta"><span>' + esc(newsFmtDate(n.created_at)) + '</span><span>❤ ' + (state.newsLikes[n.id] || 0) + '</span><span>💬 ' + (state.newsCommentCounts[n.id] || 0) + '</span></div>'; };
     const L = state.news[0];
-    let h = mast + newsAdHtml() + '<div class="nw-lead" data-action="news-open" data-id="' + L.id + '">' +
+    let h = mast + adBox() + '<div class="nw-lead" data-action="news-open" data-id="' + L.id + '">' +
         (L.image_url ? '<img class="im" src="' + esc(L.image_url) + '" alt="" />' : '') +
         '<span class="nw-tag">Latest</span><h2>' + esc(L.title) + '</h2><p class="nw-sn">' + esc(newsSnippet(L.body, 150)) + '</p>' + meta(L) + '</div>';
     // (ad slot: a <div class="nw-ad"> can go here, between the lead story and the list)
-    state.news.slice(1).forEach(function(n) {
+    state.news.slice(1).forEach(function(n, i) {
+        if (i === 3) h += adBox();   // one more ad after the first few stories
         h += '<div class="nw-row" data-action="news-open" data-id="' + n.id + '">' +
             (n.image_url ? '<img class="th" src="' + esc(n.image_url) + '" alt="" />' : '<div class="th ph">📰</div>') +
             '<div style="min-width:0"><h3>' + esc(n.title) + '</h3><p class="nw-sn" style="font-size:12px;margin-bottom:4px">' + esc(newsSnippet(n.body, 70)) + '</p>' + meta(n) + '</div></div>';
@@ -10905,7 +10931,7 @@ function renderNewsFeed() {
 function renderNewsDetail() {
     const id = state.newsOpenId;
     const back = '<button class="back-link" data-action="set-view" data-view="news">' + svg('chevleft', 14) + ' All news</button>';
-    if (!state.newsLoaded) { loadNews(); return back + '<div class="loading-spinner"><div class="spinner"></div><p>Loading...</p></div>'; }
+    if (!state.newsLoaded && !state.news.length) { newsAutoLoad(); return back + '<div class="loading-spinner"><div class="spinner"></div><p>Loading...</p></div>'; }
     const n = state.news.find(function(x) { return x.id === id; });
     if (!n) return back + '<p style="text-align:center;color:var(--faint);padding:40px 0">This news item is no longer available.</p>';
     const liked = !!state.newsMyLikes[id], admin = isAdmin();
@@ -10928,7 +10954,7 @@ function renderNewsDetail() {
         '<div class="nw-meta"><span>' + esc(newsFmtDate(n.created_at)) + '</span><span>' + esc(formatTimeAgo(n.created_at)) + '</span></div>' +
         (n.image_url ? '<img class="hero" src="' + esc(n.image_url) + '" alt="" />' : '') +
         '<div class="nw-body">' + paras + '</div>' +
-        newsAdHtml() +
+        newsAdHtml(true) +
         '<div class="nw-bar"><button class="nw-btn' + (liked ? ' on' : '') + '" data-action="news-like">' + (liked ? '❤️' : '🤍') + ' ' + (state.newsLikes[id] || 0) + '</button>' +
         '<button class="nw-btn wa" data-action="news-share-wa" data-id="' + id + '">WhatsApp</button>' +
         (navigator.share ? '<button class="nw-btn" data-action="news-share" data-id="' + id + '">Share</button>' : '') +
@@ -11276,6 +11302,7 @@ function setupRealtimeNotifications() {
             if (!n.target_user_id || n.target_user_id === state.authUser.id) {
                 showInAppNotificationBanner(n);
                 loadNotifications();
+                if (n.news_id || String(n.title || '').indexOf('📰') === 0) loadNews();
             }
         })
         .subscribe();
@@ -16951,7 +16978,7 @@ function renderNow() {
     // account — Practice Hub, Mock Arena and Account still gate behind
     // login, and AI Tutor itself still requires an account the moment a
     // guest tries to actually send a message (see sendAiMessage()).
-    const GUEST_ALLOWED_VIEWS = ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check', 'home', 'ai-assistant'];
+    const GUEST_ALLOWED_VIEWS = ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check', 'home', 'ai-assistant', 'news', 'news-detail'];
     const onGuestAllowedView = GUEST_ALLOWED_VIEWS.indexOf(state.view) !== -1 || state.isGuestMock;
 
     let html;
@@ -17575,6 +17602,7 @@ function renderApp() {
               (state.swVersion ? '<span class="app-version-badge">' + esc(formatVersionBadge(state.swVersion)) + '</span>' : '') +
               '</span></div>' +
               '<div class="topbar-right">' +
+              '<button class="icon-btn" data-action="set-view" data-view="news" aria-label="News" style="font-size:16px">📰</button>' +
               '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
               svg('bell', 17).replace('stroke="currentColor"', 'stroke="white"') +
               (unread > 0 ? '<span style="position:absolute;top:-4px;right:-4px;background:#e2543a;color:#fff;border-radius:999px;font-size:9px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--topbar-bg)">' + badgeLabel + '</span>' : '') +
@@ -17683,7 +17711,8 @@ if (v === "subject-modes") return renderSubjectModes();
 // ============================================================
 //  MY SUBJECTS (home for subject combo + practice modes)
 // ============================================================
-function renderMyCourses() {
+function renderMyCourses() { return renderMyCoursesCore() + adBox(); }
+function renderMyCoursesCore() {
     // Local/offline: state.myElectives is loaded from localStorage the moment
     // we know who's logged in (see loadMyElectivesLocal()), so this page has
     // real data on first paint whether or not there's a connection — nothing
@@ -17872,7 +17901,8 @@ function renderSubjectModes() {
         grid
     );
 }
-function renderLearningHub() {
+function renderLearningHub() { return renderLearningHubCore() + adBox(); }
+function renderLearningHubCore() {
     const tools = [
         { key: 'cbt', label: 'JAMB CBT', blurb: 'Real JAMB-style practice', icon: 'monitor', color: '#3B6EA5' },
         { key: 'exam', label: 'JAMB Past Questions', blurb: '2021–2026, one subject at a time', icon: 'clipboard', color: '#E2543A' },
@@ -18002,6 +18032,7 @@ function renderHome() {
         '<button class="see-all" data-action="set-view" data-view="all-courses">See all →</button>' +
         '</div>' +
         '<div class="course-scroll-row">' + courseCards + '</div>' +
+        adBox() +
         renderHomeExtras()
     );
 }
@@ -18028,7 +18059,8 @@ function renderHomeExtras() {
 
     return tipHtml;
 }
-function renderAllCourses() {
+function renderAllCourses() { return renderAllCoursesCore() + adBox(); }
+function renderAllCoursesCore() {
     if (!state.coursesLoaded) loadCourses();
     const list = state.courses;
 
@@ -19208,7 +19240,8 @@ function renderDocCategoryChips(activeFilter, action) {
     html += '</div>';
     return html;
 }
-function renderDocumentsUser() {
+function renderDocumentsUser() { return renderDocumentsUserCore() + adBox(); }
+function renderDocumentsUserCore() {
     let rows = "";
     if (!state.docsLoaded) {
         rows = '<div class="loading-spinner"><div class="spinner"></div><p>Loading study materials...</p></div>';
@@ -20530,7 +20563,8 @@ function renderAdminSupportThread() {
 // ============================================================
 //  HISTORY / RESULT ANALYSIS
 // ============================================================
-function renderHistory() {
+function renderHistory() { return renderHistoryCore() + adBox(); }
+function renderHistoryCore() {
     if (!state.authUser) {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
@@ -20861,7 +20895,8 @@ function renderAnalyticsDashboard() {
 // ============================================================
 //  PROFILE - COMPLETE REWRITE
 // ============================================================
-function renderProfile() {
+function renderProfile() { return renderProfileCore() + adBox(); }
+function renderProfileCore() {
     const isLoggedIn = !!state.authUser;
     const isActive = isUserActive();
     const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry) : null;
@@ -21769,7 +21804,8 @@ function renderMockPassagePage() {
     );
 }
 
-function renderMockExamPicker() {
+function renderMockExamPicker() { return renderMockExamPickerCore() + adBox(); }
+function renderMockExamPickerCore() {
     if (!state.mockLoaded || !state.liveExamsLoaded) {
         if (!state.mockLoaded) loadMockExams();
         if (!state.liveExamsLoaded) loadLiveExams();
@@ -22337,7 +22373,8 @@ function renderLbRow(rank, displayName, isCurrentUser, score, outOf, isUnverifie
     );
 }
 
-function renderLeaderboard() {
+function renderLeaderboard() { return renderLeaderboardCore() + adBox(); }
+function renderLeaderboardCore() {
     if (state.loadingLeaderboard) {
         return (
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
@@ -22488,7 +22525,8 @@ function renderNotifications() {
         '<h2 class="title" style="margin:0;font-size:18px">Notifications</h2>' +
         '</div>' +
         tabHtml +
-        items
+        items +
+        adBox()
     );
 }
 
@@ -22514,7 +22552,8 @@ function renderPaymentStatus() {
     );
 }
 
-function renderActivate() {
+function renderActivate() { return adBox() + renderActivateCore(); }
+function renderActivateCore() {
     const home = '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>';
     if (!state.authUser) {
         return (
@@ -22733,7 +22772,8 @@ const HELP_FAQS = [
     { cat: 'Using the app', q: 'The app is slow or not loading questions', a: 'Check your network, then close and reopen the app. If it persists, tell us your phone model and what you were doing on WhatsApp support.' },
 ];
 
-function renderHelpCenter() {
+function renderHelpCenter() { return renderHelpCenterCore() + adBox(); }
+function renderHelpCenterCore() {
     const q = (state.helpSearch || '').toLowerCase().trim();
     const cats = ['Activation', 'Payments', 'Using the app'];
     let body = '';
@@ -26436,6 +26476,7 @@ function renderLoginModal() {
         (state.authLoading ? 'Signing in…' : 'Log in') + (state.authLoading ? '' : svg('arrowright', 18)) +
         '</button>' +
         '<div class="switch-link">Don&#39;t have an account? <button data-action="switch-to-signup">Sign up</button></div>' +
+        adBox() +
         '</div>' +
         '</div>' +
         '</div>'
@@ -26512,6 +26553,7 @@ function renderSignupModal() {
         (state.authLoading ? 'Creating account…' : 'Create account') + (state.authLoading ? '' : svg('arrowright', 18)) +
         '</button>' +
         '<div class="switch-link">Already have an account? <button data-action="switch-to-login">Log in</button></div>' +
+        adBox() +
         '</div>' +
         '</div>' +
         '</div>'
@@ -26839,6 +26881,7 @@ document.addEventListener('click', function(e) {
         const nid = el.getAttribute('data-nid'); if (nid) markNotificationRead(nid);
         openNews(el.getAttribute('data-id')); return;
     }
+    if (action === 'news-retry') { newsRetries = 0; state.newsLoading = false; loadNews(); render(); return; }
     if (action === 'news-strip-dismiss') { if (state.news[0]) storage.set('newsStripDismissed', String(state.news[0].id)); render(); return; }
     if (action === 'news-reply') { newsSaveDraft(); state.newsReplyTo = { id: el.getAttribute('data-id'), name: el.getAttribute('data-name') }; render(); setTimeout(function() { const t = document.getElementById('news-comment-input'); if (t) t.focus(); }, 50); return; }
     if (action === 'news-reply-cancel') { newsSaveDraft(); state.newsReplyTo = null; render(); return; }
