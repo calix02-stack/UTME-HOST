@@ -6137,6 +6137,7 @@
     .nw-art .hero{width:100%;max-height:360px;object-fit:cover;border-radius:6px;display:block;margin:10px 0 12px}
     .nw-body p{font-family:var(--font-serif);font-size:16.5px;line-height:1.7;color:var(--ink);margin:0 0 14px}
     .nw-bar{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:14px 0}
+    .nw-home{background:var(--card-bg);border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:12px;padding:12px;margin-bottom:14px}
     .nw-btn{flex:1;min-width:84px;border:1.5px solid var(--line);background:var(--card-bg);color:var(--ink);border-radius:999px;padding:9px 10px;font:600 12px var(--font-sans);cursor:pointer}
     .nw-btn.on{background:#fdecea;border-color:#e2543a;color:#c0392b}
     .nw-btn.wa{background:#25D366;border-color:#25D366;color:#fff}
@@ -10722,7 +10723,7 @@ function markAllNotificationsRead() {
 
 // ============================================================
 //  NEWS — public news feed (admin posts; everyone reads; logged-in users like & comment)
-//  Tables: news_posts, news_likes, news_comments (see news_setup.sql)
+//  Tables: news_posts, news_post_likes, news_post_comments (see news_setup.sql)
 // ============================================================
 function newsLink(id) { return window.location.origin + window.location.pathname + '?news=' + id; }
 function newsFmtDate(d) { try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } }
@@ -10735,8 +10736,8 @@ async function loadNews() {
     try {
         const r = await withNetworkTimeout(Promise.all([
             supabase.from('news_posts').select('*').order('created_at', { ascending: false }).limit(30),
-            supabase.from('news_likes').select('news_id,user_id'),
-            supabase.from('news_comments').select('news_id')
+            supabase.from('news_post_likes').select('news_id,user_id'),
+            supabase.from('news_post_comments').select('news_id')
         ]), 10000, 'News load');
         if (r[0].error) throw r[0].error;
         state.news = r[0].data || [];
@@ -10754,7 +10755,7 @@ async function loadNews() {
 async function loadNewsComments(id) {
     state.newsCommentsFor = id;
     try {
-        const { data } = await supabase.from('news_comments').select('*').eq('news_id', id).order('created_at', { ascending: true });
+        const { data } = await supabase.from('news_post_comments').select('*').eq('news_id', id).order('created_at', { ascending: true });
         if (state.newsCommentsFor === id) { state.newsComments = data || []; render(); }
     } catch (e) { console.warn(e); }
 }
@@ -10772,7 +10773,7 @@ async function toggleNewsLike(id) {
     if (newsNeedLogin()) return;
     const uid = state.authUser.id, was = !!state.newsMyLikes[id];
     state.newsMyLikes[id] = !was; state.newsLikes[id] = Math.max(0, (state.newsLikes[id] || 0) + (was ? -1 : 1)); render();
-    const q = was ? supabase.from('news_likes').delete().eq('news_id', id).eq('user_id', uid) : supabase.from('news_likes').insert([{ news_id: id, user_id: uid }]);
+    const q = was ? supabase.from('news_post_likes').delete().eq('news_id', id).eq('user_id', uid) : supabase.from('news_post_likes').insert([{ news_id: id, user_id: uid }]);
     const { error } = await q;
     if (error) { state.newsMyLikes[id] = was; state.newsLikes[id] = Math.max(0, (state.newsLikes[id] || 0) + (was ? 1 : -1)); render(); showNetworkAwareError('Could not update your like.', error); }
 }
@@ -10781,7 +10782,7 @@ async function postNewsComment(id) {
     const t = document.getElementById('news-comment-input'); const body = (t ? t.value : state.newsDraft).trim();
     if (!body) { showToast('Write a comment first.', 'error'); return; }
     const username = (state.profile && (state.profile.username || state.profile.name)) || 'Student';
-    const { data, error } = await supabase.from('news_comments').insert([{ news_id: id, user_id: state.authUser.id, username: username, body: body.slice(0, 1000) }]).select();
+    const { data, error } = await supabase.from('news_post_comments').insert([{ news_id: id, user_id: state.authUser.id, username: username, body: body.slice(0, 1000) }]).select();
     if (error) { showNetworkAwareError('Could not post your comment.', error); return; }
     state.newsDraft = ''; if (t) t.value = '';
     state.newsComments = state.newsComments.concat(data || []);
@@ -10789,7 +10790,7 @@ async function postNewsComment(id) {
 }
 async function deleteNewsComment(cid) {
     if (!window.confirm('Delete this comment?')) return;
-    const { error } = await supabase.from('news_comments').delete().eq('id', cid);
+    const { error } = await supabase.from('news_post_comments').delete().eq('id', cid);
     if (error) { showNetworkAwareError('Could not delete the comment.', error); return; }
     state.newsComments = state.newsComments.filter(function(c) { return c.id !== cid; });
     state.newsCommentCounts[state.newsOpenId] = Math.max(0, (state.newsCommentCounts[state.newsOpenId] || 1) - 1); render();
@@ -10802,11 +10803,28 @@ function shareNewsTo(how, id) {
     if (navigator.clipboard) navigator.clipboard.writeText(url).then(function() { showToast('Link copied!', 'success'); }, function() { window.prompt('Copy this link:', url); });
     else window.prompt('Copy this link:', url);
 }
-function handleNewsLinkFromUrl() {
-    const id = new URLSearchParams(window.location.search).get('news');
+function openNewsFromParam(id) {
     if (!id) return;
-    const go = function() { if (state.news.some(function(x) { return x.id === id; })) openNews(id); else showToast('That news item is no longer available.', 'error'); };
-    if (state.newsLoaded) go(); else { const t = setInterval(function() { if (state.newsLoaded) { clearInterval(t); go(); } }, 300); setTimeout(function() { clearInterval(t); }, 12000); loadNews(); }
+    const go = function() {
+        const hit = id === 'latest' ? state.news[0] : state.news.find(function(x) { return x.id === id; });
+        if (hit) openNews(hit.id); else showToast('That news item is no longer available.', 'error');
+    };
+    // always fetch fresh first so a story posted a moment ago is found
+    state.newsLoaded = false; state.newsLoading = false;
+    loadNews();
+    let tries = 0;
+    const t = setInterval(function() { tries++; if (state.newsLoaded) { clearInterval(t); go(); } else if (tries > 40) clearInterval(t); }, 300);
+}
+function handleNewsLinkFromUrl() {
+    openNewsFromParam(new URLSearchParams(window.location.search).get('news'));
+}
+// tapping a phone notification while the app is already open: the service worker tells us where to go
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function(e) {
+        const d = e.data || {};
+        if (d.type !== 'open-url' || !d.url) return;
+        try { const id = new URL(d.url, window.location.origin).searchParams.get('news'); if (id) openNewsFromParam(id); } catch (err) {}
+    });
 }
 // ----- admin -----
 async function adminPostNews() {
@@ -10850,8 +10868,21 @@ function renderAdminNewsList() {
 // ----- screens -----
 function renderNewsStrip() {
     if (!state.newsLoaded) { loadNews(); return ''; }
-    const n = state.news[0]; if (!n) return '';
-    return '<div class="nw-strip" data-action="news-open" data-id="' + n.id + '"><span style="font-size:22px">📰</span><div><p class="l">Latest news</p><p class="t">' + esc(newsSnippet(n.title, 90)) + '</p></div></div>';
+    if (!state.news.length) return '';
+    const top = state.news.slice(0, 3), L = top[0];
+    const meta = function(n) { return '<div class="nw-meta"><span>' + esc(newsFmtDate(n.created_at)) + '</span><span>❤ ' + (state.newsLikes[n.id] || 0) + '</span><span>💬 ' + (state.newsCommentCounts[n.id] || 0) + '</span></div>'; };
+    let h = '<div class="section-hdr"><h2>Latest News</h2><button class="see-all" data-action="set-view" data-view="news">See all →</button></div>' +
+        '<div class="nw-home">' +
+        '<div class="nw-lead" style="margin-bottom:6px" data-action="news-open" data-id="' + L.id + '">' +
+        (L.image_url ? '<img class="im" src="' + esc(L.image_url) + '" alt="" />' : '') +
+        '<span class="nw-tag">Just in</span><h2>' + esc(L.title) + '</h2><p class="nw-sn">' + esc(newsSnippet(L.body, 140)) + '</p>' + meta(L) +
+        '<div style="margin-top:8px;font-size:12px;font-weight:700;color:var(--green)">Read full story →</div></div>';
+    top.slice(1).forEach(function(n) {
+        h += '<div class="nw-row" data-action="news-open" data-id="' + n.id + '">' +
+            (n.image_url ? '<img class="th" style="width:72px;height:72px" src="' + esc(n.image_url) + '" alt="" />' : '<div class="th ph" style="width:72px;height:72px">📰</div>') +
+            '<div style="min-width:0"><h3 style="font-size:14px">' + esc(n.title) + '</h3>' + meta(n) + '</div></div>';
+    });
+    return h + '</div>';
 }
 function renderNewsFeed() {
     if (!state.newsLoaded) { loadNews(); return '<div class="loading-spinner"><div class="spinner"></div><p>Loading news...</p></div>'; }
