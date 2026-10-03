@@ -1,13 +1,19 @@
-// MyUTME service worker (v13) — always loads the NEWEST app, still works offline.
+// MyUTME service worker (v14) — always loads the NEWEST app, still works offline.
 //
-// WHAT CHANGED vs v12:
+// WHAT CHANGED vs v13:
+//  - Cache name bumped to v14 so all v13 data is deleted on activate and everyone gets the new
+//    News feature (News page, likes, comments, WhatsApp share links like /?news=ID).
+//  - Tapping a News phone alert now opens that news (or the latest news) directly.
+//  - Nothing else changed: shared news links open fresh from the network like any page, and
+//    fall back to the saved app if the person is offline.
+//
+// WHAT CHANGED in v13 vs v12:
 //  - Page + offline-db.js: fetched fresh from the network EVERY time with cache:"no-store"
 //    (this bypasses the browser/host HTTP cache, which is what kept serving the old index.html).
 //  - The saved copy is used ONLY if the network fails or takes longer than PAGE_TIMEOUT_MS.
-//  - Cache name bumped to v13 so all v12 data is deleted on activate.
 //  - Question data files keep the "instant + refresh in background" behaviour (good for offline use),
 //    but the background refresh now also bypasses the HTTP cache.
-const CACHE_NAME = "myutme-cache-v13";
+const CACHE_NAME = "myutme-cache-v14";
 
 const APP_SHELL = [
   "./",
@@ -136,7 +142,7 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// ---- Push notifications (unchanged from v12) ----
+// ---- Push notifications (v14: News alerts open the news) ----
 self.addEventListener("push", (event) => {
   let data = {};
   try {
@@ -144,13 +150,18 @@ self.addEventListener("push", (event) => {
   } catch (e) {
     data = { title: "MyUTME", body: event.data ? event.data.text() : "" };
   }
+  // News alerts: open the news when tapped. Uses the link the server sends if any, otherwise
+  // a news_id, otherwise (title starts with the newspaper emoji) opens the latest news.
+  let openUrl = data.url || "/";
+  if (!data.url && data.news_id) openUrl = "/?news=" + data.news_id;
+  else if (!data.url && String(data.title || "").indexOf("\uD83D\uDCF0") === 0) openUrl = "/?news=latest";
   event.waitUntil(
     self.registration.showNotification(data.title || "MyUTME", {
       body: data.body || "",
       icon: "./icon-192.png",
       badge: "./icon-badge-96.png",
       tag: data.tag || "myutme-notification",
-      data: data.url || "/",
+      data: openUrl,
     })
   );
 });
@@ -162,7 +173,11 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if ("focus" in client) return client.focus();
+        if ("focus" in client) {
+          // app already open: bring it forward and tell it where to go (no reload)
+          client.postMessage({ type: "open-url", url: targetUrl });
+          return client.focus();
+        }
       }
       if (clients.openWindow) return clients.openWindow(targetUrl);
     })
