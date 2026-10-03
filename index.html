@@ -9670,6 +9670,18 @@ function loadOfflineCache(key) {
         return JSON.parse(raw).data;
     } catch (e) { return null; }
 }
+// News must never vanish: load the last saved news immediately at startup, before anything is drawn.
+(function hydrateNewsFromCache() {
+    try { const c = loadOfflineCache('news'); if (c && c.length) state.news = c; } catch (e) {}
+})();
+function saveNewsCache(list) {
+    // keep a copy that always fits on the phone (old posts with inline pictures can be too big)
+    saveOfflineCache('news', list);
+    const back = loadOfflineCache('news');
+    if (!back || back.length !== list.length) {
+        saveOfflineCache('news', list.map(function(n) { return Object.assign({}, n, { image_url: String(n.image_url || '').indexOf('data:') === 0 ? null : n.image_url }); }));
+    }
+}
 function isOnline() { return navigator.onLine !== false; }
 function isStandaloneApp() {
     return window.matchMedia("(display-mode: standalone)").matches ||
@@ -10809,8 +10821,8 @@ async function loadNews() {
             supabase.from('news_post_comments').select('news_id')
         ]), 10000, 'News load');
         if (r[0].error) throw r[0].error;
-        state.news = r[0].data || [];
-        saveOfflineCache('news', state.news);
+        if ((r[0].data || []).length || !state.news.length) state.news = r[0].data || [];
+        saveNewsCache(state.news);
         const uid = state.authUser && state.authUser.id;
         state.newsLikes = {}; state.newsMyLikes = {}; state.newsCommentCounts = {};
         (r[1].data || []).forEach(function(l) { state.newsLikes[l.news_id] = (state.newsLikes[l.news_id] || 0) + 1; if ((uid && l.user_id === uid) || (!uid && l.guest_id && l.guest_id === newsGuestId())) state.newsMyLikes[l.news_id] = true; });
@@ -10981,10 +10993,15 @@ function renderAdminNewsList() {
 function renderNewsStrip() {
     if (!state.news.length) { const c = loadOfflineCache('news'); if (c && c.length) state.news = c; }   // show saved news instantly
     if (!state.newsLoaded) newsAutoLoad();
-    const n = state.news[0]; if (!n) return '';
+    const n = state.news[0];
+    if (!n) {
+        // nothing loaded yet: still show the card so it never "disappears"; tapping it opens the News page
+        return '<div class="nw-strip" data-action="set-view" data-view="news"><span style="font-size:22px">📰</span>' +
+            '<div style="flex:1;min-width:0"><p class="l">MyUTME News</p><p class="t">Tap to read the latest updates</p></div></div>';
+    }
     return '<div class="nw-strip" data-action="news-open" data-id="' + n.id + '">' +
         (n.image_url ? '<img src="' + esc(n.image_url) + '" alt="" style="width:46px;height:46px;border-radius:8px;object-fit:contain;background:var(--line);flex-shrink:0" />' : '<span style="font-size:22px">📰</span>') +
-        '<div style="flex:1;min-width:0"><p class="l">Latest news</p><p class="t" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(n.title) + '</p></div>' +
+        '<div style="flex:1;min-width:0"><p class="l">MyUTME News</p><p class="t" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(n.title) + '</p></div>' +
         '</div>';
 }
 // Ad box (Adsterra 300x250). Loaded inside its own small frame (ad.html) so it can never cover the screen.
@@ -17679,7 +17696,7 @@ function renderApp() {
     let rightContent = '';
     const badgeLabel = unread > 9 ? '9+' : unread;
     const bellStroke = isHome ? 'white' : 'currentColor';
-    rightContent += '<button class="icon-btn" data-action="set-view" data-view="news" aria-label="News" style="font-size:17px">📰</button>';
+    rightContent += '<button class="icon-btn" data-action="set-view" data-view="news" aria-label="News" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:40px;padding:0 4px;font-size:17px;line-height:1">📰<span style="font-size:9px;font-weight:800;letter-spacing:.04em">News</span></button>';
     rightContent += '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
         svg('bell', 18).replace('stroke="currentColor"', 'stroke="' + bellStroke + '"') +
         (unread > 0 ? '<span style="position:absolute;top:-4px;right:-4px;background:#e2543a;color:#fff;border-radius:999px;font-size:9px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--topbar-bg)">' + badgeLabel + '</span>' : '') +
@@ -17730,7 +17747,7 @@ function renderApp() {
               (state.swVersion ? '<span class="app-version-badge">' + esc(formatVersionBadge(state.swVersion)) + '</span>' : '') +
               '</span></div>' +
               '<div class="topbar-right">' +
-              '<button class="icon-btn" data-action="set-view" data-view="news" aria-label="News" style="font-size:16px">📰</button>' +
+              '<button class="icon-btn" data-action="set-view" data-view="news" aria-label="News" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:40px;padding:0 4px;font-size:17px;line-height:1">📰<span style="font-size:9px;font-weight:800;letter-spacing:.04em">News</span></button>' +
               '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
               svg('bell', 17).replace('stroke="currentColor"', 'stroke="white"') +
               (unread > 0 ? '<span style="position:absolute;top:-4px;right:-4px;background:#e2543a;color:#fff;border-radius:999px;font-size:9px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--topbar-bg)">' + badgeLabel + '</span>' : '') +
