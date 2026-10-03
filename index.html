@@ -6138,6 +6138,17 @@
     .nw-body p{font-family:var(--font-serif);font-size:16.5px;line-height:1.7;color:var(--ink);margin:0 0 14px}
     .nw-bar{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:14px 0}
     .nw-home{background:var(--card-bg);border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:12px;padding:12px;margin-bottom:14px}
+    .nw-wrap{display:flex;gap:10px;align-items:flex-start}
+    .nw-main{flex:1;min-width:0}
+    .nw-rail{position:sticky;top:76px;display:flex;flex-direction:column;align-items:center;gap:14px;width:46px;flex-shrink:0;padding-top:6px}
+    .nw-icw{display:flex;flex-direction:column;align-items:center}
+    .nw-ic{border:0;background:var(--card-bg);box-shadow:0 1px 6px rgba(0,0,0,.2);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}
+    .nw-ic.on{color:#e2543a}
+    .nw-cnt{font-size:11px;font-weight:700;color:var(--ink);margin-top:3px}
+    .nw-back{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998}
+    .nw-sheet{position:fixed;left:0;right:0;bottom:0;background:var(--card-bg);border-radius:18px 18px 0 0;padding:14px 16px 22px;z-index:9999;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .nw-sheet h4{grid-column:1/-1;margin:0 0 2px;font-size:14px;color:var(--ink);text-align:center}
+    .nw-sh{border:1px solid var(--line);background:var(--bg,#fff);border-radius:12px;padding:12px 4px;font:600 12px var(--font-sans);color:var(--ink);cursor:pointer;text-align:center}
     .nw-btn{flex:1;min-width:84px;border:1.5px solid var(--line);background:var(--card-bg);color:var(--ink);border-radius:999px;padding:9px 10px;font:600 12px var(--font-sans);cursor:pointer}
     .nw-btn.on{background:#fdecea;border-color:#e2543a;color:#c0392b}
     .nw-btn.wa{background:#25D366;border-color:#25D366;color:#fff}
@@ -6150,7 +6161,8 @@
     .nw-ad{margin:14px auto;text-align:center;max-width:320px}
     .nw-ad .al{display:block;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
     .nw-ad iframe{border:0;width:300px;height:250px;max-width:100%;background:var(--card-bg);border-radius:6px}
-    .nw-ad.sm{margin:10px auto;max-width:340px}
+    .nw-ad.sm{margin:6px auto 8px;max-width:340px;line-height:0}
+    .nw-ad.sm .al{line-height:1.2;margin-bottom:2px}
     .nw-ad.sm iframe{width:320px;height:50px}
 
     /* In-app notification banner */
@@ -7421,7 +7433,7 @@ const SUPPORT_WHATSAPP_DISPLAY = "08071826114";
 // WhatsApp contacts listed on the Activate page (support + admin)
 const PAY_CONTACTS = [
     { label: "Support", number: SUPPORT_WHATSAPP_NUMBER, display: SUPPORT_WHATSAPP_DISPLAY },
-    { label: "Admin", number: ADMIN_WHATSAPP_NUMBER, display: "0" + ADMIN_WHATSAPP_NUMBER.slice(3) },
+    { label: "Support", number: ADMIN_WHATSAPP_NUMBER, display: "0" + ADMIN_WHATSAPP_NUMBER.slice(3) },
 ];
 
 const SUBJECT_PALETTE = ["#3B5FA0", "#B5502E", "#6E5296", "#3E7C74", "#A67C2E", "#46527A", "#0F6B3F", "#97527A",
@@ -8357,6 +8369,8 @@ function isAdmin() {
 function isUserActive() {
     if (isAdmin()) return true;
     if (!state.authUser) return false;
+    // Admin switch (Settings > Activation): when OFF, activation is disabled and every logged-in user has full access.
+    if (state.settingsCache && state.settingsCache.activationRequired === false) return true;
     if (!state.profile.is_active) return false;
     if (state.profile.activation_expiry) {
         const expiry = new Date(state.profile.activation_expiry);
@@ -8874,7 +8888,7 @@ let state = {
     allQuestionsLoaded: false,
     notifTab: "public",
     news: [], newsLoaded: false, newsLoading: false, newsOpenId: null,
-    newsLikes: {}, newsMyLikes: {}, newsCommentCounts: {}, newsComments: [], newsCommentsFor: null, newsDraft: '', newsReplyTo: null,
+    newsLikes: {}, newsMyLikes: {}, newsCommentCounts: {}, newsComments: [], newsCommentsFor: null, newsDraft: '', newsReplyTo: null, newsShareOpen: false, guestPrompt: null,
 
     docsLoaded: false,
     docsList: [],
@@ -9795,6 +9809,7 @@ function buildSettingsResult(rows) {
             constructionReopenTime: settings.construction_reopen_time || null,
             examCreationEnabled: settings.exam_creation_enabled !== false,
             jambExamDate: settings.jamb_exam_date || null,
+            activationRequired: settings.activation_required !== false,
             faqImages: settings.faq_images || {},
             supportMemory: (settings.support_memory && Array.isArray(settings.support_memory.entries)) ? settings.support_memory.entries : [],
         };
@@ -10729,6 +10744,38 @@ function markAllNotificationsRead() {
 //  NEWS — public news feed (admin posts; everyone reads; logged-in users like & comment)
 //  Tables: news_posts, news_post_likes, news_post_comments (see news_setup.sql)
 // ============================================================
+// ---- Guests: can browse everything; actions that need an account show this friendly prompt (no redirect) ----
+const GUEST_BLOCKED = {
+    'start-cbt': 'take a CBT practice', 'start-exam': 'start an exam', 'start-mock': 'start a mock exam', 'start-full-mock-utme': 'start a full mock UTME',
+    'start-literature-cbt': 'practise literature', 'start-topic-practice': 'practise topics', 'start-flashcards': 'use flashcards',
+    'subj-start-cbt': 'take a CBT practice', 'subj-start-exam': 'start an exam', 'subj-start-flashcards': 'use flashcards',
+    'save-study-reminder': 'save your study reminder', 'save-daily-reminder-slot': 'save your study reminder', 'toggle-reminder-enabled': 'turn on study reminders',
+    'toggle-daily-reminder-slot': 'turn on study reminders', 'toggle-daily-reminder': 'turn on study reminders', 'send-daily-reminder-now': 'send a reminder', 'test-daily-reminder': 'test your reminder',
+    'save-profile-edit': 'save your profile', 'save-avatar-upload': 'save your photo',
+    'register-mock': 'register for a mock exam', 'mock-reg-confirm': 'register for a mock exam', 'join-live-exam': 'join this exam', 'reserve-live-exam-link': 'create an exam link',
+    'submit-create-live-exam': 'create an exam', 'submit-join-code': 'join an exam',
+    'myc-add-subject': 'add a subject', 'myc-swap-subject': 'change your subject', 'myc-remove-subject': 'remove a subject', 'toggle-course-subject': 'choose your subjects', 'onboarding-confirm-electives': 'save your subjects',
+    'checkout-plan': 'pay and activate', 'submit-paid': 'report your payment', 'activate-submit': 'activate your account',
+    'send-support-message': 'chat with support', 'flag-submit': 'report a question'
+};
+function guestNeedsAccount(reason) {
+    state.guestPrompt = reason || 'do this';
+    render();
+}
+function renderGuestPrompt() {
+    return '<div class="nw-back" data-action="guest-prompt-close"></div>' +
+        '<div class="nw-sheet" style="display:block;text-align:center">' +
+        '<h4 style="margin-bottom:6px;font-size:16px">Create an account to ' + esc(state.guestPrompt) + '</h4>' +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 14px">It is free and takes a minute. You can keep looking around as a guest anytime.</p>' +
+        '<button class="btn btn-green" style="padding:11px;margin-bottom:8px" data-action="guest-prompt-signup">Create account</button>' +
+        '<button class="btn btn-outline" style="padding:11px;margin-bottom:6px" data-action="guest-prompt-login">Log in</button>' +
+        '<button style="border:0;background:none;color:var(--faint);font-size:12px;padding:6px;cursor:pointer" data-action="guest-prompt-close">Not now</button></div>';
+}
+function guestCardHtml(text) {
+    return '<div class="card" style="text-align:center"><p style="color:var(--muted);padding:10px 0 12px;font-size:13px;margin:0">' + text + '</p>' +
+        '<button class="btn btn-green" style="padding:10px;margin-bottom:6px" data-action="show-signup">Create account</button>' +
+        '<button class="btn btn-outline" style="padding:10px" data-action="show-login">Log in</button></div>';
+}
 // Set this to e.g. 'https://news.myutme.com.ng' AFTER the subdomain is live; share links will then use it.
 const NEWS_SITE_URL = '';
 function newsLink(id) { return (NEWS_SITE_URL || (window.location.origin + window.location.pathname)).replace(/\/$/, '') + (NEWS_SITE_URL ? '/' : '') + '?news=' + id; }
@@ -10781,14 +10828,14 @@ async function loadNewsComments(id) {
     } catch (e) { console.warn(e); }
 }
 function openNews(id) {
-    state.newsOpenId = id; state.newsComments = []; state.newsDraft = ''; state.newsReplyTo = null;
+    state.newsShareOpen = false; state.newsOpenId = id; state.newsComments = []; state.newsDraft = ''; state.newsReplyTo = null;
     setView('news-detail');
     loadNewsComments(id);
     const v = document.querySelector('.view, .view-content'); if (v) v.scrollTop = 0; window.scrollTo(0, 0);
 }
 function newsNeedLogin() {
     if (state.authUser) return false;
-    showToast('Log in to like or comment.', 'error'); state.showLogin = true; render(); return true;
+    guestNeedsAccount('like or comment on news'); return true;
 }
 async function toggleNewsLike(id) {
     if (newsNeedLogin()) return;
@@ -10820,6 +10867,10 @@ function shareNewsTo(how, id) {
     const n = state.news.find(function(x) { return x.id === id; }); if (!n) return;
     const url = newsLink(id), text = n.title + '\n\n' + newsSnippet(n.body, 120);
     if (how === 'wa') { window.open('https://wa.me/?text=' + encodeURIComponent('📰 ' + n.title + '\n\n' + newsSnippet(n.body, 120) + '\n\nRead more: ' + url), '_blank'); return; }
+    const enc = encodeURIComponent, msg = '📰 ' + n.title + '\n\n' + newsSnippet(n.body, 120);
+    if (how === 'tg') { window.open('https://t.me/share/url?url=' + enc(url) + '&text=' + enc(msg), '_blank'); return; }
+    if (how === 'fb') { window.open('https://www.facebook.com/sharer/sharer.php?u=' + enc(url), '_blank'); return; }
+    if (how === 'x') { window.open('https://twitter.com/intent/tweet?text=' + enc('📰 ' + n.title) + '&url=' + enc(url), '_blank'); return; }
     if (how === 'native' && navigator.share) { navigator.share({ title: n.title, text: text, url: url }).catch(function() {}); return; }
     if (navigator.clipboard) navigator.clipboard.writeText(url).then(function() { showToast('Link copied!', 'success'); }, function() { window.prompt('Copy this link:', url); });
     else window.prompt('Copy this link:', url);
@@ -10891,11 +10942,10 @@ function renderNewsStrip() {
     if (!state.news.length) { const c = loadOfflineCache('news'); if (c && c.length) state.news = c; }   // show saved news instantly
     if (!state.newsLoaded) newsAutoLoad();
     const n = state.news[0]; if (!n) return '';
-    if (storage.get('newsStripDismissed') === String(n.id)) return '';   // hidden until newer news is posted
     return '<div class="nw-strip" data-action="news-open" data-id="' + n.id + '">' +
         (n.image_url ? '<img src="' + esc(n.image_url) + '" alt="" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0" />' : '<span style="font-size:22px">📰</span>') +
         '<div style="flex:1;min-width:0"><p class="l">Latest news</p><p class="t" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(n.title) + '</p></div>' +
-        '<button aria-label="Hide" data-action="news-strip-dismiss" style="border:0;background:none;color:var(--faint);font-size:20px;padding:4px 6px;cursor:pointer">×</button></div>';
+        '</div>';
 }
 // Ad box (Adsterra 300x250). Loaded inside its own small frame (ad.html) so it can never cover the screen.
 // Not shown to the admin (clicking your own ads can get the account banned) or when offline.
@@ -10945,14 +10995,43 @@ function renderNewsFeed() {
     });
     return h;
 }
+const NW_ICON = {
+    heart: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z',
+    comment: 'M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 6V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z',
+    share: 'M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z'
+};
+function nwIcon(k, size) { return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="currentColor"><path d="' + NW_ICON[k] + '"/></svg>'; }
 function renderNewsDetail() {
     const id = state.newsOpenId;
     const back = '<button class="back-link" data-action="set-view" data-view="news">' + svg('chevleft', 14) + ' All news</button>';
     if (!state.newsLoaded && !state.news.length) { newsAutoLoad(); return back + '<div class="loading-spinner"><div class="spinner"></div><p>Loading...</p></div>'; }
     const n = state.news.find(function(x) { return x.id === id; });
     if (!n) return back + '<p style="text-align:center;color:var(--faint);padding:40px 0">This news item is no longer available.</p>';
-    const liked = !!state.newsMyLikes[id], admin = isAdmin();
+    const liked = !!state.newsMyLikes[id];
     const paras = String(n.body || '').split(/\n+/).filter(function(t) { return t.trim(); }).map(function(t) { return '<p>' + esc(t) + '</p>'; }).join('');
+    const rail = '<div class="nw-rail">' +
+        '<div class="nw-icw"><button class="nw-ic' + (liked ? ' on' : '') + '" data-action="news-like" aria-label="Like">' + nwIcon('heart', 24) + '</button><span class="nw-cnt">' + (state.newsLikes[id] || 0) + '</span></div>' +
+        '<div class="nw-icw"><button class="nw-ic" data-action="news-comments-open" aria-label="Comments">' + nwIcon('comment', 22) + '</button><span class="nw-cnt">' + (state.newsCommentCounts[id] || 0) + '</span></div>' +
+        '<div class="nw-icw"><button class="nw-ic" data-action="news-share-open" aria-label="Share">' + nwIcon('share', 22) + '</button><span class="nw-cnt">Share</span></div></div>';
+    const sheet = !state.newsShareOpen ? '' :
+        '<div class="nw-back" data-action="news-share-close"></div><div class="nw-sheet"><h4>Share this news</h4>' +
+        '<button class="nw-sh" data-action="news-share-to" data-how="wa">🟢 WhatsApp</button>' +
+        '<button class="nw-sh" data-action="news-share-to" data-how="tg">✈️ Telegram</button>' +
+        '<button class="nw-sh" data-action="news-share-to" data-how="fb">📘 Facebook</button>' +
+        '<button class="nw-sh" data-action="news-share-to" data-how="x">✖ X</button>' +
+        '<button class="nw-sh" data-action="news-share-to" data-how="copy">🔗 Copy link</button>' +
+        (navigator.share ? '<button class="nw-sh" data-action="news-share-to" data-how="native">⋯ More</button>' : '') +
+        '<button class="nw-sh" style="grid-column:1/-1;border:0" data-action="news-share-close">Cancel</button></div>';
+    return back + adBox() + '<div class="nw-wrap"><div class="nw-main nw-art"><span class="nw-tag" style="margin-top:4px">News</span><h1>' + esc(n.title) + '</h1>' +
+        '<div class="nw-meta"><span>' + esc(newsFmtDate(n.created_at)) + '</span><span>' + esc(formatTimeAgo(n.created_at)) + '</span></div>' +
+        (n.image_url ? '<img class="hero" src="' + esc(n.image_url) + '" alt="" />' : '') +
+        '<div class="nw-body">' + paras + '</div></div>' + rail + '</div>' + sheet;
+}
+function renderNewsComments() {
+    const id = state.newsOpenId, admin = isAdmin();
+    const back = '<button class="back-link" data-action="set-view" data-view="news-detail">' + svg('chevleft', 14) + ' Back to news</button>';
+    const n = state.news.find(function(x) { return x.id === id; });
+    if (!n) return back + '<p style="text-align:center;color:var(--faint);padding:40px 0">This news item is no longer available.</p>';
     const cmHtml = function(c, isReply) {
         const mine = state.authUser && c.user_id === state.authUser.id;
         return '<div class="nw-cm"' + (isReply ? ' style="margin-left:18px;border-left:2px solid var(--line);padding-left:10px"' : '') + '><b>' + esc(c.username || 'Student') + '</b><span>' + esc(formatTimeAgo(c.created_at)) + '</span>' +
@@ -10961,24 +11040,20 @@ function renderNewsDetail() {
             '<button style="border:0;background:none;color:var(--green);font:700 11px var(--font-sans);padding:4px 0;cursor:pointer" data-action="news-reply" data-id="' + (c.parent_id || c.id) + '" data-name="' + esc(c.username || 'Student') + '">↩ Reply</button></div>';
     };
     const tops = state.newsComments.filter(function(c) { return !c.parent_id; });
-    let cms = tops.map(function(c) {
+    const cms = tops.map(function(c) {
         return cmHtml(c, false) + state.newsComments.filter(function(r) { return r.parent_id === c.id; }).map(function(r) { return cmHtml(r, true); }).join('');
     }).join('');
     const box = state.authUser
-        ? (state.newsReplyTo ? '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Replying to <b>' + esc(state.newsReplyTo.name) + '</b> <button style="border:0;background:none;color:var(--danger);font-weight:700;cursor:pointer" data-action="news-reply-cancel">✕ Cancel</button></div>' : '') + '<textarea id="news-comment-input" class="field" rows="2" maxlength="1000" placeholder="' + (state.newsReplyTo ? 'Write your reply...' : 'Write a comment...') + '" style="margin-bottom:8px">' + esc(state.newsDraft) + '</textarea><button class="btn btn-green" style="padding:9px" data-action="news-comment-post">' + (state.newsReplyTo ? 'Post reply' : 'Post comment') + '</button>'
+        ? (state.newsReplyTo ? '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Replying to <b>' + esc(state.newsReplyTo.name) + '</b> <button style="border:0;background:none;color:var(--danger);font-weight:700;cursor:pointer" data-action="news-reply-cancel">✕ Cancel</button></div>' : '') +
+          '<textarea id="news-comment-input" class="field" rows="2" maxlength="1000" placeholder="' + (state.newsReplyTo ? 'Write your reply...' : 'Write a comment...') + '" style="margin-bottom:8px">' + esc(state.newsDraft) + '</textarea><button class="btn btn-green" style="padding:9px" data-action="news-comment-post">' + (state.newsReplyTo ? 'Post reply' : 'Post comment') + '</button>'
         : '<button class="btn btn-outline" style="padding:9px" data-action="show-login">Log in to comment</button>';
-    return back + '<div class="nw-art"><span class="nw-tag" style="margin-top:4px">News</span><h1>' + esc(n.title) + '</h1>' +
-        '<div class="nw-meta"><span>' + esc(newsFmtDate(n.created_at)) + '</span><span>' + esc(formatTimeAgo(n.created_at)) + '</span></div>' +
-        (n.image_url ? '<img class="hero" src="' + esc(n.image_url) + '" alt="" />' : '') +
-        '<div class="nw-body">' + paras + '</div>' +
-        newsAdHtml(true) +
-        '<div class="nw-bar"><button class="nw-btn' + (liked ? ' on' : '') + '" data-action="news-like">' + (liked ? '❤️' : '🤍') + ' ' + (state.newsLikes[id] || 0) + '</button>' +
-        '<button class="nw-btn wa" data-action="news-share-wa" data-id="' + id + '">WhatsApp</button>' +
-        (navigator.share ? '<button class="nw-btn" data-action="news-share" data-id="' + id + '">Share</button>' : '') +
-        '<button class="nw-btn" data-action="news-copy" data-id="' + id + '">Copy link</button></div>' +
-        '<p style="font-size:14px;font-weight:700;margin:0 0 6px;color:var(--ink)">Comments (' + (state.newsCommentCounts[id] || 0) + ')</p>' +
+    return back +
+        '<div class="nw-row" style="border-top:0;cursor:pointer" data-action="set-view" data-view="news-detail">' +
+        (n.image_url ? '<img class="th" style="width:64px;height:64px" src="' + esc(n.image_url) + '" alt="" />' : '<div class="th ph" style="width:64px;height:64px">📰</div>') +
+        '<div style="min-width:0"><h3 style="font-size:14px">' + esc(n.title) + '</h3><div class="nw-meta"><span>' + esc(newsFmtDate(n.created_at)) + '</span><span>❤ ' + (state.newsLikes[id] || 0) + '</span></div></div></div>' +
+        '<p style="font-size:15px;font-weight:700;margin:6px 0;color:var(--ink)">Comments (' + (state.newsCommentCounts[id] || 0) + ')</p>' +
         (cms || '<p style="font-size:12px;color:var(--faint);margin:6px 0 12px">No comments yet. Be the first.</p>') +
-        '<div style="margin-top:12px">' + box + '</div></div>';
+        '<div style="margin-top:12px;padding-bottom:12px">' + box + '</div>';
 }
 // tapping the in-app banner for a news alert opens that news
 (function() {
@@ -12020,7 +12095,7 @@ async function loadLiveExamAttempts() {
 }
 
 async function createLiveExam() {
-    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
     // Guard against double-taps / rapid repeat clicks on "Create & Get Join
     // Code" — the request can take a moment on a slow connection, and
     // without this guard each extra tap before the first insert finishes
@@ -12086,7 +12161,7 @@ async function createLiveExam() {
 }
 
 async function joinLiveExamNow(examId) {
-    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
     // Guard against double-taps / fast double submits (common on mobile,
     // especially with a slow connection): without this, two clicks before
     // liveExamRegistrations reloads both pass the "already joined" check
@@ -12693,7 +12768,7 @@ function liveExamLinkStatus(exam) {
 // exact same joinLiveExamNow used everywhere else, so it gets the same
 // double-tap/duplicate-key protection), then drop them into the real exam.
 async function joinAndStartLiveExamViaLink(examId) {
-    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
     let already = (state.liveExamRegistrations || []).find(function(r) { return r.live_exam_id === examId; });
     if (!already) {
         await joinLiveExamNow(examId);
@@ -12713,7 +12788,7 @@ async function joinAndStartLiveExamViaLink(examId) {
 // shows up as "Joined" in their own Mock Arena list — they don't need this
 // link again, they can come back through the app like any other exam.
 async function reserveLiveExamViaLink(examId) {
-    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
     await joinLiveExamNow(examId);
     render();
 }
@@ -13931,7 +14006,7 @@ function renderMyKeysView() {
         return (
             '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
             '<h2 class="title" style="font-size:14px">🔑 My Activation Key</h2>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to see your keys.</p></div>'
+            guestCardHtml('Create a free account to see your keys.')
         );
     }
     return (
@@ -14104,7 +14179,7 @@ async function markClaimActivated(claimId) {
 }
 
 async function redeemActivationKey(rawKey) {
-    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
     const keyCode = (rawKey || '').trim().toUpperCase();
     if (!keyCode) {
         state.activateStatus = 'error';
@@ -14187,7 +14262,7 @@ async function loadAiSessions() {
 }
 
 async function createNewAiSession(switchToIt) {
-    if (!state.authUser) { showToast('Please log in first.', 'error'); return null; }
+    if (!state.authUser) { state.aiMessages = []; state.aiCurrentSessionId = 'guest-local'; state.aiMessagesLoaded = true; render(); return { id: 'guest-local' }; }
     if (blockIfOffline()) return null;
     try {
         const { data, error } = await supabase
@@ -14358,22 +14433,11 @@ async function editAiMessage(msgId) {
     if (box) { box.focus(); box.value = state.aiInput; }
 }
 
+function guestAiId() { let g = storage.get('guestAiId'); if (!g) { g = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'guest-' + Date.now() + '-' + Math.random().toString(16).slice(2); storage.set('guestAiId', g); } return g; }
 async function sendAiMessage(text, questionContext) {
     const msg = (text || '').trim();
     const pendingImage = state.aiPendingImage;
     const pendingDocument = state.aiPendingDocument;
-    if (!state.authUser) {
-        // Guests can open and look around AI Tutor, but actually sending a
-        // message needs an account (chats are saved per-user, and the AI
-        // backend requires a real user id) — prompt instead of silently
-        // doing nothing when they tap send.
-        showToast('Create a free account to chat with AI Tutor.', 'error');
-        state.showSignup = true;
-        state.showLogin = false;
-        syncUrlForAuth('signup');
-        render();
-        return;
-    }
     if ((!msg && !pendingImage && !pendingDocument) || state.aiSending) return;
     if (blockIfOffline("No internet connection. Please try again.")) return;
     const trialCheck = trialAiRateLimitCheck();
@@ -14399,12 +14463,11 @@ async function sendAiMessage(text, questionContext) {
     if (msg) storedMsg += (storedMsg ? '\n' : '') + msg;
     if (!storedMsg) storedMsg = msg;
 
-    const { data: inserted } = await supabase.from('ai_assistant_messages').insert([{
-        user_id: state.authUser.id,
-        session_id: sessionId,
-        sender: 'user',
-        message: storedMsg,
-    }]).select().single();
+    let inserted = null;
+    if (state.authUser) {
+        const r0 = await supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'user', message: storedMsg }]).select().single();
+        inserted = r0.data;
+    } else { inserted = { id: 'g' + Date.now(), sender: 'user', message: storedMsg, created_at: new Date().toISOString() }; }
     if (inserted) state.aiMessages.push(inserted);
 
     const session = state.aiSessions.find(function(s) { return s.id === sessionId; });
@@ -14412,8 +14475,8 @@ async function sendAiMessage(text, questionContext) {
     if (session && (!session.title || session.title === 'New chat')) {
         const newTitle = titleSource.length > 40 ? titleSource.slice(0, 40) + '…' : titleSource;
         session.title = newTitle;
-        supabase.from('ai_assistant_sessions').update({ title: newTitle, updated_at: new Date().toISOString() }).eq('id', sessionId).then(function() {});
-    } else {
+        if (state.authUser) supabase.from('ai_assistant_sessions').update({ title: newTitle, updated_at: new Date().toISOString() }).eq('id', sessionId).then(function() {});
+    } else if (state.authUser) {
         supabase.from('ai_assistant_sessions').update({ updated_at: new Date().toISOString() }).eq('id', sessionId).then(function() {});
     }
     render();
@@ -14426,7 +14489,7 @@ async function sendAiMessage(text, questionContext) {
                 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
             },
             body: JSON.stringify({
-                userId: state.authUser.id,
+                userId: state.authUser ? state.authUser.id : guestAiId(),
                 message: msg,
                 questionContext: questionContext || null,
                 imageBase64: pendingImage || null,
@@ -14454,12 +14517,11 @@ async function sendAiMessage(text, questionContext) {
             aiMessage = buildImageMarker(data.imageBase64) + (aiMessage ? '\n' + aiMessage : '');
         }
 
-        const { data: aiInserted } = await supabase.from('ai_assistant_messages').insert([{
-            user_id: state.authUser.id,
-            session_id: sessionId,
-            sender: 'ai',
-            message: aiMessage,
-        }]).select().single();
+        let aiInserted = null;
+        if (state.authUser) {
+            const r1 = await supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'ai', message: aiMessage }]).select().single();
+            aiInserted = r1.data;
+        } else { aiInserted = { id: 'g' + Date.now() + 'a', sender: 'ai', message: aiMessage, created_at: new Date().toISOString() }; }
         if (aiInserted) state.aiMessages.push(aiInserted);
     } catch (e) {
         showNetworkAwareError('Could not reach AI assistant. Please try again.', e);
@@ -14512,7 +14574,7 @@ function askAiButtonHtml(item, subjectName, userAnswerIdx, opts) {
 }
 
 function askAiAboutQuestion(item, subjectName, userAnswerIdx) {
-    if (!state.authUser) { showToast('Please log in to use the AI Tutor.', 'error'); state.showLogin = true; render(); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
     if (!item) { showToast('Could not load this question for the AI Tutor.', 'error'); return; }
 
     const letters = 'ABCDEFGH';
@@ -15016,7 +15078,7 @@ async function resolveSupportReply(msg, issueKey) {
 async function sendSupportMessage(text, issueKey) {
     const msg = (text || '').trim();
     if (!msg) return;
-    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
     if (blockIfOffline()) return;
 
     state.supportInput = '';
@@ -15233,7 +15295,7 @@ function trialAiRateLimitCheck() {
 //  CBT FUNCTIONS
 // ============================================================
 async function startCbt() {
-    if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
 
     const isFull = state.cbtMode === 'full';
     const selected = state.cbtSelected;
@@ -15453,7 +15515,7 @@ async function startCbt() {
     saveSessionSnapshot();
 }
 async function startLiteratureCbt() {
-    if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
 
     state.isLoading = true;
     render();
@@ -15545,7 +15607,7 @@ async function startLiteratureCbt() {
 }
 
 async function startExam() {
-    if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
 
     if (!state.examSubject) {
         showToast("Please select a subject.", "error");
@@ -15640,7 +15702,7 @@ function buildFixedLengthQuestionSet(sourceQuestions, targetCount) {
 }
 
 async function startTopicPractice() {
-    if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
 
     if (!state.topicSubject || !state.topicId) {
         showToast("Please select a subject and topic.", "error");
@@ -15733,7 +15795,7 @@ async function startTopicPractice() {
 // bank CBT/Exam/Topic already use — no new data source, no new fetch logic.
 // We reuse the same offline-first question loader as CBT Single mode.
 async function startFlashcards(subjectId) {
-    if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
     if (!subjectId) { showToast('Please select a subject.', 'error'); return; }
 
     state.flashcardSubject = subjectId;
@@ -16996,8 +17058,9 @@ function renderNow() {
     // account — Practice Hub, Mock Arena and Account still gate behind
     // login, and AI Tutor itself still requires an account the moment a
     // guest tries to actually send a message (see sendAiMessage()).
-    const GUEST_ALLOWED_VIEWS = ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check', 'home', 'ai-assistant', 'news', 'news-detail'];
-    const onGuestAllowedView = GUEST_ALLOWED_VIEWS.indexOf(state.view) !== -1 || state.isGuestMock;
+    const GUEST_ALLOWED_VIEWS = ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check', 'home', 'ai-assistant', 'news', 'news-detail', 'news-comments'];
+    // Guests can SEE every page. Only actions that need an account ask them to sign up (see guestNeedsAccount).
+    const onGuestAllowedView = String(state.view).indexOf('admin') !== 0 || GUEST_ALLOWED_VIEWS.indexOf(state.view) !== -1 || state.isGuestMock;
 
     let html;
     if (state.showFaq) {
@@ -17050,6 +17113,8 @@ function renderNow() {
     if (state.showNotifyModal) {
         html += __modalWrap('notify', true, renderNotifyModal());
     }
+    if (state.authUser) state.guestPrompt = null;
+    if (state.guestPrompt) html += renderGuestPrompt();
     if (state.showGotoModal) {
         html += __modalWrap('goto', true, renderGotoModal());
     }
@@ -17471,6 +17536,7 @@ const PAGE_TITLES = {
     'notifications': 'Notifications',
     'news': 'News',
     'news-detail': 'News',
+    'news-comments': 'Comments',
     'leaderboard': 'Leaderboard',
     'activate': 'Activate',
     'help-center': 'Help Center',
@@ -17688,6 +17754,7 @@ function renderView() {
     if (v === "notifications") return renderNotifications();
     if (v === "news") return renderNewsFeed();
     if (v === "news-detail") return renderNewsDetail();
+    if (v === "news-comments") return renderNewsComments();
     if (v === "profile") return renderProfile();
     if (v === "profile-edit") return renderProfileEdit();
     if (v === "leaderboard") return renderLeaderboard();
@@ -19644,7 +19711,7 @@ function renderReviseWeak() {
             '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 30) + '</div>' +
             '<h2 class="title">Revise Weak Questions</h2>' +
             '<p class="sub">Retry questions you\'ve missed</p>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to access your weak questions.</p></div>'
+            guestCardHtml('Create a free account to access your weak questions.')
         );
     }
     
@@ -19879,15 +19946,6 @@ function renderReviseModeQuestions() {
 //  FLASHCARDS
 // ============================================================
 function renderFlashcards() {
-    if (!state.authUser) {
-        return (
-            '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-            '<div class="feature-icon" style="background:#97527A">' + svg("cards", 30) + '</div>' +
-            '<h2 class="title">Flashcards</h2>' +
-            '<p class="sub">Flip through questions fast</p>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to access flashcards.</p></div>'
-        );
-    }
 
     if (!state.flashcardSubject) return renderFlashcardSubjectPicker();
 
@@ -20230,11 +20288,13 @@ function groupAiSessionsByDay(sessions) {
 }
 
 function renderAiAssistant() {
-    if (!state.authUser) {
+    if (state.authUser && state.aiGuestMode) { state.aiGuestMode = false; state.aiSessionsLoaded = false; state.aiMessagesLoaded = false; state.aiMessages = []; state.aiCurrentSessionId = null; }
+    if (!state.authUser && !state.aiGuestMode) { state.aiGuestMode = true; state.aiSessions = []; state.aiSessionsLoaded = true; state.aiMessages = []; state.aiMessagesLoaded = true; state.aiCurrentSessionId = 'guest-local'; }
+    if (false) {
         return (
             '<h2 class="title" style="font-size:14px">✨ MyUTME AI Tutor</h2>' +
             '<p class="sub" style="font-size:11px">Ask questions, get real explanations</p>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to use the AI Tutor.</p></div>'
+            guestCardHtml('Create a free account to use the AI Tutor.')
         );
     }
     if (!state.aiSessionsLoaded) {
@@ -20392,14 +20452,7 @@ function renderAiAssistant() {
     );
 }
 function renderSupportChat() {
-    if (!state.authUser) {
-        return (
-            '<div style="padding-top:16px;text-align:center">' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to chat with support.</p>' +
-            '<button class="btn btn-gold" style="margin-top:6px" data-action="show-login">Log in</button>' +
-            '</div></div>'
-        );
-    }
+    if (!state.authUser && !state.supportMessagesLoaded) { state.supportMessages = []; state.supportMessagesLoaded = true; }
 
     if (!state.supportMessagesLoaded) {
         loadSupportMessages();
@@ -20588,7 +20641,7 @@ function renderHistoryCore() {
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
             '<h2 class="title" style="font-size:14px">📊 Result Analysis</h2>' +
             '<p class="sub" style="font-size:11px">View all your exam results and performance</p>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view your results.</p></div>'
+            guestCardHtml('Create a free account to view your results.')
         );
     }
 
@@ -20761,7 +20814,7 @@ function renderAnalyticsDashboard() {
         return (
             '<button class="back-link" data-action="set-view" data-view="history">' + svg("chevleft", 14) + ' Result Analysis</button>' +
             '<h2 class="title" style="font-size:14px">📈 Personal Analytics</h2>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to view your analytics.</p></div>'
+            guestCardHtml('Create a free account to view your analytics.')
         );
     }
 
@@ -21246,14 +21299,6 @@ function renderActivationBanner() {
 //  STUDY REMINDER VIEW
 // ============================================================
 function renderStudyReminderPage() {
-    if (!state.authUser) {
-        return (
-            '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-            '<h2 class="title" style="font-size:14px">⏰ Study Planner</h2>' +
-            '<p class="sub" style="font-size:11px">Reminders and everything to keep you on track</p>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Please log in to use the Study Planner.</p></div>'
-        );
-    }
     
     if (!state.studyReminderLoaded) {
         loadStudyReminder();
@@ -25183,6 +25228,15 @@ function renderAdminSettings() {
         '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">Leave empty for no scheduled reopen</p>' +
         '</div>' +
         
+        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
+        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔑 Activation</p>' +
+        '<label style="font-size:13px;color:var(--ink);display:block;margin-bottom:6px">' +
+        '<input type="checkbox" id="admin-activation-required" ' + (s.activationRequired !== false ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--green);vertical-align:middle;margin-right:4px" />' +
+        'Require activation</label>' +
+        '<p style="font-size:9px;color:var(--faint);margin:0">' + (s.activationRequired !== false
+            ? 'ON — users must activate to unlock everything (free users get the limited trial).'
+            : 'OFF — activation is disabled. Every logged-in user has full access without activating. Tick it and Save when you want activation to start.') + '</p>' +
+        '</div>' +
         '<label class="field-label" style="margin-top:6px">Enable Calculator</label>' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
         '<label style="font-size:13px;color:var(--ink)">' +
@@ -26586,6 +26640,14 @@ document.addEventListener('click', function(e) {
     if (!el) return;
     const action = el.getAttribute('data-action');
 
+    if (action === 'guest-prompt-close') { state.guestPrompt = null; render(); return; }
+    if (action === 'guest-prompt-signup') { state.guestPrompt = null; state.showSignup = true; state.showLogin = false; syncUrlForAuth('signup'); render(); return; }
+    if (action === 'guest-prompt-login') { state.guestPrompt = null; state.showLogin = true; state.showSignup = false; syncUrlForAuth('login'); render(); return; }
+    if (!state.authUser && GUEST_BLOCKED[action] && !state.isGuestMock &&
+        ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check'].indexOf(state.view) === -1) {
+        guestNeedsAccount(GUEST_BLOCKED[action]); return;
+    }
+
     if (action === 'skip-splash') {
         state.phase = 'app';
         render();
@@ -26648,7 +26710,7 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'start-full-mock-utme') {
-        if (!state.authUser) { showToast('Please log in to access this feature.', 'error'); state.showLogin = true; render(); return; }
+        if (!state.authUser) { guestNeedsAccount(); return; }
         state.cbtMode = 'full';
         const myElectives = getMySubjectIds().filter(function(sid) { return sid !== 'eng'; });
         const requiredSubjects = state.settingsCache.cbtSubjectCount || 3;
@@ -26689,7 +26751,7 @@ document.addEventListener('click', function(e) {
     }
     if (action === 'myc-swap-subject') {
         const sid = el.getAttribute('data-subjectid');
-        if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+        if (!state.authUser) { guestNeedsAccount(); return; }
         state.mycSwappingSubjectId = sid;
         state.mycAdding = true;
         render();
@@ -26697,7 +26759,7 @@ document.addEventListener('click', function(e) {
     }
     if (action === 'myc-add-subject') {
         const sid = el.getAttribute('data-subjectid');
-        if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
+        if (!state.authUser) { guestNeedsAccount(); return; }
         const s = SUBJECTS.find(function(x) { return x.id === sid; });
         const swapOutSid = state.mycSwappingSubjectId;
         const oldSubject = swapOutSid ? SUBJECTS.find(function(x) { return x.id === swapOutSid; }) : null;
@@ -26899,6 +26961,10 @@ document.addEventListener('click', function(e) {
         const nid = el.getAttribute('data-nid'); if (nid) markNotificationRead(nid);
         openNews(el.getAttribute('data-id')); return;
     }
+    if (action === 'news-share-open') { state.newsShareOpen = true; render(); return; }
+    if (action === 'news-share-close') { state.newsShareOpen = false; render(); return; }
+    if (action === 'news-share-to') { state.newsShareOpen = false; render(); shareNewsTo(el.getAttribute('data-how'), state.newsOpenId); return; }
+    if (action === 'news-comments-open') { setView('news-comments'); return; }
     if (action === 'news-retry') { newsRetries = 0; state.newsLoading = false; loadNews(); render(); return; }
     if (action === 'news-strip-dismiss') { if (state.news[0]) storage.set('newsStripDismissed', String(state.news[0].id)); render(); return; }
     if (action === 'news-reply') { newsSaveDraft(); state.newsReplyTo = { id: el.getAttribute('data-id'), name: el.getAttribute('data-name') }; render(); setTimeout(function() { const t = document.getElementById('news-comment-input'); if (t) t.focus(); }, 50); return; }
@@ -29454,6 +29520,7 @@ document.addEventListener('click', function(e) {
         const underConstruction = document.getElementById('admin-under-construction')?.checked !== false;
         const reopenTime = document.getElementById('admin-reopen-time')?.value || null;
         const jambExamDate = (document.getElementById('admin-jamb-date')?.value || '').trim() || null;
+        const activationRequired = document.getElementById('admin-activation-required')?.checked !== false;
         
         state.admin.questionsPerSubject = cbtQs;
         state.admin.cbtTimeLimit = Math.max(1, cbtTime);
@@ -29482,6 +29549,7 @@ document.addEventListener('click', function(e) {
             { setting_key: 'under_construction', setting_value: underConstruction },
             { setting_key: 'construction_reopen_time', setting_value: nn(reopenTime) },
             { setting_key: 'jamb_exam_date', setting_value: nn(jambExamDate) },
+            { setting_key: 'activation_required', setting_value: activationRequired },
         ];
 
         Promise.all(updates.map(function(u) {
@@ -29507,6 +29575,7 @@ document.addEventListener('click', function(e) {
                 underConstruction: underConstruction,
                 constructionReopenTime: reopenTime,
                 jambExamDate: jambExamDate,
+                activationRequired: activationRequired,
                 faqImages: state.settingsCache.faqImages || {},
                 supportMemory: state.settingsCache.supportMemory || [],
             };
