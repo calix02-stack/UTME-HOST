@@ -6120,7 +6120,7 @@
 
     /* ===== NEWS ===== */
     @keyframes nwShim{0%{background-position:-200px 0}100%{background-position:200px 0}}
-    .nw-img{background:linear-gradient(90deg,var(--line) 25%,var(--card-bg) 50%,var(--line) 75%);background-size:400px 100%;animation:nwShim 1.4s infinite linear}
+    .nw-img{aspect-ratio:16/10;background:linear-gradient(90deg,var(--line) 25%,var(--card-bg) 50%,var(--line) 75%);background-size:400px 100%;animation:nwShim 1.4s infinite linear}
     .nw-chip{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:800;color:var(--ink);background:var(--green-light);border-radius:999px;padding:4px 11px}
     .nw-chip.lk{background:#fdecea;color:#c0392b}
     .nw-chips{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
@@ -6131,17 +6131,20 @@
     .nw-mast h1 b{color:var(--green)}
     .nw-lead{display:block;margin-bottom:18px;cursor:pointer;background:var(--card-bg);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 3px 14px rgba(0,0,0,.09);padding-bottom:12px}
     .nw-lead>*:not(.im){margin-left:14px;margin-right:14px}
-    .nw-lead .im{width:100%;aspect-ratio:16/10;object-fit:cover;display:block}
+    .nw-lead .im{width:100%;height:auto;object-fit:contain;display:block;background:var(--line)}
     .nw-tag{display:inline-block;background:var(--gold);color:#13291D;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:3px;margin:10px 0 4px}
     .nw-lead h2{font-family:var(--font-serif);font-size:22px;line-height:1.2;margin:0 0 6px;color:var(--ink)}
     .nw-sn{font-size:12.5px;line-height:1.5;color:var(--muted);margin:0 0 6px}
     .nw-meta{font-size:10.5px;color:var(--faint);display:flex;gap:10px;align-items:center}
     .nw-row{display:flex;gap:12px;padding:12px;margin-bottom:14px;background:var(--card-bg);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.07);cursor:pointer}
-    .nw-row .th{width:92px;height:92px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--line)}
+    .nw-row .th{width:92px;height:92px;border-radius:6px;object-fit:contain;flex-shrink:0;background:var(--line)}
+    .nw-row.big{flex-direction:column;gap:10px}
+    .nw-row.big .th{width:100%;height:auto;border-radius:8px}
     .nw-row .th.ph{display:flex;align-items:center;justify-content:center;font-size:26px;background:var(--green-light)}
     .nw-row h3{font-family:var(--font-serif);font-size:15.5px;line-height:1.25;margin:0 0 4px;color:var(--ink)}
     .nw-art h1{font-family:var(--font-serif);font-size:29px;line-height:1.15;margin:8px 0 10px;color:var(--ink);font-weight:900;padding-bottom:10px;border-bottom:3px solid var(--gold)}
-    .nw-art .hero{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;display:block;margin:12px 0 14px}
+    .nw-art .hero.nw-img{min-height:200px}
+    .nw-art .hero{width:100%;height:auto;object-fit:contain;border-radius:10px;display:block;margin:12px 0 14px;background:var(--line);cursor:zoom-in}
     .nw-body p{font-family:var(--font-serif);font-size:16.5px;line-height:1.7;color:var(--ink);margin:0 0 14px}
     .nw-bar{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:14px 0}
     .nw-home{background:var(--card-bg);border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:12px;padding:12px;margin-bottom:14px}
@@ -10972,7 +10975,7 @@ function renderNewsStrip() {
     if (!state.newsLoaded) newsAutoLoad();
     const n = state.news[0]; if (!n) return '';
     return '<div class="nw-strip" data-action="news-open" data-id="' + n.id + '">' +
-        (n.image_url ? '<img src="' + esc(n.image_url) + '" alt="" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0" />' : '<span style="font-size:22px">📰</span>') +
+        (n.image_url ? '<img src="' + esc(n.image_url) + '" alt="" style="width:46px;height:46px;border-radius:8px;object-fit:contain;background:var(--line);flex-shrink:0" />' : '<span style="font-size:22px">📰</span>') +
         '<div style="flex:1;min-width:0"><p class="l">Latest news</p><p class="t" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(n.title) + '</p></div>' +
         '</div>';
 }
@@ -11002,7 +11005,7 @@ function fillAds() {
 }
 function adBox() { return newsAdHtml(false); }   // thin 320x50 banner
 function newsChips(n) { return '<div class="nw-chips"><span class="d">' + esc(newsFmtDate(n.created_at)) + '</span><span class="nw-chip lk">❤️ ' + (state.newsLikes[n.id] || 0) + '</span><span class="nw-chip">💬 ' + (state.newsCommentCounts[n.id] || 0) + '</span></div>'; }
-function newsImg(src, cls, eager) { return '<img class="' + (cls || '') + ' nw-img" src="' + esc(src) + '" alt="" decoding="async" ' + (eager ? 'fetchpriority="high"' : 'loading="lazy"') + ' onload="this.classList.remove(\'nw-img\')" />'; }
+function newsImg(src, cls, eager) { return '<img ' + (cls === 'hero' ? 'data-action="view-chat-image" data-src="' + esc(src) + '" ' : '') + 'class="' + (cls || '') + ' nw-img" src="' + esc(src) + '" alt="" decoding="async" ' + (eager ? 'fetchpriority="high"' : 'loading="lazy"') + ' onload="this.classList.remove(\'nw-img\')" />'; }
 function renderNewsFeed() {
     if (!state.news.length) { const c = loadOfflineCache('news'); if (c && c.length) state.news = c; }
     if (!state.newsLoaded && !state.news.length) {
@@ -11020,7 +11023,7 @@ function renderNewsFeed() {
     // (ad slot: a <div class="nw-ad"> can go here, between the lead story and the list)
     state.news.slice(1).forEach(function(n, i) {
         if (i === 3) h += adBox();   // one more ad after the first few stories
-        h += '<div class="nw-row" data-action="news-open" data-id="' + n.id + '">' +
+        h += '<div class="nw-row' + (n.image_url ? ' big' : '') + '" data-action="news-open" data-id="' + n.id + '">' +
             (n.image_url ? newsImg(n.image_url, 'th') : '<div class="th ph">📰</div>') +
             '<div style="min-width:0"><h3>' + esc(n.title) + '</h3><p class="nw-sn" style="font-size:12px;margin-bottom:4px">' + esc(newsSnippet(n.body, 70)) + '</p>' + meta(n) + '</div></div>';
     });
@@ -11046,7 +11049,7 @@ function renderNewsDetail() {
         '<div class="nw-icw"><button class="nw-ic" data-action="news-share-open" aria-label="Share">' + nwIcon('share', 26) + '</button><span class="nw-cnt" style="font-size:12px">Share</span></div></div>';
     const sheet = !state.newsShareOpen ? '' :
         '<div class="nw-back" data-action="news-share-close"></div><div class="nw-sheet"><h4>Share this news</h4>' +
-        (newsShareFiles[id] ? '<button class="nw-sh" style="grid-column:1/-1;background:var(--green);color:#fff;border:0" data-action="news-share-to" data-how="image">🖼️ Share with picture</button>' : '') +
+        (newsShareFiles[id] ? '<button class="nw-sh" style="grid-column:1/-1;background:var(--green);color:#fff;border:0" data-action="news-share-to" data-how="image">Share</button>' : '') +
         '<button class="nw-sh" data-action="news-share-to" data-how="wa">🟢 WhatsApp</button>' +
         '<button class="nw-sh" data-action="news-share-to" data-how="tg">✈️ Telegram</button>' +
         '<button class="nw-sh" data-action="news-share-to" data-how="fb">📘 Facebook</button>' +
@@ -11056,7 +11059,7 @@ function renderNewsDetail() {
         '<button class="nw-sh" style="grid-column:1/-1;border:0" data-action="news-share-close">Cancel</button></div>';
     return back + adBox() + '<div class="nw-wrap"><div class="nw-main nw-art"><span class="nw-tag" style="margin-top:4px">News</span><h1>' + esc(n.title) + '</h1>' +
         '<div class="nw-meta"><span>' + esc(newsFmtDate(n.created_at)) + '</span><span>' + esc(formatTimeAgo(n.created_at)) + '</span></div>' +
-        (n.image_url ? newsImg(n.image_url, 'hero', true) : '') +
+        (n.image_url ? newsImg(n.image_url, 'hero', true) + '<div style="font-size:10px;color:var(--faint);margin:-8px 0 12px;text-align:right">🔍 Tap the picture to view it full screen</div>' : '') +
         '<div class="nw-body">' + paras + '</div></div>' + rail + '</div>' + sheet;
 }
 function renderNewsComments() {
