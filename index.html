@@ -10805,7 +10805,7 @@ async function loadNews() {
         await waitForSupabaseReady(6000);
         const r = await withNetworkTimeout(Promise.all([
             supabase.from('news_posts').select('*').order('created_at', { ascending: false }).limit(30),
-            supabase.from('news_post_likes').select('news_id,user_id'),
+            supabase.from('news_post_likes').select('news_id,user_id,guest_id'),
             supabase.from('news_post_comments').select('news_id')
         ]), 10000, 'News load');
         if (r[0].error) throw r[0].error;
@@ -10813,7 +10813,7 @@ async function loadNews() {
         saveOfflineCache('news', state.news);
         const uid = state.authUser && state.authUser.id;
         state.newsLikes = {}; state.newsMyLikes = {}; state.newsCommentCounts = {};
-        (r[1].data || []).forEach(function(l) { state.newsLikes[l.news_id] = (state.newsLikes[l.news_id] || 0) + 1; if (uid && l.user_id === uid) state.newsMyLikes[l.news_id] = true; });
+        (r[1].data || []).forEach(function(l) { state.newsLikes[l.news_id] = (state.newsLikes[l.news_id] || 0) + 1; if ((uid && l.user_id === uid) || (!uid && l.guest_id && l.guest_id === newsGuestId())) state.newsMyLikes[l.news_id] = true; });
         (r[2].data || []).forEach(function(c) { state.newsCommentCounts[c.news_id] = (state.newsCommentCounts[c.news_id] || 0) + 1; });
         ok = true;
     } catch (e) {
@@ -10847,13 +10847,21 @@ function openNews(id) {
 }
 function newsNeedLogin() {
     if (state.authUser) return false;
-    guestNeedsAccount('like or comment on news'); return true;
+    guestNeedsAccount('comment on news'); return true;
 }
+function newsGuestId() {
+    let g = storage.get('newsGuestId');
+    if (!g) { g = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'g-' + Date.now() + '-' + Math.random().toString(16).slice(2); storage.set('newsGuestId', g); }
+    return g;
+}
+// Anyone can like (guests too, using an anonymous id kept on their phone). Only logged-in users can comment.
 async function toggleNewsLike(id) {
-    if (newsNeedLogin()) return;
-    const uid = state.authUser.id, was = !!state.newsMyLikes[id];
+    const uid = state.authUser && state.authUser.id, was = !!state.newsMyLikes[id];
     state.newsMyLikes[id] = !was; state.newsLikes[id] = Math.max(0, (state.newsLikes[id] || 0) + (was ? -1 : 1)); render();
-    const q = was ? supabase.from('news_post_likes').delete().eq('news_id', id).eq('user_id', uid) : supabase.from('news_post_likes').insert([{ news_id: id, user_id: uid }]);
+    const who = uid ? { user_id: uid } : { guest_id: newsGuestId() };
+    const q = was
+        ? (uid ? supabase.from('news_post_likes').delete().eq('news_id', id).eq('user_id', uid) : supabase.from('news_post_likes').delete().eq('news_id', id).eq('guest_id', who.guest_id))
+        : supabase.from('news_post_likes').insert([Object.assign({ news_id: id }, who)]);
     const { error } = await q;
     if (error) { state.newsMyLikes[id] = was; state.newsLikes[id] = Math.max(0, (state.newsLikes[id] || 0) + (was ? 1 : -1)); render(); showNetworkAwareError('Could not update your like.', error); }
 }
