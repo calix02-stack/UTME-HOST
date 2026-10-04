@@ -9810,6 +9810,13 @@ async function cacheAllDataForOffline() {
     }
 }
 
+// pick up admin switches (like Activation) when the app comes back to the screen, without needing a full reload
+let _settingsLastPoll = Date.now();
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden || Date.now() - _settingsLastPoll < 30000) return;
+    _settingsLastPoll = Date.now();
+    try { loadSettings(); } catch (e) {}
+});
 function buildSettingsResult(rows) {
         const settings = {};
         (rows || []).forEach(function(s) { settings[s.setting_key] = s.setting_value; });
@@ -9856,7 +9863,7 @@ async function loadSettings() {
                 const prev = state.settingsCache;
                 state.settingsCache = result;
                 saveOfflineCache('settings', result);
-                if (prev && prev.jambExamDate !== result.jambExamDate) {
+                if (prev && (prev.jambExamDate !== result.jambExamDate || prev.activationRequired !== result.activationRequired || prev.underConstruction !== result.underConstruction)) {
                     try { render(); } catch (e) { console.warn('Re-render after settings refresh failed:', e); }
                 }
                 return result;
@@ -25313,7 +25320,7 @@ function renderAdminSettings() {
         '<label style="font-size:13px;color:var(--ink);display:block;margin-bottom:6px">' +
         '<input type="checkbox" id="admin-activation-required" ' + (s.activationRequired !== false ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--green);vertical-align:middle;margin-right:4px" />' +
         'Require activation</label>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0">' + (s.activationRequired !== false
+        '<p style="font-size:9px;color:var(--faint);margin:0">' + (isAdmin() ? '(You are the admin, so you always have full access. To test, open the app on a student account.) ' : '') + (s.activationRequired !== false
             ? 'ON — users must activate to unlock everything (free users get the limited trial).'
             : 'OFF — activation is disabled. Every logged-in user has full access without activating. Tick it and Save when you want activation to start.') + '</p>' +
         '</div>' +
