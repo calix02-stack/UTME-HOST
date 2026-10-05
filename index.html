@@ -8143,6 +8143,7 @@ function renderExamQCardHeader(number, text) {
 }
 
 function renderExamLockCard() {
+    if (activationOff()) return '';
     return (
         '<div class="exam-lock-card">' +
         svg('lock', 30) +
@@ -8378,6 +8379,8 @@ function anyCourseAccess() {
 function isAdmin() {
     return state.profile.email && state.profile.email.toLowerCase() === ADMIN_EMAIL;
 }
+// Admin switch: when Activation is OFF, nothing about activation is shown to anyone (no icons, banners, plans or keys).
+function activationOff() { return !!(state.settingsCache && state.settingsCache.activationRequired === false); }
 function isUserActive() {
     if (isAdmin()) return true;
     if (!state.authUser) return false;
@@ -8395,6 +8398,7 @@ function isUserActive() {
 // reason banner instead of a jarring red "error" toast. See renderActivate()
 // / .activate-redirect-note.
 function redirectToActivate(reason) {
+    if (activationOff()) return;
     state.activateRedirectReason = reason || 'Activate your account to unlock this feature.';
     state.view = 'activate';
     render();
@@ -8900,7 +8904,7 @@ let state = {
     allQuestionsLoaded: false,
     notifTab: "public",
     news: [], newsLoaded: false, newsLoading: false, newsOpenId: null,
-    newsLikes: {}, newsMyLikes: {}, newsCommentCounts: {}, newsComments: [], newsCommentsFor: null, newsDraft: '', newsReplyTo: null, newsShareOpen: false, guestPrompt: null,
+    newsLikes: {}, newsMyLikes: {}, newsCommentCounts: {}, newsComments: [], newsCommentsFor: null, newsDraft: '', newsReplyTo: null, newsShareOpen: false, guestPrompt: null, adminActSheet: null,
 
     docsLoaded: false,
     docsList: [],
@@ -9840,7 +9844,7 @@ function buildSettingsResult(rows) {
             constructionReopenTime: settings.construction_reopen_time || null,
             examCreationEnabled: settings.exam_creation_enabled !== false,
             jambExamDate: settings.jamb_exam_date || null,
-            activationRequired: settings.activation_required !== false,
+            activationRequired: !(settings.activation_required === false || settings.activation_required === 'false' || settings.activation_required === 0 || settings.activation_required === '0'),
             faqImages: settings.faq_images || {},
             supportMemory: (settings.support_memory && Array.isArray(settings.support_memory.entries)) ? settings.support_memory.entries : [],
         };
@@ -10789,6 +10793,20 @@ const GUEST_BLOCKED = {
     'checkout-plan': 'pay and activate', 'submit-paid': 'report your payment', 'activate-submit': 'activate your account',
     'send-support-message': 'chat with support', 'flag-submit': 'report a question'
 };
+function renderAdminActSheet() {
+    const a = state.adminActSheet, u = (state.allUsers || []).find(function(x) { return x.id === a.userId; });
+    const who = u ? esc(u.full_name || u.username || 'this user') : 'this user';
+    if (a.mode === 'deactivate') return '<div class="nw-back" data-action="admin-act-close"></div><div class="nw-sheet" style="display:block;text-align:center">' +
+        '<h4 style="font-size:15px;margin-bottom:6px">Deactivate ' + who + '?</h4><p style="font-size:12px;color:var(--muted);margin:0 0 12px">They go back to the free trial.</p>' +
+        '<button class="btn btn-green" style="padding:11px;margin-bottom:8px;background:#c0392b" data-action="admin-deact-confirm">Yes, deactivate</button>' +
+        '<button class="btn btn-outline" style="padding:11px" data-action="admin-act-close">Cancel</button></div>';
+    const plans = state.activationPlans || [];
+    return '<div class="nw-back" data-action="admin-act-close"></div><div class="nw-sheet" style="display:block;max-height:70vh;overflow:auto">' +
+        '<h4 style="font-size:15px;margin-bottom:8px">Activate ' + who + ' — choose the plan</h4>' +
+        (plans.length ? plans.map(function(p) { return '<button class="btn btn-outline" style="padding:11px;margin-bottom:8px;text-align:left" data-action="admin-act-pick" data-planid="' + esc(String(p.id)) + '">' + esc(p.name) + ' · ' + (p.days || 0) + ' days</button>'; }).join('')
+            : '<p style="font-size:12px;color:var(--muted)">' + (state.activationPlansLoaded ? 'No plans yet. Create one in the Plans section first.' : 'Loading plans…') + '</p>') +
+        '<button style="border:0;background:none;color:var(--faint);font-size:12px;padding:8px;width:100%;cursor:pointer" data-action="admin-act-close">Cancel</button></div>';
+}
 function guestNeedsAccount(reason) {
     state.guestPrompt = reason || 'do this';
     render();
@@ -13908,8 +13926,8 @@ async function adminActivateUserPlan(userId, planId) {
     }
 }
 
-async function adminDeactivateUser(userId) {
-    if (!confirm("Deactivate this user?")) return;
+async function adminDeactivateUser(userId, confirmed) {
+    if (!confirmed && !confirm("Deactivate this user?")) return;
 
     try {
         const { error: deErr } = await supabase.rpc('admin_deactivate_user', { p_user: userId });
@@ -13922,7 +13940,7 @@ async function adminDeactivateUser(userId) {
         render();
     } catch (e) {
         console.warn("Deactivate user error:", e);
-        showToast("Error deactivating user.", "error");
+        showToast("Error deactivating user: " + ((e && e.message) || "unknown"), "error");
     }
 }
 
@@ -14116,6 +14134,7 @@ function claimWhatsAppText(c) {
 }
 
 function renderMyKeysCard(showEmpty) {
+    if (activationOff()) return '';
     if (!state.authUser) return '';
     if (!state.myKeysLoaded) loadMyKeys();
     if (!state.myClaimsLoaded) loadMyClaims();
@@ -17202,6 +17221,7 @@ function renderNow() {
     }
     if (state.authUser) state.guestPrompt = null;
     if (state.guestPrompt) html += renderGuestPrompt();
+    if (state.adminActSheet && isAdmin()) html += renderAdminActSheet();
     if (state.showGotoModal) {
         html += __modalWrap('goto', true, renderGotoModal());
     }
@@ -17845,6 +17865,7 @@ function renderView() {
     if (v === "profile") return renderProfile();
     if (v === "profile-edit") return renderProfileEdit();
     if (v === "leaderboard") return renderLeaderboard();
+    if ((v === "activate" || v === "my-keys") && activationOff()) { state.view = "home"; return renderHome(); }
     if (v === "activate") return renderActivate();
     if (v === "help-center") return renderHelpCenter();
     if (v === "support") return renderSupportChat();
@@ -18108,6 +18129,7 @@ function renderLearningHubCore() {
 
 // Plain-language summary of the free-plan limits, shown to non-activated users.
 function renderFreePlanLimitsCard(compact) {
+    if (activationOff()) return '';
     return (
         '<div class="card free-limits-card" style="margin-bottom:12px;border-left:3px solid var(--gold);padding:12px 14px">' +
         '<p style="font-size:12.5px;font-weight:800;margin:0 0 6px">Free plan limits</p>' +
@@ -18123,7 +18145,7 @@ function renderFreePlanLimitsCard(compact) {
 }
 
 function renderHomeActivationCard() {
-    if (!state.authUser || isAdmin() || isUserActive()) return '';
+    if (activationOff() || !state.authUser || isAdmin() || isUserActive()) return '';
     return (
         '<div class="card" style="margin-bottom:12px;padding:12px 14px;border:1.5px solid var(--gold)">' +
         '<div style="display:flex;align-items:center;gap:10px">' +
@@ -21098,6 +21120,8 @@ function renderProfileCore() {
     let expiryText = '';
     if (isAdmin()) {
         statusPill = '<span class="acct-status-pill on">👑 Admin</span>';
+    } else if (activationOff()) {
+        statusPill = '';
     } else if (isActive) {
         if (expiry) {
             expiryText = daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left';
@@ -21172,7 +21196,7 @@ function renderProfileCore() {
     // Activate icon — always present for every logged-in, non-admin user
     // (activated or not). Not activated: "Activate". Activated: "Activated"
     // with days left, and tapping it lets them top up / renew.
-    if (state.authUser && !isAdmin()) {
+    if (state.authUser && !isAdmin() && !activationOff()) {
         if (!state.myClaimsLoaded) loadMyClaims();
         const _pend = (state.myClaims || []).some(function(c) { return c.status === 'pending'; });
         const _ready = (state.myClaims || []).some(function(c) { return c.status === 'confirmed' && c.key_code && !c.activated_at; });
@@ -21346,7 +21370,7 @@ function renderProfileEdit() {
 //  POST-LOGIN ACTIVATION BANNER
 // ============================================================
 function renderActivationBanner() {
-    if (!state.showActivationBanner) return '';
+    if (!state.showActivationBanner || activationOff()) return '';
     const prices = (state.activationPlans || []).map(function(p) { return Number(p.price); }).filter(function(n) { return n > 0; });
     const from = prices.length ? Math.min.apply(null, prices) : 0;
     const feats = [
@@ -30389,17 +30413,23 @@ if (action === 'browse-filter') {
     }
 
     if (action === 'admin-activate-user') {
-        const userId = el.getAttribute('data-userid');
-        const plan = prompt('Enter plan ID (leave empty for no plan):');
-        if (plan !== null) {
-            adminActivateUserPlan(userId, plan);
-        }
+        state.adminActSheet = { mode: 'activate', userId: el.getAttribute('data-userid') };
+        if (!state.activationPlansLoaded) loadActivationPlans().then(function() { render(); });
+        render(); return;
+    }
+    if (action === 'admin-deactivate-user') {
+        state.adminActSheet = { mode: 'deactivate', userId: el.getAttribute('data-userid') };
+        render(); return;
+    }
+    if (action === 'admin-act-close') { state.adminActSheet = null; render(); return; }
+    if (action === 'admin-act-pick') {
+        const uid = state.adminActSheet && state.adminActSheet.userId; state.adminActSheet = null; render();
+        if (uid) adminActivateUserPlan(uid, el.getAttribute('data-planid'));
         return;
     }
-
-    if (action === 'admin-deactivate-user') {
-        const userId = el.getAttribute('data-userid');
-        adminDeactivateUser(userId);
+    if (action === 'admin-deact-confirm') {
+        const uid = state.adminActSheet && state.adminActSheet.userId; state.adminActSheet = null; render();
+        if (uid) adminDeactivateUser(uid, true);
         return;
     }
 
