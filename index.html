@@ -29692,6 +29692,14 @@ document.addEventListener('click', function(e) {
             };
             showToast('Settings saved!', 'success');
             render();
+            // double-check the Activation switch really reached the database
+            supabase.from('admin_settings').select('setting_value').eq('setting_key', 'activation_required').maybeSingle().then(function(r) {
+                const v = r && r.data ? r.data.setting_value : undefined;
+                const stored = !(v === false || v === 'false' || v === 0 || v === '0');
+                if (!r || r.error || !r.data || stored !== activationRequired) {
+                    showToast('⚠️ The Activation switch did NOT save to the database. Run activation_setup.sql in Supabase.', 'error');
+                }
+            });
         }).catch(function(err) { 
             console.error('Save settings error:', err);
             showNetworkAwareError('Error saving settings: ' + (err.message || 'unknown'), err); 
