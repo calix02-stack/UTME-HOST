@@ -1065,6 +1065,19 @@
        simply overlapped the content above it. */
     .picker-footer-spacer { height: 84px; flex-shrink: 0; }
 
+
+    /* ---- Math display: superscripts, subscripts and real matrices ---- */
+    sup, sub { font-size: .72em; line-height: 0; position: relative; vertical-align: baseline; }
+    sup { top: -0.5em; }
+    sub { bottom: -0.25em; }
+    .mx { display: inline-flex; align-items: stretch; vertical-align: middle; margin: 2px 6px; white-space: normal; }
+    .mx-b { flex: 0 0 auto; width: 7px; border: 1.8px solid currentColor; }
+    .mx-l { border-right: none; border-radius: 3px 0 0 3px; }
+    .mx-r { border-left: none; border-radius: 0 3px 3px 0; }
+    .mx-g { display: inline-grid; grid-template-columns: repeat(var(--c, 2), auto); gap: 6px 18px; padding: 6px 8px;
+        text-align: center; align-items: center; justify-items: center; line-height: 1.25; font-variant-numeric: tabular-nums; }
+    .mx-g > span { white-space: nowrap; }
+
     /* ---- Topic Practice: clean full-screen layout ---- */
     .tp-back { width: 38px; height: 38px; margin-left: -6px; }
     .tp-title { font-weight: 800; font-size: 16px; margin-left: 2px; max-width: 70vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -8073,6 +8086,118 @@ function esc(s) {
             '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; });
 }
 
+
+// ============================================================
+//  MATH DISPLAY — real superscripts / subscripts / matrices
+//  escM(raw) = safe HTML for question text, options and
+//  explanations. It turns  x^2, 2^(x+1), A^-1  and Unicode
+//  superscripts/subscripts into true <sup>/<sub>, turns sqrt(...)
+//  into √(...), and draws matrices written as  [a b; c d]
+//  (also [[a,b],[c,d]], | a b | / | c d | and [ a b ] [ c d ])
+//  as a proper grid with tall brackets.
+// ============================================================
+const MATH_SUP = { '⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁺':'+','⁻':'−','⁼':'=','⁽':'(','⁾':')','ⁿ':'n','ˣ':'x','ʸ':'y','ᵃ':'a','ᵇ':'b','ᶜ':'c','ᵈ':'d','ᵉ':'e','ᶠ':'f','ᵍ':'g','ʰ':'h','ⁱ':'i','ʲ':'j','ᵏ':'k','ˡ':'l','ᵐ':'m','ᵒ':'o','ᵖ':'p','ʳ':'r','ˢ':'s','ᵗ':'t','ᵘ':'u','ᵛ':'v','ʷ':'w','ᶻ':'z','ᵀ':'T' };
+const MATH_SUB = { '₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','₊':'+','₋':'−','₌':'=','₍':'(','₎':')','ₐ':'a','ₑ':'e','ₒ':'o','ₓ':'x','ₕ':'h','ₖ':'k','ₗ':'l','ₘ':'m','ₙ':'n','ₚ':'p','ₛ':'s','ₜ':'t','ᵢ':'i','ᵣ':'r','ᵤ':'u','ᵥ':'v' };
+const MATH_SUP_RE = new RegExp('[' + Object.keys(MATH_SUP).join('') + ']+', 'g');
+const MATH_SUB_RE = new RegExp('[' + Object.keys(MATH_SUB).join('') + ']+', 'g');
+
+// x^2  x^(n+1)  2^-3  A^T  — works on already-escaped text.
+function mathCarets(s) {
+    if (s.indexOf('^') === -1) return s;
+    let out = '';
+    let i = 0;
+    while (i < s.length) {
+        const ch = s[i];
+        if (ch !== '^') { out += ch; i++; continue; }
+        const rest = s.slice(i + 1);
+        if (rest[0] === '(') {
+            let depth = 0, j = 0;
+            for (; j < rest.length; j++) {
+                if (rest[j] === '(') depth++;
+                else if (rest[j] === ')') { depth--; if (depth === 0) break; }
+            }
+            if (depth === 0 && j < rest.length) {
+                out += '<sup>' + rest.slice(1, j) + '</sup>';
+                i += j + 2;
+                continue;
+            }
+        }
+        const m = /^([-−+]?(?:[0-9]+(?:\.[0-9]+)?|[A-Za-z]))/.exec(rest);
+        if (m) {
+            out += '<sup>' + m[1].replace(/^-/, '−') + '</sup>';
+            i += 1 + m[1].length;
+            continue;
+        }
+        out += '^';
+        i++;
+    }
+    return out;
+}
+
+// Inline formatting on ALREADY-ESCAPED text.
+function mathInline(s) {
+    s = s.replace(/sqrt\(/g, '√(');
+    s = mathCarets(s);
+    s = s.replace(MATH_SUP_RE, function(m) {
+        return '<sup>' + m.split('').map(function(c) { return MATH_SUP[c] || c; }).join('') + '</sup>';
+    });
+    s = s.replace(MATH_SUB_RE, function(m) {
+        return '<sub>' + m.split('').map(function(c) { return MATH_SUB[c] || c; }).join('') + '</sub>';
+    });
+    return s;
+}
+
+function mathMatrixHtml(rows) {
+    const cols = rows[0].length;
+    let cells = '';
+    rows.forEach(function(r) {
+        r.forEach(function(c) {
+            cells += '<span>' + mathInline(esc(c.replace(/^-/, '−'))) + '</span>';
+        });
+    });
+    return '<span class="mx"><span class="mx-b mx-l"></span><span class="mx-g" style="--c:' + cols + '">' + cells +
+        '</span><span class="mx-b mx-r"></span></span>';
+}
+
+function escM(raw) {
+    let s = String(raw == null ? '' : raw);
+    if (!s) return '';
+    const store = [];
+    const ENT = /^[^\s=,;|\[\]\u0001\u0002]+$/;
+    const okRows = function(rows) {
+        return rows.length >= 1 && rows.every(function(r) { return r.length === rows[0].length && r.length >= 1 && r.every(function(t) { return ENT.test(t) && /[\w√]/.test(t); }); });
+    };
+    const put = function(rows) { store.push(rows); return '\u0001' + (store.length - 1) + '\u0002'; };
+    const clean = function(arr) { return arr.filter(function(t) { return t; }); };
+    if (s.indexOf('[') !== -1 || s.indexOf('|') !== -1) {
+        // [[a,b],[c,d]]
+        s = s.replace(/\[\s*(?:\[[^\[\]]+\]\s*,?\s*)+\]/g, function(m) {
+            const rows = (m.match(/\[([^\[\]]+)\]/g) || []).map(function(g) { return clean(g.slice(1, -1).trim().split(/[\s,]+/)); });
+            return okRows(rows) ? put(rows) : m;
+        });
+        // | a b | / | c d |   or   | a b | over | c d |
+        s = s.replace(/(?:\|[^|\n]+\|)(?:\s*(?:\/|over)\s*\|[^|\n]+\|)+/g, function(m) {
+            const rows = (m.match(/\|([^|\n]+)\|/g) || []).map(function(g) { return clean(g.slice(1, -1).trim().split(/\s+/)); });
+            return okRows(rows) && rows[0].length >= 1 ? put(rows) : m;
+        });
+        // [ a b ] [ c d ]   or   [ a b ] over [ c d ]
+        s = s.replace(/\[[^\[\]]+\](?:\s*(?:over\s*)?\[[^\[\]]+\])+/g, function(m) {
+            const rows = (m.match(/\[([^\[\]]+)\]/g) || []).map(function(g) { return clean(g.slice(1, -1).trim().split(/\s+/)); });
+            return (rows.length >= 2 && rows[0].length >= 2 && okRows(rows)) ? put(rows) : m;
+        });
+        // [a b; c d]
+        s = s.replace(/\[([^\[\]]*;[^\[\]]*)\]/g, function(m, inner) {
+            const rows = clean(inner.split(';').map(function(r) { return r.trim(); })).map(function(r) { return clean(r.split(/[\s,]+/)); });
+            return (rows.length >= 2 || (rows.length === 1 && rows[0].length >= 1 && inner.indexOf(';') !== -1 && inner.trim().slice(-1) === ';')) && okRows(rows) ? put(rows) : m;
+        });
+    }
+    s = mathInline(esc(s));
+    if (store.length) {
+        s = s.replace(/\u0001(\d+)\u0002/g, function(_, n) { return mathMatrixHtml(store[+n]); });
+    }
+    return s;
+}
+
 // Practice questions (CBT/Topic/Novel/Past-Questions/Revise) live only in
 // this device's local IndexedDB question bank, synced from static
 // per-subject files — they are NOT rows in the Supabase `questions` table
@@ -8167,7 +8292,7 @@ function renderExamQCardHeader(number, text) {
     return (
         '<div class="exam-q-card-v2">' +
         '<p class="q-num">Question ' + number + '</p>' +
-        '<p class="q-body">' + esc(text || '') + '</p>' +
+        '<p class="q-body">' + escM(text || '') + '</p>' +
         '</div>'
     );
 }
@@ -18667,7 +18792,7 @@ function renderCbtExam() {
             const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
             reviewItems += (
                 '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
-                '<div class="q-text">Q' + (i + 1) + ' (' + (subj ? subj.name : '') + '). ' + esc(item.text) +
+                '<div class="q-text">Q' + (i + 1) + ' (' + (subj ? subj.name : '') + '). ' + escM(item.text) +
                 '</div>' +
                 '<div class="answer-row">' +
                 '<span>Your answer: <span class="' + (isCorrect ? 'correct-answer' : 'wrong-answer') + '">' +
@@ -18675,8 +18800,7 @@ function renderCbtExam() {
                 '<span>Correct answer: <span class="correct-answer">' + correctLetter + '</span></span>' +
                 '</div>' +
                 (item.explanation ?
-                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
-                        .explanation) + '</p></div>' : '') +
+                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + escM(item.explanation) + '</p></div>' : '') +
                 '<div class="flag-btn">' +
                 askAiButtonHtml(item, (subj ? subj.name : ''), userAns, { style: 'margin-right:6px' }) +
                 renderFlagButton(item.id, subj ? subj.id : '', 'cbt', item) + '</div>' +
@@ -18776,7 +18900,7 @@ function renderCbtExam() {
             opts += (
                 '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="cbt-answer" data-idx="' +
                 i + '">' +
-                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
+                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + escM(o) + '</span>' +
                 '</button>'
             );
         });
@@ -18957,15 +19081,14 @@ function renderExamExam() {
             const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
             reviewItems += (
                 '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
-                '<div class="q-text">Q' + (i + 1) + '. ' + esc(item.text) + '</div>' +
+                '<div class="q-text">Q' + (i + 1) + '. ' + escM(item.text) + '</div>' +
                 '<div class="answer-row">' +
                 '<span>Your answer: <span class="' + (isCorrect ? 'correct-answer' : 'wrong-answer') + '">' +
                 userLetter + '</span></span>' +
                 '<span>Correct answer: <span class="correct-answer">' + correctLetter + '</span></span>' +
                 '</div>' +
                 (item.explanation ?
-                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
-                        .explanation) + '</p></div>' : '') +
+                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + escM(item.explanation) + '</p></div>' : '') +
                 '<div class="flag-btn">' +
                 askAiButtonHtml(item, (subj ? subj.name : ''), userAns, { style: 'margin-right:6px' }) +
                 renderFlagButton(item.id, subj ? subj.id : '', 'exam', item) + '</div>' +
@@ -19008,7 +19131,7 @@ function renderExamExam() {
             let cls = 'qa-option';
             let disabled = false;
             let letter = String.fromCharCode(65 + i);
-            let label = esc(o);
+            let label = escM(o);
             
             if (isInstant && instantResult !== undefined) {
                 if (i === item.correct_answer) cls += ' correct';
@@ -19050,7 +19173,7 @@ function renderExamExam() {
             : (renderExamQCardHeader(state.examIndex + 1, item?.text) +
                '<div class="exam-options-wrap">' + opts + '</div>' +
                (isInstant && instantResult !== undefined && item ?
-                   '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><p>' + esc(item.explanation || 'No explanation provided.') + '</p>' +
+                   '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><p>' + escM(item.explanation || 'No explanation provided.') + '</p>' +
                    '<div class="ask-ai-row">' + askAiButtonHtml(item, (subj ? subj.name : ''), state.examAnswers[state.examIndex]) + '</div>' +
                    '</div>' : '')
               )
@@ -19112,7 +19235,7 @@ function renderTopicsListPage() {
         let totalQ = 0;
         state.topicsList.forEach(function(t) { totalQ += (t.question_count || 0); });
         body += '<h2 class="tp-h1">' + esc(subj ? subj.name : 'Topics') + '</h2>' +
-            '<p class="tp-sub">' + state.topicsList.length + ' topic' + (state.topicsList.length === 1 ? '' : 's') + ' · ' + totalQ + ' question' + (totalQ === 1 ? '' : 's') + '</p>' +
+            '<p class="tp-sub">' + state.topicsList.length + ' topic' + (state.topicsList.length === 1 ? '' : 's') + ' · ' + state.topicsList.filter(function(t) { return (t.question_count || 0) > 0; }).length + ' ready · ' + totalQ + ' question' + (totalQ === 1 ? '' : 's') + '</p>' +
             '<div class="tp-list">';
         state.topicsList.forEach(function(t, i) {
             const sel = state.topicId === t.id;
@@ -19122,7 +19245,7 @@ function renderTopicsListPage() {
                 '<button class="tp-topic' + (sel ? ' selected' : '') + (n === 0 ? ' empty' : '') + '" style="--tc:' + color + '" data-action="select-topic" data-topic="' + t.id + '">' +
                 '<span class="tp-num">' + (i + 1) + '</span>' +
                 '<span class="tp-topic-name">' + esc(t.name) + '</span>' +
-                '<span class="tp-qs">' + (n === 0 ? 'Soon' : n + ' Qs') + '</span>' +
+                '<span class="tp-qs">' + (n === 0 ? 'Not loaded yet' : n + ' Qs') + '</span>' +
                 '</button>'
             );
         });
@@ -19198,15 +19321,14 @@ function renderTopicExam() {
             const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
             reviewItems += (
                 '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
-                '<div class="q-text">Q' + (i + 1) + '. ' + esc(item.text) + '</div>' +
+                '<div class="q-text">Q' + (i + 1) + '. ' + escM(item.text) + '</div>' +
                 '<div class="answer-row">' +
                 '<span>Your answer: <span class="' + (isCorrect ? 'correct-answer' : 'wrong-answer') + '">' +
                 userLetter + '</span></span>' +
                 '<span>Correct answer: <span class="correct-answer">' + correctLetter + '</span></span>' +
                 '</div>' +
                 (item.explanation ?
-                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
-                        .explanation) + '</p></div>' : '') +
+                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + escM(item.explanation) + '</p></div>' : '') +
                 '<div class="flag-btn">' +
                 askAiButtonHtml(item, (subj ? subj.name : ''), userAns, { style: 'margin-right:6px' }) +
                 renderFlagButton(item.id, subj ? subj.id : '', 'topic', item) + '</div>' +
@@ -19249,7 +19371,7 @@ function renderTopicExam() {
             opts += (
                 '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="topic-answer" data-idx="' +
                 i + '">' +
-                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
+                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + escM(o) + '</span>' +
                 '</button>'
             );
         });
@@ -19347,15 +19469,14 @@ function renderLitExam() {
             const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
             reviewItems += (
                 '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
-                '<div class="q-text">Q' + (i + 1) + '. ' + esc(item.text) + '</div>' +
+                '<div class="q-text">Q' + (i + 1) + '. ' + escM(item.text) + '</div>' +
                 '<div class="answer-row">' +
                 '<span>Your answer: <span class="' + (isCorrect ? 'correct-answer' : 'wrong-answer') + '">' +
                 userLetter + '</span></span>' +
                 '<span>Correct answer: <span class="correct-answer">' + correctLetter + '</span></span>' +
                 '</div>' +
                 (item.explanation ?
-                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + esc(item
-                        .explanation) + '</p></div>' : '') +
+                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + escM(item.explanation) + '</p></div>' : '') +
                 '<div class="flag-btn">' +
                 renderFlagButton(item.id, subj ? subj.id : '', 'novel', item) + '</div>' +
                 '</div>'
@@ -19395,7 +19516,7 @@ function renderLitExam() {
             opts += (
                 '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="lit-answer" data-idx="' +
                 i + '">' +
-                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
+                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + escM(o) + '</span>' +
                 '</button>'
             );
         });
@@ -20023,7 +20144,7 @@ function renderReviseModeQuestions() {
         optsHtml += (
             '<button class="' + cls + '" ' + (isAnswered ? '' :
                 'data-action="weak-reattempt-answer" data-wid="' + wq.id + '" data-idx="' + i + '"') + '>' +
-            '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
+            '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + escM(o) + '</span>' +
             '</button>'
         );
     });
@@ -20033,7 +20154,7 @@ function renderReviseModeQuestions() {
         explanationHtml = (
             '<div class="explanation-box" style="margin-top:6px">' +
             '<span class="label">' + (resultCorrect ? '✅ Correct!' : '❌ Wrong') + '</span>' +
-            (q.explanation ? '<p>' + esc(q.explanation) + '</p>' : '<p>No explanation provided.</p>') +
+            (q.explanation ? '<p>' + escM(q.explanation) + '</p>' : '<p>No explanation provided.</p>') +
             '</div>'
         );
         // Don't write to history for revise attempts
@@ -20072,7 +20193,7 @@ function renderReviseModeQuestions() {
         '</div>' +
 
         '<div class="card exam-question-card">' +
-        '<p style="font-weight:600;margin:0;font-size:16px">' + esc(q.text) + '</p>' +
+        '<p style="font-weight:600;margin:0;font-size:16px">' + escM(q.text) + '</p>' +
         '</div>' +
         '<div class="exam-options-wrap">' + optsHtml + '</div>' +
         explanationHtml +
@@ -20126,7 +20247,7 @@ function renderFlashcards() {
         q.options.forEach(function(opt, i) {
             optionsListHtml += '<div class="fc-option">' +
                 '<span class="fc-opt-letter">' + String.fromCharCode(65 + i) + '</span>' +
-                '<span class="fc-opt-text">' + esc(opt) + '</span>' +
+                '<span class="fc-opt-text">' + escM(opt) + '</span>' +
                 '</div>';
         });
         optionsListHtml += '</div>';
@@ -20138,7 +20259,7 @@ function renderFlashcards() {
             const isCorrect = i === q.correct_answer;
             backAnswerHtml += '<div class="fc-option' + (isCorrect ? ' fc-option-correct' : '') + '">' +
                 '<span class="fc-opt-letter">' + (isCorrect ? '✓' : String.fromCharCode(65 + i)) + '</span>' +
-                '<span class="fc-opt-text">' + esc(opt) + '</span>' +
+                '<span class="fc-opt-text">' + escM(opt) + '</span>' +
                 '</div>';
         });
         backAnswerHtml += '</div>';
@@ -20146,7 +20267,7 @@ function renderFlashcards() {
         // No structured options on this card at all (e.g. a note-derived
         // Q&A flashcard) — just show the raw answer text, never a naked
         // letter with nothing to point to.
-        backAnswerHtml = '<p class="fc-text">' + esc(q.answer || q.correct_text || 'Answer unavailable') + '</p>';
+        backAnswerHtml = '<p class="fc-text">' + escM(q.answer || q.correct_text || 'Answer unavailable') + '</p>';
     }
 
     return (
@@ -20162,14 +20283,14 @@ function renderFlashcards() {
         '<div class="flashcard-inner">' +
         '<div class="flashcard-face fc-front">' +
         '<span class="fc-label">Question</span>' +
-        '<p class="fc-text">' + esc(q.text) + '</p>' +
+        '<p class="fc-text">' + escM(q.text) + '</p>' +
         optionsListHtml +
         '<span class="fc-tap-badge">👆 Tap to view answer</span>' +
         '</div>' +
         '<div class="flashcard-face fc-back">' +
         '<span class="fc-label">Answer</span>' +
         backAnswerHtml +
-        (q.explanation ? '<p class="fc-explain">' + esc(q.explanation) + '</p>' : '') +
+        (q.explanation ? '<p class="fc-explain">' + escM(q.explanation) + '</p>' : '') +
         (state.flashcardFlipped ? '<div class="ask-ai-row" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + askAiButtonHtml(q, (subj ? subj.name : q.subject_name), null, { label: '✨ Further Explanation', inline: true }) + '</div>' : '') +
         '</div>' +
         '</div>' +
@@ -21946,7 +22067,7 @@ function renderMockExam() {
             opts += (
                 '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="mock-answer" data-idx="' +
                 i + '">' +
-                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o) + '</span>' +
+                '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + escM(o) + '</span>' +
                 '</button>'
             );
         });
@@ -24788,12 +24909,12 @@ function renderEnglishBatchAdmin(type, year) {
         existing.forEach(function(q, i) {
             let optsList = '<ul class="admin-list">';
             (q.options || []).forEach(function(o, oi) {
-                optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') + '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
+                optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') + '>' + escM(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
             });
             optsList += '</ul>';
             html += (
                 '<div class="saved-question-item">' +
-                '<div class="q-header"><p class="q-text">Q' + (i + 1) + '. ' + esc(q.text) + '</p>' +
+                '<div class="q-header"><p class="q-text">Q' + (i + 1) + '. ' + escM(q.text) + '</p>' +
                 '<div class="q-actions"><button class="mini-btn danger" data-action="delete-question-immediate" data-qid="' + q.id + '">🗑️</button></div></div>' +
                 '<div class="q-options">' + optsList + '</div>' +
                 '</div>'
@@ -24828,20 +24949,20 @@ function renderEnglishExamQuestions(type, year) {
             let optsList = '<ul class="admin-list">';
             q.options.forEach(function(o, oi) {
                 optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') +
-                    '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
+                    '>' + escM(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
             });
             optsList += '</ul>';
             rows += (
                 '<div class="saved-question-item">' +
                 '<div class="q-header">' +
-                '<p class="q-text">Q' + (i + 1) + '. ' + esc(q.text) + '</p>' +
+                '<p class="q-text">Q' + (i + 1) + '. ' + escM(q.text) + '</p>' +
                 '<div class="q-actions">' +
                 '<button class="mini-btn edit" data-action="edit-question" data-qid="' + q.id + '">✏️</button>' +
                 '<button class="mini-btn danger" data-action="delete-question-immediate" data-qid="' + q.id + '">🗑️</button>' +
                 '</div>' +
                 '</div>' +
                 '<div class="q-options">' + optsList + '</div>' +
-                (q.explanation ? '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + esc(q.explanation) + '</div>' : '') +
+                (q.explanation ? '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + escM(q.explanation) + '</div>' : '') +
                 '</div>'
             );
         });
@@ -24984,20 +25105,20 @@ function renderAdminSubjectQuestions(type, subject, year) {
                 let optsList = '<ul class="admin-list">';
                 q.options.forEach(function(o, oi) {
                     optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') +
-                        '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
+                        '>' + escM(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
                 });
                 optsList += '</ul>';
                 rows += (
                     '<div class="saved-question-item">' +
                     '<div class="q-header">' +
-                    '<p class="q-text">Q' + (i + 1) + '. ' + esc(q.text) + '</p>' +
+                    '<p class="q-text">Q' + (i + 1) + '. ' + escM(q.text) + '</p>' +
                     '<div class="q-actions">' +
                     '<button class="mini-btn edit" data-action="edit-question" data-qid="' + q.id + '">✏️</button>' +
                     '<button class="mini-btn danger" data-action="delete-question-immediate" data-qid="' + q.id + '">🗑️</button>' +
                     '</div>' +
                     '</div>' +
                     '<div class="q-options">' + optsList + '</div>' +
-                    (q.explanation ? '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + esc(q.explanation) + '</div>' : '') +
+                    (q.explanation ? '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + escM(q.explanation) + '</div>' : '') +
                     '</div>'
                 );
             }
@@ -25140,20 +25261,20 @@ function renderAdminTopicManagement() {
             } else {
                 let optsList = '<ul class="admin-list">';
                 (q.options || []).forEach(function(o, oi) {
-                    optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') + '>' + esc(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
+                    optsList += '<li' + (oi === q.correct_answer ? ' style="color:' + GREEN + ';font-weight:600"' : '') + '>' + escM(o) + (oi === q.correct_answer ? ' ✓' : '') + '</li>';
                 });
                 optsList += '</ul>';
                 body += (
                     '<div class="saved-question-item">' +
                     '<div class="q-header">' +
-                    '<p class="q-text">' + esc(q.text) + '</p>' +
+                    '<p class="q-text">' + escM(q.text) + '</p>' +
                     '<div class="q-actions">' +
                     '<button class="mini-btn edit" data-action="edit-question" data-qid="' + q.id + '">✏️</button>' +
                     '<button class="mini-btn danger" data-action="admin-delete-topic-question" data-qid="' + q.id + '">×</button>' +
                     '</div>' +
                     '</div>' +
                     '<div class="q-options">' + optsList + '</div>' +
-                    (q.explanation ? '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + esc(q.explanation) + '</div>' : '') +
+                    (q.explanation ? '<div class="q-explanation"><span style="font-weight:600">💡 Explanation:</span> ' + escM(q.explanation) + '</div>' : '') +
                     '</div>'
                 );
             }
@@ -26362,7 +26483,7 @@ function renderAdminFlagged() {
         
         html += '<div class="saved-question-item">';
         html += '<div class="q-header">';
-        html += '<p class="q-text">' + esc(q?.text || 'Question not found') + '</p>';
+        html += '<p class="q-text">' + escM(q?.text || 'Question not found') + '</p>';
         html += '<div class="q-actions">';
         if (isEditing) {
             html += '<button class="mini-btn" data-action="cancel-edit" style="font-size:9px">Cancel</button>';
@@ -28187,7 +28308,13 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'select-topic') {
-        state.topicId = el.getAttribute('data-topic');
+        const pickedId = el.getAttribute('data-topic');
+        const picked = (state.topicsList || []).find(function(t) { return t.id === pickedId; });
+        if (picked && !(picked.question_count > 0)) {
+            showToast('Questions for this topic are not loaded yet.', 'info');
+            return;
+        }
+        state.topicId = pickedId;
         render();
         return;
     }
