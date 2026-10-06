@@ -1065,6 +1065,35 @@
        simply overlapped the content above it. */
     .picker-footer-spacer { height: 84px; flex-shrink: 0; }
 
+    /* ---- Topic Practice: clean full-screen layout ---- */
+    .tp-back { width: 38px; height: 38px; margin-left: -6px; }
+    .tp-title { font-weight: 800; font-size: 16px; margin-left: 2px; max-width: 70vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .view-picker .view-content > .tp-page { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .tp-page { height: 100%; }
+    .tp-scroll { padding: 4px 2px 24px; }
+    .tp-h1 { font-size: 24px; font-weight: 800; color: var(--ink); margin: 6px 0 4px; letter-spacing: -0.01em; }
+    .tp-sub { font-size: 13px; color: var(--muted); margin: 0 0 18px; }
+    .tp-list { display: flex; flex-direction: column; gap: 10px; }
+    .tp-row, .tp-topic {
+        display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+        background: var(--card-bg); border: 1.5px solid var(--line); border-radius: 16px;
+        padding: 15px 14px; color: var(--ink); cursor: pointer;
+        transition: transform .12s, border-color .15s, background .15s;
+    }
+    .tp-row:active, .tp-topic:active { transform: scale(0.985); }
+    .tp-badge { flex-shrink: 0; width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center;
+        font-size: 11.5px; font-weight: 800; letter-spacing: .03em; color: #fff; background: var(--tc, var(--green)); }
+    .tp-row-name, .tp-topic-name { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; line-height: 1.3; }
+    .tp-row-chev { color: var(--faint); display: flex; flex-shrink: 0; }
+    .tp-num { flex-shrink: 0; width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+        font-size: 12px; font-weight: 800; color: var(--tc, var(--green)); background: color-mix(in srgb, var(--tc, var(--green)) 14%, transparent); }
+    .tp-qs { flex-shrink: 0; font-size: 11.5px; font-weight: 700; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+    .tp-topic.selected { border-color: var(--tc, var(--green)); background: color-mix(in srgb, var(--tc, var(--green)) 9%, var(--card-bg)); }
+    .tp-topic.selected .tp-qs { color: #fff; background: var(--tc, var(--green)); border-color: transparent; }
+    .tp-topic.empty { opacity: .6; }
+    .tp-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 16px; }
+    .tp-footer { margin: 0 -16px; padding-top: 12px; }
+
     /* Picker screens (CBT/Exam/Literature setup): a fixed-height column
        with a scrollable choice area on top and the Start button pinned
        at the true bottom via flex layout, not position:sticky. Sticky
@@ -6878,6 +6907,7 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
     }
     .view { max-height: calc(min(860px, 96vh) - 46px - 58px) !important; }
     .view-exam { max-height: min(860px, 96vh) !important; }
+    .view-nonav { max-height: calc(min(860px, 96vh) - 46px) !important; }
 }
 
 /* -- Bottom safe-area hardening — defensive net so nothing fixed or
@@ -8365,6 +8395,16 @@ function getMySubjectIds() {
         }
     });
     return mySubjectIds;
+}
+// Subjects a user can BROWSE in single-subject pickers (Topic Practice, Past
+// Questions, single-subject CBT, Flashcards). Admin sees every subject so
+// they can check/change any of them without switching accounts. Everyone
+// else keeps their own combo. Full CBT / Mock still use getMySubjectIds().
+function getBrowsableSubjectIds() {
+    if (isAdmin()) {
+        return SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).map(function(s) { return s.id; });
+    }
+    return getMySubjectIds();
 }
 function hasCourseAccess(subjectId) {
     if (isAdmin()) return true;
@@ -17686,7 +17726,7 @@ function renderApp() {
     // pinned at the very bottom. Giving them the view-picker flex layout
     // (see CSS) guarantees the button always docks flush at the true
     // bottom without ever overlapping the choices above it.
-    const PICKER_SCREEN_VIEWS = ['cbt', 'exam', 'literature-cbt', 'topic-list'];
+    const PICKER_SCREEN_VIEWS = ['cbt', 'exam', 'literature-cbt', 'topic-list', 'topic'];
     // These four modes keep the SAME state.view value for both the timed
     // question screen AND the after-submit Result/Review screen (mock is
     // the only mode that switches to a distinct 'mock-result' view). Once
@@ -17719,6 +17759,9 @@ function renderApp() {
     // duplicate in-page header.
     const isSupportChat = state.view === 'support';
     const isFullPageChat = isAiAssistant || isSupportChat;
+    // Topic Practice (subject list + topic list): clean full screen — no
+    // bottom nav, no bell/refresh/avatar; just a back icon and a title.
+    const isTopicFlow = state.view === 'topic' || state.view === 'topic-list';
 
     let leftContent = '';
 
@@ -17776,6 +17819,11 @@ function renderApp() {
               '<div class="topbar-center"></div><div class="topbar-right">' +
               '<button class="icon-btn labeled" data-action="ai-toggle-history" aria-label="Chat history">' + svg('menu', 17) + '<span>History</span></button>' +
               '</div>'
+            : isTopicFlow
+            ? '<div class="topbar-left">' +
+              '<button class="icon-btn tp-back" data-action="' + (state.view === 'topic-list' ? 'topic-list-back' : 'nav-back') + '" aria-label="Back">' + svg('chevleft', 22) + '</button>' +
+              '<span class="page-name tp-title">' + (state.view === 'topic-list' ? esc((SUBJECTS.find(function(x) { return x.id === state.topicSubject; }) || {}).name || 'Topics') : 'Topic Practice') + '</span>' +
+              '</div><div class="topbar-center"></div><div class="topbar-right"></div>'
             : isSupportChat
             ? '<div class="topbar-left">' +
               '<button class="icon-btn labeled" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '<span>Back</span></button>' +
@@ -17805,8 +17853,8 @@ function renderApp() {
               rightContent + '</div>'
         ) +
         '</div>' +
-        '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + (isFullPageChat ? ' view-nonav' : '') + (PICKER_SCREEN_VIEWS.indexOf(state.view) !== -1 ? ' view-picker' : '') + '"><div class="view-content' + (__consumeViewChangeFlag() ? ' view-enter' : '') + '">' + renderView() + '</div></div>' +
-        ((isExamTaking || isFullPageChat) ? '' : renderBottomNav()) +
+        '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + ((isFullPageChat || isTopicFlow) ? ' view-nonav' : '') + (PICKER_SCREEN_VIEWS.indexOf(state.view) !== -1 ? ' view-picker' : '') + '"><div class="view-content' + (__consumeViewChangeFlag() ? ' view-enter' : '') + '">' + renderView() + '</div></div>' +
+        ((isExamTaking || isFullPageChat || isTopicFlow) ? '' : renderBottomNav()) +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
         (state.viewingImage ? (
             '<div class="ai-history-overlay" style="z-index:200;align-items:center;justify-content:center;padding:20px" data-action="close-image-viewer">' +
@@ -18434,7 +18482,7 @@ function renderCbtMode() {
         label = 'Start CBT Practice';
     } else {
         // Single Subject: choose one from the student's own combo — not the whole catalog.
-        const myAll = getMySubjectIds();
+        const myAll = getBrowsableSubjectIds();
         let chips = "";
         myAll.forEach(function(sid) {
             const s = SUBJECTS.find(function(x) { return x.id === sid; });
@@ -18781,7 +18829,7 @@ function renderExamMode() {
     let chips = "";
     // Past Questions only covers the student's own JAMB combo (English + their
     // 3 registered electives) — not every course they happen to have access to.
-    const myExamSubjectIds = getMySubjectIds();
+    const myExamSubjectIds = getBrowsableSubjectIds();
     SUBJECTS.filter(function(s) { return myExamSubjectIds.indexOf(s.id) !== -1; }).forEach(function(s) {
         const sel = state.examSubject === s.id;
         chips += (
@@ -19023,84 +19071,71 @@ function renderExamExam() {
 //  TOPICS PICKER
 // ============================================================
 function renderTopicsPicker() {
-    let subjChips = "";
-    // Topic Practice only covers the student's own JAMB combo, same as CBT and
-    // Past Questions — not every course they happen to have access to.
-    const myTopicSubjectIds = getMySubjectIds();
-    SUBJECTS.filter(function(s) { return myTopicSubjectIds.indexOf(s.id) !== -1; }).forEach(function(s) {
-        const sel = state.topicSubject === s.id;
-        subjChips += (
-            '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="select-topic-subject" data-subject="' + s.id + '">' +
-            subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + '</span>' +
+    // Clean full-screen subject list. Back icon lives in the top bar.
+    const ids = getBrowsableSubjectIds();
+    let rows = "";
+    SUBJECTS.filter(function(s) { return ids.indexOf(s.id) !== -1; }).forEach(function(s) {
+        rows += (
+            '<button class="tp-row" style="--tc:' + s.color + '" data-action="select-topic-subject" data-subject="' + s.id + '">' +
+            '<span class="tp-badge">' + esc(s.code) + '</span>' +
+            '<span class="tp-row-name">' + esc(s.name) + '</span>' +
+            '<span class="tp-row-chev">' + svg("chevleft", 18).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + '</span>' +
             '</button>'
         );
     });
     if (!anyCourseAccess()) {
-        subjChips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in Practice Hub first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to Practice Hub</button></div>';
+        rows = '<div class="tp-empty">Pick your subjects in Practice Hub first.<br><button class="btn btn-gold btn-sm" style="margin-top:12px" data-action="set-view" data-view="mysubjects">Go to Practice Hub</button></div>';
     }
-
     return (
-        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<div class="feature-icon" style="background:#6B4F82">' + svg("list", 30) + '</div>' +
-        '<h2 class="title">Topic Practice</h2>' +
-        '<p class="sub">Drill one topic at a time</p>' +
-        '<div class="mode-note">Select a subject to see its topics.</div>' +
-        '<p class="section-label">Select a subject</p>' +
-        '<div class="subject-grid">' + subjChips + '</div>'
+        '<div class="tp-page">' +
+        '<div class="picker-scroll tp-scroll">' +
+        '<h2 class="tp-h1">Choose a subject</h2>' +
+        '<p class="tp-sub">Then pick a topic and drill it one question set at a time.</p>' +
+        '<div class="tp-list">' + rows + '</div>' +
+        '</div>' +
+        '</div>'
     );
 }
 
 // ============================================================
 //  TOPICS LIST (per-subject page)
 // ============================================================
-// Opens as its own page once a subject is chosen from the Topics Picker,
-// instead of expanding an accordion below the subject chips.
 function renderTopicsListPage() {
     const subj = SUBJECTS.find(function(s) { return s.id === state.topicSubject; });
-    const subjName = subj ? subj.name : 'Subject';
-
-    let topicsHtml = "";
+    let body = "";
     if (!state.topicsLoaded || state.topicsSubjectId !== state.topicSubject) {
-        topicsHtml = '<div class="loading-spinner"><div class="spinner"></div><p>Loading topics...</p></div>';
-        if (!state.topicsLoaded || state.topicsSubjectId !== state.topicSubject) {
-            loadTopics(state.topicSubject);
-        }
+        body = '<div class="loading-spinner"><div class="spinner"></div><p>Loading topics...</p></div>';
+        loadTopics(state.topicSubject);
     } else if (state.topicsList.length === 0) {
-        topicsHtml =
-            '<p style="font-size:11px;color:var(--faint);margin-top:6px">No topics have been added for this subject yet.</p>';
+        body = '<div class="tp-empty">No topics have been added for this subject yet.</div>';
     } else {
-        topicsHtml = '<p class="section-label" style="margin:2px 0 12px">Choose a topic</p><div class="topic-item-list">';
+        let totalQ = 0;
+        state.topicsList.forEach(function(t) { totalQ += (t.question_count || 0); });
+        body += '<h2 class="tp-h1">' + esc(subj ? subj.name : 'Topics') + '</h2>' +
+            '<p class="tp-sub">' + state.topicsList.length + ' topic' + (state.topicsList.length === 1 ? '' : 's') + ' · ' + totalQ + ' question' + (totalQ === 1 ? '' : 's') + '</p>' +
+            '<div class="tp-list">';
         state.topicsList.forEach(function(t, i) {
             const sel = state.topicId === t.id;
+            const n = t.question_count || 0;
             const color = SUBJECT_PALETTE[i % SUBJECT_PALETTE.length];
-            topicsHtml += (
-                '<button class="topic-item-card' + (sel ? ' selected' : '') + '" style="--tc:' + color + '" data-action="select-topic" data-topic="' + t.id + '">' +
-                '<span class="topic-item-left">' +
-                '<span class="topic-item-dot"></span>' +
-                '<span class="topic-item-name">' + esc(t.name) + '</span>' +
-                '</span>' +
-                (sel ? '<span class="topic-item-meta">Selected</span>' : '') +
+            body += (
+                '<button class="tp-topic' + (sel ? ' selected' : '') + (n === 0 ? ' empty' : '') + '" style="--tc:' + color + '" data-action="select-topic" data-topic="' + t.id + '">' +
+                '<span class="tp-num">' + (i + 1) + '</span>' +
+                '<span class="tp-topic-name">' + esc(t.name) + '</span>' +
+                '<span class="tp-qs">' + (n === 0 ? 'Soon' : n + ' Qs') + '</span>' +
                 '</button>'
             );
         });
-        topicsHtml += '</div>';
+        body += '</div>';
     }
-
     const ready = !!(state.topicSubject && state.topicId);
-
     return (
-        '<button class="back-link" data-action="set-view" data-view="topic" style="flex-shrink:0">' + svg("chevleft", 14) + ' Subjects</button>' +
-        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-bottom:6px">' +
-        '<div class="feature-icon" style="background:#6B4F82;width:32px;height:32px;border-radius:10px;margin-bottom:0">' + svg("list", 16) + '</div>' +
-        '<div><h2 class="title" style="margin:0;font-size:14px">' + esc(subjName) + '</h2><p class="sub" style="margin:0;font-size:10.5px;padding:0">Pick a topic to practice</p></div>' +
-        '</div>' +
-        '<div class="picker-scroll">' +
-        topicsHtml +
-        '</div>' +
-        '<div class="picker-footer">' +
+        '<div class="tp-page">' +
+        '<div class="picker-scroll tp-scroll">' + body + '</div>' +
+        '<div class="picker-footer tp-footer">' +
         '<button class="btn ' + (ready ? "btn-green" : "btn-outline") + '" data-action="start-topic-practice"' + (
-            ready ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Start Topic Practice</button>' +
+            ready ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>' + (ready ? 'Start Topic Practice' : 'Select a topic to start') + '</button>' +
+        '</div>' +
         '</div>'
     );
 }
@@ -20159,7 +20194,7 @@ function renderFlashcards() {
 }
 
 function renderFlashcardSubjectPicker() {
-    const mySubjectIds = getMySubjectIds();
+    const mySubjectIds = getBrowsableSubjectIds();
     let subjChips = "";
     SUBJECTS.filter(function(s) { return mySubjectIds.indexOf(s.id) !== -1; }).forEach(function(s) {
         subjChips += (
@@ -28140,6 +28175,13 @@ document.addEventListener('click', function(e) {
         state.topicsList = [];
         state.topicsSubjectId = null;
         state.view = 'topic-list';
+        render();
+        return;
+    }
+
+    if (action === 'topic-list-back') {
+        state.topicId = null;
+        state.view = 'topic';
         render();
         return;
     }
