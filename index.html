@@ -7358,7 +7358,6 @@ function retryStaleLoadsAfterReconnect() {
     state.syllabusLoaded = false;
     state.topicsLoaded = false;
     state.weakQuestionsLoaded = false;
-    state.studyReminderLoaded = false;
     state.aiSessionsLoaded = false;
     state.supportMessagesLoaded = false;
 
@@ -7381,7 +7380,6 @@ function retryStaleLoadsAfterReconnect() {
         syncTopicProgress();
     }
     if (state.view === 'revise') loadWeakQuestions();
-    if (state.view === 'study-reminder') loadStudyReminder();
     if (state.view === 'ai-assistant') loadAiSessions();
     if (state.view === 'support') loadSupportMessages();
     if (state.view === 'admin') { if (!state.admin.logsLoaded) loadLogs(); loadFlaggedCount(); }
@@ -7510,7 +7508,6 @@ const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/GwSJGQCaWbL0Hd4hw6Pu8W";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const SEND_EMAIL_URL = SUPABASE_URL + "/functions/v1/Send-bulk-email";
 const ADMIN_GET_USERS_URL = SUPABASE_URL + "/functions/v1/admin-get-users";
-const SEND_DAILY_REMINDER_URL = SUPABASE_URL + "/functions/v1/send-daily-reminder";
 const ADMIN_WHATSAPP_NUMBER = "2347072853151";
 const SUPPORT_WHATSAPP_NUMBER = "2348071826114"; // displayed as 08071826114, wa.me needs country code without leading 0
 const SUPPORT_WHATSAPP_DISPLAY = "08071826114";
@@ -9127,9 +9124,6 @@ let state = {
     notifsList: [],
     notifsUnreadCount: 0,
 
-    dailyReminderLoaded: false,
-    dailyReminderSettings: [],
-    dailyReminderDrafts: {},
 
     mockExams: [],
     mockRegistrations: [],
@@ -9279,12 +9273,6 @@ analyticsSubTab: 'overview',
     adminClaimsLoaded: false,
     adminClaimBusy: false,
 
-    // NEW: Study Reminder
-    studyReminder: null,
-    studyReminderLoaded: false,
-    studyReminderHour: 19,
-    studyReminderMinute: 0,
-    studyReminderDays: [1,2,3,4,5,6,0],
 };
 
 // ============================================================
@@ -9352,6 +9340,8 @@ function goBack(fallbackView) {
 // ============================================================
 
 async function loadAllUsers() {
+    // Admin only: this downloads every user's profile, so normal users must never trigger it.
+    if (!isAdmin()) { state.allUsers = []; state.allUsersLoaded = true; return []; }
     try {
         // Previously this queried `profiles` directly from the browser with
         // the public anon key. Being "admin" in this app is only a
@@ -9410,89 +9400,6 @@ async function loadAllUsers() {
     }
 }
 
-// ============================================================
-//  DAILY PRACTICE REMINDERS (admin-editable morning/afternoon/night)
-// ============================================================
-async function loadDailyReminderSettings() {
-    try {
-        const { data, error } = await supabase
-            .from('daily_reminder_settings')
-            .select('*')
-            .order('hour_local');
-        if (error) {
-            console.warn('Load daily reminder settings error:', error.message);
-            state.dailyReminderSettings = [];
-        } else {
-            state.dailyReminderSettings = data || [];
-        }
-    } catch (e) {
-        console.warn('Load daily reminder settings exception:', e);
-        state.dailyReminderSettings = [];
-    }
-    state.dailyReminderLoaded = true;
-    render();
-}
-
-
-// Nigeria time (WAT) right now, so a time that has already passed today is not sent again straight away.
-function watClock() {
-    const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Lagos', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date());
-    const g = function(t) { return (parts.find(function(p) { return p.type === t; }) || {}).value; };
-    return { dateStr: g('year') + '-' + g('month') + '-' + g('day'), minutes: (parseInt(g('hour'), 10) % 24) * 60 + parseInt(g('minute'), 10) };
-}
-
-// Reads what is typed in a reminder card right now (not only what was saved earlier).
-function readReminderCard(slot) {
-    const row = (state.dailyReminderSettings || []).find(function(r) { return r.slot === slot; }) || {};
-    const d = state.dailyReminderDrafts[slot] || {};
-    const val = function(id, fallback) { const el = document.getElementById(id); return el ? el.value : (fallback === undefined ? '' : fallback); };
-    return {
-        title: (val('reminder-title-' + slot, d.title !== undefined ? d.title : (row.title || 'MyUTME')) || '').trim(),
-        message: (val('reminder-message-' + slot, d.message !== undefined ? d.message : row.message) || '').trim(),
-        hour: parseInt(val('reminder-hour-' + slot, d.hour !== undefined ? d.hour : row.hour_local), 10),
-        minute: parseInt(val('reminder-minute-' + slot, d.minute !== undefined ? d.minute : row.minute_local), 10),
-    };
-}
-
-async function saveDailyReminderSlot(slot, updates) {
-    try {
-        // .select() makes the database tell us how many rows really changed, so a blocked save is never reported as saved
-        const { data, error } = await supabase.from('daily_reminder_settings').update(updates).eq('slot', slot).select('slot');
-        if (error) { showNetworkAwareError('Could not save reminder.', error); return false; }
-        if (!data || !data.length) { showToast('Not saved. Please log in as admin and try again.', 'error'); return false; }
-        delete state.dailyReminderDrafts[slot];
-        showToast('✅ ' + slot.charAt(0).toUpperCase() + slot.slice(1) + ' reminder saved.', 'success');
-        loadDailyReminderSettings();
-        return true;
-    } catch (e) {
-        showToast('Error saving reminder.', 'error');
-        return false;
-    }
-}
-
-// mode: 'all' = every user, 'test' = only the admin's own phone. Always sends the text currently typed in the card.
-async function sendDailyReminderNow(slot, mode) {
-    const card = readReminderCard(slot);
-    if (!card.message) { showToast('Type a message first.', 'error'); return; }
-    try {
-        showToast(mode === 'test' ? 'Sending a test to your phone…' : 'Sending to all users…', 'success');
-        const { data: sess } = await supabase.auth.getSession();
-        const token = sess && sess.session ? sess.session.access_token : '';
-        if (!token) { showToast('Please log in again.', 'error'); return; }
-        const res = await fetch(SEND_DAILY_REMINDER_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY },
-            body: JSON.stringify({ force: true, slot: slot, title: card.title || 'MyUTME', message: card.message, test_only: mode === 'test' }),
-        });
-        const data = await res.json().catch(function() { return {}; });
-        if (!data.ok) { showToast('Send failed: ' + (data.error || 'unknown'), 'error'); return; }
-        if (mode === 'test' && !data.sent && !data.failed) { showToast('No device found for your account. Open the app on your phone and allow notifications first.', 'error'); return; }
-        showToast((mode === 'test' ? '📲 Test sent to ' : '📲 Sent to ') + data.sent + ' device(s)' + (data.failed ? (', ' + data.failed + ' failed') : '') + '.', 'success');
-    } catch (e) {
-        showToast('Error sending reminder.', 'error');
-    }
-}
-
 async function loadFlaggedCount() {
     try {
         const { count, error } = await supabase
@@ -9515,7 +9422,8 @@ async function loadLeaderboard(type) {
     render();
 
     try {
-        await loadAllUsers();
+        // Only the admin loads the full user list; everyone else builds the board from the score rows.
+        if (isAdmin()) await loadAllUsers();
 
         // Leaderboard is Mock Exam only — CBT/Subject leaderboards were removed.
         const table = 'mock_scores';
@@ -9568,7 +9476,9 @@ async function loadLeaderboard(type) {
         });
 
         const currentUserId = state.profile ? state.profile.id : null;
-        const leaderboard = state.allUsers.map(function(user) {
+        // Users pool: admin gets the full list; others get users derived from score rows (no extra download).
+        const lbUsers = (state.allUsers && state.allUsers.length) ? state.allUsers : Object.keys(usernameMap).concat(Object.keys(subjectBestMap), Object.keys(overallMap)).filter(function(id, i, a) { return a.indexOf(id) === i; }).map(function(id) { return { id: id, username: usernameMap[id] || null }; });
+        const leaderboard = lbUsers.map(function(user) {
             const overall = overallMap[user.id];
             const isCurrentUser = user.id === currentUserId;
             // Real name/username was saved on the score row at submit time;
@@ -9598,7 +9508,7 @@ async function loadLeaderboard(type) {
         // The By-Subject picker/drill-down should include every candidate
         // who has a real subject score anywhere, even if they've never
         // completed a full 4-subject mock (and so don't show on Overall).
-        const subjectLeaderboardPool = state.allUsers.map(function(user) {
+        const subjectLeaderboardPool = lbUsers.map(function(user) {
             const isCurrentUser = user.id === currentUserId;
             const rawName = usernameMap[user.id] || user.username || user.full_name || 'Candidate';
             return {
@@ -9676,7 +9586,8 @@ async function loadSubjectLeaderboard(subjectId) {
             }
         });
 
-        const leaderboard = state.allUsers.map(function(user) {
+        const subjUsers = (state.allUsers && state.allUsers.length) ? state.allUsers : Object.keys(scoreMap).map(function(id) { return { id: id, username: scoreMap[id].username || null }; });
+        const leaderboard = subjUsers.map(function(user) {
             const score = scoreMap[user.id];
             return {
                 user_id: user.id,
@@ -10989,8 +10900,7 @@ const GUEST_BLOCKED = {
     'start-cbt': 'take a CBT practice', 'start-exam': 'start an exam', 'start-mock': 'start a mock exam', 'start-full-mock-utme': 'start a full mock UTME',
     'start-literature-cbt': 'practise literature', 'start-topic-practice': 'practise topics', 'start-flashcards': 'use flashcards',
     'subj-start-cbt': 'take a CBT practice', 'subj-start-exam': 'start an exam', 'subj-start-flashcards': 'use flashcards',
-    'save-study-reminder': 'save your study reminder', 'save-daily-reminder-slot': 'save your study reminder', 'toggle-reminder-enabled': 'turn on study reminders',
-    'toggle-daily-reminder-slot': 'turn on study reminders', 'toggle-daily-reminder': 'turn on study reminders', 'send-daily-reminder-now': 'send a reminder', 'test-daily-reminder': 'test your reminder',
+    
     'save-profile-edit': 'save your profile', 'save-avatar-upload': 'save your photo',
     'register-mock': 'register for a mock exam', 'mock-reg-confirm': 'register for a mock exam', 'join-live-exam': 'join this exam', 'reserve-live-exam-link': 'create an exam link',
     'submit-create-live-exam': 'create an exam', 'submit-join-code': 'join an exam',
@@ -15140,8 +15050,6 @@ const SUPPORT_KB = [
       a: 'Go to Account → Install App (it shows when your browser supports it).\n• iPhone (Safari): Share → Add to Home Screen\n• Android (Chrome): menu ⋮ → Install app / Add to Home screen\nThen open MyUTME from the new icon.' },
     { k: ['ai tutor', 'tutor', 'ask ai', 'study help'],
       a: 'AI Tutor (bottom menu) is for study questions — explanations, solving problems and topics. It needs internet. I only handle app and account problems, so use AI Tutor for subject questions.' },
-    { k: ['study planner', 'study reminder', 'reminder', 'notification', 'nudge', 'remind me', 'not getting notification'],
-      a: 'Account → Study Planner lets you set a daily study reminder time and your own nudge message.\nIf reminders don\'t appear: allow notifications for MyUTME in your phone/browser settings, and keep the app installed to your home screen (works best).' },
     { k: ['study circle', 'whatsapp group', 'whatsapp channel', 'join group', 'community'],
       a: 'Account → Study Circle has our WhatsApp group and channel links — tap it and join.' },
     { k: ['telegram', 'facebook', 'instagram', 'tiktok', 'social media', 'connect with us'],
@@ -17345,10 +17253,6 @@ function setView(v, navOpts) {
         state.myClaimsLoaded = false;
     }
     if (v === 'activate' && state.activateStatus === 'error') { state.activateStatus = ''; state.activateStatusMsg = ''; }
-    if (v === "study-reminder") {
-        state.studyReminderLoaded = false;
-        loadStudyReminder();
-    }
     saveSessionSnapshot();
     if (!navOpts.fromPopstate) syncUrlForView(v);
     render();
@@ -18051,7 +17955,6 @@ const PAGE_TITLES = {
     'privacy': 'Privacy Policy',
     'terms': 'Terms of Service',
     'my-keys': 'My Keys',
-    'study-reminder': 'Study Planner',
     'all-courses': 'All Courses',
     'course-detail': 'Course',
     'subject-modes': 'Subject',
@@ -18288,7 +18191,6 @@ if (v === "subject-modes") return renderSubjectModes();
     if (v === "privacy") return renderPrivacyPolicy();
     if (v === "terms") return renderTermsOfService();
     if (v === "my-keys") return renderMyKeysView();
-    if (v === "study-reminder") return renderStudyReminderPage();
 
     const tile = HOME_TILES.find(function(t) { return t.key === v; });
     if (tile) return renderFeature(tile);
@@ -21617,7 +21519,6 @@ function renderProfileCore() {
         { key: 'start-profile-edit', icon: 'edit', color: '#3B6EA5', title: 'Profile', sub: 'Edit your name and photo' },
         { key: 'set-view|leaderboard', icon: 'trophy', color: '#6B4F82', title: 'Leaderboard', sub: 'See where you rank' },
         { key: 'set-view|history', icon: 'chart', color: '#6E5296', title: 'Result Analysis', sub: 'Your exam results and performance' },
-        { key: 'set-view|study-reminder', icon: 'bell', color: '#E4A93A', title: 'Study Planner', sub: 'Reminders & your own nudge message', badge: 'NEW' },
         { key: 'set-view|support', icon: 'chat', color: '#46527A', title: 'Support', sub: 'Chat with us or WhatsApp' },
     ];
     // (Activation keys now live inside the Activate page, not as their own icon.)
@@ -21833,248 +21734,6 @@ function renderActivationBanner() {
     );
 }
 
-
-// ============================================================
-//  STUDY REMINDER VIEW
-// ============================================================
-function renderStudyReminderPage() {
-    
-    if (!state.studyReminderLoaded) {
-        loadStudyReminder();
-        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading your planner...</p></div>';
-    }
-    
-    const reminder = state.studyReminder;
-    const hour = state.studyReminderHour;
-    const minute = state.studyReminderMinute;
-    const days = state.studyReminderDays || [];
-    const enabled = reminder ? reminder.enabled : false;
-    const customMsg = getReminderCustomMessage();
-
-    // Quick day-pattern presets, so picking a common schedule is one tap
-    const presetsHtml = (
-        '<div class="reminder-preset-row">' +
-        '<button class="reminder-preset-btn" data-action="reminder-day-preset" data-preset="everyday">Every day</button>' +
-        '<button class="reminder-preset-btn" data-action="reminder-day-preset" data-preset="weekdays">Weekdays</button>' +
-        '<button class="reminder-preset-btn" data-action="reminder-day-preset" data-preset="weekends">Weekends</button>' +
-        '</div>'
-    );
-
-    // Day chips
-    const dayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-    let dayChips = '';
-    dayLabels.forEach(function(label, idx) {
-        const active = days.indexOf(idx) !== -1;
-        dayChips += '<button class="reminder-day-chip' + (active ? ' active' : '') + '" data-action="toggle-reminder-day" data-day="' + idx + '">' + label + '</button>';
-    });
-    
-    // Toggle switch
-    const toggleHtml = (
-        '<div class="toggle-row">' +
-        '<span class="toggle-label">🔔 Reminder enabled</span>' +
-        '<div class="toggle-switch' + (enabled ? ' active' : '') + '" data-action="toggle-reminder-enabled">' +
-        '<div class="slider"></div>' +
-        '</div>' +
-        '</div>'
-    );
-    
-    return (
-        '<button class="back-link" data-action="set-view" data-view="profile">' + svg("chevleft", 14) + ' Back</button>' +
-        '<h2 class="title" style="font-size:14px">⏰ Study Planner</h2>' +
-        '<p class="sub" style="font-size:11px">Your schedule, and a nudge worded exactly how you like it.</p>' +
-        '<div class="card">' +
-        toggleHtml +
-        '<p class="section-label" style="margin-top:4px">Time</p>' +
-        '<div class="study-time-row">' +
-        '<div class="st-group">' +
-        '<label>Hour</label>' +
-        '<input type="number" id="study-reminder-hour" min="0" max="23" value="' + hour + '" />' +
-        '</div>' +
-        '<div class="st-group">' +
-        '<label>Minute</label>' +
-        '<input type="number" id="study-reminder-minute" min="0" max="59" value="' + minute + '" />' +
-        '</div>' +
-        '</div>' +
-        '<p class="section-label">Quick presets</p>' +
-        presetsHtml +
-        '<p class="section-label">Days</p>' +
-        '<div class="reminder-day-chips">' + dayChips + '</div>' +
-        '<p class="section-label">Your own reminder message <span style="text-transform:none;font-weight:400;color:var(--faint)">(optional)</span></p>' +
-        '<textarea id="study-reminder-message" class="field" rows="2" maxlength="120" placeholder="e.g. Time to smash 20 Maths questions! 💪" style="margin-bottom:10px">' + esc(customMsg) + '</textarea>' +
-        '<button class="btn btn-green" style="padding:10px;font-size:13px;margin-top:4px" data-action="save-study-reminder">Save Planner</button>' +
-        '</div>' +
-        '<div class="card" style="margin-top:10px;padding:12px;font-size:11px;color:var(--muted)">' +
-        '<p style="margin:0"><b>💡 Tip:</b> allow notifications for MyUTME on your phone so your study reminder reaches you even when the app is closed.</p>' +
-        '</div>'
-    );
-}
-
-// ============================================================
-//  STUDY REMINDER FUNCTIONS
-// ============================================================
-async function loadStudyReminder() {
-    if (!state.authUser) {
-        state.studyReminderLoaded = true;
-        state.studyReminder = null;
-        render();
-        return;
-    }
-    
-    try {
-        const { data, error } = await supabase
-            .from('study_reminders')
-            .select('*')
-            .eq('user_id', state.authUser.id)
-            .maybeSingle();
-            
-        if (error) {
-            console.warn("Load study reminder error:", error.message, error.code);
-            state.studyReminder = null;
-            state.studyReminderLoaded = true;
-            render();
-            return;
-        }
-        
-        if (data) {
-            state.studyReminder = data;
-            state.studyReminderHour = data.hour || 19;
-            state.studyReminderMinute = data.minute || 0;
-            state.studyReminderDays = data.days || [1,2,3,4,5,6,0];
-        } else {
-            state.studyReminder = null;
-            state.studyReminderHour = 19;
-            state.studyReminderMinute = 0;
-            state.studyReminderDays = [1,2,3,4,5,6,0];
-        }
-        state.studyReminderLoaded = true;
-        render();
-    } catch (e) {
-        console.warn("Load study reminder exception:", e);
-        state.studyReminder = null;
-        state.studyReminderLoaded = true;
-        render();
-    }
-}
-
-async function saveStudyReminder(enabled) {
-    if (!state.authUser) {
-        showToast("Please log in first.", "error");
-        return;
-    }
-    
-    const hour = state.studyReminderHour;
-    const minute = state.studyReminderMinute;
-    const days = state.studyReminderDays;
-    let timezone = 'UTC';
-    try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { console.warn("Ignored error:", e); }
-    const customMsg = getReminderCustomMessage();
-
-    const payload = {
-        user_id: state.authUser.id,
-        hour: hour,
-        minute: minute,
-        days: days,
-        // The user's own custom reminder text, saved to the DB (not just
-        // locally) so the server-side push job can actually use it.
-        message: customMsg || null,
-        // Needed so the server-side scheduled job (which sends the actual
-        // push notification while the app is closed) knows what "7:00 PM"
-        // means in this candidate's own local time, not the server's.
-        timezone: timezone,
-        enabled: enabled !== undefined ? enabled : (state.studyReminder ? state.studyReminder.enabled : false),
-        updated_at: new Date().toISOString(),
-    };
-    
-    try {
-        const { error } = await supabase
-            .from('study_reminders')
-            .upsert(payload, { onConflict: 'user_id' });
-
-        if (error) {
-            // Previously this was swallowed silently, so the toast always said
-            // "saved" even when the row never actually reached the database
-            // (e.g. missing table, RLS policy blocking the upsert, schema
-            // mismatch). Surface the real problem — but only the raw,
-            // technical message to admins; regular users get a plain,
-            // friendly message and the details still land in Admin → Errors.
-            console.warn("Save study reminder error:", error.message, error.code);
-            showNetworkAwareError("Could not save reminder.", error);
-            return;
-        }
-
-        // Ask for native notification permission the first time a reminder is
-        // turned on, and register the device for push so the reminder can
-        // arrive as a real OS notification even when the app is closed or
-        // backgrounded — not just while it's open in the foreground. Falls
-        // back to the in-app banner automatically if push isn't available
-        // (e.g. some WebView wrappers) or the user declines permission.
-        if (payload.enabled) {
-            if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-                try { await Notification.requestPermission(); } catch (permErr) { /* ignore, falls back to in-app banner */ }
-            }
-            try { await subscribeToPush(); } catch (subErr) { console.warn('Push subscribe on reminder save failed:', subErr); }
-        }
-
-        state.studyReminder = payload;
-        showToast(enabled ? 'Reminder set! You\'ll get a notification even when the app is closed.' : 'Reminder turned off.', 'success');
-        render();
-    } catch (e) {
-        console.warn("Save study reminder exception:", e);
-        showToast("Error saving reminder.", "error");
-    }
-}
-
-function getReminderCustomMessage() {
-    if (!state.authUser) return '';
-    try { return storage.get('reminderMsg_' + state.authUser.id) || ''; } catch (e) { return ''; }
-}
-function setReminderCustomMessage(msg) {
-    if (!state.authUser) return;
-    try {
-        if (msg) storage.set('reminderMsg_' + state.authUser.id, msg.slice(0, 120));
-        else storage.remove('reminderMsg_' + state.authUser.id);
-    } catch (e) { console.warn("Ignored error:", e); }
-}
-
-// ============================================================
-//  STUDY REMINDER TICK (foreground-only)
-//  NOTE: this only fires while the app/tab is open in the foreground.
-//  True background push reminders require a server-side scheduled job.
-// ============================================================
-function checkStudyReminderTick() {
-    try {
-        if (!state.studyReminder || !state.studyReminder.enabled) return;
-        const now = new Date();
-        const day = now.getDay();
-
-        if ((state.studyReminder.days || []).indexOf(day) === -1) return;
-        if (now.getHours() !== state.studyReminder.hour || now.getMinutes() !== state.studyReminder.minute) return;
-
-        const todayKey = 'reminderFired_' + now.toISOString().slice(0,10);
-        if (storage.get(todayKey)) return; // already fired today
-
-        const customMsg = getReminderCustomMessage();
-        const body = customMsg || 'Time for your scheduled practice session.';
-
-        // Always show the in-app banner — it doesn't depend on any browser
-        // permission and works everywhere, including WebViews that don't
-        // implement the Notification API at all (where referencing
-        // `Notification` directly would throw and silently kill this tick).
-        showInAppNotificationBanner({ title: '📚 Study time!', body: body });
-
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-            try {
-                new Notification('📚 Study time!', {
-                    body: customMsg || 'Your scheduled MyUTME practice session is starting now.',
-                });
-            } catch (notifErr) { console.warn('Notification display error:', notifErr); }
-        }
-
-        storage.set(todayKey, 'true');
-    } catch (e) {
-        console.warn('Study reminder tick error:', e);
-    }
-}
 
 // ============================================================
 //  VERIFY PAYSTACK PAYMENT (server-side)
@@ -23427,7 +23086,6 @@ const ADMIN_TABS = [
     { key: "documents", label: "📄 Documents" },                
     { key: "users", label: "👥 Users" },
     { key: "notifications", label: "🔔 Notify" },
-    { key: "reminders", label: "⏰ Reminders" },
     { key: "mock", label: "🎯 Mock" },
     { key: "activation", label: "🔑 Activation" },
     { key: "payments", label: "💳 Payments" },
@@ -23466,7 +23124,6 @@ function renderAdmin() {
     else if (state.adminTab === "documents") body = renderAdminDocuments();
     else if (state.adminTab === "users") body = renderAdminUsers();
     else if (state.adminTab === "notifications") body = renderAdminNotifications();
-    else if (state.adminTab === "reminders") body = renderAdminReminders();
     else if (state.adminTab === "mock") body = renderAdminMock();
     else if (state.adminTab === "activation") body = renderAdminActivation();
     else if (state.adminTab === "payments") body = renderAdminPayments();
@@ -26188,59 +25845,6 @@ function renderAdminNotifications() {
         '<p class="section-label">Sent Notifications</p>' +
         notifList
     );
-}
-
-// ============================================================
-//  ADMIN DAILY REMINDERS + SUBSCRIPTION REMINDER
-// ============================================================
-function renderAdminReminders() {
-    if (!state.dailyReminderLoaded) {
-        loadDailyReminderSettings();
-        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading reminders...</p></div>';
-    }
-
-    let out = '';
-
-    // --- Daily practice reminders (morning/afternoon/night) ---
-    out += '<p class="section-label">📅 Daily Practice Reminders</p>' +
-        '<p style="font-size:11px;color:var(--faint);margin:-4px 0 10px">Sent automatically to ALL users at the times below (Nigeria time). Type your own title and message, tap Save, and it goes out every day at that time. Use Test first to see it on your own phone.</p>';
-
-    const slots = state.dailyReminderSettings || [];
-    slots.forEach(function(row) {
-        const d = state.dailyReminderDrafts[row.slot] || {};
-        const hour = d.hour !== undefined ? d.hour : row.hour_local;
-        const minute = d.minute !== undefined ? d.minute : row.minute_local;
-        const title = d.title !== undefined ? d.title : (row.title || 'MyUTME');
-        const message = d.message !== undefined ? d.message : row.message;
-        const hh = String(row.hour_local).padStart(2, '0');
-        const mm = String(row.minute_local).padStart(2, '0');
-        out += (
-            '<div class="card" style="margin-bottom:10px">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-            '<span style="font-weight:700;font-size:13px">' + esc(row.label) + '</span>' +
-            '<div class="toggle-switch' + (row.enabled ? ' active' : '') + '" data-action="toggle-daily-reminder-slot" data-slot="' + row.slot + '"></div>' +
-            '</div>' +
-            '<div style="display:flex;gap:8px;margin-bottom:8px">' +
-            '<div style="flex:1"><label class="field-label">Hour (0-23)</label>' +
-            '<input type="number" min="0" max="23" class="field" id="reminder-hour-' + row.slot + '" value="' + esc(String(hour)) + '" /></div>' +
-            '<div style="flex:1"><label class="field-label">Minute</label>' +
-            '<input type="number" min="0" max="59" class="field" id="reminder-minute-' + row.slot + '" value="' + esc(String(minute)) + '" /></div>' +
-            '</div>' +
-            '<label class="field-label">Title</label>' +
-            '<input type="text" class="field" maxlength="60" id="reminder-title-' + row.slot + '" value="' + esc(title) + '" placeholder="MyUTME" style="margin-bottom:8px" />' +
-            '<label class="field-label">Your custom message <span id="reminder-count-' + row.slot + '" style="float:right;font-weight:400;color:var(--faint)">' + String(message || '').length + '/300</span></label>' +
-            '<textarea class="field" maxlength="300" id="reminder-message-' + row.slot + '" rows="3" placeholder="Type the message users will receive" style="margin-bottom:8px">' + esc(message) + '</textarea>' +
-            '<button class="btn btn-green" style="width:100%;padding:10px;font-size:12px;margin-bottom:6px" data-action="save-daily-reminder-slot" data-slot="' + row.slot + '">💾 Save (used every day)</button>' +
-            '<div style="display:flex;gap:6px">' +
-            '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="test-daily-reminder" data-slot="' + row.slot + '">🧪 Test on my phone</button>' +
-            '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="send-daily-reminder-now" data-slot="' + row.slot + '">📲 Send to all now</button>' +
-            '</div>' +
-            '<p style="font-size:9px;color:var(--faint);margin:6px 0 0">Saved for ' + hh + ':' + mm + ' Nigeria time' + (row.last_sent_date ? ' · last sent ' + row.last_sent_date : '') + '. Test and Send use the text typed above, even before you save.</p>' +
-            '</div>'
-        );
-    });
-
-    return out;
 }
 
 // ============================================================
@@ -29520,7 +29124,6 @@ document.addEventListener('click', function(e) {
         if (state.adminTab === 'payments') loadAdminClaims();
         if (state.adminTab === 'documents') state.docsLoaded = false;
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
-        else if (state.adminTab === 'reminders') { state.dailyReminderLoaded = false; loadDailyReminderSettings(); }
         else if (state.adminTab === 'mock') { state.mockLoaded = false; state.liveExamsLoaded = false;
         state.admin.mockAdminDataLoaded = false;
         loadMockExams(); loadLiveExams(); loadAdminMockData(); if (state.authUser) { loadMockRegistrations();
@@ -30697,45 +30300,6 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    if (action === 'toggle-daily-reminder-slot') {
-        const slot = el.getAttribute('data-slot');
-        const row = (state.dailyReminderSettings || []).find(function(r) { return r.slot === slot; });
-        if (!row) return;
-        saveDailyReminderSlot(slot, { enabled: !row.enabled });
-        return;
-    }
-
-    if (action === 'save-daily-reminder-slot') {
-        const slot = el.getAttribute('data-slot');
-        const c = readReminderCard(slot);
-        if (isNaN(c.hour) || c.hour < 0 || c.hour > 23 || isNaN(c.minute) || c.minute < 0 || c.minute > 59) {
-            showToast('Enter a valid hour (0-23) and minute (0-59).', 'error');
-            return;
-        }
-        if (!c.message) {
-            showToast('Message cannot be empty.', 'error');
-            return;
-        }
-        const upd = { hour_local: c.hour, minute_local: c.minute, message: c.message, title: c.title || 'MyUTME' };
-        // a time that has already passed today waits for tomorrow instead of firing immediately
-        const w = watClock();
-        if (c.hour * 60 + c.minute <= w.minutes) upd.last_sent_date = w.dateStr; else upd.last_sent_date = null;
-        saveDailyReminderSlot(slot, upd);
-        return;
-    }
-
-    if (action === 'test-daily-reminder') {
-        sendDailyReminderNow(el.getAttribute('data-slot'), 'test');
-        return;
-    }
-
-    if (action === 'send-daily-reminder-now') {
-        const slot = el.getAttribute('data-slot');
-        if (!confirm('Send this message to ALL users now?')) return;
-        sendDailyReminderNow(slot, 'all');
-        return;
-    }
-
     if (action === 'admin-delete-notification') {
         const id = el.getAttribute('data-id');
         if (!id) { showToast('Notification ID not found.', 'error'); return; }
@@ -31675,47 +31239,6 @@ if (action === 'browse-filter') {
         return;
     }
 
-    // ============================================================
-    //  NEW: STUDY REMINDER
-    // ============================================================
-    if (action === 'toggle-reminder-day') {
-        const day = parseInt(el.getAttribute('data-day'), 10);
-        const idx = state.studyReminderDays.indexOf(day);
-        if (idx !== -1) {
-            state.studyReminderDays.splice(idx, 1);
-        } else {
-            state.studyReminderDays.push(day);
-            state.studyReminderDays.sort(function(a, b) { return a - b; });
-        }
-        render();
-        return;
-    }
-    if (action === 'toggle-reminder-enabled') {
-        const newEnabled = !(state.studyReminder && state.studyReminder.enabled);
-        saveStudyReminder(newEnabled);
-        return;
-    }
-    if (action === 'save-study-reminder') {
-        const hour = parseInt(document.getElementById('study-reminder-hour')?.value || 19);
-        const minute = parseInt(document.getElementById('study-reminder-minute')?.value || 0);
-        if (hour < 0 || hour > 23) { showToast('Hour must be between 0 and 23.', 'error'); return; }
-        if (minute < 0 || minute > 59) { showToast('Minute must be between 0 and 59.', 'error'); return; }
-        state.studyReminderHour = hour;
-        state.studyReminderMinute = minute;
-        const msgEl = document.getElementById('study-reminder-message');
-        if (msgEl) setReminderCustomMessage(msgEl.value.trim());
-        const enabled = state.studyReminder ? state.studyReminder.enabled : true;
-        saveStudyReminder(enabled);
-        return;
-    }
-    if (action === 'reminder-day-preset') {
-        const preset = el.getAttribute('data-preset');
-        if (preset === 'everyday') state.studyReminderDays = [0,1,2,3,4,5,6];
-        else if (preset === 'weekdays') state.studyReminderDays = [1,2,3,4,5];
-        else if (preset === 'weekends') state.studyReminderDays = [0,6];
-        render();
-        return;
-    }
 });
 
 // ============================================================
@@ -31900,13 +31423,7 @@ document.addEventListener('input', function(e) {
     const id = e.target.id;
     const action = e.target.getAttribute && e.target.getAttribute('data-action');
 
-    if (id && id.indexOf('reminder-') === 0 && /^reminder-(title|message|hour|minute)-/.test(id)) {
-        const m = id.match(/^reminder-(title|message|hour|minute)-(.+)$/);
-        const d = state.dailyReminderDrafts[m[2]] || (state.dailyReminderDrafts[m[2]] = {});
-        d[m[1]] = e.target.value;
-        if (m[1] === 'message') { const c = document.getElementById('reminder-count-' + m[2]); if (c) c.textContent = e.target.value.length + '/300'; }
-    }
-    else if (id === 'activate-code-input') state.activateCode = e.target.value;
+    if (id === 'activate-code-input') state.activateCode = e.target.value;
     else if (id === 'doc-name-input') state.admin.docName = e.target.value;
     else if (id === 'doc-category-input') state.admin.docCategory = e.target.value;
     else if (id === 'admin-mock-title') state.admin.mockTitle = e.target.value;
@@ -31956,12 +31473,6 @@ document.addEventListener('input', function(e) {
         if (state.paidDraft) state.paidDraft.name = e.target.value;
     } else if (id === 'paid-email-input') {
         if (state.paidDraft) state.paidDraft.email = e.target.value;
-    } else if (id === 'study-reminder-hour') {
-        const val = parseInt(e.target.value, 10);
-        if (!isNaN(val) && val >= 0 && val <= 23) state.studyReminderHour = val;
-    } else if (id === 'study-reminder-minute') {
-        const val = parseInt(e.target.value, 10);
-        if (!isNaN(val) && val >= 0 && val <= 59) state.studyReminderMinute = val;
     } else if (action === 'qform-text') state.admin.qText = e.target.value;
     else if (action === 'qform-explanation') state.admin.qExplanation = e.target.value;
     else if (action === 'qform-opt') {
@@ -32296,12 +31807,6 @@ async function init() {
         });
     }, 60000);
 
-    // Study reminder tick
-    checkStudyReminderTick();
-    setInterval(checkStudyReminderTick, 60000);
-    if (state.authUser) {
-        loadStudyReminder();
-    }
 }
 
 // ============================================================
