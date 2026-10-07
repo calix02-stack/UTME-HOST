@@ -1108,6 +1108,33 @@
     .tp-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 16px; }
     .tp-footer { margin: 0 -16px; padding-top: 12px; }
 
+    /* Topic practice: progress + question-count picker */
+    .tp-row-main { flex: 1; min-width: 0; display: block; }
+    .tp-row-main .tp-row-name, .tp-row-main .tp-topic-name { display: block; flex: none; }
+    .pg-pill { flex-shrink: 0; min-width: 50px; text-align: center; font-size: 12.5px; font-weight: 800; color: var(--pc, var(--muted));
+        background: color-mix(in srgb, var(--pc, var(--muted)) 14%, transparent);
+        border: 1px solid color-mix(in srgb, var(--pc, var(--muted)) 38%, transparent); border-radius: 999px; padding: 4px 9px; }
+    .pg-bar { display: block; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: 8px; }
+    .pg-bar i { display: block; height: 100%; border-radius: 999px; background: var(--pc, var(--muted)); transition: width .4s; }
+    .pg-note { display: block; font-size: 11.5px; font-weight: 700; color: var(--pc, var(--muted)); margin-top: 5px; line-height: 1.3; }
+    .tp-right { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .tp-sum { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px; margin: 0 0 16px; }
+    .tp-sum-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .tp-sum-title { font-size: 13px; font-weight: 700; color: var(--muted); }
+    .tp-sum .pg-pill { font-size: 15px; }
+    .tp-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; color: var(--muted); font-weight: 600; }
+    .tp-legend b { display: inline-block; width: 8px; height: 8px; border-radius: 99px; margin-right: 5px; }
+    .tp-count { padding: 0 16px 10px; }
+    .tp-count-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
+    .tp-count-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tp-chip { flex: 1; min-width: 56px; padding: 9px 6px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card-bg);
+        color: var(--ink); font-size: 13.5px; font-weight: 800; cursor: pointer; text-align: center; }
+    .tp-chip.on { background: var(--green); border-color: var(--green); color: #fff; }
+    .exam-topic-tag { display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--green) 10%, var(--card-bg));
+        border: 1px solid color-mix(in srgb, var(--green) 30%, transparent); border-radius: var(--radius-md); padding: 9px 14px; margin-bottom: 10px; flex-shrink: 0; }
+    .exam-topic-tag .et-sub { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--green); flex-shrink: 0; }
+    .exam-topic-tag .et-name { font-size: 14px; font-weight: 700; color: var(--ink); min-width: 0; line-height: 1.3; }
+
     /* Picker screens (CBT/Exam/Literature setup): a fixed-height column
        with a scrollable choice area on top and the Start button pinned
        at the true bottom via flex layout, not position:sticky. Sticky
@@ -7351,6 +7378,7 @@ function retryStaleLoadsAfterReconnect() {
         syncPendingMockAttemptCreates();
         syncPendingLiveExamJoins();
         syncPendingScores();
+        syncTopicProgress();
     }
     if (state.view === 'revise') loadWeakQuestions();
     if (state.view === 'study-reminder') loadStudyReminder();
@@ -8856,6 +8884,12 @@ let state = {
 
     // Topic
     topicSubject: null,
+    topicCount: (function() { const v = storage.get('topicCount'); return v === 'all' ? 'all' : (parseInt(v, 10) || 20); })(),
+    topicName: '',
+    subjProg: {},
+    subjProgLoaded: false,
+    subjProgLoading: false,
+    topicProgPulled: false,
     topicId: null,
     topicQuestions: [],
     topicIndex: 0,
@@ -11625,6 +11659,7 @@ async function checkAuthSession(retriesLeft) {
             startLastSeenHeartbeat();
             registerDeviceSession();
             syncPendingSubmissions();
+            syncTopicProgress();
         }
         const readNotifs = storage.get("readNotifications");
         if (readNotifs) {
@@ -15977,6 +16012,180 @@ function buildFixedLengthQuestionSet(sourceQuestions, targetCount) {
     return result;
 }
 
+// ============================================================
+//  TOPIC PROGRESS
+// ============================================================
+// Progress % = distinct questions answered CORRECTLY at least once in Topic
+// Practice ÷ total questions in that topic (so 100% = every question mastered).
+// Subject % = all mastered questions across its topics ÷ all questions across
+// its topics, so bigger topics count for more. Stored per user on the device.
+const TOPIC_COUNT_CHOICES = [10, 20, 30, 40];
+function topicProgressKey() { return 'topicProgress_' + ((state.authUser && state.authUser.id) || 'guest'); }
+function loadTopicProgressStore() {
+    try { return JSON.parse(storage.get(topicProgressKey()) || '{}') || {}; } catch (e) { return {}; }
+}
+function realTopicQid(id) { return String(id).split('__dup')[0]; }
+// Progress is keyed to the question's TEXT (a short fingerprint), not its ID,
+// so re-importing a topic (which can give every question a new ID) does not
+// wipe progress. Only a question whose wording is edited counts as new.
+function topicQKey(q) {
+    const t = String((q && q.text) || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    let h = 5381;
+    for (let i = 0; i < t.length; i++) { h = ((h << 5) + h + t.charCodeAt(i)) | 0; }
+    return 'h' + (h >>> 0).toString(36) + '_' + t.length;
+}
+function isTopicQDone(set, q) { return !!(set[topicQKey(q)] || set[realTopicQid(q.id)]); }
+function recordTopicProgress(topicId, questions, answers) {
+    if (!topicId) return;
+    const store = loadTopicProgressStore();
+    const rec = store[topicId] || { m: [], a: 0 };
+    const seen = {};
+    (rec.m || []).forEach(function(id) { seen[id] = 1; });
+    (questions || []).forEach(function(q, i) {
+        if (answers[i] !== null && answers[i] !== undefined && answers[i] === q.correct_answer) seen[topicQKey(q)] = 1;
+    });
+    store[topicId] = { m: Object.keys(seen), a: (rec.a || 0) + 1 };
+    storage.set(topicProgressKey(), JSON.stringify(store));
+    state.subjProgLoaded = false;
+    // Remember this topic still needs uploading, then try now (silently
+    // does nothing if offline — it is retried on reconnect / next app open).
+    const dirty = loadTopicProgressDirty();
+    dirty[topicId] = 1;
+    storage.set(topicProgressDirtyKey(), JSON.stringify(dirty));
+    syncTopicProgress();
+}
+function topicMasteredSet(topicId) {
+    const rec = loadTopicProgressStore()[topicId] || {};
+    const set = {};
+    (rec.m || []).forEach(function(id) { set[id] = 1; });
+    return set;
+}
+// pct 0-100, started = has the person attempted it at all
+function topicProgressLevel(pct, started) {
+    if (!started) return { color: '#7C877F', label: 'Not started', hint: 'Not started yet — begin practising' };
+    if (pct < 40) return { color: '#D64545', label: 'Weak', hint: 'Weak — needs a lot more practice' };
+    if (pct < 70) return { color: '#D9930A', label: 'Fair', hint: 'Fair — keep going, you are getting there' };
+    if (pct < 90) return { color: '#12915A', label: 'Good', hint: 'Good — you are doing well, almost there' };
+    return { color: '#0B7A48', label: 'Mastered', hint: 'Excellent — you have mastered this' };
+}
+function progressPct(mastered, total) {
+    if (!total) return 0;
+    return Math.max(0, Math.min(100, Math.round((mastered / total) * 100)));
+}
+function renderProgressBlock(pct, started, withNote) {
+    const lv = topicProgressLevel(pct, started);
+    return {
+        level: lv,
+        pill: '<span class="pg-pill" style="--pc:' + lv.color + '">' + pct + '%</span>',
+        bar: '<span class="pg-bar" style="--pc:' + lv.color + '"><i style="width:' + pct + '%"></i></span>',
+        note: withNote ? '<span class="pg-note" style="--pc:' + lv.color + '">' + esc(lv.hint) + '</span>' : '',
+    };
+}
+
+// ---- Topic progress sync (offline-first) ----
+// Everything is read from / written to the device FIRST, so progress always
+// works with no network. When a connection exists, progress is merged with
+// the copy in the database (union of mastered questions, highest attempt
+// count) — merging can never lose progress, so two phones never clash.
+function topicProgressDirtyKey() { return 'topicProgressDirty_' + ((state.authUser && state.authUser.id) || 'guest'); }
+function loadTopicProgressDirty() {
+    try { return JSON.parse(storage.get(topicProgressDirtyKey()) || '{}') || {}; } catch (e) { return {}; }
+}
+let topicProgressSyncInFlight = false;
+async function syncTopicProgress() {
+    if (topicProgressSyncInFlight) return;
+    if (!state.authUser || state.authUser.id === 'guest' || !isOnline()) return;
+    topicProgressSyncInFlight = true;
+    try {
+        const uid = state.authUser.id;
+        const res = await withNetworkTimeout(
+            supabase.from('topic_progress').select('topic_id, mastered, attempts').eq('user_id', uid),
+            10000, 'Topic progress pull'
+        );
+        if (res.error) throw res.error;
+        const store = loadTopicProgressStore();
+        const dirty = loadTopicProgressDirty();
+        let changedLocal = false;
+        const toPush = [];
+        const remoteMap = {};
+        (res.data || []).forEach(function(r) { remoteMap[r.topic_id] = r; });
+        // Pull: merge remote into local
+        Object.keys(remoteMap).forEach(function(tid) {
+            const r = remoteMap[tid];
+            const rem = Array.isArray(r.mastered) ? r.mastered : [];
+            const loc = store[tid] || { m: [], a: 0 };
+            const set = {};
+            (loc.m || []).forEach(function(k) { set[k] = 1; });
+            const before = Object.keys(set).length;
+            rem.forEach(function(k) { set[k] = 1; });
+            const merged = { m: Object.keys(set), a: Math.max(loc.a || 0, r.attempts || 0) };
+            if (merged.m.length !== before || merged.a !== (loc.a || 0)) changedLocal = true;
+            store[tid] = merged;
+            // remote is missing something local has -> needs pushing
+            if (merged.m.length > rem.length || merged.a > (r.attempts || 0)) toPush.push(tid);
+        });
+        // Local-only topics (never uploaded) and explicitly dirty ones
+        Object.keys(store).forEach(function(tid) {
+            if (!remoteMap[tid] || dirty[tid]) { if (toPush.indexOf(tid) === -1) toPush.push(tid); }
+        });
+        storage.set(topicProgressKey(), JSON.stringify(store));
+        if (toPush.length) {
+            const rows = toPush.map(function(tid) {
+                return { user_id: uid, topic_id: tid, mastered: store[tid].m, attempts: store[tid].a || 0, updated_at: new Date().toISOString() };
+            });
+            const up = await withNetworkTimeout(
+                supabase.from('topic_progress').upsert(rows, { onConflict: 'user_id,topic_id' }),
+                15000, 'Topic progress push'
+            );
+            if (up.error) throw up.error;
+        }
+        storage.set(topicProgressDirtyKey(), '{}');
+        if (changedLocal) {
+            state.subjProgLoaded = false;
+            if (state.view === 'topic-list') state.topicsLoaded = false;
+            if (state.view === 'topic' || state.view === 'topic-list') render();
+        }
+    } catch (e) {
+        // Offline / table missing / slow network: stay silent, progress is
+        // safe on the device and will be retried automatically.
+        console.warn('Topic progress sync deferred:', e);
+    } finally {
+        topicProgressSyncInFlight = false;
+    }
+}
+
+async function loadSubjectProgress(ids) {
+    if (state.subjProgLoading) return;
+    state.subjProgLoading = true;
+    const out = {};
+    try {
+        const store = loadTopicProgressStore();
+        for (let k = 0; k < ids.length; k++) {
+            const sid = ids[k];
+            let total = 0, mastered = 0, attempts = 0;
+            try {
+                const topics = await window.OfflineDB.getTopicsOffline(sid);
+                for (let j = 0; j < (topics || []).length; j++) {
+                    const t = topics[j];
+                    const qs = await window.OfflineDB.getTopicQuestionsOffline(t.id);
+                    const rec = store[t.id] || {};
+                    const ms = {};
+                    (rec.m || []).forEach(function(id) { ms[id] = 1; });
+                    total += (qs || []).length;
+                    mastered += (qs || []).filter(function(q) { return isTopicQDone(ms, q); }).length;
+                    attempts += rec.a || 0;
+                }
+            } catch (e) { console.warn('Subject progress error:', sid, e); }
+            out[sid] = { total: total, mastered: mastered, attempts: attempts };
+        }
+    } finally {
+        state.subjProg = out;
+        state.subjProgLoaded = true;
+        state.subjProgLoading = false;
+    }
+    if (state.view === 'topic') render();
+}
+
 async function startTopicPractice() {
     if (!state.authUser) { guestNeedsAccount(); return; }
 
@@ -15996,10 +16205,18 @@ async function startTopicPractice() {
     // another and the overlay always clears.
     let questions = [];
     try {
-        questions = await withNetworkTimeout(
-            window.OfflineDB.getTopicQuestionsOffline(state.topicId, TOPIC_SESSION_SIZE),
+        const allTopicQs = await withNetworkTimeout(
+            window.OfflineDB.getTopicQuestionsOffline(state.topicId),
             12000, 'Topic questions load'
         );
+        // Pick the chosen number of questions, serving ones the person has
+        // NOT yet answered correctly first so progress actually moves.
+        const doneSet = topicMasteredSet(state.topicId);
+        const fresh = shuffleArray((allTopicQs || []).filter(function(q) { return !isTopicQDone(doneSet, q); }));
+        const seenQs = shuffleArray((allTopicQs || []).filter(function(q) { return isTopicQDone(doneSet, q); }));
+        const total = (allTopicQs || []).length;
+        const want = (state.topicCount === 'all') ? total : Math.min(parseInt(state.topicCount, 10) || 20, total);
+        questions = shuffleArray(fresh.concat(seenQs).slice(0, want));
     } catch (e) {
         console.warn('Topic question load failed:', e);
         state.isLoading = false;
@@ -16016,13 +16233,14 @@ async function startTopicPractice() {
     }
 
     const s = SUBJECTS.find(function(x) { return x.id === state.topicSubject; });
-    const qsAll = buildFixedLengthQuestionSet(questions, TOPIC_SESSION_SIZE).map(function(q) {
+    const qsAll = questions.map(function(q) {
         return Object.assign({}, q, { subject_name: s.name, subject_id: state.topicSubject });
     });
     notifyTrialCapIfNeeded(qsAll.length);
     const qs = applyTrialQuestionCap(qsAll);
 
     state.topicQuestions = qs;
+    state.topicName = ((state.topicsList || []).find(function(t) { return t.id === state.topicId; }) || {}).name || 'Topic Practice';
     state.topicIndex = 0;
     state.topicAnswers = new Array(qs.length).fill(null);
     state.topicFinished = false;
@@ -19203,11 +19421,22 @@ function renderTopicsPicker() {
     // Clean full-screen subject list. Back icon lives in the top bar.
     const ids = getBrowsableSubjectIds();
     let rows = "";
-    SUBJECTS.filter(function(s) { return ids.indexOf(s.id) !== -1; }).forEach(function(s) {
+    const visible = SUBJECTS.filter(function(s) { return ids.indexOf(s.id) !== -1; });
+    if (!state.topicProgPulled && state.authUser) { state.topicProgPulled = true; syncTopicProgress(); }
+    if (!state.subjProgLoaded && !state.subjProgLoading && anyCourseAccess()) {
+        loadSubjectProgress(visible.map(function(s) { return s.id; }));
+    }
+    visible.forEach(function(s) {
+        let pg = { pill: '', bar: '', note: '' };
+        const sp = state.subjProgLoaded && state.subjProg ? state.subjProg[s.id] : null;
+        if (sp && sp.total > 0) {
+            pg = renderProgressBlock(progressPct(sp.mastered, sp.total), sp.attempts > 0, true);
+        }
         rows += (
             '<button class="tp-row" style="--tc:' + s.color + '" data-action="select-topic-subject" data-subject="' + s.id + '">' +
             '<span class="tp-badge">' + esc(s.code) + '</span>' +
-            '<span class="tp-row-name">' + esc(s.name) + '</span>' +
+            '<span class="tp-row-main"><span class="tp-row-name">' + esc(s.name) + '</span>' + pg.bar + pg.note + '</span>' +
+            pg.pill +
             '<span class="tp-row-chev">' + svg("chevleft", 18).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + '</span>' +
             '</button>'
         );
@@ -19240,30 +19469,57 @@ function renderTopicsListPage() {
     } else {
         let totalQ = 0;
         state.topicsList.forEach(function(t) { totalQ += (t.question_count || 0); });
+        let sumMastered = 0, sumAttempts = 0;
+        state.topicsList.forEach(function(t) { sumMastered += (t.mastered || 0); sumAttempts += (t.attempts || 0); });
+        const sumPg = renderProgressBlock(progressPct(sumMastered, totalQ), sumAttempts > 0, true);
         body += '<h2 class="tp-h1">' + esc(subj ? subj.name : 'Topics') + '</h2>' +
             '<p class="tp-sub">' + state.topicsList.length + ' topic' + (state.topicsList.length === 1 ? '' : 's') + ' · ' + state.topicsList.filter(function(t) { return (t.question_count || 0) > 0; }).length + ' ready · ' + totalQ + ' question' + (totalQ === 1 ? '' : 's') + '</p>' +
+            '<div class="tp-sum" style="--pc:' + sumPg.level.color + '">' +
+            '<div class="tp-sum-top"><span class="tp-sum-title">Overall ' + esc(subj ? subj.name : 'subject') + ' progress</span>' + sumPg.pill + '</div>' +
+            sumPg.bar + sumPg.note +
+            '<div class="tp-legend"><span><b style="background:#D64545"></b>Below 40% Weak</span><span><b style="background:#D9930A"></b>40–69% Fair</span><span><b style="background:#12915A"></b>70%+ Good</span></div>' +
+            '</div>' +
             '<div class="tp-list">';
         state.topicsList.forEach(function(t, i) {
             const sel = state.topicId === t.id;
             const n = t.question_count || 0;
             const color = SUBJECT_PALETTE[i % SUBJECT_PALETTE.length];
+            const pg = renderProgressBlock(progressPct(t.mastered || 0, n), (t.attempts || 0) > 0, true);
             body += (
-                '<button class="tp-topic' + (sel ? ' selected' : '') + (n === 0 ? ' empty' : '') + '" style="--tc:' + color + '" data-action="select-topic" data-topic="' + t.id + '">' +
+                '<button class="tp-topic' + (sel ? ' selected' : '') + (n === 0 ? ' empty' : '') + '" style="--tc:' + color + ';--pc:' + pg.level.color + '" data-action="select-topic" data-topic="' + t.id + '">' +
                 '<span class="tp-num">' + (i + 1) + '</span>' +
-                '<span class="tp-topic-name">' + esc(t.name) + '</span>' +
-                '<span class="tp-qs">' + (n === 0 ? 'Not loaded yet' : n + ' Qs') + '</span>' +
+                '<span class="tp-row-main"><span class="tp-topic-name">' + esc(t.name) + '</span>' +
+                (n === 0 ? '' : pg.bar + pg.note) + '</span>' +
+                '<span class="tp-right">' + (n === 0 ? '' : pg.pill) +
+                '<span class="tp-qs">' + (n === 0 ? 'Not loaded yet' : n + ' Qs') + '</span></span>' +
                 '</button>'
             );
         });
         body += '</div>';
     }
     const ready = !!(state.topicSubject && state.topicId);
+    let countHtml = '';
+    let effCount = 0;
+    if (ready) {
+        const pickedTopic = (state.topicsList || []).find(function(t) { return t.id === state.topicId; });
+        const avail = (pickedTopic && pickedTopic.question_count) || 0;
+        const wantAll = state.topicCount === 'all';
+        const wanted = parseInt(state.topicCount, 10) || 20;
+        effCount = wantAll ? avail : Math.min(wanted, avail);
+        let chips = '';
+        TOPIC_COUNT_CHOICES.forEach(function(c) {
+            if (c >= avail) return;
+            chips += '<button class="tp-chip' + (!wantAll && effCount === c ? ' on' : '') + '" data-action="topic-set-count" data-count="' + c + '">' + c + '</button>';
+        });
+        chips += '<button class="tp-chip' + ((wantAll || effCount === avail) ? ' on' : '') + '" data-action="topic-set-count" data-count="all">All (' + avail + ')</button>';
+        countHtml = '<div class="tp-count"><span class="tp-count-label">How many questions?</span><div class="tp-count-chips">' + chips + '</div></div>';
+    }
     return (
         '<div class="tp-page">' +
         '<div class="picker-scroll tp-scroll">' + body + '</div>' +
-        '<div class="picker-footer tp-footer">' +
+        '<div class="picker-footer tp-footer">' + countHtml +
         '<button class="btn ' + (ready ? "btn-green" : "btn-outline") + '" data-action="start-topic-practice"' + (
-            ready ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>' + (ready ? 'Start Topic Practice' : 'Select a topic to start') + '</button>' +
+            ready ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>' + (ready ? 'Start Topic Practice · ' + effCount + ' Qs' : 'Select a topic to start') + '</button>' +
         '</div>' +
         '</div>'
     );
@@ -19295,7 +19551,7 @@ function renderTopicExam() {
         if (state.authUser && state.topicSubmitted && !state.topicHistorySaved) {
             state.topicHistorySaved = true;
             saveWeakQuestionsSequentially(state.authUser.id, weakQuestionsToSave, 'topic');
-            
+            recordTopicProgress(state.topicId, state.topicQuestions, state.topicAnswers);
             const subjects = Object.keys(subjectScores);
             const subjectNames = subjects.map(function(sid) {
                 const subj = SUBJECTS.find(function(s) { return s.id === sid; });
@@ -19354,6 +19610,15 @@ function renderTopicExam() {
                 maxScore: state.topicQuestions.length,
                 rows: [],
             }) +
+            (function() {
+                const tp = (state.topicsList || []).find(function(t) { return t.id === state.topicId; });
+                const tot = tp ? (tp.question_count || 0) : 0;
+                if (!tot) return '';
+                const ms = topicMasteredSet(state.topicId);
+                const done = Math.min(tot, Object.keys(ms).length);
+                const pg = renderProgressBlock(progressPct(done, tot), true, true);
+                return '<div class="tp-sum" style="--pc:' + pg.level.color + '"><div class="tp-sum-top"><span class="tp-sum-title">Your progress in ' + esc(topicName) + '</span>' + pg.pill + '</div>' + pg.bar + pg.note + '</div>';
+            })() +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="topic-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="topic-toggle-review">' +
             (state.topicReviewMode ? 'Hide Review' : 'Show Review') +
@@ -19391,6 +19656,7 @@ function renderTopicExam() {
     return (
         '<div class="exam-shell">' +
         '<div class="exam-shell-scroll">' +
+        '<div class="exam-topic-tag"><span class="et-sub">Topic</span><span class="et-name">' + esc(state.topicName || ((state.topicsList || []).find(function(t) { return t.id === state.topicId; }) || {}).name || 'Topic Practice') + '</span></div>' +
         renderExamTimeLeftCard(state.topicTimeLeft) +
         renderExamIconRow({
             calcEnabled: calcEnabled,
@@ -28313,6 +28579,14 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'topic-set-count') {
+        const c = el.getAttribute('data-count');
+        state.topicCount = (c === 'all') ? 'all' : (parseInt(c, 10) || 20);
+        storage.set('topicCount', String(state.topicCount));
+        render();
+        return;
+    }
+
     if (action === 'select-topic') {
         const pickedId = el.getAttribute('data-topic');
         const picked = (state.topicsList || []).find(function(t) { return t.id === pickedId; });
@@ -32001,6 +32275,7 @@ async function init() {
         syncPendingMockAttemptCreates();
         syncPendingLiveExamJoins();
         syncPendingScores();
+        syncTopicProgress();
         render();
     });
     window.addEventListener('offline', function() {
@@ -32311,9 +32586,14 @@ async function loadTopics(subjectId) {
         // Attach a real question_count to each topic — without this the
         // topic picker always showed "0 Qs" regardless of how many
         // questions actually existed, for every subject.
+        const progStore = loadTopicProgressStore();
         const withCounts = await Promise.all((topics || []).map(async function(t) {
             const tqs = await window.OfflineDB.getTopicQuestionsOffline(t.id);
-            return Object.assign({}, t, { question_count: (tqs || []).length });
+            const rec = progStore[t.id] || {};
+            const ms = {};
+            (rec.m || []).forEach(function(id) { ms[id] = 1; });
+            const mastered = (tqs || []).filter(function(q) { return isTopicQDone(ms, q); }).length;
+            return Object.assign({}, t, { question_count: (tqs || []).length, mastered: mastered, attempts: rec.a || 0 });
         }));
         state.topicsList = withCounts;
         state.topicsLoaded = true;

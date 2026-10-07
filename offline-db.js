@@ -694,6 +694,39 @@
         });
     };
 
+    // Removes every topic (and its questions) stored for a subject so a
+    // fresh copy from the subject file can replace it. Without this,
+    // topics added/renamed in the file never reached devices that had
+    // an older copy.
+    function clearSubjectTopics(subjectId) {
+        return storeGetAllByIndex('topics', 'by_subject', subjectId).then(function (topics) {
+            return Promise.all(topics.map(function (t) {
+                return storeGetAllByIndex('topic_questions', 'by_topic', t.id).then(function (qs) {
+                    return Promise.all(qs.map(function (q) { return storeDelete('topic_questions', q.id); }));
+                }).then(function () { return storeDelete('topics', t.id); });
+            }));
+        });
+    }
+
+    // Additive: writes ALL topics (even ones with no questions yet) and
+    // their questions from a subject file, never deleting anything.
+    function putSubjectTopics(subjectId, file) {
+        var topics = (file.topics || []).map(function (t) {
+            var copy = Object.assign({}, t, { subject_id: subjectId });
+            if (!copy.id) copy.id = uid();
+            return copy;
+        });
+        var tqs = (file.topic_questions || []).map(function (tq) {
+            var copy = Object.assign({}, tq);
+            if (!copy.id) copy.id = uid();
+            return copy;
+        });
+        return Promise.all([
+            topics.length ? storePutAll('topics', topics) : Promise.resolve(),
+            tqs.length ? storePutAll('topic_questions', tqs) : Promise.resolve()
+        ]);
+    }
+
     OfflineDB.reconcileAllSubjectFiles = function (subjectIds) {
         var results = {};
         var networkReached = false;
@@ -710,6 +743,8 @@
                 }
                 return storeGetAllByIndex('questions', 'by_subject', subjectId).then(function (existing) {
                     return Promise.all(existing.map(function (q) { return storeDelete('questions', q.id); }));
+                }).then(function () {
+                    return clearSubjectTopics(subjectId);
                 }).then(function () {
                     var normalized = file.questions.map(function (q) {
                         var copy = Object.assign({}, q);
@@ -766,6 +801,7 @@
                     return copy;
                 });
                 return (normalized.length ? storePutAll('questions', normalized) : Promise.resolve())
+                    .then(function () { return putSubjectTopics(subjectId, file); })
                     .then(function () { return { added: normalized.length }; });
             });
         }).catch(function () { return null; });
@@ -785,7 +821,8 @@
                     copy.subject_id = subjectId;
                     return copy;
                 });
-                return normalized.length ? storePutAll('questions', normalized) : Promise.resolve();
+                return (normalized.length ? storePutAll('questions', normalized) : Promise.resolve())
+                    .then(function () { return putSubjectTopics(subjectId, file); });
             }).catch(function () { /* ignore — additive best-effort */ });
         }));
     };
