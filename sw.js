@@ -15,7 +15,7 @@
 //    but the background refresh now also bypasses the HTTP cache.
 // v27: question files (questions-*.json) are now NETWORK-FIRST, so newly uploaded questions show
 // up straight away — you never need to edit this file just to publish questions again.
-const CACHE_NAME = "myutme-cache-v27";
+const CACHE_NAME = "myutme-cache-v28";
 
 const APP_SHELL = [
   "./",
@@ -79,7 +79,7 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith("/");
 
   const isQuestionDataFile =
-    /^\/?questions-[^/]+\.json$/.test(url.pathname) ||
+    /^\/?(questions|notes)-[^/]+\.json$/.test(url.pathname) ||
     url.pathname.endsWith("questions-seed.json");
 
   const isAppScript = url.pathname.endsWith(".js") && /offline-db/.test(url.pathname);

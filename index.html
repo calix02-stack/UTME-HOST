@@ -1107,6 +1107,20 @@
     .tp-topic.empty { opacity: .6; }
     .tp-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 16px; }
     .tp-footer { margin: 0 -16px; padding-top: 12px; }
+    .nt-wrap { padding-bottom: 12px; }
+    .nt-intro { font-size: 15px; line-height: 1.6; color: var(--ink); margin: 0 0 14px; }
+    .nt-fig { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: 16px; padding: 10px; margin: 0 0 14px; color: var(--ink); }
+    .nt-fig svg { display: block; width: 100%; max-width: 380px; height: auto; margin: 0 auto; }
+    .nt-card { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 0 0 12px; }
+    .nt-card h3 { margin: 0 0 8px; font-size: 15px; font-weight: 800; color: var(--green); }
+    .nt-card ul { margin: 0; padding-left: 18px; }
+    .nt-card li { font-size: 14.5px; line-height: 1.65; margin: 5px 0; color: var(--ink); }
+    .nt-ex .nt-eg { margin: 8px 0 12px; }
+    .nt-q { font-size: 14.5px; font-weight: 600; line-height: 1.5; display: flex; gap: 8px; }
+    .nt-q span { flex-shrink: 0; width: 22px; height: 22px; border-radius: 99px; background: var(--green); color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+    .nt-a { margin: 6px 0 0 30px; padding: 8px 10px; background: color-mix(in srgb, var(--green) 9%, var(--card-bg)); border-radius: 10px; font-size: 14px; line-height: 1.5; }
+    .nt-tip { background: color-mix(in srgb, #D9930A 12%, var(--card-bg)); border: 1.5px solid color-mix(in srgb, #D9930A 40%, transparent); border-radius: 14px; padding: 11px 14px; font-size: 14px; line-height: 1.5; margin-bottom: 8px; }
+    .nt-tag { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 800; color: var(--green); }
     .tp-count-top { padding: 4px 2px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; flex-shrink: 0; }
     .tp-topic { padding: 13px 14px; }
     .tp-topic:active { border-color: var(--tc, var(--green)); }
@@ -19375,7 +19389,53 @@ function renderTopicsPicker() {
 // ============================================================
 //  TOPICS LIST (per-subject page)
 // ============================================================
+// ---------- Topic notes (notes-<subject>.json) ----------
+window.__topicNotes = window.__topicNotes || {};
+function loadTopicNotes(subjectId) {
+    if (window.__topicNotes[subjectId] !== undefined) return;
+    window.__topicNotes[subjectId] = null; // loading
+    fetch('notes-' + subjectId + '.json?v=' + Date.now(), { cache: 'no-store' })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(j) { window.__topicNotes[subjectId] = (j && j.topics) || {}; if (state.view === 'topic-list') render(); })
+        .catch(function() { window.__topicNotes[subjectId] = undefined; });
+}
+function getTopicNote(subjectId, topicName) {
+    const n = window.__topicNotes[subjectId];
+    return (n && n[topicName]) || null;
+}
+function noteText(t) { return esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
+function renderTopicNotes() {
+    const topic = (state.topicsList || []).find(function(t) { return t.id === state.topicNotesId; });
+    const note = topic ? getTopicNote(state.topicSubject, topic.name) : null;
+    if (!topic || !note) { state.topicNotesId = null; return renderTopicsListPage(); }
+    let h = '<div class="nt-wrap"><h2 class="tp-h1">' + esc(topic.name) + '</h2>' +
+        '<p class="nt-intro">' + noteText(note.intro) + '</p>';
+    if (note.svg) h += '<div class="nt-fig">' + note.svg + '</div>';
+    (note.sections || []).forEach(function(sec) {
+        h += '<div class="nt-card"><h3>' + esc(sec.h) + '</h3><ul>';
+        sec.items.forEach(function(it) { h += '<li>' + noteText(it) + '</li>'; });
+        h += '</ul></div>';
+    });
+    if ((note.examples || []).length) {
+        h += '<div class="nt-card nt-ex"><h3>Worked examples</h3>';
+        note.examples.forEach(function(e, i) {
+            h += '<div class="nt-eg"><div class="nt-q"><span>' + (i + 1) + '</span>' + noteText(e.q) + '</div><div class="nt-a">' + noteText(e.a) + '</div></div>';
+        });
+        h += '</div>';
+    }
+    if (note.tip) h += '<div class="nt-tip"><b>Tip:</b> ' + noteText(note.tip) + '</div>';
+    const wantAll = state.topicCount === 'all', wanted = parseInt(state.topicCount, 10) || 20;
+    let chips = '';
+    TOPIC_COUNT_CHOICES.forEach(function(c) { chips += '<button class="tp-chip' + (!wantAll && wanted === c ? ' on' : '') + '" data-action="topic-set-count" data-count="' + c + '">' + c + '</button>'; });
+    chips += '<button class="tp-chip' + (wantAll ? ' on' : '') + '" data-action="topic-set-count" data-count="all">All</button>';
+    h += '</div>';
+    return '<div class="tp-page"><div class="picker-scroll tp-scroll">' + h + '</div>' +
+        '<div class="picker-footer tp-footer"><div class="tp-count"><span class="tp-count-label">Questions</span><div class="tp-count-chips">' + chips + '</div></div>' +
+        '<button class="btn btn-green" data-action="start-topic-practice">Practice questions (' + (topic.question_count || 0) + ' available)</button></div></div>';
+}
+
 function renderTopicsListPage() {
+    if (state.topicNotesId) return renderTopicNotes();
     const subj = SUBJECTS.find(function(s) { return s.id === state.topicSubject; });
     let body = "";
     if (!state.topicsLoaded || state.topicsSubjectId !== state.topicSubject) {
@@ -19406,7 +19466,7 @@ function renderTopicsListPage() {
                 '<button class="tp-topic' + (sel ? ' selected' : '') + (n === 0 ? ' empty' : '') + '" style="--tc:' + color + ';--pc:' + pg.level.color + '" data-action="select-topic" data-topic="' + t.id + '">' +
                 '<span class="tp-num">' + (i + 1) + '</span>' +
                 '<span class="tp-row-main"><span class="tp-topic-name">' + esc(t.name) + '</span>' +
-                (n === 0 ? '' : pg.bar + pg.note) + '</span>' +
+                (getTopicNote(state.topicSubject, t.name) ? '<span class="nt-tag">\ud83d\udcd6 Notes</span>' : '') + (n === 0 ? '' : pg.bar + pg.note) + '</span>' +
                 '<span class="tp-right">' + (n === 0 ? '' : pg.pill) +
                 '<span class="tp-qs">' + (n === 0 ? 'Not loaded yet' : n + ' Qs') + '</span></span>' +
                 '</button>'
@@ -28179,6 +28239,7 @@ document.addEventListener('click', function(e) {
         const id = el.getAttribute('data-subject');
         state.topicSubject = id;
         state.topicId = null;
+        state.topicNotesId = null;
         state.topicsLoaded = false;
         state.topicsList = [];
         state.topicsSubjectId = null;
@@ -28188,6 +28249,7 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'topic-list-back') {
+        if (state.topicNotesId) { state.topicNotesId = null; render(); return; }
         state.topicId = null;
         state.view = 'topic';
         render();
@@ -28210,7 +28272,13 @@ document.addEventListener('click', function(e) {
             return;
         }
         state.topicId = pickedId;
-        // One tap = start. The question count is chosen with the chips at the top of the list.
+        // Topic has notes -> open them first (they have a Practice button). Otherwise start straight away.
+        if (picked && getTopicNote(state.topicSubject, picked.name)) {
+            state.topicNotesId = pickedId;
+            render();
+            const sc = document.querySelector('.tp-scroll'); if (sc) sc.scrollTop = 0;
+            return;
+        }
         startTopicPractice();
         return;
     }
@@ -28411,6 +28479,7 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'start-topic-practice') {
+        state.topicNotesId = null;
         startTopicPractice();
         return;
     }
@@ -32115,6 +32184,7 @@ if ("serviceWorker" in navigator) {
 // Placeholder for offline-db functions (moved to offline-db.js)
 // These are here to prevent reference errors if offline-db.js hasn't loaded yet
 async function loadTopics(subjectId) {
+    loadTopicNotes(subjectId);
     try {
         const topics = await window.OfflineDB.getTopicsOffline(subjectId);
         // Attach a real question_count to each topic — without this the
