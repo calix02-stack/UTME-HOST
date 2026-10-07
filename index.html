@@ -1118,7 +1118,7 @@
     .nt-ex .nt-eg { margin: 8px 0 12px; }
     .nt-q { font-size: 14.5px; font-weight: 600; line-height: 1.5; display: flex; gap: 8px; }
     .nt-q span { flex-shrink: 0; width: 22px; height: 22px; border-radius: 99px; background: var(--green); color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
-    .nt-a { margin: 6px 0 0 30px; padding: 8px 10px; background: color-mix(in srgb, var(--green) 9%, var(--card-bg)); border-radius: 10px; font-size: 14px; line-height: 1.5; }
+    .nt-a { overflow-x: auto; margin: 6px 0 0 30px; padding: 8px 10px; background: color-mix(in srgb, var(--green) 9%, var(--card-bg)); border-radius: 10px; font-size: 14px; line-height: 1.5; }
     .nt-tip { background: color-mix(in srgb, #D9930A 12%, var(--card-bg)); border: 1.5px solid color-mix(in srgb, #D9930A 40%, transparent); border-radius: 14px; padding: 11px 14px; font-size: 14px; line-height: 1.5; margin-bottom: 8px; }
     .nt-tag { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 800; color: var(--green); }
     .tp-count-top { padding: 4px 2px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; flex-shrink: 0; }
@@ -8726,7 +8726,10 @@ function showUserError(context, err, friendlyMsg) {
     // message here because this check used to run only for non-admins.
     // Everyone gets the calm offline message for network errors; only
     // genuine app errors get the raw message shown to admins.
-    if (isNetworkError(err)) {
+    const _m = String((err && err.message) || err || '').toLowerCase();
+    if (_m.includes('timed out') && isOnline()) {
+        showToast(fallbackMsg, 'error');
+    } else if (isNetworkError(err)) {
         showToast("No internet connection. Please try again.", 'offline');
     } else if (isAdmin()) {
         showToast((friendlyMsg ? friendlyMsg + ' — ' : '') + extractErrorMessage(err), 'error');
@@ -16126,6 +16129,15 @@ async function loadSubjectProgress(ids) {
     if (state.view === 'topic') render();
 }
 
+// Fallback used by Topic Practice when IndexedDB is slow: reads the topic's questions
+// directly from questions-<subject>.json (served network-first / cached by the service worker).
+async function loadTopicQuestionsFromFile(subjectId, topicId) {
+    const res = await fetch('questions-' + subjectId + '.json?v=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return ((data && data.topic_questions) || []).filter(function(q) { return q.topic_id === topicId; });
+}
+
 async function startTopicPractice() {
     if (!state.authUser) { guestNeedsAccount(); return; }
 
@@ -16145,10 +16157,20 @@ async function startTopicPractice() {
     // another and the overlay always clears.
     let questions = [];
     try {
-        const allTopicQs = await withNetworkTimeout(
-            window.OfflineDB.getTopicQuestionsOffline(state.topicId),
-            12000, 'Topic questions load'
-        );
+        let allTopicQs;
+        try {
+            allTopicQs = await withNetworkTimeout(
+                window.OfflineDB.getTopicQuestionsOffline(state.topicId),
+                6000, 'Topic questions load'
+            );
+        } catch (dbErr) {
+            // On-device database slow/busy -> read this topic straight from the subject file instead.
+            console.warn('IndexedDB topic load failed, using subject file:', dbErr);
+            allTopicQs = await withNetworkTimeout(
+                loadTopicQuestionsFromFile(state.topicSubject, state.topicId),
+                15000, 'Topic questions file load'
+            );
+        }
         // Pick the chosen number of questions, serving ones the person has
         // NOT yet answered correctly first so progress actually moves.
         const doneSet = topicMasteredSet(state.topicId);
@@ -19403,7 +19425,7 @@ function getTopicNote(subjectId, topicName) {
     const n = window.__topicNotes[subjectId];
     return (n && n[topicName]) || null;
 }
-function noteText(t) { return esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
+function noteText(t) { return esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>'); }
 function renderTopicNotes() {
     const topic = (state.topicsList || []).find(function(t) { return t.id === state.topicNotesId; });
     const note = topic ? getTopicNote(state.topicSubject, topic.name) : null;

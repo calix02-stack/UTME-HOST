@@ -223,6 +223,15 @@
         });
     }
 
+    // Delete many records inside ONE transaction (instead of one transaction
+    // per record, which flooded IndexedDB and made topic loads time out).
+    function storeDeleteAll(storeName, keys) {
+        if (!keys || !keys.length) return Promise.resolve();
+        return tx(storeName, 'readwrite').then(function (store) {
+            return Promise.all(keys.map(function (k) { return reqToPromise(store.delete(k)); }));
+        });
+    }
+
     function uid() {
         if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
         return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
@@ -662,7 +671,7 @@
                     var passages = (data && !Array.isArray(data) && data.passages) || [];
                     var topics = (data && !Array.isArray(data) && data.topics) || [];
                     var topicQuestions = (data && !Array.isArray(data) && data.topic_questions) || [];
-                    return { notFound: false, questions: arr, passages: passages, topics: topics, topic_questions: topicQuestions };
+                    return { notFound: false, exportedAt: (data && !Array.isArray(data) && data.exportedAt) || '', questions: arr, passages: passages, topics: topics, topic_questions: topicQuestions };
                 });
             });
     }
@@ -701,10 +710,14 @@
     function clearSubjectTopics(subjectId) {
         return storeGetAllByIndex('topics', 'by_subject', subjectId).then(function (topics) {
             return Promise.all(topics.map(function (t) {
-                return storeGetAllByIndex('topic_questions', 'by_topic', t.id).then(function (qs) {
-                    return Promise.all(qs.map(function (q) { return storeDelete('topic_questions', q.id); }));
-                }).then(function () { return storeDelete('topics', t.id); });
-            }));
+                return storeGetAllByIndex('topic_questions', 'by_topic', t.id);
+            })).then(function (lists) {
+                var qIds = [];
+                lists.forEach(function (qs) { qs.forEach(function (q) { qIds.push(q.id); }); });
+                return storeDeleteAll('topic_questions', qIds);
+            }).then(function () {
+                return storeDeleteAll('topics', topics.map(function (t) { return t.id; }));
+            });
         });
     }
 
@@ -731,50 +744,69 @@
         var results = {};
         var networkReached = false;
 
-        return mapWithConcurrency(subjectIds, 3, function (subjectId) {
+        // Fingerprint of a subject file. If it matches what is already saved on
+        // this device AND the local copy is complete, we skip the (slow) rewrite
+        // entirely. Before, EVERY app open / return-to-app deleted and re-wrote
+        // every subject one record at a time, which blocked topic practice.
+        function fingerprint(file) {
+            return [file.exportedAt || '', file.questions.length, (file.topics || []).length, (file.topic_questions || []).length].join('|');
+        }
+
+        return mapWithConcurrency(subjectIds, 2, function (subjectId) {
             return fetchSubjectFile(subjectId).then(function (file) {
                 networkReached = true;
                 if (file.notFound) {
                     return storeGetAllByIndex('questions', 'by_subject', subjectId).then(function (existing) {
-                        return Promise.all(existing.map(function (q) { return storeDelete('questions', q.id); }));
+                        return storeDeleteAll('questions', existing.map(function (q) { return q.id; }));
                     }).then(function () {
                         results[subjectId] = { status: 'wiped' };
                     });
                 }
-                return storeGetAllByIndex('questions', 'by_subject', subjectId).then(function (existing) {
-                    return Promise.all(existing.map(function (q) { return storeDelete('questions', q.id); }));
-                }).then(function () {
-                    return clearSubjectTopics(subjectId);
-                }).then(function () {
-                    var normalized = file.questions.map(function (q) {
-                        var copy = Object.assign({}, q);
-                        if (!copy.id) copy.id = uid();
-                        copy.subject_id = subjectId;
-                        return copy;
-                    });
-                    var passagePuts = (file.passages || []).map(function (p) {
-                        var copy = Object.assign({}, p, { subject_id: p.subject_id || subjectId });
-                        copy.id = copy.subject_id + '_' + copy.mode + '_' + copy.batch_number;
-                        return storePut('passages', copy);
-                    });
-                    var topicIdMap = {};
-                    var topicPuts = (file.topics || []).map(function (t) {
-                        var copy = Object.assign({}, t, { subject_id: subjectId });
-                        if (!copy.id) copy.id = uid();
-                        topicIdMap[t.id] = copy.id;
-                        return storePut('topics', copy);
-                    });
-                    var topicQuestionPuts = (file.topic_questions || []).map(function (tq) {
-                        var copy = Object.assign({}, tq);
-                        if (!copy.id) copy.id = uid();
-                        if (copy.topic_id && topicIdMap[copy.topic_id]) copy.topic_id = topicIdMap[copy.topic_id];
-                        return storePut('topic_questions', copy);
-                    });
-                    return Promise.all(
-                        [normalized.length ? storePutAll('questions', normalized) : Promise.resolve()]
-                            .concat(passagePuts).concat(topicPuts).concat(topicQuestionPuts)
-                    ).then(function () {
-                        results[subjectId] = { status: 'reconciled', count: normalized.length };
+                var fp = fingerprint(file);
+                return Promise.all([
+                    storeGet('meta', 'sync_' + subjectId),
+                    storeGetAllByIndex('questions', 'by_subject', subjectId),
+                    storeGetAllByIndex('topics', 'by_subject', subjectId)
+                ]).then(function (cur) {
+                    var saved = cur[0], localQs = cur[1], localTopics = cur[2];
+                    if (saved && saved.fp === fp && localQs.length === file.questions.length && localTopics.length === (file.topics || []).length) {
+                        results[subjectId] = { status: 'unchanged', count: localQs.length };
+                        return;
+                    }
+                    return storeDeleteAll('questions', localQs.map(function (q) { return q.id; })).then(function () {
+                        return clearSubjectTopics(subjectId);
+                    }).then(function () {
+                        var normalized = file.questions.map(function (q) {
+                            var copy = Object.assign({}, q);
+                            if (!copy.id) copy.id = uid();
+                            copy.subject_id = subjectId;
+                            return copy;
+                        });
+                        var passages = (file.passages || []).map(function (p) {
+                            var copy = Object.assign({}, p, { subject_id: p.subject_id || subjectId });
+                            copy.id = copy.subject_id + '_' + copy.mode + '_' + copy.batch_number;
+                            return copy;
+                        });
+                        var topicIdMap = {};
+                        var topics = (file.topics || []).map(function (t) {
+                            var copy = Object.assign({}, t, { subject_id: subjectId });
+                            if (!copy.id) copy.id = uid();
+                            topicIdMap[t.id] = copy.id;
+                            return copy;
+                        });
+                        var tqs = (file.topic_questions || []).map(function (tq) {
+                            var copy = Object.assign({}, tq);
+                            if (!copy.id) copy.id = uid();
+                            if (copy.topic_id && topicIdMap[copy.topic_id]) copy.topic_id = topicIdMap[copy.topic_id];
+                            return copy;
+                        });
+                        // Topics first so the topic list is never empty for long, then the rest.
+                        return (topics.length ? storePutAll('topics', topics) : Promise.resolve())
+                            .then(function () { return tqs.length ? storePutAll('topic_questions', tqs) : Promise.resolve(); })
+                            .then(function () { return normalized.length ? storePutAll('questions', normalized) : Promise.resolve(); })
+                            .then(function () { return passages.length ? storePutAll('passages', passages) : Promise.resolve(); })
+                            .then(function () { return storePut('meta', { key: 'sync_' + subjectId, fp: fp }); })
+                            .then(function () { results[subjectId] = { status: 'reconciled', count: normalized.length }; });
                     });
                 });
             }).catch(function (e) {

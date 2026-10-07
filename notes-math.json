@@ -1,906 +1,1889 @@
 {
- "version": "1.0",
+ "version": "2.0",
  "subject_id": "math",
  "topics": {
   "Number Bases": {
-   "intro": "A number base tells you how many digits a counting system uses. We normally count in base 10; computers use base 2.",
+   "intro": "A **number base** tells you how many different digits a counting system uses. Everyday counting is in **base 10** (digits 0–9). Computers use **base 2** (digits 0 and 1). Once you understand place value, every conversion in this topic becomes a routine procedure.",
    "svg": "",
    "sections": [
     {
-     "h": "Key ideas",
+     "h": "1. Place value in any base",
      "items": [
-      "Base n uses digits 0 to n−1 (base 2: 0,1; base 8: 0–7).",
-      "Each place value is a power of the base: in base 2 the places are …8, 4, 2, 1."
+      "In base n the digits allowed are 0, 1, 2, …, n − 1. So base 5 uses 0–4 only; the digit 5 can never appear in base 5.",
+      "Place values are powers of the base, counted from the right: n⁰, n¹, n², n³ …",
+      "In base 10: 347 = 3×10² + 4×10¹ + 7×10⁰ = 300 + 40 + 7.",
+      "In base 2 the place values are …, 32, 16, 8, 4, 2, 1. In base 8 they are …, 512, 64, 8, 1. In base 5 they are …, 625, 125, 25, 5, 1.",
+      "We write the base as a small subscript: 101₂ means 101 in base two. If no subscript is written, the number is in base 10."
      ]
     },
     {
-     "h": "Base n → base 10",
+     "h": "2. Converting from base n to base 10",
      "items": [
-      "Multiply each digit by its place value and add.",
-      "**1101₂ = 1×8 + 1×4 + 0×2 + 1×1 = 13**"
+      "Method: multiply each digit by its place value, then add everything.",
+      "**Example: 2314₅ → base 10**\nPlace values (right to left): 5⁰=1, 5¹=5, 5²=25, 5³=125\n2314₅ = 2×125 + 3×25 + 1×5 + 4×1\n= 250 + 75 + 5 + 4\n= **334₁₀**",
+      "**Example: 11011₂ → base 10**\n= 1×16 + 1×8 + 0×4 + 1×2 + 1×1\n= 16 + 8 + 0 + 2 + 1 = **27₁₀**"
      ]
     },
     {
-     "h": "Base 10 → base n",
+     "h": "3. Converting from base 10 to base n",
      "items": [
-      "Divide repeatedly by n and note the remainders.",
-      "Read the remainders **from bottom to top**.",
-      "25 ÷ 2 → remainders 1,0,0,1,1 → **11001₂**"
+      "Method (repeated division): divide the number by n, write the remainder, divide the quotient by n again, and continue until the quotient is 0. Read the remainders **from bottom to top**.",
+      "**Example: 59₁₀ → base 2**\n59 ÷ 2 = 29 remainder **1**\n29 ÷ 2 = 14 remainder **1**\n14 ÷ 2 = 7 remainder **0**\n7 ÷ 2 = 3 remainder **1**\n3 ÷ 2 = 1 remainder **1**\n1 ÷ 2 = 0 remainder **1**\nReading upward: **111011₂**",
+      "**Example: 200₁₀ → base 8**\n200 ÷ 8 = 25 remainder **0**\n25 ÷ 8 = 3 remainder **1**\n3 ÷ 8 = 0 remainder **3**\nReading upward: **310₈**"
      ]
     },
     {
-     "h": "Arithmetic in other bases",
+     "h": "4. Converting between two bases (not base 10)",
      "items": [
-      "Add or subtract as usual but \"carry\" or \"borrow\" the base, not 10.",
-      "**101₂ + 11₂ = 1000₂** (5 + 3 = 8)."
+      "Always go through base 10: first convert to base 10, then convert from base 10 to the new base.",
+      "**Example: 243₅ → base 8**\nStep 1 (to base 10): 2×25 + 4×5 + 3 = 50 + 20 + 3 = 73\nStep 2 (73 ÷ 8): 73 ÷ 8 = 9 r **1**; 9 ÷ 8 = 1 r **1**; 1 ÷ 8 = 0 r **1**\nAnswer: **111₈**",
+      "Shortcut for base 2 ↔ base 8: group binary digits in threes from the right. 101 110₂ → 5 and 6 → **56₈**."
+     ]
+    },
+    {
+     "h": "5. Addition and subtraction in other bases",
+     "items": [
+      "Work column by column exactly as in base 10, but whenever a column reaches the base, you carry 1 to the next column. When subtracting, a borrow is worth the **base**, not 10.",
+      "**Addition: 1011₂ + 110₂**\nColumn 1: 1+0 = 1\nColumn 2: 1+1 = 10₂ → write 0, carry 1\nColumn 3: 0+1+1(carry) = 10₂ → write 0, carry 1\nColumn 4: 1+1(carry) = 10₂ → write 0, carry 1; then write the final 1\nAnswer: **10001₂** (check: 11 + 6 = 17 = 10001₂ ✓)",
+      "**Subtraction: 423₅ − 144₅**\nColumn 1: 3 − 4 not possible; borrow 5 → 8 − 4 = 4\nColumn 2: (2−1)=1 after borrowing; 1 − 4 not possible; borrow 5 → 6 − 4 = 2\nColumn 3: (4−1)=3; 3 − 1 = 2\nAnswer: **224₅** (check: 113 − 49 = 64 = 224₅ ✓)"
+     ]
+    },
+    {
+     "h": "6. Multiplication and finding unknown bases",
+     "items": [
+      "To multiply in base n, either multiply in base 10 and convert back, or do column work carrying multiples of n.",
+      "**Example: 12₃ × 21₃**\n12₃ = 5, 21₃ = 7, 5×7 = 35\n35 ÷ 3 = 11 r 2; 11 ÷ 3 = 3 r 2; 3 ÷ 3 = 1 r 0; 1 ÷ 3 = 0 r 1\nAnswer: **1022₃**",
+      "To find an unknown base, write both sides in base 10 using x as the base and solve the resulting equation."
      ]
     }
    ],
    "examples": [
     {
-     "q": "Convert 234₅ to base 10.",
-     "a": "2×25 + 3×5 + 4 = 50 + 15 + 4 = **69**"
+     "q": "Convert 10110₂ to base 10.",
+     "a": "= 1×16 + 0×8 + 1×4 + 1×2 + 0×1\n= 16 + 0 + 4 + 2 + 0\n= **22**"
     },
     {
-     "q": "Solve 3x₅ = 17₁₀ if x is a digit.",
-     "a": "3×5 + x = 17 gives **x = 2**"
+     "q": "Convert 345₁₀ to base 6.",
+     "a": "345 ÷ 6 = 57 r **3**\n57 ÷ 6 = 9 r **3**\n9 ÷ 6 = 1 r **3**\n1 ÷ 6 = 0 r **1**\nReading upward: **1333₆**\nCheck: 1×216 + 3×36 + 3×6 + 3 = 216 + 108 + 18 + 3 = 345 ✓"
+    },
+    {
+     "q": "Find x if 35ₓ = 23₁₀ (here the base is x).",
+     "a": "35ₓ = 3×x + 5\n3x + 5 = 23\n3x = 18\n**x = 6**\n(Check: digit 5 is less than base 6 ✓)"
+    },
+    {
+     "q": "Solve 101ₓ = 26₁₀ for the base x.",
+     "a": "1×x² + 0×x + 1 = 26\nx² + 1 = 26\nx² = 25\nx = 5 (a base cannot be negative)\n**x = 5**"
+    },
+    {
+     "q": "Evaluate 1101₂ + 111₂ and give the answer in base 2.",
+     "a": "1101₂ = 13 and 111₂ = 7, so the sum is 20.\n20 ÷ 2 = 10 r 0; 10 ÷ 2 = 5 r 0; 5 ÷ 2 = 2 r 1; 2 ÷ 2 = 1 r 0; 1 ÷ 2 = 0 r 1\nReading upward: **10100₂**"
     }
    ],
-   "tip": "Always check by converting the answer back to base 10."
+   "tip": "Every digit must be smaller than the base. If you see a digit equal to or bigger than the base, that base is impossible. Always verify by converting your answer back to base 10."
   },
   "Fractions, Decimals, Approximation and Percentages": {
-   "intro": "These are the everyday number skills: working with parts of a whole, rounding sensibly, and calculating percentages.",
+   "intro": "This topic covers the everyday number skills that appear in almost every UTME paper: working with fractions, converting between fractions/decimals/percentages, rounding, significant figures, standard form, and percentage problems such as profit, loss, interest and discount.",
    "svg": "",
    "sections": [
     {
-     "h": "Fractions",
+     "h": "1. Operations on fractions",
      "items": [
-      "Add or subtract: make denominators equal first.",
-      "Multiply: top × top, bottom × bottom. Divide: flip the second fraction and multiply.",
-      "Mixed number to improper: 2¾ = (2×4+3)/4 = 11/4."
+      "**Add/subtract:** first make the denominators equal using the LCM, then add or subtract the numerators.",
+      "a/b + c/d = (ad + bc)/bd and a/b − c/d = (ad − bc)/bd.",
+      "**Multiply:** multiply tops together and bottoms together: a/b × c/d = ac/bd. Cancel common factors first to keep numbers small.",
+      "**Divide:** multiply by the reciprocal (flip the second fraction): a/b ÷ c/d = a/b × d/c.",
+      "**Example: 2/3 + 3/4** — LCM of 3 and 4 is 12.\n= 8/12 + 9/12 = **17/12 = 1 5/12**",
+      "**Example: 3/5 ÷ 9/10 = 3/5 × 10/9** = 30/45 = **2/3**"
      ]
     },
     {
-     "h": "Decimals and approximation",
+     "h": "2. Order of operations (BODMAS)",
      "items": [
-      "**Decimal places (d.p.)**: count digits after the point, look at the next digit; 5 or more rounds up.",
-      "**Significant figures (s.f.)**: count from the first non-zero digit.",
-      "Standard form: A × 10ⁿ where 1 ≤ A < 10, e.g. 0.00045 = 4.5 × 10⁻⁴."
+      "Do Brackets, then Of/Orders (powers), then Division and Multiplication (left to right), then Addition and Subtraction (left to right).",
+      "**Example: 8 + 12 ÷ 4 × 3 − 5**\n= 8 + 3 × 3 − 5 (12 ÷ 4 = 3)\n= 8 + 9 − 5\n= **12**",
+      "**Example: 2/3 of (1 1/2 + 3/4)**\n1 1/2 + 3/4 = 3/2 + 3/4 = 6/4 + 3/4 = 9/4\n2/3 × 9/4 = 18/12 = **3/2 = 1 1/2**"
      ]
     },
     {
-     "h": "Percentages",
+     "h": "3. Fractions ↔ decimals ↔ percentages",
      "items": [
-      "Percentage of a quantity: (p/100) × quantity.",
-      "**% change = (change ÷ original) × 100**.",
-      "Profit % = (profit ÷ cost price) × 100.",
-      "Simple interest: **I = PRT/100**."
+      "Fraction → decimal: divide the top by the bottom. 3/8 = 3 ÷ 8 = 0.375.",
+      "Decimal → percentage: multiply by 100. 0.375 = 37.5%.",
+      "Percentage → fraction: put over 100 and simplify. 45% = 45/100 = 9/20.",
+      "**Recurring decimals:** let x = 0.333… then 10x = 3.333…, subtract: 9x = 3, so x = 1/3.\n**Example: 0.272727… = ?** x = 0.2727…; 100x = 27.2727…; 99x = 27; x = 27/99 = **3/11**"
+     ]
+    },
+    {
+     "h": "4. Approximation: decimal places and significant figures",
+     "items": [
+      "**Decimal places (d.p.):** count digits after the decimal point. Look at the next digit: 5 or more rounds up; 4 or less keeps the digit.",
+      "3.14159 to 2 d.p. = 3.14 (next digit 1). 2.678 to 2 d.p. = 2.68 (next digit 8).",
+      "**Significant figures (s.f.):** count from the first non-zero digit. Zeros between non-zero digits count; leading zeros do not.",
+      "0.004067 to 2 s.f. = 0.0041 (first s.f. is the 4, second is the 0; next digit 6 rounds up).",
+      "345,678 to 3 s.f. = 346,000 (fill the remaining places with zeros)."
+     ]
+    },
+    {
+     "h": "5. Standard form",
+     "items": [
+      "A number is in standard form when written as A × 10ⁿ with 1 ≤ A < 10 and n an integer.",
+      "56,000 = 5.6 × 10⁴ (move the decimal 4 places left, so n = +4).",
+      "0.00032 = 3.2 × 10⁻⁴ (move the decimal 4 places right, so n = −4).",
+      "**Multiplying:** multiply the A-parts, add the powers. (2×10³)(4×10⁵) = 8×10⁸.",
+      "**Dividing:** divide the A-parts, subtract the powers. (6×10⁷) ÷ (3×10²) = 2×10⁵."
+     ]
+    },
+    {
+     "h": "6. Percentage problems",
+     "items": [
+      "Percentage of a quantity: p% of N = (p/100) × N. 15% of ₦2,400 = 0.15 × 2400 = ₦360.",
+      "**Percentage change** = (change ÷ original) × 100%.",
+      "**Profit % = (profit ÷ cost price) × 100%.** **Loss % = (loss ÷ cost price) × 100%.**",
+      "**Selling price** = cost price + profit (or − loss). With profit p%: SP = CP × (100 + p)/100.",
+      "**Discount** = marked price − selling price; discount % is based on the marked price.",
+      "**Simple interest I = PRT/100** (P principal, R rate % per year, T years). Amount A = P + I.",
+      "**Compound interest A = P(1 + R/100)ⁿ** where n is the number of years.",
+      "**Reverse percentages:** if after a 20% increase the price is ₦600, then 120% of the original = 600, so original = 600 ÷ 1.2 = ₦500."
      ]
     }
    ],
    "examples": [
     {
-     "q": "A phone bought at ₦40,000 is sold at ₦46,000. Find the profit %.",
-     "a": "Profit = 6,000. (6,000 ÷ 40,000) × 100 = **15%**"
+     "q": "Simplify 2 1/4 + 1 2/3 − 1/2.",
+     "a": "Convert: 9/4 + 5/3 − 1/2. LCM of 4, 3, 2 is 12.\n= 27/12 + 20/12 − 6/12\n= 41/12\n= **3 5/12**"
     },
     {
-     "q": "Round 0.04563 to 2 s.f.",
-     "a": "First significant figure is 4, so **0.046**"
+     "q": "Express 0.4545… as a fraction.",
+     "a": "Let x = 0.4545…\n100x = 45.4545…\n100x − x = 45\n99x = 45\nx = 45/99 = **5/11**"
+    },
+    {
+     "q": "Write 0.0070450 correct to 3 significant figures.",
+     "a": "First significant figure is 7. Count: 7, 0, 4 — the third is 4, the next digit is 5, so round up.\n**0.00705**"
+    },
+    {
+     "q": "Evaluate (3.2 × 10⁵) × (2.5 × 10⁻²), leaving your answer in standard form.",
+     "a": "Multiply A-parts: 3.2 × 2.5 = 8.0\nAdd powers: 5 + (−2) = 3\n= 8.0 × 10³ = **8 × 10³**"
+    },
+    {
+     "q": "A trader buys an item for ₦4,000 and sells it for ₦4,600. Find his profit percent.",
+     "a": "Profit = 4600 − 4000 = ₦600\nProfit % = (600/4000) × 100 = **15%**"
+    },
+    {
+     "q": "Find the compound interest on ₦20,000 for 2 years at 10% per annum.",
+     "a": "A = 20000 × (1.10)² = 20000 × 1.21 = ₦24,200\nCompound interest = 24200 − 20000 = **₦4,200**"
+    },
+    {
+     "q": "After a 25% discount a shirt costs ₦1,500. Find its marked price.",
+     "a": "Selling price = 75% of marked price\n0.75 × M = 1500\nM = 1500 ÷ 0.75 = **₦2,000**"
     }
    ],
-   "tip": "BODMAS: Brackets, Orders, Division, Multiplication, Addition, Subtraction."
+   "tip": "Percentages of change are always measured against the ORIGINAL value. For 'reverse' problems, form an equation (e.g. 120% of x) instead of subtracting percentages."
   },
   "Indices, Logarithms and Surds": {
-   "intro": "Indices are powers, logarithms are the opposite of powers, and surds are roots that do not simplify to whole numbers.",
+   "intro": "Indices (powers), logarithms and surds are three connected tools for handling very large, very small and irrational numbers. Learn the laws first — nearly every question is just a careful application of them.",
    "svg": "",
    "sections": [
     {
-     "h": "Laws of indices",
+     "h": "1. Laws of indices",
      "items": [
-      "aᵐ × aⁿ = aᵐ⁺ⁿ    aᵐ ÷ aⁿ = aᵐ⁻ⁿ",
-      "(aᵐ)ⁿ = aᵐⁿ    a⁰ = 1    a⁻ⁿ = 1/aⁿ",
-      "a^(1/n) = ⁿ√a, so 8^(2/3) = (∛8)² = 4."
+      "**aᵐ × aⁿ = aᵐ⁺ⁿ** (same base: add powers).",
+      "**aᵐ ÷ aⁿ = aᵐ⁻ⁿ** (same base: subtract powers).",
+      "**(aᵐ)ⁿ = aᵐⁿ** (power of a power: multiply).",
+      "**a⁰ = 1** (for a ≠ 0). **a⁻ⁿ = 1/aⁿ.** **a^(1/n) = ⁿ√a.** **a^(m/n) = (ⁿ√a)ᵐ.**",
+      "**(ab)ⁿ = aⁿbⁿ** and **(a/b)ⁿ = aⁿ/bⁿ.**",
+      "**Example: (27)^(2/3)** = (³√27)² = 3² = **9**",
+      "**Example: 2⁻³ × 16^(1/2)** = (1/8) × 4 = **1/2**"
      ]
     },
     {
-     "h": "Logarithms",
+     "h": "2. Solving index equations",
      "items": [
-      "log_a N = x means aˣ = N.",
-      "log(MN) = log M + log N",
-      "log(M/N) = log M − log N",
-      "log Mᵏ = k log M",
-      "log_a a = 1 and log 1 = 0"
+      "Make the bases the same, then equate the powers.",
+      "**Example: 2^(x+1) = 32**\n32 = 2⁵, so x + 1 = 5, hence **x = 4**.",
+      "**Example: 9ˣ = 27^(x−1)**\n(3²)ˣ = (3³)^(x−1)\n3^(2x) = 3^(3x−3)\n2x = 3x − 3, so **x = 3**.",
+      "**Example: 4ˣ − 5(2ˣ) + 4 = 0** — let y = 2ˣ so y² − 5y + 4 = 0, giving (y−1)(y−4) = 0, y = 1 or 4.\n2ˣ = 1 → x = 0; 2ˣ = 4 → x = 2. **x = 0 or 2.**"
      ]
     },
     {
-     "h": "Surds",
+     "h": "3. Logarithms: definition and laws",
      "items": [
-      "√a × √b = √(ab);  √12 = 2√3.",
-      "**Rationalise** by multiplying top and bottom by the conjugate: 1/(√3−1) = (√3+1)/2."
+      "**If y = aˣ then x = logₐ y.** A logarithm is just an index. log₂ 8 = 3 because 2³ = 8.",
+      "Special values: logₐ 1 = 0, logₐ a = 1. If no base is written, base 10 is assumed.",
+      "**log (MN) = log M + log N** (product → sum).",
+      "**log (M/N) = log M − log N** (quotient → difference).",
+      "**log Mᵖ = p log M** (power comes to the front).",
+      "**Change of base: logₐ b = log b / log a**, and logₐ b = 1 / log_b a.",
+      "**Example: log 5 + log 20** = log 100 = **2**.",
+      "**Example: log₂ 48 − log₂ 3** = log₂ 16 = **4**."
+     ]
+    },
+    {
+     "h": "4. Solving logarithmic equations",
+     "items": [
+      "Combine the logs into one using the laws, convert to index form, then solve. Always check that the arguments of the logs are positive.",
+      "**Example: log₃ x + log₃ (x − 2) = 1**\nlog₃ [x(x − 2)] = 1\nx(x − 2) = 3¹ = 3\nx² − 2x − 3 = 0 → (x − 3)(x + 1) = 0\nx = 3 or x = −1; x = −1 makes log₃ x undefined.\n**x = 3**",
+      "**Example: 3ˣ = 20** — take logs: x log 3 = log 20, x = log 20 / log 3 = 1.3010 / 0.4771 = **2.73** (2 d.p.)."
+     ]
+    },
+    {
+     "h": "5. Surds",
+     "items": [
+      "A surd is a root that cannot be written as an exact fraction, e.g. √2, √3, ³√5. √4 = 2 is NOT a surd.",
+      "**√a × √b = √(ab)** and **√a ÷ √b = √(a/b).**",
+      "**Simplifying:** pull out the largest perfect-square factor. √72 = √(36×2) = **6√2**. √50 = √(25×2) = **5√2**.",
+      "**Adding/subtracting:** only like surds combine. 3√2 + 5√2 = 8√2. 2√3 + √12 = 2√3 + 2√3 = 4√3.",
+      "**Rationalising the denominator:** multiply top and bottom to remove the root from the bottom.",
+      "1/√a = √a/a. Example: 6/√3 = 6√3/3 = **2√3**.",
+      "**Conjugate:** for a denominator a + √b multiply by a − √b, because (a + √b)(a − √b) = a² − b.",
+      "**Example: 4/(3 − √5)** = 4(3 + √5) / (9 − 5) = 4(3 + √5)/4 = **3 + √5**."
      ]
     }
    ],
    "examples": [
     {
-     "q": "Simplify log 8 + log 125.",
-     "a": "log (8×125) = log 1000 = **3** (base 10)"
+     "q": "Simplify (8^(2/3) × 3⁻¹) ÷ 12^0.",
+     "a": "8^(2/3) = (³√8)² = 2² = 4\n3⁻¹ = 1/3\n12⁰ = 1\n= (4 × 1/3) ÷ 1 = **4/3**"
     },
     {
-     "q": "Solve 2ˣ = 32.",
-     "a": "32 = 2⁵ so **x = 5**"
+     "q": "Solve 5^(2x−1) = 125.",
+     "a": "125 = 5³\n2x − 1 = 3\n2x = 4\n**x = 2**"
+    },
+    {
+     "q": "Without tables, evaluate log₁₀ 4 + log₁₀ 25.",
+     "a": "= log₁₀ (4 × 25)\n= log₁₀ 100\n= **2**"
+    },
+    {
+     "q": "Given log 2 = 0.3010 and log 3 = 0.4771, find log 18.",
+     "a": "18 = 2 × 3²\nlog 18 = log 2 + 2 log 3\n= 0.3010 + 2(0.4771)\n= 0.3010 + 0.9542\n= **1.2552**"
+    },
+    {
+     "q": "Solve log₂ (x + 6) − log₂ (x − 1) = 3.",
+     "a": "log₂ [(x + 6)/(x − 1)] = 3\n(x + 6)/(x − 1) = 2³ = 8\nx + 6 = 8x − 8\n14 = 7x\n**x = 2**\nCheck: x + 6 = 8 > 0 and x − 1 = 1 > 0 ✓"
+    },
+    {
+     "q": "Simplify √75 + √27 − √12.",
+     "a": "√75 = 5√3; √27 = 3√3; √12 = 2√3\n= 5√3 + 3√3 − 2√3\n= **6√3**"
+    },
+    {
+     "q": "Rationalise (2 + √3)/(2 − √3).",
+     "a": "Multiply top and bottom by (2 + √3):\nNumerator: (2 + √3)² = 4 + 4√3 + 3 = 7 + 4√3\nDenominator: 4 − 3 = 1\n= **7 + 4√3**"
     }
    ],
-   "tip": "To solve an equation with the unknown in a power, write both sides with the same base."
+   "tip": "Logs are indices in disguise: when stuck, rewrite the log statement in index form (y = aˣ). In surd questions, simplify each root first before adding or subtracting."
   },
   "Sets": {
-   "intro": "A set is a collection of well-defined objects called elements. Venn diagrams help us picture how sets overlap.",
+   "intro": "A **set** is a well-defined collection of objects, called **elements** or **members**. Set questions in UTME usually test notation, union/intersection/complement, counting subsets, and Venn-diagram problems with two or three sets.",
    "svg": "<svg viewBox=\"0 0 260 150\" role=\"img\" aria-label=\"Venn diagram of sets A and B\"><circle cx=\"100\" cy=\"75\" r=\"55\" fill=\"#3B5FA0\" fill-opacity=\".25\" stroke=\"#3B5FA0\" stroke-width=\"2\"/><circle cx=\"160\" cy=\"75\" r=\"55\" fill=\"#B5502E\" fill-opacity=\".25\" stroke=\"#B5502E\" stroke-width=\"2\"/><text x=\"70\" y=\"78\" font-size=\"15\" font-weight=\"700\" fill=\"currentColor\">A only</text><text x=\"168\" y=\"78\" font-size=\"15\" font-weight=\"700\" fill=\"currentColor\">B only</text><text x=\"119\" y=\"70\" font-size=\"12\" font-weight=\"700\" fill=\"currentColor\">A∩B</text><text x=\"88\" y=\"22\" font-size=\"14\" font-weight=\"800\" fill=\"#3B5FA0\">A</text><text x=\"168\" y=\"22\" font-size=\"14\" font-weight=\"800\" fill=\"#B5502E\">B</text></svg>",
    "sections": [
     {
-     "h": "Notation",
+     "h": "1. Notation and types of sets",
      "items": [
-      "A = {1,2,3}; the symbol ∈ means \"is an element of\".",
-      "n(A) is the number of elements in A.",
-      "∅ is the empty set. U is the universal set. A′ is everything in U not in A (complement)."
+      "Sets are written in curly brackets: A = {2, 4, 6, 8}. We write 4 ∈ A (4 belongs to A) and 5 ∉ A.",
+      "**n(A)** = number of elements in A. Here n(A) = 4.",
+      "**Empty set ∅ or { }:** has no element, n(∅) = 0. **Universal set U:** contains all elements under discussion.",
+      "**Subset A ⊆ B:** every element of A is also in B. **Proper subset A ⊂ B:** A ⊆ B and A ≠ B.",
+      "**Equal sets:** same elements. **Equivalent sets:** same number of elements. **Disjoint sets:** no common element (A ∩ B = ∅).",
+      "**Set-builder notation:** {x : 1 ≤ x ≤ 5, x an integer} = {1, 2, 3, 4, 5}."
      ]
     },
     {
-     "h": "Operations",
+     "h": "2. Operations on sets",
      "items": [
-      "**Union A∪B**: in A or B or both.",
-      "**Intersection A∩B**: in both A and B.",
-      "**A − B**: in A but not in B."
+      "**Union A ∪ B:** elements in A or B or both.",
+      "**Intersection A ∩ B:** elements in both A and B.",
+      "**Complement A′:** elements of U that are not in A. Always n(A′) = n(U) − n(A).",
+      "**Difference A \\ B** (or A − B): elements in A but not in B.",
+      "**Example:** U = {1,…,10}, A = {1,2,3,4,5}, B = {4,5,6,7}.\nA ∪ B = {1,2,3,4,5,6,7}; A ∩ B = {4,5}; A′ = {6,7,8,9,10}; A − B = {1,2,3}.",
+      "**De Morgan's laws:** (A ∪ B)′ = A′ ∩ B′ and (A ∩ B)′ = A′ ∪ B′."
      ]
     },
     {
-     "h": "Key formulas",
+     "h": "3. Counting subsets",
      "items": [
-      "**n(A∪B) = n(A) + n(B) − n(A∩B)**",
-      "Number of subsets of a set with n elements = **2ⁿ**."
+      "A set with n elements has **2ⁿ subsets** (including ∅ and the set itself) and **2ⁿ − 1 proper subsets** (we leave out the set itself).",
+      "Number of non-empty subsets = 2ⁿ − 1. Number of subsets with exactly r elements = ⁿCr.",
+      "**Example:** {a, b, c, d} has 2⁴ = 16 subsets, 15 proper subsets, and ⁴C₂ = 6 subsets with exactly two elements."
      ]
     },
     {
-     "h": "Solving Venn problems",
+     "h": "4. Two-set formula and Venn diagrams",
      "items": [
-      "Always start filling from the **intersection**, then work outwards."
+      "**n(A ∪ B) = n(A) + n(B) − n(A ∩ B).** The subtraction stops the overlap being counted twice.",
+      "Elements in A only = n(A) − n(A ∩ B). Elements in neither = n(U) − n(A ∪ B).",
+      "**Procedure:** draw overlapping circles inside a rectangle (U). Fill the **intersection first**, then the 'only' regions, then 'neither'. All regions must add up to n(U)."
+     ]
+    },
+    {
+     "h": "5. Three-set problems",
+     "items": [
+      "**n(A ∪ B ∪ C) = n(A) + n(B) + n(C) − n(A∩B) − n(B∩C) − n(A∩C) + n(A∩B∩C).**",
+      "In a three-circle Venn diagram, begin with the triple intersection, then fill each pairwise-only region by subtracting the triple intersection, then the single-set-only regions."
      ]
     }
    ],
    "examples": [
     {
-     "q": "In a class of 40, 25 like Maths, 18 like English and 6 like neither. How many like both?",
-     "a": "Union = 40 − 6 = 34. 34 = 25 + 18 − both, so both = **9**"
+     "q": "If A = {x : x is a prime number less than 12}, list the elements and find the number of subsets.",
+     "a": "Primes less than 12: 2, 3, 5, 7, 11\nA = {2, 3, 5, 7, 11}, n(A) = 5\nNumber of subsets = 2⁵ = **32**"
     },
     {
-     "q": "How many subsets has {a,b,c}?",
-     "a": "2³ = **8**"
+     "q": "In a class of 50 students, 30 study Physics, 25 study Chemistry and 10 study neither. How many study both?",
+     "a": "Students studying at least one = 50 − 10 = 40\nn(P ∪ C) = n(P) + n(C) − n(P ∩ C)\n40 = 30 + 25 − n(P ∩ C)\nn(P ∩ C) = 55 − 40 = **15**"
+    },
+    {
+     "q": "With the class above, how many study Physics only?",
+     "a": "Physics only = n(P) − n(P ∩ C) = 30 − 15 = **15**"
+    },
+    {
+     "q": "U = {1,2,…,12}, A = {2,4,6,8,10,12}, B = {3,6,9,12}. Find (A ∩ B)′.",
+     "a": "A ∩ B = {6, 12}\n(A ∩ B)′ = elements of U not in {6, 12}\n= **{1, 2, 3, 4, 5, 7, 8, 9, 10, 11}**"
+    },
+    {
+     "q": "In a group of 100 people, 60 speak Hausa, 50 speak Yoruba and 30 speak Igbo. 20 speak Hausa and Yoruba, 15 speak Yoruba and Igbo, 10 speak Hausa and Igbo, and 5 speak all three. How many speak none of the three languages?",
+     "a": "n(H ∪ Y ∪ I) = 60 + 50 + 30 − 20 − 15 − 10 + 5\n= 140 − 45 + 5 = 100\nNumber speaking none = 100 − 100 = **0**"
     }
    ],
-   "tip": "The total of all regions in a Venn diagram must equal n(U)."
+   "tip": "Always fill a Venn diagram from the middle outwards. If a number you compute for a region is negative, you have made an arithmetic slip or forgotten to subtract the overlap."
   },
   "Polynomials": {
-   "intro": "A polynomial is an expression like 3x³ − 2x + 5. Its degree is the highest power of x.",
+   "intro": "A **polynomial** is an expression made of powers of x with whole-number exponents, e.g. 3x³ − 2x² + 5x − 7. This topic covers factorising, the remainder and factor theorems, solving quadratic equations, and the relationship between the roots and the coefficients.",
    "svg": "",
    "sections": [
     {
-     "h": "Remainder and factor theorems",
+     "h": "1. Terms and degree",
      "items": [
-      "**Remainder theorem**: when f(x) is divided by (x − a), the remainder is f(a).",
-      "**Factor theorem**: if f(a) = 0, then (x − a) is a factor."
+      "The **degree** of a polynomial is the highest power of x. 3x³ − 2x + 1 has degree 3 (cubic). x² + 4 is quadratic (degree 2).",
+      "Coefficients are the numbers multiplying each power. In 3x³ − 2x² + 5, the coefficients are 3, −2, 0, 5 (x has coefficient 0).",
+      "**Addition/subtraction:** combine like terms. (3x² + 2x − 1) + (x² − 5x + 4) = 4x² − 3x + 3."
      ]
     },
     {
-     "h": "Quadratics ax² + bx + c = 0",
+     "h": "2. Factorising quadratics",
      "items": [
-      "Roots by formula: x = [−b ± √(b² − 4ac)] / 2a.",
-      "**Sum of roots = −b/a. Product of roots = c/a.**",
-      "Discriminant b² − 4ac: positive → 2 real roots, zero → equal roots, negative → no real roots."
+      "**Common factor first:** 6x² + 9x = 3x(2x + 3).",
+      "**Difference of two squares:** a² − b² = (a − b)(a + b). 16x² − 25 = (4x − 5)(4x + 5).",
+      "**Trinomial x² + bx + c:** find two numbers that multiply to c and add to b. x² + 7x + 12 → numbers 3 and 4 → (x + 3)(x + 4).",
+      "**ax² + bx + c (a ≠ 1):** find two numbers that multiply to ac and add to b, split the middle term and factor by grouping.\n**Example: 2x² + 7x + 3** → ac = 6; numbers 1 and 6 (sum 7).\n= 2x² + x + 6x + 3 = x(2x + 1) + 3(2x + 1) = **(2x + 1)(x + 3)**"
      ]
     },
     {
-     "h": "Forming an equation from roots",
+     "h": "3. Solving quadratic equations",
      "items": [
-      "x² − (sum of roots)x + (product of roots) = 0."
+      "**By factorising:** write ax² + bx + c = 0, factorise, set each bracket to zero.",
+      "**Example: x² − 5x + 6 = 0** → (x − 2)(x − 3) = 0 → **x = 2 or x = 3**.",
+      "**By the formula:** x = [−b ± √(b² − 4ac)] / 2a.",
+      "**Example: 2x² − 3x − 4 = 0** (a=2, b=−3, c=−4)\nb² − 4ac = 9 + 32 = 41\nx = (3 ± √41)/4 → x = 2.35 or x = −0.85 (2 d.p.)",
+      "**The discriminant D = b² − 4ac:** if D > 0 two distinct real roots; D = 0 two equal roots; D < 0 no real roots.",
+      "**Completing the square:** x² + 6x + 2 = (x + 3)² − 9 + 2 = (x + 3)² − 7."
+     ]
+    },
+    {
+     "h": "4. Sum and product of roots",
+     "items": [
+      "For ax² + bx + c = 0 with roots α and β: **α + β = −b/a** and **αβ = c/a.**",
+      "To build an equation from its roots: **x² − (α + β)x + αβ = 0.**",
+      "**Example:** roots 3 and −2 → sum = 1, product = −6 → **x² − x − 6 = 0**.",
+      "**Useful identity:** α² + β² = (α + β)² − 2αβ."
+     ]
+    },
+    {
+     "h": "5. Remainder theorem and factor theorem",
+     "items": [
+      "**Remainder Theorem:** when f(x) is divided by (x − a), the remainder is f(a).",
+      "**Factor Theorem:** (x − a) is a factor of f(x) exactly when f(a) = 0.",
+      "**Example:** remainder when f(x) = x³ − 4x² + 2x + 5 is divided by (x − 2): f(2) = 8 − 16 + 4 + 5 = **1**.",
+      "**Factorising a cubic:** test small values (±1, ±2, ±3…) until f(a) = 0, then divide by (x − a) and factorise the quadratic that remains.",
+      "**Example:** factorise x³ − 6x² + 11x − 6.\nf(1) = 1 − 6 + 11 − 6 = 0 → (x − 1) is a factor.\nDivide: x³ − 6x² + 11x − 6 = (x − 1)(x² − 5x + 6)\n= **(x − 1)(x − 2)(x − 3)**"
      ]
     }
    ],
    "examples": [
     {
-     "q": "Find the remainder when x³ + 2x − 5 is divided by (x − 2).",
-     "a": "f(2) = 8 + 4 − 5 = **7**"
+     "q": "Factorise 3x² − 10x − 8.",
+     "a": "ac = 3 × (−8) = −24; numbers that multiply to −24 and add to −10 are −12 and 2.\n3x² − 12x + 2x − 8\n= 3x(x − 4) + 2(x − 4)\n= **(3x + 2)(x − 4)**"
     },
     {
-     "q": "Form the equation with roots 3 and −2.",
-     "a": "Sum = 1, product = −6 → **x² − x − 6 = 0**"
+     "q": "Solve x² + 4x − 21 = 0.",
+     "a": "Numbers that multiply to −21 and add to 4: 7 and −3.\n(x + 7)(x − 3) = 0\n**x = −7 or x = 3**"
+    },
+    {
+     "q": "If the roots of 2x² − 5x + k = 0 are such that one root is twice the other, find k.",
+     "a": "Let roots be α and 2α.\nSum: 3α = 5/2 → α = 5/6\nProduct: 2α² = k/2 → k = 4α² = 4 × 25/36 = 100/36\n**k = 25/9**"
+    },
+    {
+     "q": "Find the remainder when x³ + 3x² − x + 4 is divided by (x + 2).",
+     "a": "Write x + 2 = x − (−2), so a = −2.\nf(−2) = (−8) + 3(4) − (−2) + 4\n= −8 + 12 + 2 + 4\n= **10**"
+    },
+    {
+     "q": "Find the value of k if (x − 3) is a factor of x³ − 2x² + kx − 6.",
+     "a": "f(3) = 0\n27 − 18 + 3k − 6 = 0\n3 + 3k = 0\n**k = −1**"
+    },
+    {
+     "q": "For what values of m does x² + mx + 9 = 0 have equal roots?",
+     "a": "Equal roots: b² − 4ac = 0\nm² − 36 = 0\nm² = 36\n**m = 6 or m = −6**"
+    },
+    {
+     "q": "Form the quadratic equation whose roots are 1/2 and −3.",
+     "a": "Sum = 1/2 − 3 = −5/2; product = (1/2)(−3) = −3/2\nx² − (−5/2)x + (−3/2) = 0\nx² + (5/2)x − 3/2 = 0\nMultiply by 2: **2x² + 5x − 3 = 0**"
     }
    ],
-   "tip": "If a question says \"x − a is a factor\", just show f(a) = 0."
+   "tip": "Before using the quadratic formula, check whether the equation factorises easily. For cubics, always try x = 1, −1, 2, −2 first with the factor theorem."
   },
   "Variation": {
-   "intro": "Variation describes how one quantity changes when another changes.",
+   "intro": "**Variation** describes how one quantity changes when another changes. Every variation problem follows the same three steps: write the statement with a constant k, find k using the given data, then use the full formula to answer the question.",
    "svg": "",
    "sections": [
     {
-     "h": "Types",
+     "h": "1. Direct variation",
      "items": [
-      "**Direct**: y ∝ x, so y = kx.",
-      "**Inverse**: y ∝ 1/x, so y = k/x.",
-      "**Joint**: y ∝ xz, so y = kxz.",
-      "**Partial**: y = a + kx (a part is constant, a part varies)."
+      "y varies directly as x means y ∝ x, so **y = kx**. When x doubles, y doubles. The graph of y against x is a straight line through the origin.",
+      "y ∝ x² gives y = kx²; y ∝ √x gives y = k√x; y ∝ x³ gives y = kx³.",
+      "**Example: y ∝ x and y = 12 when x = 3.**\nStep 1: y = kx\nStep 2: 12 = k × 3 → k = 4\nStep 3: y = 4x. When x = 7, y = **28**."
      ]
     },
     {
-     "h": "Steps to solve",
+     "h": "2. Inverse variation",
      "items": [
-      "1. Write the relationship with k.",
-      "2. Use the given values to find k.",
-      "3. Rewrite the equation with k and use the new values."
+      "y varies inversely as x means y ∝ 1/x, so **y = k/x** (or xy = k). When x doubles, y halves.",
+      "y ∝ 1/x² gives y = k/x²; y ∝ 1/√x gives y = k/√x.",
+      "**Example: y varies inversely as x; y = 5 when x = 8.**\nk = xy = 8 × 5 = 40, so y = 40/x. When x = 10, y = **4**.",
+      "Shortcut for inverse variation: x₁y₁ = x₂y₂."
+     ]
+    },
+    {
+     "h": "3. Joint variation",
+     "items": [
+      "y varies jointly as x and z: **y = kxz.**",
+      "y varies directly as x and inversely as z: **y = kx/z.**",
+      "**Example: P varies directly as Q² and inversely as R. P = 18 when Q = 3 and R = 2.**\nP = kQ²/R → 18 = k(9)/2 → k = 4\nSo P = 4Q²/R. When Q = 5 and R = 10: P = 4(25)/10 = **10**."
+     ]
+    },
+    {
+     "h": "4. Partial variation",
+     "items": [
+      "y is partly constant and partly varies with x: **y = a + bx** (or y = a + bx²). Two sets of data give two equations to find a and b.",
+      "**Example: y = a + bx². y = 11 when x = 2; y = 35 when x = 4.**\n11 = a + 4b …(1)\n35 = a + 16b …(2)\n(2) − (1): 24 = 12b → b = 2, then a = 11 − 8 = 3.\nSo y = 3 + 2x²."
+     ]
+    },
+    {
+     "h": "5. Changes in variables (percentage)",
+     "items": [
+      "If y ∝ x² and x increases by 10%, new x = 1.1x, so new y = k(1.1x)² = 1.21 kx² = 1.21y, an increase of **21%**.",
+      "If y ∝ 1/x and x is multiplied by 2, then y is multiplied by 1/2.",
+      "If y ∝ x and y ∝ 1/z, then doubling x and doubling z leaves y unchanged."
      ]
     }
    ],
    "examples": [
     {
-     "q": "y varies inversely as x. y = 4 when x = 3. Find y when x = 6.",
-     "a": "k = 12, so y = 12/6 = **2**"
+     "q": "A varies directly as the square of B. If A = 50 when B = 5, find A when B = 8.",
+     "a": "A = kB²\n50 = k(25) → k = 2\nA = 2B² = 2(64) = **128**"
     },
     {
-     "q": "P varies directly as the square of r. P = 18 when r = 3. Find P when r = 5.",
-     "a": "k = 2, P = 2×25 = **50**"
+     "q": "y varies inversely as the square root of x. If y = 6 when x = 16, find x when y = 2.",
+     "a": "y = k/√x\n6 = k/4 → k = 24\n2 = 24/√x → √x = 12 → x = **144**"
+    },
+    {
+     "q": "The time T for a journey varies inversely as the speed S. If it takes 6 hours at 80 km/h, how long at 60 km/h?",
+     "a": "TS = k → 6 × 80 = 480\nT = 480/60 = **8 hours**"
+    },
+    {
+     "q": "W varies jointly as x and y and inversely as z. W = 12 when x = 2, y = 3, z = 1. Find W when x = 4, y = 5, z = 2.",
+     "a": "W = kxy/z\n12 = k(2)(3)/1 → k = 2\nW = 2(4)(5)/2 = **20**"
+    },
+    {
+     "q": "The cost C of a meal is partly constant and partly varies as the number n of people. C = ₦3,500 for 5 people and ₦5,000 for 10 people. Find the cost for 20 people.",
+     "a": "C = a + bn\n3500 = a + 5b …(1)\n5000 = a + 10b …(2)\n(2) − (1): 1500 = 5b → b = 300; a = 3500 − 1500 = 2000\nC = 2000 + 300n; for n = 20: C = 2000 + 6000 = **₦8,000**"
+    },
+    {
+     "q": "If y ∝ x² and x decreases by 20%, find the percentage change in y.",
+     "a": "New x = 0.8x\nNew y = k(0.8x)² = 0.64 kx² = 0.64y\nChange = 0.64 − 1 = −0.36 → y **decreases by 36%**"
     }
    ],
-   "tip": "\"Varies as\" always means \"is proportional to\"; never forget k."
+   "tip": "Never skip finding k. Write 'y = kx' first, substitute the given pair of values to get k, and only then use the question's new value."
   },
   "Inequalities": {
-   "intro": "An inequality compares quantities using <, >, ≤ or ≥, and its solution is a range of values.",
+   "intro": "An **inequality** compares two quantities using <, >, ≤ or ≥ instead of =. Solving one means finding the whole range of values that make it true. The key difference from equations: multiplying or dividing by a negative number reverses the inequality sign.",
    "svg": "",
    "sections": [
     {
-     "h": "Rules",
+     "h": "1. Rules for linear inequalities",
      "items": [
-      "Treat it like an equation, but **reverse the sign when you multiply or divide by a negative number**.",
-      "Example: −2x > 6 gives x < −3."
+      "You may add or subtract the same number on both sides without changing the sign.",
+      "You may multiply or divide by a **positive** number without changing the sign.",
+      "Multiplying or dividing by a **negative** number **reverses** the sign: −2x < 6 → x > −3.",
+      "**Example: 3x − 5 ≤ 10**\n3x ≤ 15\nx ≤ 5",
+      "**Example: 7 − 2x > 1**\n−2x > −6\nx < 3 (the sign flips when dividing by −2)"
      ]
     },
     {
-     "h": "Quadratic inequalities",
+     "h": "2. Compound (double) inequalities",
      "items": [
-      "Factorise and find the roots.",
-      "For (x−a)(x−b) < 0 (a<b), the solution is **a < x < b**.",
-      "For (x−a)(x−b) > 0, the solution is **x < a or x > b**."
+      "**Example: −3 < 2x + 1 ≤ 9**\nSubtract 1 from every part: −4 < 2x ≤ 8\nDivide every part by 2: **−2 < x ≤ 4**",
+      "Integer solutions of −2 < x ≤ 4: x = −1, 0, 1, 2, 3, 4.",
+      "**Example: 2x + 3 < 11 and 3x − 1 > 5** → x < 4 and x > 2, so **2 < x < 4**."
      ]
     },
     {
-     "h": "Number line",
+     "h": "3. Quadratic inequalities",
      "items": [
-      "Open circle for < or >, closed circle for ≤ or ≥."
+      "**Method:** (1) move everything to one side, (2) factorise to find the critical values, (3) sketch the parabola or use a sign table, (4) read off the required region.",
+      "**Example: x² − 5x + 6 > 0**\nFactorise: (x − 2)(x − 3) > 0; critical values 2 and 3.\nThe parabola opens upward so it is positive **outside** the roots.\nSolution: **x < 2 or x > 3**.",
+      "**Example: x² − 4 ≤ 0**\n(x − 2)(x + 2) ≤ 0; the parabola is below or on the axis **between** the roots.\nSolution: **−2 ≤ x ≤ 2**.",
+      "**Rule of thumb for (x − a)(x − b) with a < b:** '> 0' gives x < a or x > b (outside); '< 0' gives a < x < b (between)."
+     ]
+    },
+    {
+     "h": "4. Rational inequalities",
+     "items": [
+      "Never multiply both sides by an expression that might be negative. Instead move everything to one side, combine into one fraction and use a sign table.",
+      "**Example: (x + 1)/(x − 2) > 0**\nCritical values: x = −1 (top zero) and x = 2 (bottom zero, excluded).\nTest x = 0: (1)/(−2) < 0 ✗. Test x = 3: 4/1 > 0 ✓. Test x = −2: (−1)/(−4) > 0 ✓.\nSolution: **x < −1 or x > 2**."
+     ]
+    },
+    {
+     "h": "5. Graphical inequalities in two variables",
+     "items": [
+      "Draw the boundary line (dashed for < or >, solid for ≤ or ≥). Test the point (0, 0) when it is not on the line: if it satisfies the inequality, shade the side containing it; otherwise shade the other side.",
+      "**Example: y ≤ 2x + 1** — solid line y = 2x + 1; test (0, 0): 0 ≤ 1 true, so shade the side that contains the origin (below the line).",
+      "**Linear programming:** the feasible region is where all the shaded regions overlap; the maximum or minimum of an expression occurs at a corner of that region."
      ]
     }
    ],
    "examples": [
     {
-     "q": "Solve 3x − 4 < 11.",
-     "a": "3x < 15, **x < 5**"
+     "q": "Solve 5 − 3x ≥ 14.",
+     "a": "−3x ≥ 9\nDivide by −3 and reverse the sign:\n**x ≤ −3**"
     },
     {
-     "q": "Solve x² − 5x + 6 ≤ 0.",
-     "a": "(x−2)(x−3) ≤ 0, so **2 ≤ x ≤ 3**"
+     "q": "Find the integer values of x that satisfy −5 ≤ 3x + 1 < 10.",
+     "a": "Subtract 1: −6 ≤ 3x < 9\nDivide by 3: −2 ≤ x < 3\nIntegers: **−2, −1, 0, 1, 2**"
+    },
+    {
+     "q": "Solve x² + x − 12 < 0.",
+     "a": "(x + 4)(x − 3) < 0\nCritical values: −4 and 3\nThe parabola is below the axis between its roots.\n**−4 < x < 3**"
+    },
+    {
+     "q": "Solve 2x² − 7x + 3 ≥ 0.",
+     "a": "(2x − 1)(x − 3) ≥ 0\nCritical values: 1/2 and 3\nOutside the roots (including them):\n**x ≤ 1/2 or x ≥ 3**"
+    },
+    {
+     "q": "Solve (2x − 1)/(x + 3) ≤ 1.",
+     "a": "Move 1 across: (2x − 1)/(x + 3) − 1 ≤ 0\n(2x − 1 − x − 3)/(x + 3) ≤ 0\n(x − 4)/(x + 3) ≤ 0\nCritical values −3 (excluded) and 4 (included).\nThe fraction is negative between them:\n**−3 < x ≤ 4**"
+    },
+    {
+     "q": "A student must score at least 50 marks in total from two tests. He scored 23 in the first. What must he score in the second test (out of 40)?",
+     "a": "23 + x ≥ 50 → x ≥ 27\nAnd x ≤ 40 (maximum)\n**27 ≤ x ≤ 40**"
     }
    ],
-   "tip": "Test one value from each region to check which way the inequality goes."
+   "tip": "Check by testing one value from your answer region in the original inequality. If it fails, you have the wrong region (very common mistake with quadratics)."
   },
   "Progression": {
-   "intro": "A progression is a list of numbers following a pattern. There are two main types.",
+   "intro": "A **sequence** is a list of numbers following a rule. A **series** is the sum of the terms. The two progressions tested in UTME are **Arithmetic Progression (AP)**, where terms change by adding a constant, and **Geometric Progression (GP)**, where terms change by multiplying by a constant.",
    "svg": "",
    "sections": [
     {
-     "h": "Arithmetic progression (AP): same difference d",
+     "h": "1. Arithmetic Progression (AP)",
      "items": [
-      "**nth term: Tₙ = a + (n − 1)d**",
-      "**Sum: Sₙ = n/2 [2a + (n − 1)d]** or n/2 (a + l)"
+      "Each term is obtained by **adding the common difference d**: a, a + d, a + 2d, a + 3d, …",
+      "**nth term: Tₙ = a + (n − 1)d**, where a is the first term and d = T₂ − T₁.",
+      "**Sum of n terms: Sₙ = (n/2)[2a + (n − 1)d]** or **Sₙ = (n/2)(a + l)** where l is the last term.",
+      "**Example: 5, 8, 11, 14, …** a = 5, d = 3.\nT₂₀ = 5 + 19(3) = 62\nS₂₀ = (20/2)[2(5) + 19(3)] = 10(10 + 57) = **670**.",
+      "**Arithmetic mean** of x and y is (x + y)/2. Three terms in AP: the middle term is the mean of the other two.",
+      "To find the term number: set Tₙ = given value and solve. For 5, 8, 11, … which term is 98? 5 + (n − 1)3 = 98 → n − 1 = 31 → **n = 32**."
      ]
     },
     {
-     "h": "Geometric progression (GP): same ratio r",
+     "h": "2. Geometric Progression (GP)",
      "items": [
-      "**nth term: Tₙ = a rⁿ⁻¹**",
-      "**Sum: Sₙ = a(rⁿ − 1)/(r − 1)** for r > 1",
-      "**Sum to infinity: S∞ = a/(1 − r)**, only when −1 < r < 1"
+      "Each term is obtained by **multiplying by the common ratio r**: a, ar, ar², ar³, …",
+      "**nth term: Tₙ = arⁿ⁻¹**, where r = T₂ ÷ T₁.",
+      "**Sum of n terms: Sₙ = a(rⁿ − 1)/(r − 1)** (use when r > 1) or **Sₙ = a(1 − rⁿ)/(1 − r)** (use when r < 1).",
+      "**Sum to infinity (only when |r| < 1): S∞ = a/(1 − r).**",
+      "**Example: 3, 6, 12, 24, …** a = 3, r = 2.\nT₈ = 3 × 2⁷ = 384\nS₈ = 3(2⁸ − 1)/(2 − 1) = 3 × 255 = **765**.",
+      "**Example: 8, 4, 2, 1, …** r = 1/2.\nS∞ = 8/(1 − 1/2) = 8/(1/2) = **16**.",
+      "**Geometric mean** of x and y is √(xy). Three terms in GP: the middle term squared equals the product of the outer two."
      ]
     },
     {
-     "h": "Tips",
+     "h": "3. Forming equations from the conditions",
      "items": [
-      "Three numbers in AP: the middle one is the average of the other two.",
-      "In GP: (middle)² = first × last."
+      "Write each given term using the formula, then solve simultaneous equations.",
+      "**Example: In an AP, T₃ = 11 and T₇ = 27. Find a and d.**\na + 2d = 11 …(1)\na + 6d = 27 …(2)\n(2) − (1): 4d = 16 → d = 4; a = 11 − 8 = 3.\nSo the AP is 3, 7, 11, 15, …",
+      "**Example: In a GP, T₂ = 6 and T₅ = 48. Find a and r.**\nar = 6 and ar⁴ = 48. Divide: r³ = 8 → r = 2; a = 3."
+     ]
+    },
+    {
+     "h": "4. Useful results",
+     "items": [
+      "Sum of first n natural numbers: 1 + 2 + … + n = **n(n + 1)/2**.",
+      "Sum of first n odd numbers = **n²**. Sum of first n even numbers = **n(n + 1)**.",
+      "The nth term from sums: **Tₙ = Sₙ − Sₙ₋₁.**",
+      "**Example: if Sₙ = n² + 2n, then T₅ = S₅ − S₄ = 35 − 24 = 11.**"
      ]
     }
    ],
    "examples": [
     {
-     "q": "Find the 10th term of 3, 7, 11, …",
-     "a": "a = 3, d = 4: T₁₀ = 3 + 9×4 = **39**"
+     "q": "Find the 15th term and the sum of the first 15 terms of 7, 11, 15, …",
+     "a": "a = 7, d = 4\nT₁₅ = 7 + 14(4) = 63\nS₁₅ = (15/2)(7 + 63) = 7.5 × 70 = **525**\nSo T₁₅ = **63** and S₁₅ = **525**."
     },
     {
-     "q": "Find S∞ of 8, 4, 2, …",
-     "a": "r = ½: 8/(1 − ½) = **16**"
+     "q": "The 4th term of an AP is 17 and the 9th term is 37. Find the first term and the common difference.",
+     "a": "a + 3d = 17 …(1); a + 8d = 37 …(2)\n(2) − (1): 5d = 20 → **d = 4**\na = 17 − 12 = **5**"
+    },
+    {
+     "q": "How many terms of the AP 2, 5, 8, … are needed to give a sum of 155?",
+     "a": "a = 2, d = 3\n155 = (n/2)[4 + 3(n − 1)] → 310 = n(3n + 1)\n3n² + n − 310 = 0 → (3n + 31)(n − 10) = 0\nn = 10 (n cannot be negative)\n**10 terms**"
+    },
+    {
+     "q": "Find the 6th term of the GP 2, 6, 18, …",
+     "a": "r = 3\nT₆ = 2 × 3⁵ = 2 × 243 = **486**"
+    },
+    {
+     "q": "Find the sum to infinity of 12 + 4 + 4/3 + …",
+     "a": "r = 4/12 = 1/3, |r| < 1\nS∞ = 12/(1 − 1/3) = 12/(2/3) = **18**"
+    },
+    {
+     "q": "The first term of a GP is 5 and its sum to infinity is 20. Find r.",
+     "a": "5/(1 − r) = 20\n1 − r = 1/4\n**r = 3/4**"
+    },
+    {
+     "q": "Three numbers in AP have sum 21 and product 231. Find them.",
+     "a": "Let them be a − d, a, a + d. Sum: 3a = 21 → a = 7.\nProduct: 7(49 − d²) = 231 → 49 − d² = 33 → d² = 16 → d = ±4\nThe numbers are **3, 7, 11**."
     }
    ],
-   "tip": "To decide AP or GP, check whether the terms differ by a constant (AP) or by a constant ratio (GP)."
+   "tip": "Identify the type first: constant DIFFERENCE between terms means AP; constant RATIO means GP. Sum to infinity exists only when −1 < r < 1."
   },
   "Binary Operations": {
-   "intro": "A binary operation combines two elements to give one element, e.g. a * b = a + b + 2.",
+   "intro": "A **binary operation** is a rule that combines two elements of a set to give a single element. Examples are +, −, ×, ÷, or a made-up rule such as a ∗ b = 2a + b. In UTME the operation is always defined for you; your job is to substitute carefully and test its properties.",
    "svg": "",
    "sections": [
     {
-     "h": "Properties",
+     "h": "1. Evaluating an operation",
      "items": [
-      "**Closure**: the answer is always in the set.",
-      "**Commutative**: a * b = b * a.",
-      "**Associative**: (a * b) * c = a * (b * c).",
-      "**Identity e**: a * e = a for every a.",
-      "**Inverse a′**: a * a′ = e."
+      "A symbol such as ∗, ⊕ or ⊗ is just a name for a rule. Replace a and b with the given numbers and work out the result.",
+      "**Example: a ∗ b = 2a + b − 3.** Then 4 ∗ 5 = 2(4) + 5 − 3 = **10**. And 5 ∗ 4 = 2(5) + 4 − 3 = 11.",
+      "**Nested operations:** do the brackets first. (2 ∗ 3) ∗ 4: first 2 ∗ 3 = 4 + 3 − 3 = 4; then 4 ∗ 4 = 8 + 4 − 3 = **9**."
      ]
     },
     {
-     "h": "Finding the identity and inverse",
+     "h": "2. Closure",
      "items": [
-      "Set a * e = a and solve for e.",
-      "Then set a * a′ = e and solve for a′."
+      "A set S is **closed** under ∗ if a ∗ b ∈ S for every a, b ∈ S.",
+      "Natural numbers are closed under + and × but not under − (3 − 5 = −2 is not natural) or ÷.",
+      "Even numbers are closed under + and ×. Odd numbers are closed under × but not under + (3 + 5 = 8 is even)."
+     ]
+    },
+    {
+     "h": "3. Commutativity and associativity",
+     "items": [
+      "**Commutative:** a ∗ b = b ∗ a for all a, b. Test: compute both a ∗ b and b ∗ a and compare.",
+      "**Associative:** (a ∗ b) ∗ c = a ∗ (b ∗ c). Test: compute both sides.",
+      "**Example: a ∗ b = a + b − ab.**\nb ∗ a = b + a − ba = a + b − ab = a ∗ b, so ∗ is commutative.",
+      "**Example: a ∗ b = 2a + b is NOT commutative** since 1 ∗ 2 = 4 but 2 ∗ 1 = 5.",
+      "Addition and multiplication are commutative and associative; subtraction and division are neither."
+     ]
+    },
+    {
+     "h": "4. Identity element and inverse",
+     "items": [
+      "**Identity element e:** a ∗ e = e ∗ a = a for every a. Solve a ∗ e = a for e.",
+      "**Example: a ∗ b = a + b − 2.** Set a ∗ e = a: a + e − 2 = a → **e = 2**.",
+      "**Inverse of a (written a⁻¹):** the element for which a ∗ a⁻¹ = e. Solve it for a⁻¹.",
+      "**Example (same operation):** a ∗ a⁻¹ = 2 → a + a⁻¹ − 2 = 2 → **a⁻¹ = 4 − a**. So the inverse of 3 is 1.",
+      "For ordinary addition e = 0 and the inverse of a is −a; for multiplication e = 1 and the inverse of a is 1/a."
+     ]
+    },
+    {
+     "h": "5. Solving equations with the operation",
+     "items": [
+      "Write the definition, substitute the given values, and solve the resulting equation.",
+      "**Example: a ∗ b = a² + b and x ∗ 3 = 19.** Then x² + 3 = 19 → x² = 16 → **x = 4 or x = −4**."
      ]
     }
    ],
    "examples": [
     {
-     "q": "For a * b = a + b + 2, find the identity.",
-     "a": "a + e + 2 = a, so **e = −2**"
+     "q": "Given a ∗ b = 3a − 2b, evaluate 5 ∗ 4 and 4 ∗ 5.",
+     "a": "5 ∗ 4 = 3(5) − 2(4) = 15 − 8 = **7**\n4 ∗ 5 = 3(4) − 2(5) = 12 − 10 = **2**\nSince 7 ≠ 2, ∗ is not commutative."
     },
     {
-     "q": "Using the same operation, find the inverse of a.",
-     "a": "a + a′ + 2 = −2, so **a′ = −a − 4**"
+     "q": "The operation ⊕ is defined by a ⊕ b = a + b + ab. Find 2 ⊕ 3.",
+     "a": "= 2 + 3 + (2)(3) = 5 + 6 = **11**"
+    },
+    {
+     "q": "If m ∗ n = m + n − 5, find the identity element.",
+     "a": "m ∗ e = m → m + e − 5 = m\ne − 5 = 0 → **e = 5**"
+    },
+    {
+     "q": "If a ∗ b = a + b + 4, find the inverse of 3.",
+     "a": "First the identity: a + e + 4 = a → e = −4\nFor the inverse x: 3 + x + 4 = −4 → x = −11\n**Inverse of 3 is −11**"
+    },
+    {
+     "q": "Given x ∗ y = x² − y, find (3 ∗ 2) ∗ 1.",
+     "a": "3 ∗ 2 = 9 − 2 = 7\n7 ∗ 1 = 49 − 1 = **48**"
+    },
+    {
+     "q": "The operation ∗ is defined by a ∗ b = 2a + b. Find x if x ∗ 5 = 13.",
+     "a": "2x + 5 = 13\n2x = 8\n**x = 4**"
+    },
+    {
+     "q": "Is a ∗ b = a + b − ab associative?",
+     "a": "(a ∗ b) ∗ c = (a + b − ab) + c − (a + b − ab)c = a + b + c − ab − ac − bc + abc\na ∗ (b ∗ c) = a + (b + c − bc) − a(b + c − bc) = a + b + c − ab − ac − bc + abc\nBoth sides are equal, so ∗ is **associative**."
     }
    ],
-   "tip": "Substitute numbers to test commutativity quickly: if 2*3 ≠ 3*2, it is not commutative."
+   "tip": "Do not assume the usual rules. Always compute the left side and the right side separately to test a property, and always find the identity BEFORE trying to find an inverse."
   },
   "Matrices and Determinants": {
-   "intro": "A matrix is a rectangular array of numbers. Its order is rows × columns.",
+   "intro": "A **matrix** is a rectangular array of numbers arranged in rows and columns. UTME questions focus on 2 × 2 matrices (and occasionally 3 × 3): addition, multiplication, determinants, inverses and solving simultaneous equations.",
    "svg": "",
    "sections": [
     {
-     "h": "Operations",
+     "h": "1. Order and types of matrices",
      "items": [
-      "Add or subtract matrices of the **same order** element by element.",
-      "Multiply **rows by columns**: (m×n)(n×p) gives an m×p matrix.",
-      "Matrix multiplication is not commutative: AB ≠ BA in general."
+      "The **order** of a matrix is (number of rows) × (number of columns). A matrix with 2 rows and 3 columns is 2 × 3.",
+      "**Square matrix:** rows = columns. **Identity matrix I:** 1s on the main diagonal, 0s elsewhere; AI = IA = A. **Zero matrix:** all entries 0. **Transpose Aᵀ:** swap rows and columns.",
+      "Two matrices are equal only if they have the same order and equal corresponding entries."
      ]
     },
     {
-     "h": "Determinant of a 2×2 matrix",
+     "h": "2. Addition, subtraction and scalar multiplication",
      "items": [
-      "For A = [a b; c d], **det A = ad − bc**.",
-      "If det A = 0 the matrix is **singular** and has no inverse."
+      "Add or subtract corresponding entries; the matrices must have the **same order**.",
+      "**Example:** [2 3; 1 4] + [5 −1; 0 2] = [7 2; 1 6]  (rows separated by semicolon).",
+      "**Scalar multiplication:** multiply every entry by the number. 3 × [1 2; 0 −1] = [3 6; 0 −3]."
      ]
     },
     {
-     "h": "Inverse of a 2×2 matrix",
+     "h": "3. Matrix multiplication",
      "items": [
-      "**A⁻¹ = (1/det A) × [d −b; −c a]**",
-      "Swap a and d, change the signs of b and c, divide by the determinant."
+      "A × B is defined only when the number of **columns of A = number of rows of B**. The product has order (rows of A) × (columns of B).",
+      "Each entry is (row of A) · (column of B): multiply matching entries and add.",
+      "**Example: [1 2; 3 4] × [5 6; 7 8]**\nRow 1 × Col 1: 1×5 + 2×7 = 19\nRow 1 × Col 2: 1×6 + 2×8 = 22\nRow 2 × Col 1: 3×5 + 4×7 = 43\nRow 2 × Col 2: 3×6 + 4×8 = 50\nResult: **[19 22; 43 50]**",
+      "Matrix multiplication is generally **not commutative**: AB ≠ BA. It is associative: (AB)C = A(BC)."
      ]
     },
     {
-     "h": "3×3 determinant",
+     "h": "4. Determinant of a 2 × 2 matrix",
      "items": [
-      "Expand along the first row using cofactors with signs + − +."
+      "For A = [a b; c d], **det A = |A| = ad − bc.**",
+      "**Example: A = [3 2; 5 4].** |A| = 3×4 − 2×5 = 12 − 10 = **2**.",
+      "If |A| = 0 the matrix is **singular** (it has no inverse). If |A| ≠ 0 it is **non-singular**.",
+      "**Determinant of a 3 × 3** by expansion along the first row: |A| = a(ei − fh) − b(di − fg) + c(dh − eg) for A = [a b c; d e f; g h i]."
+     ]
+    },
+    {
+     "h": "5. Inverse of a 2 × 2 matrix",
+     "items": [
+      "For A = [a b; c d] with |A| ≠ 0: **A⁻¹ = (1/|A|) × [d −b; −c a].**",
+      "Memorise it as: swap the diagonal entries a and d, change the signs of b and c, divide everything by the determinant.",
+      "**Example: A = [3 2; 5 4], |A| = 2.** A⁻¹ = (1/2)[4 −2; −5 3] = **[2 −1; −5/2 3/2]**.",
+      "Check: AA⁻¹ = I."
+     ]
+    },
+    {
+     "h": "6. Solving simultaneous equations with matrices",
+     "items": [
+      "Write the system as AX = B, then **X = A⁻¹B**.",
+      "**Example: 2x + y = 7 and x + 3y = 11.**\nA = [2 1; 1 3], X = [x; y], B = [7; 11]\n|A| = 6 − 1 = 5, A⁻¹ = (1/5)[3 −1; −1 2]\nX = (1/5)[3(7) − 11; −7 + 2(11)] = (1/5)[10; 15] = [2; 3]\n**x = 2, y = 3**",
+      "**Cramer's rule alternative:** x = Dₓ/D and y = D_y/D, where D = |A|, Dₓ replaces the x-column by B, D_y replaces the y-column by B."
      ]
     }
    ],
    "examples": [
     {
-     "q": "Find det of [2 1; 5 3].",
-     "a": "2×3 − 1×5 = **1**"
+     "q": "Find the matrix 2A − B if A = [1 3; −2 4] and B = [0 5; 1 −2].",
+     "a": "2A = [2 6; −4 8]\n2A − B = [2−0 6−5; −4−1 8−(−2)]\n= **[2 1; −5 10]**"
     },
     {
-     "q": "Find the inverse of [2 1; 5 3].",
-     "a": "det = 1, so inverse = **[3 −1; −5 2]**"
+     "q": "Evaluate [2 1; 0 3] × [4 −1; 2 5].",
+     "a": "Row 1: 2×4 + 1×2 = 10; 2×(−1) + 1×5 = 3\nRow 2: 0×4 + 3×2 = 6; 0×(−1) + 3×5 = 15\n**[10 3; 6 15]**"
+    },
+    {
+     "q": "Find the determinant of [4 −3; 2 5].",
+     "a": "|A| = (4)(5) − (−3)(2) = 20 + 6 = **26**"
+    },
+    {
+     "q": "For what value of k is [k 2; 3 4] singular?",
+     "a": "Singular means determinant = 0.\n4k − 6 = 0\n**k = 3/2**"
+    },
+    {
+     "q": "Find the inverse of [5 2; 7 3].",
+     "a": "|A| = 15 − 14 = 1\nA⁻¹ = (1/1)[3 −2; −7 5]\n= **[3 −2; −7 5]**"
+    },
+    {
+     "q": "Use matrices to solve 3x − 2y = 4 and x + y = 7.",
+     "a": "A = [3 −2; 1 1], B = [4; 7]\n|A| = 3(1) − (−2)(1) = 5\nA⁻¹ = (1/5)[1 2; −1 3]\nX = (1/5)[4 + 14; −4 + 21] = (1/5)[18; 17]\n**x = 18/5, y = 17/5**"
+    },
+    {
+     "q": "Find the determinant of [1 2 3; 0 1 4; 5 6 0].",
+     "a": "Expand along row 1:\n1(1×0 − 4×6) − 2(0×0 − 4×5) + 3(0×6 − 1×5)\n= 1(−24) − 2(−20) + 3(−5)\n= −24 + 40 − 15 = **1**"
     }
    ],
-   "tip": "A × A⁻¹ = identity matrix I. Use that to check your inverse."
+   "tip": "Order matters in multiplication: always check columns of the first = rows of the second. For the inverse, the shortcut 'swap a and d, negate b and c' saves lots of time."
   },
   "Euclidean Geometry": {
-   "intro": "Euclidean geometry deals with angles, triangles, polygons and circles using proven theorems.",
+   "intro": "Euclidean geometry studies points, lines, angles, triangles, polygons and circles using proven facts (theorems). In UTME you are expected to *recall* the right fact quickly and apply it step by step, giving a reason for each step.",
    "svg": "<svg viewBox=\"0 0 260 170\" role=\"img\" aria-label=\"Angle at the centre is twice the angle at the circumference\"><circle cx=\"130\" cy=\"88\" r=\"68\" fill=\"none\" stroke=\"#6E5296\" stroke-width=\"2\"/><polyline points=\"75,128 130,88 185,128\" fill=\"none\" stroke=\"#B5502E\" stroke-width=\"2\"/><polyline points=\"75,128 130,20 185,128\" fill=\"none\" stroke=\"#3E7C74\" stroke-width=\"2\"/><text x=\"122\" y=\"106\" font-size=\"13\" font-weight=\"800\" fill=\"#B5502E\">2x</text><text x=\"122\" y=\"46\" font-size=\"13\" font-weight=\"800\" fill=\"#3E7C74\">x</text><text x=\"125\" y=\"84\" font-size=\"12\" fill=\"currentColor\">O</text><text x=\"58\" y=\"140\" font-size=\"13\" font-weight=\"700\" fill=\"currentColor\">A</text><text x=\"188\" y=\"140\" font-size=\"13\" font-weight=\"700\" fill=\"currentColor\">B</text><text x=\"124\" y=\"14\" font-size=\"13\" font-weight=\"700\" fill=\"currentColor\">C</text></svg>",
    "sections": [
     {
-     "h": "Basic angle facts",
+     "h": "1. Angles and parallel lines",
      "items": [
-      "Angles on a straight line = 180°; angles at a point = 360°.",
-      "Triangle: angles sum to 180°. Exterior angle = sum of the two opposite interior angles.",
-      "Polygon with n sides: interior angle sum = **(n − 2) × 180°**; exterior angles sum to 360°."
+      "**Angles on a straight line** add up to 180°. **Angles at a point** add up to 360°. **Vertically opposite angles** are equal.",
+      "**Parallel lines cut by a transversal:** corresponding angles are equal (F-shape); alternate angles are equal (Z-shape); co-interior (allied) angles add up to 180° (C-shape).",
+      "**Example:** if one co-interior angle is 115°, the other is 180° − 115° = **65°**."
      ]
     },
     {
-     "h": "Circle theorems",
+     "h": "2. Triangles",
      "items": [
-      "**Angle at the centre = 2 × angle at the circumference** (same arc).",
-      "Angles in the same segment are equal.",
-      "**Angle in a semicircle = 90°.**",
-      "**Opposite angles of a cyclic quadrilateral add up to 180°.**",
-      "A tangent is perpendicular to the radius at the point of contact.",
-      "Tangents from one external point are equal in length."
+      "**Angle sum:** the three angles of a triangle add up to 180°.",
+      "**Exterior angle** = sum of the two opposite interior angles.",
+      "**Isosceles triangle:** two equal sides and the angles opposite them are equal. **Equilateral:** all sides equal, each angle 60°.",
+      "**Pythagoras (right-angled triangles only):** a² + b² = c², where c is the hypotenuse (the side opposite 90°). Common triples: 3-4-5, 5-12-13, 8-15-17, 7-24-25.",
+      "**Similar triangles:** equal angles and sides in the same ratio. If the lengths are in ratio k:1, then areas are in ratio **k²:1** and volumes in ratio **k³:1**.",
+      "**Congruent triangles** match in one of: SSS, SAS, ASA/AAS, RHS.",
+      "**Example: sides 9 and 12 are the two shorter sides of a right triangle.** c² = 81 + 144 = 225 → c = **15**."
      ]
     },
     {
-     "h": "Similar triangles",
+     "h": "3. Quadrilaterals and polygons",
      "items": [
-      "Corresponding angles are equal and sides are in the same ratio.",
-      "Area ratio = (side ratio)²."
+      "Angles of a quadrilateral add up to 360°.",
+      "**Parallelogram:** opposite sides equal and parallel; opposite angles equal; diagonals bisect each other. **Rhombus:** all sides equal; diagonals bisect each other at 90°. **Rectangle:** diagonals equal. **Trapezium:** one pair of parallel sides.",
+      "**Sum of interior angles of an n-sided polygon = (n − 2) × 180°.** Sum of exterior angles = 360°.",
+      "**Regular polygon:** each exterior angle = 360°/n; each interior angle = 180° − 360°/n.",
+      "**Example:** each exterior angle of a regular polygon is 36°. n = 360/36 = **10 sides** (a decagon); each interior angle = 144°."
+     ]
+    },
+    {
+     "h": "4. Circle theorems",
+     "items": [
+      "**Angle at the centre is twice the angle at the circumference** standing on the same arc.",
+      "**Angles in the same segment are equal.**",
+      "**Angle in a semicircle = 90°** (the diameter subtends a right angle).",
+      "**Opposite angles of a cyclic quadrilateral add up to 180°.** The exterior angle of a cyclic quadrilateral equals the interior opposite angle.",
+      "**Tangent ⟂ radius** at the point of contact. **Two tangents from an external point are equal in length.**",
+      "**Alternate segment theorem:** the angle between a tangent and a chord equals the angle in the alternate segment.",
+      "**Perpendicular from the centre to a chord bisects the chord.** Equal chords are equidistant from the centre.",
+      "**Intersecting chords:** AP × PB = CP × PD. **Tangent-secant:** PT² = PA × PB."
+     ]
+    },
+    {
+     "h": "5. Construction and bisectors",
+     "items": [
+      "The **perpendicular bisector** of a segment is the set of points equidistant from both ends. The **angle bisector** is the set of points equidistant from the two arms of the angle.",
+      "Constructions you should know: 60° (equilateral triangle), 90° (perpendicular), 30° and 45° (by bisecting 60° and 90°), bisecting a line or an angle."
      ]
     }
    ],
    "examples": [
     {
-     "q": "The angle at the centre of a circle is 80°. Find the angle at the circumference on the same arc.",
-     "a": "Half of 80° = **40°**"
+     "q": "In a triangle ABC, ∠A = 50° and ∠B = 65°. Find ∠C and the exterior angle at C.",
+     "a": "∠C = 180° − 50° − 65° = **65°**\nExterior angle at C = ∠A + ∠B = 50° + 65° = **115°** (or 180° − 65° = 115°)"
     },
     {
-     "q": "Find each interior angle of a regular hexagon.",
-     "a": "(6−2)×180 ÷ 6 = **120°**"
+     "q": "The interior angle of a regular polygon is 150°. Find the number of sides.",
+     "a": "Exterior angle = 180° − 150° = 30°\nn = 360/30 = **12 sides**"
+    },
+    {
+     "q": "O is the centre of a circle. ∠ACB = 38° at the circumference standing on arc AB. Find ∠AOB.",
+     "a": "Angle at the centre = 2 × angle at circumference\n∠AOB = 2 × 38° = **76°**"
+    },
+    {
+     "q": "ABCD is a cyclic quadrilateral with ∠A = 112°. Find ∠C.",
+     "a": "Opposite angles of a cyclic quadrilateral add up to 180°\n∠C = 180° − 112° = **68°**"
+    },
+    {
+     "q": "A tangent from a point P touches a circle (centre O, radius 5 cm) at T. If OP = 13 cm, find PT.",
+     "a": "Tangent ⟂ radius, so triangle OTP is right-angled at T.\nPT² = OP² − OT² = 169 − 25 = 144\nPT = **12 cm**"
+    },
+    {
+     "q": "Two similar triangles have corresponding sides 4 cm and 6 cm. If the area of the smaller is 20 cm², find the area of the larger.",
+     "a": "Ratio of sides = 4:6 = 2:3\nRatio of areas = 4:9\nLarger area = (9/4) × 20 = **45 cm²**"
+    },
+    {
+     "q": "Chords AB and CD of a circle meet at P inside it. If AP = 6, PB = 4, CP = 3, find PD.",
+     "a": "AP × PB = CP × PD\n6 × 4 = 3 × PD\nPD = 24/3 = **8**"
     }
    ],
-   "tip": "Draw and label every angle you can work out, step by step."
+   "tip": "Always state the theorem you are using. In circle problems, first look for the diameter (90°), then isosceles triangles formed by two radii, then same-segment and cyclic-quadrilateral angles."
   },
   "Mensuration": {
-   "intro": "Mensuration is measuring lengths, areas and volumes of shapes.",
+   "intro": "**Mensuration** is the measurement of lengths, areas and volumes of plane and solid shapes. It is purely formula-driven, so the winning method is: write the formula, substitute with correct units, calculate. Use π = 22/7 or 3.14 as the question states.",
    "svg": "",
    "sections": [
     {
-     "h": "Areas",
+     "h": "1. Perimeter and area of plane shapes",
      "items": [
-      "Rectangle = l×w; Triangle = ½bh; Parallelogram = bh; Trapezium = ½(a+b)h.",
-      "Circle: **A = πr²**, circumference = **2πr**."
+      "**Rectangle:** A = l × w; P = 2(l + w). **Square:** A = s²; P = 4s.",
+      "**Triangle:** A = ½ × base × height. With two sides and the included angle: A = ½ab sin C. **Heron's formula:** A = √[s(s − a)(s − b)(s − c)] where s = (a + b + c)/2.",
+      "**Parallelogram:** A = base × perpendicular height. **Trapezium:** A = ½(a + b)h. **Rhombus/kite:** A = ½ × d₁ × d₂.",
+      "**Circle:** circumference C = 2πr = πd; area A = πr².",
+      "**Example: a triangle with sides 7, 8, 9** → s = 12 → A = √(12 × 5 × 4 × 3) = √720 = **26.8 cm²** (1 d.p.)."
      ]
     },
     {
-     "h": "Arcs and sectors",
+     "h": "2. Arc, sector and segment",
      "items": [
-      "**Arc length = (θ/360) × 2πr**",
-      "**Sector area = (θ/360) × πr²**"
+      "For a sector with centre angle θ (degrees): **arc length = (θ/360) × 2πr** and **sector area = (θ/360) × πr².**",
+      "**Perimeter of a sector** = arc length + 2r.",
+      "**Segment area** = sector area − triangle area = (θ/360)πr² − ½r² sin θ.",
+      "**Example: r = 14 cm, θ = 90°.** Arc = (90/360) × 2 × (22/7) × 14 = ¼ × 88 = **22 cm**. Sector area = ¼ × (22/7) × 196 = **154 cm²**."
      ]
     },
     {
-     "h": "Solids",
+     "h": "3. Surface area and volume of solids",
      "items": [
-      "Cuboid volume = lwh. Cylinder volume = πr²h; curved surface = 2πrh.",
-      "Cone volume = ⅓πr²h; curved surface = πrl, where l² = r² + h².",
-      "Sphere volume = (4/3)πr³; surface = 4πr².",
-      "Prism volume = area of cross-section × length."
+      "**Cuboid:** V = lwh; total surface area = 2(lw + lh + wh). **Cube:** V = s³; TSA = 6s².",
+      "**Cylinder:** V = πr²h; curved surface = 2πrh; total surface = 2πr(r + h).",
+      "**Cone:** V = ⅓πr²h; curved surface = πrl; total surface = πr(r + l); slant height l = √(r² + h²).",
+      "**Sphere:** V = (4/3)πr³; surface area = 4πr². **Hemisphere:** V = (2/3)πr³; total surface = 3πr².",
+      "**Pyramid:** V = ⅓ × base area × height. **Prism:** V = cross-sectional area × length.",
+      "**Frustum of a cone** = big cone − small cone removed from the top; use similar triangles to find the missing height."
+     ]
+    },
+    {
+     "h": "4. Useful conversions and techniques",
+     "items": [
+      "1 m = 100 cm; 1 m² = 10,000 cm²; 1 m³ = 1,000,000 cm³; 1 litre = 1,000 cm³.",
+      "Melting and recasting: volume stays the same. Equate the volume of the old solid to the new one.",
+      "Water poured from one container into another: volume is conserved; the heights change according to the base areas.",
+      "**Example: a metal sphere of radius 3 cm is melted and recast as a cylinder of radius 3 cm.** (4/3)π(27) = π(9)h → 36π = 9πh → **h = 4 cm**."
      ]
     }
    ],
    "examples": [
     {
-     "q": "Find the arc length of a sector of angle 90° and radius 14 cm (π = 22/7).",
-     "a": "(90/360) × 2 × 22/7 × 14 = **22 cm**"
+     "q": "Find the area of a trapezium with parallel sides 10 cm and 16 cm and height 7 cm.",
+     "a": "A = ½(a + b)h = ½(10 + 16)(7)\n= ½ × 26 × 7 = **91 cm²**"
     },
     {
-     "q": "Volume of a cylinder with r = 7 cm, h = 10 cm.",
-     "a": "22/7 × 49 × 10 = **1,540 cm³**"
+     "q": "A circle has circumference 44 cm. Find its radius and area (π = 22/7).",
+     "a": "2πr = 44 → 2 × (22/7) × r = 44 → r = 44 × 7/44 = **7 cm**\nArea = (22/7) × 49 = **154 cm²**"
+    },
+    {
+     "q": "Find the area of a sector of angle 72° in a circle of radius 10 cm (π = 3.14).",
+     "a": "Area = (72/360) × 3.14 × 100\n= 0.2 × 314 = **62.8 cm²**"
+    },
+    {
+     "q": "A cylinder has radius 7 cm and height 20 cm. Find its volume and curved surface area (π = 22/7).",
+     "a": "V = πr²h = (22/7)(49)(20) = 22 × 7 × 20 = **3,080 cm³**\nCurved surface = 2πrh = 2 × (22/7) × 7 × 20 = **880 cm²**"
+    },
+    {
+     "q": "A cone has base radius 6 cm and height 8 cm. Find its slant height and total surface area (π = 3.14).",
+     "a": "l = √(36 + 64) = √100 = **10 cm**\nTSA = πr(r + l) = 3.14 × 6 × 16 = **301.44 cm²**"
+    },
+    {
+     "q": "A rectangular tank 1.2 m long, 0.8 m wide is filled to a depth of 0.5 m. How many litres does it contain?",
+     "a": "V = 1.2 × 0.8 × 0.5 = 0.48 m³\n1 m³ = 1000 litres, so V = **480 litres**"
+    },
+    {
+     "q": "The radius of a sphere is doubled. By what factor does its volume increase?",
+     "a": "V ∝ r³ → new volume = 2³ = **8 times** the original."
     }
    ],
-   "tip": "Convert all units to be the same before calculating."
+   "tip": "Check units before you start: area is in square units, volume in cubic units. Convert all lengths to one unit first, and look for 22/7 clues (radius or diameter being a multiple of 7)."
   },
   "Loci": {
-   "intro": "A locus is the path of a point that moves under a rule. The plural is loci.",
+   "intro": "A **locus** (plural: loci) is the set of all points that satisfy a given condition. Loci are drawn with a ruler and compasses, and exam questions usually ask you to identify the correct description or the shape of the locus.",
    "svg": "",
    "sections": [
     {
-     "h": "Standard loci",
+     "h": "1. The standard loci",
      "items": [
-      "Point at a fixed distance from a point → **a circle**.",
-      "Point equidistant from two points → **perpendicular bisector** of the line joining them.",
-      "Point equidistant from two intersecting lines → **angle bisector**.",
-      "Point at a fixed distance from a line → **two parallel lines** (with semicircle ends around a segment)."
+      "**Locus of points at a fixed distance r from a fixed point O:** a **circle** with centre O and radius r.",
+      "**Locus of points at a fixed distance d from a straight line:** **two parallel lines**, one on each side, each d away from the given line.",
+      "**Locus of points equidistant from two fixed points A and B:** the **perpendicular bisector** of AB.",
+      "**Locus of points equidistant from two intersecting lines:** the **angle bisectors** of the angles between the lines.",
+      "**Locus of points equidistant from two parallel lines:** a **parallel line midway** between them.",
+      "**Locus of a point at a fixed distance d from a line segment AB:** a 'racetrack' (stadium) shape: two parallel lines and two semicircles at the ends.",
+      "**Locus of points which subtend a right angle at A and B:** a **circle with AB as diameter.**",
+      "**Locus of a point P so that PA = 2PB (ratio fixed):** a circle (circle of Apollonius)."
      ]
     },
     {
-     "h": "Constructions",
+     "h": "2. Loci that use inequalities",
      "items": [
-      "Use a pair of compasses and a ruler.",
-      "Draw the locus for each condition, then the answer is where the loci meet."
+      "'At most 3 cm from O' means the points inside **and on** the circle of radius 3 cm (a disc).",
+      "'Greater than 2 cm from a line' means the region outside the two parallels drawn 2 cm either side of the line.",
+      "When two conditions apply together, the answer is the region where both loci overlap.",
+      "**Example:** a point is within 4 cm of A and nearer to A than to B. Draw a circle of radius 4 cm about A and the perpendicular bisector of AB; the locus is the part of the circle on A's side of the bisector."
+     ]
+    },
+    {
+     "h": "3. Constructing a locus step by step",
+     "items": [
+      "**Perpendicular bisector of AB:** open the compasses to more than half of AB; draw arcs above and below from A and from B; join the two crossing points.",
+      "**Angle bisector:** draw an arc from the vertex cutting both arms; from each cut-point draw equal arcs that cross; join the vertex to the crossing point.",
+      "**Parallel line at distance d:** at two points on the line, erect perpendiculars of length d; join the tops."
+     ]
+    },
+    {
+     "h": "4. Locus in coordinate geometry",
+     "items": [
+      "Use the distance formula and simplify.",
+      "**Example: locus of P(x, y) equidistant from A(0, 2) and B(4, 0).**\nPA² = PB² → x² + (y − 2)² = (x − 4)² + y²\nx² + y² − 4y + 4 = x² − 8x + 16 + y²\n−4y + 4 = −8x + 16 → 8x − 4y = 12 → **2x − y = 3**",
+      "**Example: locus of P such that PO = 5 where O is the origin:** x² + y² = 25."
      ]
     }
    ],
    "examples": [
     {
-     "q": "What is the locus of points equidistant from A and B?",
-     "a": "The **perpendicular bisector** of AB."
+     "q": "What is the locus of a point which moves so that it is always 5 cm from a fixed point O?",
+     "a": "It is a circle of centre O and radius 5 cm."
     },
     {
-     "q": "What is the locus of points 3 cm from a fixed point O?",
-     "a": "A **circle of radius 3 cm** centred at O."
+     "q": "State the locus of points equidistant from two intersecting straight lines.",
+     "a": "The locus is the pair of angle bisectors of the angles formed by the two lines (two perpendicular lines through the point of intersection)."
+    },
+    {
+     "q": "A point moves so that it is 3 cm from a straight line 10 cm long. Describe the locus.",
+     "a": "Two parallel lines 3 cm either side of the given line, joined at both ends by semicircles of radius 3 cm — a racetrack shape."
+    },
+    {
+     "q": "Find the equation of the locus of a point P(x, y) which is equidistant from A(1, 2) and B(5, 6).",
+     "a": "PA² = PB²\n(x − 1)² + (y − 2)² = (x − 5)² + (y − 6)²\nx² − 2x + 1 + y² − 4y + 4 = x² − 10x + 25 + y² − 12y + 36\n−2x − 4y + 5 = −10x − 12y + 61\n8x + 8y = 56 → **x + y = 7**"
+    },
+    {
+     "q": "Find the locus of a point P(x, y) which is always 3 units from the point (2, −1).",
+     "a": "(x − 2)² + (y + 1)² = 9\nExpanded: **x² + y² − 4x + 2y − 4 = 0**"
+    },
+    {
+     "q": "Describe the locus of the centre of a wheel rolling along a flat road.",
+     "a": "A straight line parallel to the road at a height equal to the radius of the wheel."
     }
    ],
-   "tip": "When there are two conditions, shade the region that satisfies both."
+   "tip": "Match the wording to the shape: 'fixed distance from a point' → circle; 'equidistant from two points' → perpendicular bisector; 'equidistant from two lines' → angle bisector."
   },
   "Coordinate Geometry": {
-   "intro": "Coordinate geometry uses x and y coordinates to study points, lines and circles.",
+   "intro": "Coordinate geometry uses an (x, y) grid to study straight lines and circles with algebra. Almost every question is solved with five tools: distance, midpoint, gradient, the equation of a line, and the condition for parallel/perpendicular lines.",
    "svg": "",
    "sections": [
     {
-     "h": "Points",
+     "h": "1. Distance, midpoint and ratio",
      "items": [
-      "Distance between (x₁,y₁) and (x₂,y₂): **d = √[(x₂−x₁)² + (y₂−y₁)²]**",
-      "Midpoint: **((x₁+x₂)/2 , (y₁+y₂)/2)**"
+      "**Distance between A(x₁, y₁) and B(x₂, y₂):** AB = √[(x₂ − x₁)² + (y₂ − y₁)²].",
+      "**Midpoint:** M = ((x₁ + x₂)/2, (y₁ + y₂)/2).",
+      "**Dividing a line in the ratio m:n:** P = ((mx₂ + nx₁)/(m + n), (my₂ + ny₁)/(m + n)).",
+      "**Example: A(1, 2), B(7, 10).** AB = √(36 + 64) = **10**. Midpoint = (4, 6)."
      ]
     },
     {
-     "h": "Straight lines",
+     "h": "2. Gradient (slope)",
      "items": [
-      "Gradient: **m = (y₂ − y₁)/(x₂ − x₁)**",
-      "Equation: **y − y₁ = m(x − x₁)** or y = mx + c (c is the y-intercept).",
-      "**Parallel lines**: m₁ = m₂.  **Perpendicular lines**: m₁ × m₂ = −1."
+      "**Gradient m = (y₂ − y₁)/(x₂ − x₁)** = change in y ÷ change in x.",
+      "**Parallel lines** have equal gradients: m₁ = m₂.",
+      "**Perpendicular lines:** m₁ × m₂ = −1. If one gradient is 2/3, a perpendicular one is −3/2.",
+      "A horizontal line has gradient 0; a vertical line has undefined gradient. Also m = tan θ where θ is the angle the line makes with the positive x-axis."
      ]
     },
     {
-     "h": "Circles",
+     "h": "3. Equation of a straight line",
      "items": [
-      "Centre (a, b), radius r: **(x − a)² + (y − b)² = r²**."
+      "**Gradient–intercept form: y = mx + c** (c = y-intercept).",
+      "**Point–gradient form: y − y₁ = m(x − x₁).**",
+      "**Two-point form: (y − y₁)/(y₂ − y₁) = (x − x₁)/(x₂ − x₁).**",
+      "**Intercept form: x/a + y/b = 1.**",
+      "**Example: line through (2, 3) and (6, 11).** m = 8/4 = 2. y − 3 = 2(x − 2) → **y = 2x − 1**.",
+      "**To find where two lines meet,** solve their equations simultaneously.",
+      "**Perpendicular distance from (x₁, y₁) to ax + by + c = 0:** d = |ax₁ + by₁ + c|/√(a² + b²)."
+     ]
+    },
+    {
+     "h": "4. Equation of a circle",
+     "items": [
+      "**Centre (a, b), radius r:** (x − a)² + (y − b)² = r².",
+      "**Centre at the origin:** x² + y² = r².",
+      "**General form:** x² + y² + 2gx + 2fy + c = 0 has centre (−g, −f) and radius √(g² + f² − c).",
+      "**Example: x² + y² − 6x + 4y − 12 = 0.** Centre (3, −2); r = √(9 + 4 + 12) = **5**.",
+      "A point is **inside** the circle if its distance from the centre is less than r, and **outside** if greater.",
+      "The tangent at a point on a circle is perpendicular to the radius to that point."
      ]
     }
    ],
    "examples": [
     {
-     "q": "Find the gradient of the line through (1, 2) and (4, 8).",
-     "a": "(8−2)/(4−1) = **2**"
+     "q": "Find the distance between P(−2, 3) and Q(4, −5).",
+     "a": "PQ = √[(4 + 2)² + (−5 − 3)²]\n= √(36 + 64) = √100 = **10 units**"
     },
     {
-     "q": "Find the line through (0, 1) perpendicular to y = 2x + 3.",
-     "a": "Gradient = −½, so **y = −½x + 1**"
+     "q": "Find the gradient and equation of the line through A(1, 4) and B(3, 10).",
+     "a": "m = (10 − 4)/(3 − 1) = 3\ny − 4 = 3(x − 1) → y = 3x + 1\n**Gradient = 3; equation y = 3x + 1**"
+    },
+    {
+     "q": "Find the equation of the line through (2, 5) perpendicular to 2y = 4x + 3.",
+     "a": "Rewrite: y = 2x + 3/2 → gradient 2\nPerpendicular gradient = −1/2\ny − 5 = −½(x − 2) → 2y − 10 = −x + 2\n**x + 2y = 12**"
+    },
+    {
+     "q": "Find the coordinates of the point that divides A(1, 2) and B(10, 11) in the ratio 1:2.",
+     "a": "x = (1×10 + 2×1)/3 = 12/3 = 4\ny = (1×11 + 2×2)/3 = 15/3 = 5\nPoint = **(4, 5)**"
+    },
+    {
+     "q": "Find the centre and radius of x² + y² + 8x − 6y + 9 = 0.",
+     "a": "Complete the squares: (x + 4)² − 16 + (y − 3)² − 9 + 9 = 0\n(x + 4)² + (y − 3)² = 16\n**Centre (−4, 3), radius 4**"
+    },
+    {
+     "q": "Find the equation of the circle with centre (1, −2) passing through (4, 2).",
+     "a": "r² = (4 − 1)² + (2 + 2)² = 9 + 16 = 25\n**(x − 1)² + (y + 2)² = 25**"
+    },
+    {
+     "q": "Find the point of intersection of y = x + 1 and 2x + y = 7.",
+     "a": "Substitute: 2x + x + 1 = 7 → 3x = 6 → x = 2, y = 3\nPoint = **(2, 3)**"
     }
    ],
-   "tip": "Sketch the points first; it helps you spot sign mistakes."
+   "tip": "Sketch a quick diagram. For 'perpendicular' or 'parallel', find the gradient FIRST; for circles, complete the square to read off centre and radius."
   },
   "Trigonometry": {
-   "intro": "Trigonometry links the angles of a triangle to the lengths of its sides.",
+   "intro": "Trigonometry links the angles of a triangle to the ratios of its sides. For UTME you need the right-angle ratios, the special angles (30°, 45°, 60°), the sine and cosine rules, bearings, identities and basic equations.",
    "svg": "<svg viewBox=\"0 0 260 160\" role=\"img\" aria-label=\"Right-angled triangle with hypotenuse, opposite and adjacent\"><polygon points=\"30,130 220,130 220,30\" fill=\"#3E7C74\" fill-opacity=\".18\" stroke=\"#3E7C74\" stroke-width=\"2\"/><rect x=\"206\" y=\"116\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\"/><text x=\"110\" y=\"148\" font-size=\"13\" font-weight=\"700\" fill=\"currentColor\">Adjacent</text><text x=\"226\" y=\"86\" font-size=\"13\" font-weight=\"700\" fill=\"currentColor\">Opposite</text><text x=\"78\" y=\"72\" font-size=\"13\" font-weight=\"700\" fill=\"currentColor\" transform=\"rotate(-28 78 72)\">Hypotenuse</text><text x=\"58\" y=\"126\" font-size=\"15\" font-weight=\"800\" fill=\"#B5502E\">θ</text></svg>",
    "sections": [
     {
-     "h": "Right-angled triangles: SOH CAH TOA",
+     "h": "1. The three ratios",
      "items": [
-      "**sin θ = Opposite / Hypotenuse**",
-      "**cos θ = Adjacent / Hypotenuse**",
-      "**tan θ = Opposite / Adjacent**"
+      "In a right-angled triangle label the sides **Opposite (O), Adjacent (A), Hypotenuse (H)** relative to the angle θ.",
+      "**sin θ = O/H, cos θ = A/H, tan θ = O/A.** Memory aid: **SOH-CAH-TOA**.",
+      "**Reciprocals:** cosec θ = 1/sin θ, sec θ = 1/cos θ, cot θ = 1/tan θ. Also tan θ = sin θ / cos θ.",
+      "**Special angles:** sin 30° = 1/2, cos 30° = √3/2, tan 30° = 1/√3; sin 45° = cos 45° = 1/√2, tan 45° = 1; sin 60° = √3/2, cos 60° = 1/2, tan 60° = √3.",
+      "sin 0° = 0, cos 0° = 1; sin 90° = 1, cos 90° = 0.",
+      "**Example: a ladder 10 m long leans against a wall making 60° with the ground.** Height reached = 10 sin 60° = 10 × 0.866 = **8.66 m**."
      ]
     },
     {
-     "h": "Special angles",
+     "h": "2. Angles of elevation/depression and bearings",
      "items": [
-      "sin 30° = ½, cos 30° = √3/2, tan 30° = 1/√3",
-      "sin 45° = cos 45° = 1/√2, tan 45° = 1",
-      "sin 60° = √3/2, cos 60° = ½, tan 60° = √3"
+      "**Angle of elevation:** angle measured upward from the horizontal. **Angle of depression:** angle measured downward from the horizontal. The angle of elevation from A to B equals the angle of depression from B to A.",
+      "**Bearings** are measured clockwise from North and written with three digits (e.g. 045°, 270°).",
+      "**Back bearing:** add 180° if the bearing is less than 180°, or subtract 180° if it is greater than 180°."
      ]
     },
     {
-     "h": "Any triangle",
+     "h": "3. Signs of ratios (0°–360°) and related angles",
      "items": [
-      "**Sine rule: a/sin A = b/sin B = c/sin C**",
-      "**Cosine rule: a² = b² + c² − 2bc cos A**",
-      "**Area = ½ ab sin C**"
+      "**ASTC rule (CAST):** All positive in the 1st quadrant (0–90°); Sine positive in the 2nd (90–180°); Tangent positive in the 3rd (180–270°); Cosine positive in the 4th (270–360°).",
+      "sin(180° − θ) = sin θ; cos(180° − θ) = −cos θ; tan(180° − θ) = −tan θ.",
+      "sin(180° + θ) = −sin θ; cos(360° − θ) = cos θ; sin(360° − θ) = −sin θ.",
+      "**Example: sin 150° = sin(180° − 150°) = sin 30° = 1/2. cos 120° = −cos 60° = −1/2.**"
      ]
     },
     {
-     "h": "Identities and quadrants",
+     "h": "4. Sine rule and cosine rule (any triangle)",
      "items": [
-      "**sin²θ + cos²θ = 1**, and tan θ = sin θ / cos θ.",
-      "ASTC: All positive in Q1, Sin in Q2, Tan in Q3, Cos in Q4."
+      "**Sine rule:** a/sin A = b/sin B = c/sin C. Use it when you know two angles and a side, or two sides and an angle opposite one of them.",
+      "**Cosine rule:** a² = b² + c² − 2bc cos A (finding a side), or cos A = (b² + c² − a²)/(2bc) (finding an angle). Use it for SAS or SSS.",
+      "**Area of a triangle = ½ab sin C.**",
+      "**Example (sine rule): A = 40°, B = 65°, a = 8.** b = a sin B / sin A = 8 sin 65°/sin 40° = 8(0.9063)/(0.6428) = **11.28**.",
+      "**Example (cosine rule): a = 7, b = 5, C = 60°.** c² = 49 + 25 − 2(7)(5)cos 60° = 74 − 35 = 39 → c = **6.24**."
+     ]
+    },
+    {
+     "h": "5. Identities and equations",
+     "items": [
+      "**sin² θ + cos² θ = 1**; therefore 1 + tan² θ = sec² θ and 1 + cot² θ = cosec² θ.",
+      "**Compound angles:** sin(A ± B) = sin A cos B ± cos A sin B; cos(A ± B) = cos A cos B ∓ sin A sin B.",
+      "**Double angles:** sin 2A = 2 sin A cos A; cos 2A = cos²A − sin²A = 2cos²A − 1 = 1 − 2sin²A.",
+      "**Solving equations:** find the acute reference angle, use the ASTC rule to list all angles in the range.",
+      "**Example: solve 2 sin θ = 1 for 0° ≤ θ ≤ 360°.** sin θ = 1/2 → reference angle 30°; sine is positive in quadrants 1 and 2 → **θ = 30° or 150°**.",
+      "**Example: solve tan θ = −1, 0° ≤ θ ≤ 360°.** Reference 45°; tan is negative in quadrants 2 and 4 → **θ = 135° or 315°**."
      ]
     }
    ],
    "examples": [
     {
-     "q": "A ladder 10 m long leans on a wall at 60° to the ground. How high up the wall does it reach?",
-     "a": "sin 60° = h/10, so h = 10 × 0.866 = **8.66 m**"
+     "q": "Evaluate sin 30° cos 60° + tan 45°.",
+     "a": "= (1/2)(1/2) + 1 = 1/4 + 1 = **5/4**"
     },
     {
-     "q": "If sin θ = 3/5 and θ is acute, find cos θ.",
-     "a": "Opposite = 3, hyp = 5, adjacent = 4, so **cos θ = 4/5**"
+     "q": "From a point 50 m from the foot of a tower, the angle of elevation of its top is 30°. Find the height of the tower.",
+     "a": "tan 30° = h/50\nh = 50 × (1/√3) = 50/1.732 = **28.9 m**"
+    },
+    {
+     "q": "In triangle PQR, p = 9 cm, q = 12 cm and ∠R = 90°. Find r and sin P.",
+     "a": "r² = 81 + 144 = 225 → **r = 15 cm**\nsin P = opposite/hypotenuse = 9/15 = **3/5**"
+    },
+    {
+     "q": "Find the bearing of B from A if the bearing of A from B is 065°.",
+     "a": "Back bearing = 065° + 180° = **245°**"
+    },
+    {
+     "q": "In triangle ABC, a = 8, b = 10, C = 50°. Find the area.",
+     "a": "Area = ½ab sin C = ½(8)(10) sin 50°\n= 40 × 0.7660 = **30.64 square units**"
+    },
+    {
+     "q": "If sin θ = 3/5 and θ is acute, find cos θ and tan θ.",
+     "a": "cos² θ = 1 − 9/25 = 16/25 → **cos θ = 4/5**\ntan θ = sin/cos = (3/5)/(4/5) = **3/4**"
+    },
+    {
+     "q": "Solve 2cos θ − √3 = 0 for 0° ≤ θ ≤ 360°.",
+     "a": "cos θ = √3/2 → reference angle 30°\nCosine is positive in quadrants 1 and 4:\n**θ = 30° or 330°**"
+    },
+    {
+     "q": "Prove that (1 − cos²θ)/sin θ = sin θ.",
+     "a": "1 − cos² θ = sin² θ (from sin² + cos² = 1)\nSo LHS = sin²θ / sin θ = sin θ = RHS ✓"
     }
    ],
-   "tip": "Use the sine rule when you have a matching side and angle; use the cosine rule otherwise."
+   "tip": "Check your calculator is in DEGREE mode. For any right-angle triangle write SOH-CAH-TOA first and label O, A, H before choosing a ratio."
   },
   "Differentiation": {
-   "intro": "Differentiation finds the rate at which a quantity changes, which is the gradient of its curve.",
+   "intro": "**Differentiation** finds the rate at which one quantity changes with respect to another. The derivative dy/dx gives the **gradient of a curve** at any point. For UTME you need the power rule, the rules for combining functions, and the derivatives of trig, exponential and log functions.",
    "svg": "",
    "sections": [
     {
-     "h": "Basic rules",
+     "h": "1. The idea of a derivative",
      "items": [
-      "**d/dx (xⁿ) = nxⁿ⁻¹**; the derivative of a constant is 0.",
-      "Differentiate each term separately in a sum.",
-      "d/dx (sin x) = cos x;  d/dx (cos x) = −sin x",
-      "d/dx (eˣ) = eˣ;  d/dx (ln x) = 1/x"
+      "dy/dx (also written f′(x)) is the gradient of the tangent to the curve y = f(x) at a point. It measures how fast y changes as x changes.",
+      "**From first principles:** f′(x) = lim (h→0) [f(x + h) − f(x)]/h.",
+      "**Example: f(x) = x².** [(x + h)² − x²]/h = (2xh + h²)/h = 2x + h → as h → 0 we get **2x**."
      ]
     },
     {
-     "h": "Combined functions",
+     "h": "2. Basic rules",
      "items": [
-      "**Product rule**: d(uv) = u dv + v du",
-      "**Quotient rule**: d(u/v) = (v du − u dv)/v²",
-      "**Chain rule**: dy/dx = dy/du × du/dx"
+      "**Power rule:** if y = axⁿ then **dy/dx = naxⁿ⁻¹** (multiply by the power, then reduce the power by 1).",
+      "**Constant:** the derivative of a number is 0. d/dx(5) = 0.",
+      "**Sum/difference:** differentiate term by term.",
+      "**Example: y = 4x³ − 5x² + 7x − 9** → dy/dx = 12x² − 10x + 7.",
+      "**Negative and fractional powers:** rewrite first. y = 1/x² = x⁻² → dy/dx = −2x⁻³ = −2/x³. y = √x = x^(1/2) → dy/dx = (1/2)x^(−1/2) = 1/(2√x)."
+     ]
+    },
+    {
+     "h": "3. Product, quotient and chain rules",
+     "items": [
+      "**Product rule:** if y = uv then **dy/dx = u(dv/dx) + v(du/dx).**",
+      "**Example: y = x²(3x + 1)** with u = x², v = 3x + 1: dy/dx = x²(3) + (3x + 1)(2x) = 3x² + 6x² + 2x = **9x² + 2x**.",
+      "**Quotient rule:** if y = u/v then **dy/dx = [v(du/dx) − u(dv/dx)]/v².**",
+      "**Example: y = x/(x + 1).** dy/dx = [(x + 1)(1) − x(1)]/(x + 1)² = **1/(x + 1)²**.",
+      "**Chain rule (function of a function):** if y = f(u) and u = g(x), then **dy/dx = (dy/du) × (du/dx).**",
+      "**Example: y = (3x + 2)⁵.** Let u = 3x + 2: dy/du = 5u⁴, du/dx = 3. dy/dx = **15(3x + 2)⁴**."
+     ]
+    },
+    {
+     "h": "4. Derivatives of standard functions",
+     "items": [
+      "**d/dx (sin x) = cos x; d/dx (cos x) = −sin x; d/dx (tan x) = sec² x.**",
+      "**d/dx (sin ax) = a cos ax; d/dx (cos ax) = −a sin ax.**",
+      "**d/dx (eˣ) = eˣ; d/dx (e^(ax)) = a e^(ax); d/dx (ln x) = 1/x.**",
+      "**Example: y = 3 sin 2x − e^(4x)** → dy/dx = 6 cos 2x − 4e^(4x).",
+      "**Example: y = ln(5x² + 1)** → dy/dx = 10x/(5x² + 1) (chain rule: derivative of the inside over the inside)."
+     ]
+    },
+    {
+     "h": "5. Gradient, tangent and normal; higher derivatives",
+     "items": [
+      "**Gradient of the curve at x = a** is f′(a). **Tangent:** y − y₁ = m(x − x₁) with m = f′(x₁). **Normal** is perpendicular to the tangent: gradient = −1/m.",
+      "**Second derivative** d²y/dx² is the derivative of dy/dx. If y = x⁴ then dy/dx = 4x³ and d²y/dx² = 12x².",
+      "**Example: find the equation of the tangent to y = x² − 3x + 2 at x = 3.**\ny = 9 − 9 + 2 = 2 → point (3, 2)\ndy/dx = 2x − 3 → at x = 3, m = 3\ny − 2 = 3(x − 3) → **y = 3x − 7**"
      ]
     }
    ],
    "examples": [
     {
-     "q": "Differentiate y = 3x⁴ − 2x² + 5.",
-     "a": "dy/dx = **12x³ − 4x**"
+     "q": "Differentiate y = 5x⁴ − 2x³ + 6x − 1.",
+     "a": "dy/dx = 5(4x³) − 2(3x²) + 6 − 0\n= **20x³ − 6x² + 6**"
     },
     {
-     "q": "Differentiate y = (2x + 1)³.",
-     "a": "Chain rule: 3(2x+1)² × 2 = **6(2x + 1)²**"
+     "q": "Find dy/dx if y = (2x − 1)(x + 4).",
+     "a": "Product rule: u = 2x − 1, v = x + 4\ndy/dx = (2x − 1)(1) + (x + 4)(2) = 2x − 1 + 2x + 8 = **4x + 7**\n(Check by expanding: y = 2x² + 7x − 4 → 4x + 7 ✓)"
+    },
+    {
+     "q": "Differentiate y = (x² + 1)³.",
+     "a": "Let u = x² + 1; dy/du = 3u², du/dx = 2x\ndy/dx = 3(x² + 1)² × 2x = **6x(x² + 1)²**"
+    },
+    {
+     "q": "Differentiate y = (2x + 3)/(x − 1).",
+     "a": "u = 2x + 3, v = x − 1\ndy/dx = [(x − 1)(2) − (2x + 3)(1)]/(x − 1)²\n= (2x − 2 − 2x − 3)/(x − 1)² = **−5/(x − 1)²**"
+    },
+    {
+     "q": "Find the gradient of y = x³ − 4x at x = 2.",
+     "a": "dy/dx = 3x² − 4\nAt x = 2: 3(4) − 4 = **8**"
+    },
+    {
+     "q": "Find d/dx of y = sin 3x + cos x.",
+     "a": "= 3 cos 3x − sin x"
+    },
+    {
+     "q": "Find the equation of the normal to y = x² at x = 2.",
+     "a": "y = 4 → point (2, 4); dy/dx = 2x = 4 at x = 2\nNormal gradient = −1/4\ny − 4 = −¼(x − 2) → 4y − 16 = −x + 2\n**x + 4y = 18**"
     }
    ],
-   "tip": "Bring the power down, then reduce the power by 1."
+   "tip": "Rewrite roots and fractions as powers of x BEFORE differentiating. For brackets raised to a power, use the chain rule: multiply by the derivative of the bracket."
   },
   "Application of Differentiation": {
-   "intro": "Differentiation is used to find tangents, turning points and rates of change.",
+   "intro": "Once you can differentiate, you can use the derivative to find **stationary points (maximum and minimum)**, describe how a curve behaves, calculate **rates of change**, and solve **optimisation** problems about largest area, smallest cost and so on.",
    "svg": "",
    "sections": [
     {
-     "h": "Tangents and normals",
+     "h": "1. Increasing and decreasing functions",
      "items": [
-      "Gradient of the tangent at a point = dy/dx at that point.",
-      "Gradient of the normal = **−1/m**."
+      "If dy/dx > 0 on an interval, y is **increasing** there. If dy/dx < 0, y is **decreasing**.",
+      "**Example: y = x² − 4x.** dy/dx = 2x − 4. Increasing when 2x − 4 > 0, i.e. **x > 2**; decreasing when **x < 2**."
      ]
     },
     {
-     "h": "Turning points",
+     "h": "2. Stationary points: maximum and minimum",
      "items": [
-      "Solve **dy/dx = 0** to find stationary points.",
-      "**d²y/dx² > 0 → minimum.  d²y/dx² < 0 → maximum.**"
+      "A **stationary point** occurs where **dy/dx = 0** (the tangent is horizontal).",
+      "**Test with the second derivative:** if d²y/dx² > 0 it is a **minimum** (curve is smiling); if d²y/dx² < 0 it is a **maximum** (curve is frowning); if d²y/dx² = 0 the test fails — check the sign of dy/dx either side.",
+      "**Procedure:** (1) find dy/dx; (2) set it to 0 and solve for x; (3) find y at each x; (4) use d²y/dx² to classify.",
+      "**Example: y = x³ − 3x² − 9x + 5.**\ndy/dx = 3x² − 6x − 9 = 3(x² − 2x − 3) = 3(x − 3)(x + 1) = 0 → x = 3 or x = −1\nd²y/dx² = 6x − 6\nx = −1: −12 < 0 → **maximum**; y = −1 − 3 + 9 + 5 = 10 → point (−1, 10)\nx = 3: +12 > 0 → **minimum**; y = 27 − 27 − 27 + 5 = −22 → point (3, −22)",
+      "A **point of inflexion** is where the curve changes concavity: d²y/dx² = 0 with a sign change."
      ]
     },
     {
-     "h": "Rates and motion",
+     "h": "3. Optimisation (maximum/minimum problems)",
      "items": [
-      "Velocity v = ds/dt; acceleration a = dv/dt.",
-      "Maximum/minimum problems: write one equation in one variable, differentiate and set to 0."
+      "**Steps:** (1) draw a diagram; (2) write the quantity to be optimised (area, volume, cost…); (3) use the condition given to express it in ONE variable; (4) differentiate and set equal to zero; (5) check it is a max or min; (6) answer the question that was asked.",
+      "**Example: a farmer has 80 m of fencing to enclose a rectangle. Find the maximum area.**\nLet the sides be x and y: 2x + 2y = 80 → y = 40 − x.\nA = x(40 − x) = 40x − x²\ndA/dx = 40 − 2x = 0 → x = 20, y = 20\nd²A/dx² = −2 < 0 → maximum\n**Maximum area = 20 × 20 = 400 m²** (a square)."
+     ]
+    },
+    {
+     "h": "4. Rates of change and related rates",
+     "items": [
+      "If s is distance and t is time: **velocity v = ds/dt** and **acceleration a = dv/dt = d²s/dt².**",
+      "**Example: s = 2t³ − 9t² + 12t (metres).** v = 6t² − 18t + 12; at t = 3: v = 54 − 54 + 12 = **12 m/s**. a = 12t − 18; at t = 3: a = **18 m/s²**. The particle is momentarily at rest when v = 0: 6(t − 1)(t − 2) = 0 → t = 1 s and t = 2 s.",
+      "**Related rates (chain rule):** dy/dt = (dy/dx) × (dx/dt).",
+      "**Example: the radius of a circle increases at 2 cm/s. How fast is the area increasing when r = 5 cm?**\nA = πr² → dA/dr = 2πr; dr/dt = 2\ndA/dt = 2πr × 2 = 4πr = 4π(5) = **20π cm²/s**"
+     ]
+    },
+    {
+     "h": "5. Small changes (approximation)",
+     "items": [
+      "**δy ≈ (dy/dx) × δx.** The error or change in y is roughly the gradient times the small change in x.",
+      "**Example: the side of a square is measured as 10 cm with a possible error of 0.1 cm.** A = x²; dA/dx = 2x = 20; δA ≈ 20 × 0.1 = **2 cm²**."
      ]
     }
    ],
    "examples": [
     {
-     "q": "Find the minimum value of y = x² − 4x + 7.",
-     "a": "dy/dx = 2x − 4 = 0, x = 2. y = 4 − 8 + 7 = **3**"
+     "q": "Find the stationary points of y = x² − 6x + 5 and state their nature.",
+     "a": "dy/dx = 2x − 6 = 0 → x = 3\ny = 9 − 18 + 5 = −4\nd²y/dx² = 2 > 0 → **minimum at (3, −4)**"
     },
     {
-     "q": "s = t³ − 3t². Find the velocity when t = 2.",
-     "a": "v = 3t² − 6t = 12 − 12 = **0**"
+     "q": "Find the maximum value of y = 12x − 2x² − 3.",
+     "a": "dy/dx = 12 − 4x = 0 → x = 3\nd²y/dx² = −4 < 0 → maximum\ny = 36 − 18 − 3 = **15**"
+    },
+    {
+     "q": "A rectangle has a perimeter of 40 cm. Find the dimensions that give the largest area.",
+     "a": "2(l + w) = 40 → w = 20 − l\nA = l(20 − l) = 20l − l²\ndA/dl = 20 − 2l = 0 → l = 10, w = 10\nd²A/dl² = −2 < 0 ✓\nLargest area when it is a **10 cm × 10 cm square** (area 100 cm²)."
+    },
+    {
+     "q": "A particle moves so that s = t³ − 6t² + 9t. Find its velocity when t = 2 and when it is at rest.",
+     "a": "v = ds/dt = 3t² − 12t + 9\nAt t = 2: 12 − 24 + 9 = **−3 m/s**\nAt rest: 3(t² − 4t + 3) = 0 → (t − 1)(t − 3) = 0 → **t = 1 s or t = 3 s**"
+    },
+    {
+     "q": "The volume of a cube increases at 12 cm³/s. How fast is the edge growing when the edge is 2 cm?",
+     "a": "V = x³; dV/dx = 3x² = 12 at x = 2\ndV/dt = (dV/dx)(dx/dt) → 12 = 12 × dx/dt\n**dx/dt = 1 cm/s**"
+    },
+    {
+     "q": "For what values of x is y = x³ − 12x increasing?",
+     "a": "dy/dx = 3x² − 12 > 0 → x² > 4\n**x < −2 or x > 2**"
+    },
+    {
+     "q": "Find the turning points of y = x³ − 3x + 2.",
+     "a": "dy/dx = 3x² − 3 = 0 → x = ±1\nx = 1: y = 0, d²y/dx² = 6 > 0 → **minimum (1, 0)**\nx = −1: y = 4, d²y/dx² = −6 < 0 → **maximum (−1, 4)**"
     }
    ],
-   "tip": "Always substitute back into the original equation to get the value, not into the derivative."
+   "tip": "Always check the second derivative (or the sign change) to know whether a stationary point is a maximum or a minimum. In word problems the final answer must be the quantity asked for (area, cost…), not just x."
   },
   "Integration": {
-   "intro": "Integration is the reverse of differentiation. It finds areas under curves and totals.",
+   "intro": "**Integration** is the reverse of differentiation. It gives you the original function from its derivative, and it also calculates **areas under curves**. Indefinite integrals need a constant of integration +C; definite integrals give numbers.",
    "svg": "",
    "sections": [
     {
-     "h": "Rules",
+     "h": "1. Basic rules of integration",
      "items": [
-      "**∫ xⁿ dx = xⁿ⁺¹/(n + 1) + C**  (n ≠ −1)",
-      "∫ sin x dx = −cos x + C;  ∫ cos x dx = sin x + C",
-      "∫ eˣ dx = eˣ + C;  ∫ 1/x dx = ln x + C"
+      "**Power rule:** **∫xⁿ dx = xⁿ⁺¹/(n + 1) + C**, for n ≠ −1 (add 1 to the power, divide by the new power).",
+      "**Constant multiple:** ∫k f(x) dx = k ∫f(x) dx. **Sum:** integrate term by term. **∫k dx = kx + C.**",
+      "**Example: ∫(6x² − 4x + 3) dx** = 6(x³/3) − 4(x²/2) + 3x + C = **2x³ − 2x² + 3x + C**.",
+      "**Fractions and roots:** rewrite as powers first. ∫(1/x²) dx = ∫x⁻² dx = −x⁻¹ + C = **−1/x + C**. ∫√x dx = ∫x^(1/2) dx = (2/3)x^(3/2) + C.",
+      "**Check:** differentiate your answer; you must get back the original integrand."
      ]
     },
     {
-     "h": "Definite integrals",
+     "h": "2. Standard integrals",
      "items": [
-      "∫ from a to b f(x) dx = F(b) − F(a). No constant C is needed.",
-      "The area under a curve from x = a to x = b is the definite integral (area below the x-axis counts as negative)."
+      "**∫(1/x) dx = ln|x| + C.** **∫eˣ dx = eˣ + C.** **∫e^(ax) dx = (1/a)e^(ax) + C.**",
+      "**∫sin x dx = −cos x + C.** **∫cos x dx = sin x + C.** **∫sec²x dx = tan x + C.**",
+      "**∫sin ax dx = −(1/a)cos ax + C; ∫cos ax dx = (1/a) sin ax + C.**",
+      "**Linear bracket:** ∫(ax + b)ⁿ dx = (ax + b)ⁿ⁺¹ / [a(n + 1)] + C.",
+      "**Example: ∫(2x + 1)⁴ dx** = (2x + 1)⁵/(2 × 5) + C = **(2x + 1)⁵/10 + C**."
      ]
     },
     {
-     "h": "Reminder",
+     "h": "3. Finding the constant C",
      "items": [
-      "Always add **+ C** for an indefinite integral."
+      "Given a derivative and one point on the curve, integrate and substitute the point to find C.",
+      "**Example: dy/dx = 3x² − 2 and the curve passes through (1, 4).**\ny = x³ − 2x + C → 4 = 1 − 2 + C → C = 5\n**y = x³ − 2x + 5**"
+     ]
+    },
+    {
+     "h": "4. Definite integrals and area",
+     "items": [
+      "**∫ from a to b of f(x) dx = F(b) − F(a)**, where F is an antiderivative. No +C is needed.",
+      "**Example: ∫ from 1 to 3 of (2x + 1) dx** = [x² + x] from 1 to 3 = (9 + 3) − (1 + 1) = 12 − 2 = **10**.",
+      "**Area under a curve** y = f(x) between x = a and x = b (curve above the x-axis) = ∫ from a to b of f(x) dx.",
+      "If the curve is **below** the x-axis the integral is negative; take the modulus of that part for the actual area.",
+      "**Area between two curves** y = f(x) above y = g(x): A = ∫ [f(x) − g(x)] dx between the intersection points.",
+      "**Example: area under y = x² from x = 0 to x = 3** = [x³/3] from 0 to 3 = 27/3 − 0 = **9 square units**."
+     ]
+    },
+    {
+     "h": "5. Volume of revolution (extension)",
+     "items": [
+      "Rotating the curve y = f(x) about the x-axis between x = a and x = b gives volume **V = π ∫ y² dx.**",
+      "**Example: y = x, from x = 0 to x = 2 (a cone).** V = π ∫ x² dx = π[x³/3] from 0 to 2 = **8π/3**."
      ]
     }
    ],
    "examples": [
     {
-     "q": "Evaluate the integral of 3x² from 0 to 2.",
-     "a": "[x³] from 0 to 2 = 8 − 0 = **8**"
+     "q": "Evaluate ∫(4x³ − 6x + 5) dx.",
+     "a": "= 4(x⁴/4) − 6(x²/2) + 5x + C\n= **x⁴ − 3x² + 5x + C**"
     },
     {
-     "q": "Find ∫ (4x + 1) dx.",
-     "a": "**2x² + x + C**"
+     "q": "Find ∫(x² + 1/x²) dx.",
+     "a": "= ∫(x² + x⁻²) dx = x³/3 + x⁻¹/(−1) + C\n= **x³/3 − 1/x + C**"
+    },
+    {
+     "q": "Evaluate ∫ from 0 to 2 of (3x² + 2) dx.",
+     "a": "= [x³ + 2x] from 0 to 2\n= (8 + 4) − (0) = **12**"
+    },
+    {
+     "q": "Find the area enclosed by y = x² − 4, the x-axis, x = 0 and x = 2.",
+     "a": "∫ from 0 to 2 of (x² − 4) dx = [x³/3 − 4x] from 0 to 2\n= (8/3 − 8) − 0 = −16/3\nThe region is below the x-axis, so area = **16/3 square units**"
+    },
+    {
+     "q": "The gradient of a curve is 4x − 3 and it passes through (2, 5). Find its equation.",
+     "a": "y = ∫(4x − 3) dx = 2x² − 3x + C\n5 = 8 − 6 + C → C = 3\n**y = 2x² − 3x + 3**"
+    },
+    {
+     "q": "Evaluate ∫ from 0 to π/2 of cos x dx.",
+     "a": "= [sin x] from 0 to π/2\n= sin(π/2) − sin 0 = 1 − 0 = **1**"
+    },
+    {
+     "q": "Find the area between y = x and y = x² from x = 0 to x = 1.",
+     "a": "On [0, 1] the line y = x is above y = x².\nA = ∫ from 0 to 1 of (x − x²) dx = [x²/2 − x³/3] from 0 to 1\n= 1/2 − 1/3 = **1/6 square unit**"
     }
    ],
-   "tip": "Check by differentiating your answer; you should get back the original."
+   "tip": "Never forget +C in an indefinite integral. For definite integrals substitute the upper limit first, then subtract the lower limit — and watch signs when the area lies below the axis."
   },
   "Representation of Data": {
-   "intro": "Data can be displayed in tables and charts so that patterns are easy to see.",
+   "intro": "**Statistics** begins with collecting and presenting data clearly. This topic covers frequency tables, grouped data, and the main diagrams: bar charts, pie charts, histograms, the cumulative frequency curve (ogive) and the stem-and-leaf plot.",
    "svg": "",
    "sections": [
     {
-     "h": "Common displays",
+     "h": "1. Types of data and frequency tables",
      "items": [
-      "**Bar chart**: separate bars, height shows frequency.",
-      "**Pie chart**: angle = (frequency ÷ total) × 360°.",
-      "**Histogram**: bars touch; **area** is proportional to frequency. Frequency density = frequency ÷ class width.",
-      "**Cumulative frequency curve (ogive)**: plot cumulative frequency against the upper class boundary."
+      "**Discrete data** takes separate values (number of children, shoe size). **Continuous data** can take any value in a range (height, mass, time).",
+      "A **frequency table** lists each value (or class) with how many times it occurs (its frequency f). The total of the frequencies is Σf = n.",
+      "**Tally:** record data with strokes, grouping in fives, then total each class to get the frequency.",
+      "**Grouped data:** classes such as 10–19, 20–29, … (class limits). The **class boundaries** for 10–19 are 9.5–19.5. The **class width** is upper boundary − lower boundary (here 10); the **class mark (mid-point)** is (lower + upper)/2 = 14.5."
      ]
     },
     {
-     "h": "Terms",
+     "h": "2. Bar chart, pictogram and pie chart",
      "items": [
-      "Class boundaries: for 10–19 and 20–29, the boundary is 19.5.",
-      "Class mark = (lower + upper)/2.",
-      "Use an ogive to read the median (n/2) and quartiles (n/4, 3n/4)."
+      "**Bar chart:** equal-width bars separated by gaps; height = frequency. Used for discrete or categorical data.",
+      "**Pictogram:** uses symbols; each symbol stands for a stated number of items.",
+      "**Pie chart:** a circle divided into sectors. **Sector angle = (frequency ÷ total) × 360°.**",
+      "**Example:** in a class of 40 students, 10 like football. Angle = (10/40) × 360° = **90°**.",
+      "To find a frequency from a sector: frequency = (angle/360°) × total."
+     ]
+    },
+    {
+     "h": "3. Histogram",
+     "items": [
+      "A **histogram** shows continuous (grouped) data with **no gaps between bars**; the horizontal axis uses class boundaries.",
+      "For **equal class widths** the height of each bar is the frequency. For **unequal widths** the height is the **frequency density = frequency ÷ class width**, and the **area** of each bar represents the frequency.",
+      "**Example: class 20–30 (width 10) with frequency 15** → frequency density = 1.5. **Class 30–50 (width 20) with frequency 30** → frequency density = 1.5.",
+      "A **frequency polygon** is drawn by joining the mid-points of the tops of the bars with straight lines."
+     ]
+    },
+    {
+     "h": "4. Cumulative frequency curve (ogive)",
+     "items": [
+      "**Cumulative frequency** is the running total of frequencies. Plot it against the **upper class boundary** and join the points with a smooth curve.",
+      "**Reading from the curve:** the **median** is at (n/2)th position; **lower quartile Q₁** at (n/4); **upper quartile Q₃** at (3n/4). **Interquartile range = Q₃ − Q₁.**",
+      "**Percentiles:** the pth percentile is at (p/100) × n.",
+      "**Example: n = 80** → median at the 40th value, Q₁ at the 20th, Q₃ at the 60th.",
+      "To find 'how many are above a value', read its cumulative frequency and subtract from n."
+     ]
+    },
+    {
+     "h": "5. Stem-and-leaf plot and other plots",
+     "items": [
+      "In a **stem-and-leaf plot** the tens digit is the **stem** and the units digit the **leaf**. Data 23, 25, 31, 38, 38 is shown as: 2 | 3 5 and 3 | 1 8 8. Always give a key such as '2 | 3 means 23'.",
+      "**Reading shape:** the median is the middle leaf and the mode is the most frequent leaf.",
+      "A **scatter diagram** shows the relationship between two variables: points rising to the right indicate positive correlation; falling indicates negative correlation."
      ]
     }
    ],
    "examples": [
     {
-     "q": "In a survey of 90 people, 15 chose football. Find the pie-chart angle.",
-     "a": "(15/90) × 360 = **60°**"
+     "q": "In a survey of 360 people, the pie chart angle for 'bus' is 60°. How many people use the bus?",
+     "a": "Number = (60/360) × 360 = **60 people**"
     },
     {
-     "q": "Find the class mark of 20–29.",
-     "a": "(20 + 29)/2 = **24.5**"
+     "q": "A pie chart has sectors of 120°, 90° and x°, with the sector 90° representing 15 students. Find x and the total number of students.",
+     "a": "x = 360 − 120 − 90 = **150°**\nTotal = (360/90) × 15 = **60 students**"
+    },
+    {
+     "q": "Find the frequency density of the class 40–60 with frequency 30.",
+     "a": "Class width = 60 − 40 = 20\nFrequency density = 30/20 = **1.5**"
+    },
+    {
+     "q": "Find the class boundaries and the class mark of the class 25–34.",
+     "a": "Boundaries: **24.5 and 34.5**\nClass mark = (25 + 34)/2 = **29.5**"
+    },
+    {
+     "q": "The cumulative frequency table for 50 students shows 12 scored ≤ 40 and 38 scored ≤ 70. How many scored between 41 and 70?",
+     "a": "38 − 12 = **26 students**"
+    },
+    {
+     "q": "From a cumulative frequency curve for 100 students, the 25th, 50th and 75th values are 42, 55 and 68. Find the median and the interquartile range.",
+     "a": "Median = 50th value = **55**\nQ₁ = 42, Q₃ = 68\nIQR = 68 − 42 = **26**"
+    },
+    {
+     "q": "Draw a stem-and-leaf plot for 14, 21, 23, 27, 32, 35, 35, 41.",
+     "a": "1 | 4\n2 | 1 3 7\n3 | 2 5 5\n4 | 1\nKey: 2 | 1 means 21."
     }
    ],
-   "tip": "A pie chart angles must add up to 360°."
+   "tip": "Pie-chart angles must add to 360°. For unequal class widths, always use frequency density, and plot cumulative frequency against UPPER class boundaries."
   },
   "Measures of Location": {
-   "intro": "Measures of location (averages) describe the centre of a data set.",
+   "intro": "Measures of location (also called measures of **central tendency**) give one value that represents the whole data set: the **mean**, the **median** and the **mode**. Knowing how to calculate each from raw data, a frequency table, and grouped data is essential.",
    "svg": "",
    "sections": [
     {
-     "h": "The three averages",
+     "h": "1. The mean (average)",
      "items": [
-      "**Mean = Σx / n** (grouped: Σfx / Σf).",
-      "**Median** = middle value when ordered; for n values the position is (n + 1)/2.",
-      "**Mode** = most frequent value."
+      "**Ungrouped data: mean x̄ = Σx / n** (sum of values ÷ number of values).",
+      "**Example: 4, 7, 9, 12, 8** → Σx = 40, n = 5, x̄ = **8**.",
+      "**Frequency table: x̄ = Σfx / Σf.** Multiply each value by its frequency, add, then divide by total frequency.",
+      "**Example:**\nx: 1, 2, 3, 4 with f: 3, 5, 6, 2\nΣf = 16; Σfx = 3 + 10 + 18 + 8 = 39\nx̄ = 39/16 = **2.44** (2 d.p.)",
+      "**Grouped data:** use the **class mark (mid-point) x** of each class: x̄ = Σfx / Σf.",
+      "**Assumed (working) mean A:** x̄ = A + Σfd / Σf, where d = x − A. This keeps numbers small.",
+      "**Combined mean:** if group 1 has n₁ values with mean x̄₁ and group 2 has n₂ with mean x̄₂, then x̄ = (n₁x̄₁ + n₂x̄₂)/(n₁ + n₂)."
      ]
     },
     {
-     "h": "Grouped data",
+     "h": "2. The median",
      "items": [
-      "Use the class mark as x for the mean.",
-      "Mode from a histogram: L + [d₁/(d₁ + d₂)] × c, where L is the lower boundary of the modal class.",
-      "Median from an ogive: read at n/2."
+      "The **median** is the middle value when the data is arranged in order.",
+      "**Odd n:** median = the ((n + 1)/2)th value. **Even n:** median = the average of the (n/2)th and (n/2 + 1)th values.",
+      "**Example: 3, 5, 7, 9, 11** → median = **7**. **Example: 2, 4, 6, 8** → median = (4 + 6)/2 = **5**.",
+      "**Grouped data (from cumulative frequency):** locate the median class containing the (n/2)th value, then **Median = L + [(n/2 − F)/f] × c**, where L = lower boundary of the median class, F = cumulative frequency before it, f = frequency of the median class, c = class width."
      ]
     },
     {
-     "h": "Which to use",
+     "h": "3. The mode",
      "items": [
-      "Mean uses all values but is affected by extremes; median is better with extreme values."
+      "The **mode** is the value that occurs **most often**. There can be more than one mode (bimodal) or none.",
+      "**Example: 2, 3, 3, 4, 5, 3, 6** → mode = **3**.",
+      "**Grouped data:** the **modal class** has the highest frequency. **Mode = L + [Δ₁/(Δ₁ + Δ₂)] × c**, where L = lower boundary of the modal class, Δ₁ = f(modal) − f(before), Δ₂ = f(modal) − f(after), c = class width."
+     ]
+    },
+    {
+     "h": "4. Choosing the best average",
+     "items": [
+      "**Mean** uses all values but is pulled by extreme values (outliers). **Median** is not affected by outliers, so it is best for skewed data such as incomes. **Mode** is best for the most popular or typical item (e.g. the most common shoe size).",
+      "**Effect of changes:** adding a constant k to every value adds k to the mean, median and mode; multiplying every value by k multiplies all three by k."
+     ]
+    },
+    {
+     "h": "5. Finding a missing value",
+     "items": [
+      "If the mean is given, form an equation: sum of all values = mean × n.",
+      "**Example: the mean of 5, 8, x, 12, 15 is 10.** Sum = 10 × 5 = 50 → 40 + x = 50 → **x = 10**.",
+      "**Updating a mean:** if a new value is added, new sum = old sum + new value, and divide by the new count."
      ]
     }
    ],
    "examples": [
     {
-     "q": "Find the mean of 4, 6, 8, 10, 12.",
-     "a": "50 ÷ 5 = **10**"
+     "q": "Find the mean, median and mode of 6, 9, 4, 9, 7, 5, 9.",
+     "a": "Mean = (6 + 9 + 4 + 9 + 7 + 5 + 9)/7 = 49/7 = **7**\nOrdered: 4, 5, 6, 7, 9, 9, 9 → median = 4th value = **7**\nMode = **9**"
     },
     {
-     "q": "Find the median of 3, 9, 5, 7.",
-     "a": "Order: 3, 5, 7, 9. Middle two are 5 and 7, so **6**"
+     "q": "The mean of five numbers is 12. When a sixth number is added the mean becomes 13. Find the sixth number.",
+     "a": "Original sum = 5 × 12 = 60\nNew sum = 6 × 13 = 78\nSixth number = 78 − 60 = **18**"
+    },
+    {
+     "q": "Find the mean of the following distribution: x = 10, 20, 30, 40 with f = 2, 3, 4, 1.",
+     "a": "Σf = 10; Σfx = 20 + 60 + 120 + 40 = 240\nx̄ = 240/10 = **24**"
+    },
+    {
+     "q": "The ages of 20 students: 14 (3), 15 (6), 16 (7), 17 (4). Find the median age.",
+     "a": "Cumulative: 14 → 3; 15 → 9; 16 → 16; 17 → 20\nn = 20: median = average of the 10th and 11th values — both are in the 16 group\nMedian = **16 years**"
+    },
+    {
+     "q": "The marks of 10 students have a mean of 60. Another group of 15 students has a mean of 70. Find the combined mean.",
+     "a": "Combined mean = (10 × 60 + 15 × 70)/25\n= (600 + 1050)/25 = 1650/25 = **66**"
+    },
+    {
+     "q": "Class 0–10 (f = 4), 10–20 (f = 10), 20–30 (f = 16), 30–40 (f = 8), 40–50 (f = 2). Find the mean.",
+     "a": "Mid-points: 5, 15, 25, 35, 45\nΣf = 40; Σfx = 20 + 150 + 400 + 280 + 90 = 940\nx̄ = 940/40 = **23.5**"
+    },
+    {
+     "q": "For the same data, find the modal class and estimate the mode.",
+     "a": "Modal class = 20–30 (f = 16). L = 20, Δ₁ = 16 − 10 = 6, Δ₂ = 16 − 8 = 8, c = 10\nMode = 20 + [6/(6 + 8)] × 10 = 20 + 4.29 = **24.29**"
     }
    ],
-   "tip": "Always order the data before finding the median."
+   "tip": "For a frequency table, always compute Σf and Σfx as separate columns first. For the median of an even number of values, average the two middle values — don't just pick one."
   },
   "Measures of Dispersion": {
-   "intro": "Measures of dispersion show how spread out the data is.",
+   "intro": "**Dispersion** (or spread) tells you how scattered the data are around the average. Two classes can have the same mean score yet very different spreads. The measures you need are the **range**, **interquartile range**, **mean deviation**, **variance** and **standard deviation**.",
    "svg": "",
    "sections": [
     {
-     "h": "Common measures",
+     "h": "1. Range and interquartile range",
      "items": [
-      "**Range = largest − smallest.**",
-      "**Interquartile range = Q₃ − Q₁.**",
-      "**Variance = Σ(x − x̄)² / n**, or Σfx²/Σf − x̄².",
-      "**Standard deviation = √variance.**",
-      "Mean deviation = Σ|x − x̄| / n."
+      "**Range = largest value − smallest value.** It is quick, but one extreme value can distort it.",
+      "**Quartiles** split ordered data into four equal parts: **Q₁** (lower quartile, 25% point), **Q₂** (median), **Q₃** (upper quartile, 75% point).",
+      "**Interquartile range IQR = Q₃ − Q₁** — the spread of the middle 50% of the data, unaffected by outliers.",
+      "**Semi-interquartile range = (Q₃ − Q₁)/2.**",
+      "**Percentile range** 10th–90th = P₉₀ − P₁₀.",
+      "**Example: 2, 4, 5, 7, 8, 10, 12, 15.** Range = 15 − 2 = **13**. Lower half: 2, 4, 5, 7 → Q₁ = (4 + 5)/2 = 4.5. Upper half: 8, 10, 12, 15 → Q₃ = (10 + 12)/2 = 11. IQR = 11 − 4.5 = **6.5**."
      ]
     },
     {
-     "h": "Meaning",
+     "h": "2. Mean deviation",
      "items": [
-      "A small standard deviation means data is close to the mean; a large one means data is widely spread."
+      "**Mean deviation = Σ|x − x̄| / n** (ungrouped) or **Σf|x − x̄| / Σf** (frequency table). Take the absolute value, ignoring signs.",
+      "**Example: 3, 5, 7, 9, 11.** x̄ = 7. Deviations: 4, 2, 0, 2, 4 → sum = 12. Mean deviation = 12/5 = **2.4**."
+     ]
+    },
+    {
+     "h": "3. Variance and standard deviation",
+     "items": [
+      "**Variance σ² = Σ(x − x̄)² / n** — the average of the squared deviations. **Standard deviation σ = √variance.**",
+      "**Equivalent computing formula: σ² = Σx²/n − x̄²** (mean of the squares minus the square of the mean).",
+      "**For a frequency table: σ² = Σf(x − x̄)²/Σf = Σfx²/Σf − (Σfx/Σf)².**",
+      "**Worked example: 2, 4, 4, 4, 5, 5, 7, 9.**\nn = 8, Σx = 40, x̄ = 5\nDeviations (x − 5): −3, −1, −1, −1, 0, 0, 2, 4\nSquares: 9, 1, 1, 1, 0, 0, 4, 16 → sum = 32\nVariance = 32/8 = **4**; standard deviation = √4 = **2**.",
+      "**Worked example with a table:** x = 1, 2, 3 with f = 2, 5, 3.\nΣf = 10; Σfx = 2 + 10 + 9 = 21 → x̄ = 2.1\nΣfx² = 2(1) + 5(4) + 3(9) = 2 + 20 + 27 = 49\nVariance = 49/10 − (2.1)² = 4.9 − 4.41 = **0.49**; σ = **0.7**."
+     ]
+    },
+    {
+     "h": "4. Effects of transforming data",
+     "items": [
+      "Adding a constant k to every value: the mean changes by k, but the **range, IQR, variance and standard deviation do NOT change.**",
+      "Multiplying every value by k: the mean is multiplied by k, the standard deviation by |k|, and the variance by k².",
+      "**Example: data have mean 20 and standard deviation 4. After the transformation y = 3x + 5:** new mean = 3(20) + 5 = **65**; new standard deviation = 3 × 4 = **12**."
+     ]
+    },
+    {
+     "h": "5. Interpreting spread",
+     "items": [
+      "A **small** standard deviation means the values cluster tightly about the mean (consistent). A **large** one means they are widely scattered.",
+      "To compare two data sets with different means, use the **coefficient of variation = (σ / x̄) × 100%**."
      ]
     }
    ],
    "examples": [
     {
-     "q": "Find the variance of 2, 4, 6.",
-     "a": "Mean 4. (4 + 0 + 4)/3 = 8/3, **variance ≈ 2.67**"
+     "q": "Find the range and mean deviation of 4, 8, 6, 10, 12.",
+     "a": "Range = 12 − 4 = **8**\nx̄ = 40/5 = 8\n|x − x̄|: 4, 0, 2, 2, 4 → sum = 12\nMean deviation = 12/5 = **2.4**"
     },
     {
-     "q": "Find the range of 7, 12, 3, 19.",
-     "a": "19 − 3 = **16**"
+     "q": "Calculate the variance and standard deviation of 1, 3, 5, 7, 9.",
+     "a": "x̄ = 25/5 = 5\n(x − x̄)²: 16, 4, 0, 4, 16 → sum = 40\nVariance = 40/5 = **8**\nSD = √8 = **2.83**"
+    },
+    {
+     "q": "Using the formula σ² = Σx²/n − x̄², find the variance of 2, 3, 5, 6, 9.",
+     "a": "n = 5; Σx = 25; x̄ = 5\nΣx² = 4 + 9 + 25 + 36 + 81 = 155\nVariance = 155/5 − 25 = 31 − 25 = **6**"
+    },
+    {
+     "q": "The standard deviation of a set of marks is 5. Each mark is increased by 10. What is the new standard deviation?",
+     "a": "Adding a constant does not change the spread.\nNew standard deviation = **5**"
+    },
+    {
+     "q": "If every value in a data set is doubled and the original variance was 9, find the new variance.",
+     "a": "New variance = 2² × 9 = **36**"
+    },
+    {
+     "q": "Find the interquartile range of 3, 5, 7, 8, 12, 14, 15, 18, 21 (n = 9).",
+     "a": "Median = 5th value = 12\nLower half: 3, 5, 7, 8 → Q₁ = (5 + 7)/2 = 6\nUpper half: 14, 15, 18, 21 → Q₃ = (15 + 18)/2 = 16.5\nIQR = 16.5 − 6 = **10.5**"
+    },
+    {
+     "q": "A set of data has mean 50 and standard deviation 10. Find the coefficient of variation.",
+     "a": "CV = (10/50) × 100% = **20%**"
     }
    ],
-   "tip": "Standard deviation has the same unit as the data; variance does not."
+   "tip": "Variance is in squared units; standard deviation is in the original units. Remember the shortcut: variance = (mean of squares) − (square of the mean)."
   },
   "Permutation and Combination": {
-   "intro": "Permutation counts arrangements where order matters; combination counts selections where it does not.",
+   "intro": "**Permutation and combination** are counting techniques. Use a **permutation** when the **order** of selection matters (arranging, ranking, codes) and a **combination** when order does **not** matter (choosing a team, committee or hand of cards).",
    "svg": "",
    "sections": [
     {
-     "h": "Factorial",
+     "h": "1. The fundamental counting principles",
      "items": [
-      "n! = n × (n − 1) × … × 1, and 0! = 1."
+      "**Multiplication principle:** if one task can be done in m ways and a second in n ways, then both together can be done in **m × n** ways.",
+      "**Addition principle:** if a task can be done in m ways OR in n ways (not both), the total is **m + n** ways.",
+      "**Example: 3 shirts and 4 trousers** give 3 × 4 = **12 outfits**."
      ]
     },
     {
-     "h": "Formulas",
+     "h": "2. Factorials",
      "items": [
-      "**Permutation: ⁿPᵣ = n! / (n − r)!**",
-      "**Combination: ⁿCᵣ = n! / [r!(n − r)!]**",
-      "Arrangements with repeated items: **n! / (p! q!)**",
-      "Circular arrangements of n people: **(n − 1)!**"
+      "**n! = n × (n − 1) × (n − 2) × … × 2 × 1.** By definition **0! = 1.**",
+      "5! = 120; 6! = 720; 7! = 5,040. n! = n × (n − 1)!.",
+      "**Simplifying:** 8!/6! = 8 × 7 = 56. 10!/(7! × 3!) = (10 × 9 × 8)/(3 × 2 × 1) = 120."
      ]
     },
     {
-     "h": "How to decide",
+     "h": "3. Permutations (order matters)",
      "items": [
-      "Words like \"arrange\", \"order\", \"line up\" → permutation.",
-      "Words like \"choose\", \"select\", \"committee\" → combination."
+      "**Arranging n different objects in a line: n! ways.**",
+      "**Selecting and arranging r objects from n: ⁿPr = n!/(n − r)!** = n(n − 1)(n − 2)… (r factors).",
+      "**Example: ⁷P₃** = 7 × 6 × 5 = **210**. **Example:** the number of ways to award 1st, 2nd and 3rd prizes among 10 people = ¹⁰P₃ = 10 × 9 × 8 = **720**.",
+      "**Arrangements with repeated letters:** n!/(p! q! …), where p, q … are the numbers of identical items.",
+      "**Example: arrangements of the letters of 'BANANA'** (6 letters, A three times, N twice) = 6!/(3! × 2!) = 720/12 = **60**.",
+      "**Circular arrangements of n objects: (n − 1)!** ways.",
+      "**Items that must stay together:** treat the group as one object, arrange, then multiply by the internal arrangements of the group."
+     ]
+    },
+    {
+     "h": "4. Combinations (order does not matter)",
+     "items": [
+      "**ⁿCr = n!/[r!(n − r)!] = ⁿPr / r!.** Also written (n over r).",
+      "**Example: ⁷C₃** = 7!/(3! × 4!) = (7 × 6 × 5)/(3 × 2 × 1) = **35**.",
+      "**Properties:** ⁿCr = ⁿCₙ₋ᵣ; ⁿC₀ = ⁿCₙ = 1; ⁿC₁ = n. Example: ¹⁰C₈ = ¹⁰C₂ = 45.",
+      "**Committee with conditions:** choose each sub-group separately then multiply. **Example: a committee of 4 from 5 men and 3 women, with exactly 2 women:** ³C₂ × ⁵C₂ = 3 × 10 = **30**.",
+      "**'At least' problems:** add the cases, or use the complement (total − unwanted).",
+      "**Example: choose 3 from 6 people with at least 1 woman when there are 2 women and 4 men.** Total = ⁶C₃ = 20; no woman = ⁴C₃ = 4; at least one woman = 20 − 4 = **16**."
+     ]
+    },
+    {
+     "h": "5. Choosing between P and C",
+     "items": [
+      "Ask: **if I swap two chosen items, do I get a different outcome?** If yes → permutation (arranging, ranking, passwords, positions). If no → combination (teams, groups, hands, subsets).",
+      "Key words: **arrange, order, rank, line up, seat, form numbers/words** → permutation. **Select, choose, pick, committee, team, group** → combination."
      ]
     }
    ],
    "examples": [
     {
-     "q": "In how many ways can the letters of MATHS be arranged?",
-     "a": "5! = **120**"
+     "q": "Evaluate ⁸P₂ and ⁸C₂.",
+     "a": "⁸P₂ = 8 × 7 = **56**\n⁸C₂ = 56/2! = **28**"
     },
     {
-     "q": "A committee of 3 is chosen from 8 people. How many ways?",
-     "a": "⁸C₃ = 8×7×6 / 6 = **56**"
+     "q": "In how many ways can 5 students be seated in a row?",
+     "a": "5! = 5 × 4 × 3 × 2 × 1 = **120 ways**"
+    },
+    {
+     "q": "How many different 3-digit numbers can be formed from the digits 1, 2, 3, 4, 5 if no digit is repeated?",
+     "a": "⁵P₃ = 5 × 4 × 3 = **60**"
+    },
+    {
+     "q": "How many different arrangements of the letters of the word 'MATHEMATICS' are there?",
+     "a": "11 letters: M ×2, A ×2, T ×2, H, E, I, C, S\n= 11!/(2! × 2! × 2!) = 39,916,800/8 = **4,989,600**"
+    },
+    {
+     "q": "A committee of 3 is to be chosen from 7 people. How many ways?",
+     "a": "⁷C₃ = (7 × 6 × 5)/(3 × 2 × 1) = **35**"
+    },
+    {
+     "q": "From 6 boys and 4 girls, a team of 5 is chosen with exactly 3 boys. In how many ways?",
+     "a": "⁶C₃ × ⁴C₂ = 20 × 6 = **120**"
+    },
+    {
+     "q": "In how many ways can 4 people sit at a round table?",
+     "a": "(4 − 1)! = 3! = **6**"
+    },
+    {
+     "q": "How many ways can the letters of 'SCHOOL' be arranged so that the two O's are together?",
+     "a": "Treat 'OO' as one block: now 5 objects (S, C, H, L, [OO]) → 5! = 120 arrangements\nThe two O's are identical, so no extra internal factor.\n**120 ways**"
     }
    ],
-   "tip": "For \"at least\" problems, add the separate cases or subtract from the total."
+   "tip": "Write the formula first (ⁿPr or ⁿCr) and cancel the factorials before multiplying. For 'at least' questions, try 'total minus the opposite case' — it is usually shorter."
   },
   "Probability": {
-   "intro": "Probability measures how likely an event is, from 0 (impossible) to 1 (certain).",
+   "intro": "**Probability** measures how likely an event is, on a scale from 0 (impossible) to 1 (certain). Questions use equally likely outcomes (coins, dice, cards, bags of balls) and the addition and multiplication rules.",
    "svg": "",
    "sections": [
     {
-     "h": "Basics",
+     "h": "1. Basic definitions",
      "items": [
-      "**P(E) = number of favourable outcomes / total outcomes.**",
-      "P(not E) = 1 − P(E)."
+      "**Probability of an event E = (number of favourable outcomes) / (total number of equally likely outcomes)**, written P(E) = n(E)/n(S).",
+      "**0 ≤ P(E) ≤ 1.** P(E) = 0 means impossible; P(E) = 1 means certain.",
+      "**Complement:** the probability that E does **not** happen is **P(E′) = 1 − P(E).**",
+      "**Sample space S:** the list of all possible outcomes. A fair die: S = {1, 2, 3, 4, 5, 6}. Two coins: S = {HH, HT, TH, TT}. Two dice have 36 outcomes.",
+      "**Example: P(even number on a die)** = 3/6 = **1/2**. **P(prime)** = {2, 3, 5} → **1/2**.",
+      "**Experimental (relative frequency) probability = (number of times the event occurred)/(total number of trials).** The expected number of times in n trials = n × P(E)."
      ]
     },
     {
-     "h": "Rules",
+     "h": "2. Mutually exclusive events and the addition rule",
      "items": [
-      "**Mutually exclusive**: P(A or B) = P(A) + P(B).",
-      "General: **P(A ∪ B) = P(A) + P(B) − P(A ∩ B).**",
-      "**Independent**: P(A and B) = P(A) × P(B).",
-      "**Conditional**: P(A | B) = P(A ∩ B) / P(B)."
+      "**Mutually exclusive events cannot happen together.** For them **P(A or B) = P(A) + P(B).**",
+      "**General addition rule (events that can overlap): P(A ∪ B) = P(A) + P(B) − P(A ∩ B).**",
+      "**Example: a card is drawn from 52.** P(king or heart) = 4/52 + 13/52 − 1/52 = 16/52 = **4/13**.",
+      "**Exhaustive events:** together they cover all outcomes, so their probabilities sum to 1."
      ]
     },
     {
-     "h": "Without replacement",
+     "h": "3. Independent events and the multiplication rule",
      "items": [
-      "The total reduces after each pick, so the second probability changes."
+      "**Independent events:** one does not affect the other (e.g. flipping a coin twice, or drawing **with replacement**).",
+      "**For independent events: P(A and B) = P(A) × P(B).**",
+      "**Example: P(head and then a 6)** = 1/2 × 1/6 = **1/12**. **P(three heads in three tosses)** = (1/2)³ = **1/8**.",
+      "**'At least one' trick:** P(at least one) = 1 − P(none). Example: P(at least one head in 3 tosses) = 1 − 1/8 = **7/8**."
+     ]
+    },
+    {
+     "h": "4. Dependent events and conditional probability",
+     "items": [
+      "**Dependent events:** the outcome of the first changes the probabilities for the second (drawing **without replacement**).",
+      "**P(A and B) = P(A) × P(B given A).** **Conditional probability: P(B | A) = P(A ∩ B)/P(A).**",
+      "**Example: a bag has 5 red and 3 blue balls; two are drawn without replacement.**\nP(both red) = 5/8 × 4/7 = 20/56 = **5/14**\nP(red then blue) = 5/8 × 3/7 = **15/56**",
+      "**Tree diagrams:** multiply along the branches to find the probability of a combined outcome; add the results of different paths that give the same final event."
+     ]
+    },
+    {
+     "h": "5. Two dice and counting methods",
+     "items": [
+      "**Sum of two dice:** the 36 outcomes give sum 7 in 6 ways ((1,6), (2,5), (3,4), (4,3), (5,2), (6,1)); sum 2 or 12 in 1 way; sum 6 or 8 in 5 ways.",
+      "**Example: P(sum = 7)** = 6/36 = **1/6**; P(sum ≥ 10) = 6/36 = **1/6** (sums 10, 11, 12 occur 3 + 2 + 1 times).",
+      "**Using combinations:** P = (favourable selections)/(total selections). Example: a committee of 3 from 4 men and 3 women; P(all women) = ³C₃/⁷C₃ = 1/35."
      ]
     }
    ],
    "examples": [
     {
-     "q": "A fair die is thrown. Find P(even number).",
-     "a": "3/6 = **½**"
+     "q": "A fair die is thrown once. Find the probability of getting a number greater than 4.",
+     "a": "Favourable: 5 and 6 → 2 outcomes\nP = 2/6 = **1/3**"
     },
     {
-     "q": "A bag has 3 red and 2 blue balls. Two balls are drawn without replacement. Find P(both red).",
-     "a": "3/5 × 2/4 = **3/10**"
+     "q": "The probability that it rains tomorrow is 0.35. What is the probability that it does not rain?",
+     "a": "P(not rain) = 1 − 0.35 = **0.65**"
+    },
+    {
+     "q": "A bag contains 4 red, 5 green and 3 yellow balls. One ball is drawn. Find P(green or yellow).",
+     "a": "Total = 12; green or yellow = 8\nP = 8/12 = **2/3**"
+    },
+    {
+     "q": "Two coins are tossed. Find the probability of getting exactly one head.",
+     "a": "S = {HH, HT, TH, TT}; favourable: HT, TH\nP = 2/4 = **1/2**"
+    },
+    {
+     "q": "A bag has 6 red and 4 blue balls. Two are drawn one after the other without replacement. Find P(both blue).",
+     "a": "P = 4/10 × 3/9 = 12/90 = **2/15**"
+    },
+    {
+     "q": "The probability that Ade passes an exam is 0.7 and the probability that Bola passes is 0.6. Find P(both pass) and P(at least one passes), assuming independence.",
+     "a": "P(both) = 0.7 × 0.6 = **0.42**\nP(neither) = 0.3 × 0.4 = 0.12\nP(at least one) = 1 − 0.12 = **0.88**"
+    },
+    {
+     "q": "A card is drawn from a pack of 52. Find P(an ace or a spade).",
+     "a": "Aces: 4; spades: 13; ace of spades counted twice (1)\nP = (4 + 13 − 1)/52 = 16/52 = **4/13**"
+    },
+    {
+     "q": "Two dice are thrown. Find the probability that the sum is 9.",
+     "a": "Pairs giving 9: (3,6), (4,5), (5,4), (6,3) → 4 outcomes\nP = 4/36 = **1/9**"
     }
    ],
-   "tip": "Draw a tree diagram when events happen one after another."
+   "tip": "'And' usually means multiply and 'or' means add. For 'at least one', work out P(none) and subtract from 1. Decide whether a draw is with or without replacement before multiplying."
   }
  }
 }
