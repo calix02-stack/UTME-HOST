@@ -1107,6 +1107,15 @@
     .tp-topic.empty { opacity: .6; }
     .tp-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 16px; }
     .tp-footer { margin: 0 -16px; padding-top: 12px; }
+    .tp-count-top { padding: 4px 2px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; flex-shrink: 0; }
+    .tp-topic { padding: 13px 14px; }
+    .tp-topic:active { border-color: var(--tc, var(--green)); }
+    .tp-topic .tp-qs::after { content: " \203A"; font-size: 14px; }
+    /* Back + Home pair for full-page screens (AI Tutor, Support, Topic Practice) */
+    .nav-pair { display: flex; align-items: center; gap: 6px; }
+    .nav-pair .icon-btn.labeled { height: 36px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--card-bg); padding: 0 12px 0 7px; }
+    .nav-pair .icon-btn.labeled:active { background: var(--bg); }
+    .nav-pair .icon-btn.labeled.home { padding: 0 12px 0 10px; gap: 5px; }
 
     /* Topic practice: progress + question-count picker */
     .tp-row-main { flex: 1; min-width: 0; display: block; }
@@ -9328,6 +9337,15 @@ function __consumeViewChangeFlag() {
 // setView() itself already auto-submits an in-progress exam when leaving
 // it, and calls render() at its end, so goBack() doesn't need to repeat
 // either.
+// Back + Home pair used on full-page screens (AI Tutor, Support, Topic Practice).
+// "Back" returns to the screen the person really came from; "Home" always goes to Home.
+function navPairHtml(backAction) {
+    return '<div class="nav-pair">' +
+        '<button class="icon-btn labeled" data-action="' + (backAction || 'nav-back') + '" aria-label="Back">' + svg('chevleft', 19) + '<span>Back</span></button>' +
+        '<button class="icon-btn labeled home" data-action="go-home" aria-label="Home">' + svg('home', 16) + '<span>Home</span></button>' +
+        '</div>';
+}
+
 function goBack(fallbackView) {
     const prev = __viewHistory.pop();
     __suppressHistoryPush = true;
@@ -18065,21 +18083,18 @@ function renderApp() {
               '<div class="topbar-center"></div><div class="topbar-right"></div>'
             : isAiAssistant
             ? '<div class="topbar-left">' +
-              '<button class="icon-btn labeled" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '<span>Back</span></button>' +
-              '<span class="page-name" style="margin-left:2px">MyUTME AI Tutor</span>' +
+              navPairHtml() +
               '</div>' +
               '<div class="topbar-center"></div><div class="topbar-right">' +
               '<button class="icon-btn labeled" data-action="ai-toggle-history" aria-label="Chat history">' + svg('menu', 17) + '<span>History</span></button>' +
               '</div>'
             : isTopicFlow
             ? '<div class="topbar-left">' +
-              '<button class="icon-btn tp-back" data-action="' + (state.view === 'topic-list' ? 'topic-list-back' : 'nav-back') + '" aria-label="Back">' + svg('chevleft', 22) + '</button>' +
-              '<span class="page-name tp-title">' + (state.view === 'topic-list' ? esc((SUBJECTS.find(function(x) { return x.id === state.topicSubject; }) || {}).name || 'Topics') : 'Topic Practice') + '</span>' +
+              navPairHtml(state.view === 'topic-list' ? 'topic-list-back' : 'nav-back') +
               '</div><div class="topbar-center"></div><div class="topbar-right"></div>'
             : isSupportChat
             ? '<div class="topbar-left">' +
-              '<button class="icon-btn labeled" data-action="set-view" data-view="home" aria-label="Back to Home">' + svg('chevleft', 19) + '<span>Back</span></button>' +
-              '<span class="page-name" style="margin-left:2px">Support</span>' +
+              navPairHtml() +
               '</div>' +
               '<div class="topbar-center"></div><div class="topbar-right">' +
               (isLoggedIn ? '<button class="icon-btn labeled wa" data-action="open-support-whatsapp" aria-label="Chat on WhatsApp">' + svg('whatsapp', 18) + '<span>WhatsApp</span></button>' : '') +
@@ -19349,8 +19364,8 @@ function renderTopicsPicker() {
     return (
         '<div class="tp-page">' +
         '<div class="picker-scroll tp-scroll">' +
-        '<h2 class="tp-h1">Choose a subject</h2>' +
-        '<p class="tp-sub">Then pick a topic and drill it one question set at a time.</p>' +
+        '<h2 class="tp-h1">Topic Practice</h2>' +
+        '<p class="tp-sub">Pick a subject, then tap a topic to start.</p>' +
         '<div class="tp-list">' + rows + '</div>' +
         '</div>' +
         '</div>'
@@ -19399,30 +19414,20 @@ function renderTopicsListPage() {
         });
         body += '</div>';
     }
-    const ready = !!(state.topicSubject && state.topicId);
     let countHtml = '';
-    let effCount = 0;
-    if (ready) {
-        const pickedTopic = (state.topicsList || []).find(function(t) { return t.id === state.topicId; });
-        const avail = (pickedTopic && pickedTopic.question_count) || 0;
+    if (state.topicsLoaded && state.topicsSubjectId === state.topicSubject && state.topicsList.length) {
         const wantAll = state.topicCount === 'all';
         const wanted = parseInt(state.topicCount, 10) || 20;
-        effCount = wantAll ? avail : Math.min(wanted, avail);
         let chips = '';
         TOPIC_COUNT_CHOICES.forEach(function(c) {
-            if (c >= avail) return;
-            chips += '<button class="tp-chip' + (!wantAll && effCount === c ? ' on' : '') + '" data-action="topic-set-count" data-count="' + c + '">' + c + '</button>';
+            chips += '<button class="tp-chip' + (!wantAll && wanted === c ? ' on' : '') + '" data-action="topic-set-count" data-count="' + c + '">' + c + '</button>';
         });
-        chips += '<button class="tp-chip' + ((wantAll || effCount === avail) ? ' on' : '') + '" data-action="topic-set-count" data-count="all">All (' + avail + ')</button>';
-        countHtml = '<div class="tp-count"><span class="tp-count-label">How many questions?</span><div class="tp-count-chips">' + chips + '</div></div>';
+        chips += '<button class="tp-chip' + (wantAll ? ' on' : '') + '" data-action="topic-set-count" data-count="all">All</button>';
+        countHtml = '<div class="tp-count tp-count-top"><span class="tp-count-label">Questions per practice \u00b7 tap any topic to start</span><div class="tp-count-chips">' + chips + '</div></div>';
     }
     return (
-        '<div class="tp-page">' +
+        '<div class="tp-page">' + countHtml +
         '<div class="picker-scroll tp-scroll">' + body + '</div>' +
-        '<div class="picker-footer tp-footer">' + countHtml +
-        '<button class="btn ' + (ready ? "btn-green" : "btn-outline") + '" data-action="start-topic-practice"' + (
-            ready ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>' + (ready ? 'Start Topic Practice · ' + effCount + ' Qs' : 'Select a topic to start') + '</button>' +
-        '</div>' +
         '</div>'
     );
 }
@@ -26822,6 +26827,12 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'go-home') {
+        __viewHistory.length = 0;
+        setView('home');
+        return;
+    }
+
     if (action === 'exam-away-submit') {
         state.showExamAwayModal = false;
         autoSubmitActiveExam();
@@ -28199,7 +28210,8 @@ document.addEventListener('click', function(e) {
             return;
         }
         state.topicId = pickedId;
-        render();
+        // One tap = start. The question count is chosen with the chips at the top of the list.
+        startTopicPractice();
         return;
     }
 
@@ -31722,7 +31734,14 @@ async function init() {
     // the first render — and whatever the person taps first — a head
     // start in that queue removes most of that contention, without
     // changing what the reconcile itself actually does.
-    setTimeout(function() {
+    // Reusable so it can also run when the app comes back to the foreground (an installed app
+    // can stay open in the background for days, so "on every open" alone left new questions
+    // waiting until a full restart).
+    let __reconcileRunning = false;
+    function runSubjectReconcile() {
+        if (__reconcileRunning) return;
+        __reconcileRunning = true;
+        setTimeout(function() { __reconcileRunning = false; }, 25000);
         const subjectIds = SUBJECTS.map(function(s) { return s.id; });
         if (window.OfflineDB && typeof window.OfflineDB.reconcileAllSubjectFiles === 'function') {
             withNetworkTimeout(window.OfflineDB.reconcileAllSubjectFiles(subjectIds), 20000, 'Subject file reconcile')
@@ -31740,17 +31759,27 @@ async function init() {
                         loadAllQuestionsForAdmin();
                         loadAllQuestionsCountOffline();
                     }
+                    __reconcileRunning = false;
+                    if (state.view === 'topic-list') state.topicsLoaded = false;
                     render();
                 })
                 .catch(function(err) {
                     // Timed out or crashed — never let this take the app
                     // down or hold anything up; just try again next open.
+                    __reconcileRunning = false;
                     console.warn('Subject file reconcile did not complete:', err);
                 });
         } else {
             console.warn('window.OfflineDB.reconcileAllSubjectFiles is not defined — skipping subject file reconcile.');
         }
-    }, 3000);
+    }
+    setTimeout(runSubjectReconcile, 3000);
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState !== 'visible') return;
+        const last = parseInt(storage.get('lastSubjectFileSync') || '0', 10) || 0;
+        if (Date.now() - last > 60000) runSubjectReconcile();
+    });
+    window.addEventListener('online', function() { runSubjectReconcile(); });
 
     // Check for expired users on init and periodically
     await checkAndDeactivateExpiredUsers();

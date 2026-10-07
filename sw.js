@@ -1,4 +1,4 @@
-// MyUTME service worker (v24 — topic progress + question-count picker + 249 new Physics questions; v14 notes below) — always loads the NEWEST app, still works offline.
+// MyUTME service worker (v27 — question files now network-first; was v24 — topic progress + question-count picker + 249 new Physics questions; v14 notes below) — always loads the NEWEST app, still works offline.
 //
 // WHAT CHANGED vs v13:
 //  - Cache name bumped to v14 so all v13 data is deleted on activate and everyone gets the new
@@ -13,7 +13,9 @@
 //  - The saved copy is used ONLY if the network fails or takes longer than PAGE_TIMEOUT_MS.
 //  - Question data files keep the "instant + refresh in background" behaviour (good for offline use),
 //    but the background refresh now also bypasses the HTTP cache.
-const CACHE_NAME = "myutme-cache-v26";
+// v27: question files (questions-*.json) are now NETWORK-FIRST, so newly uploaded questions show
+// up straight away — you never need to edit this file just to publish questions again.
+const CACHE_NAME = "myutme-cache-v27";
 
 const APP_SHELL = [
   "./",
@@ -27,6 +29,8 @@ const APP_SHELL = [
 const FETCH_TIMEOUT_MS = 8000;
 // Only fall back to the saved page if the network has not answered in this long (very slow / no internet).
 const PAGE_TIMEOUT_MS = 12000;
+// Question files are big, so give them a little longer before falling back to the saved copy.
+const QUESTION_TIMEOUT_MS = 15000;
 
 // fetch that skips the browser's HTTP cache, with a timeout
 function freshFetch(request, timeoutMs = FETCH_TIMEOUT_MS) {
@@ -101,26 +105,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Question data: show saved copy instantly, refresh in the background (fresh, not from HTTP cache).
+  // Question data: NETWORK FIRST (always the newest file), saved copy only if offline / very slow.
+  // The cache key ignores the ?v=timestamp the app adds, so only ONE copy per subject is kept
+  // (before, every visit stored another ~900 KB copy under a new ?v= address).
   if (isQuestionDataFile) {
+    const cacheKey = new Request(url.origin + url.pathname);
     event.respondWith(
-      caches.match(event.request, { ignoreSearch: true }).then((cached) => {
-        const revalidate = freshFetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const clone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-            }
-            return networkResponse;
-          })
-          .catch(() => null);
-
-        if (cached) {
-          event.waitUntil(revalidate);
-          return cached;
-        }
-        return revalidate.then((res) => res || Response.error());
-      })
+      freshFetch(event.request, QUESTION_TIMEOUT_MS)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(cacheKey, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(cacheKey).then((cached) => cached || Response.error()))
     );
     return;
   }
