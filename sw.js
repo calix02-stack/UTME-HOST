@@ -13,7 +13,7 @@
 //  - The saved copy is used ONLY if the network fails or takes longer than PAGE_TIMEOUT_MS.
 //  - Question data files keep the "instant + refresh in background" behaviour (good for offline use),
 //    but the background refresh now also bypasses the HTTP cache.
-const CACHE_NAME = "myutme-cache-v25";
+const CACHE_NAME = "myutme-cache-v26";
 
 const APP_SHELL = [
   "./",
