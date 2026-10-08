@@ -1,3 +1,5 @@
+/*! MyUTME service worker · enzo-ai
+ * Built by Enzo · © 2026 Enzo. All rights reserved. */
 // MyUTME service worker (v27 — question files now network-first; was v24 — topic progress + question-count picker + 249 new Physics questions; v14 notes below) — always loads the NEWEST app, still works offline.
 //
 // WHAT CHANGED vs v13:
@@ -15,7 +17,7 @@
 //    but the background refresh now also bypasses the HTTP cache.
 // v27: question files (questions-*.json) are now NETWORK-FIRST, so newly uploaded questions show
 // up straight away — you never need to edit this file just to publish questions again.
-const CACHE_NAME = "myutme-cache-v38";
+const CACHE_NAME = "myutme-cache-v42";
 
 const APP_SHELL = [
   "./",

@@ -187,6 +187,9 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="MyUTME" />
 <meta property="og:site_name" content="MyUTME" />
+<meta name="author" content="Enzo" />
+<meta name="application-name" content="MyUTME · Enzo AI" />
+<meta name="copyright" content="© 2026 Enzo. All rights reserved." />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="https://myutme.com.ng/" />
 <script type="application/ld+json">
@@ -205,7 +208,7 @@
   "name": "MyUTME - JAMB CBT Practice App",
   "applicationCategory": "EducationalApplication",
   "operatingSystem": "Web, Android, iOS",
-  "description": "Free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions, and get help from an AI Tutor.",
+  "description": "Free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions, and get help from an Enzo AI.",
   "offers": {
     "@type": "Offer",
     "price": "0",
@@ -1334,7 +1337,7 @@
     .tp-topic { padding: 13px 14px; }
     .tp-topic:active { border-color: var(--tc, var(--green)); }
     .tp-topic .tp-qs::after { content: " \203A"; font-size: 14px; }
-    /* Back + Home pair for full-page screens (AI Tutor, Support, Topic Practice) */
+    /* Back + Home pair for full-page screens (Enzo AI, Support, Topic Practice) */
     .nav-pair { display: flex; align-items: center; gap: 6px; }
     .nav-pair .icon-btn.labeled { height: 36px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--card-bg); padding: 0 12px 0 7px; }
     .nav-pair .icon-btn.labeled:active { background: var(--bg); }
@@ -6995,7 +6998,7 @@
    was leaving the exam-shell shorter than the actual visible area,
    squeezing the scrollable question area more than necessary. */
 .view-exam { max-height: calc(var(--app-vh, 100vh) - 46px) !important; }
-/* AI Tutor and Support both hide the bottom tab bar (see isFullPageChat in
+/* Enzo AI and Support both hide the bottom tab bar (see isFullPageChat in
    the render loop) for a fullscreen, immersive chat layout — so, same
    reasoning as .view-exam above, neither must have 58px reserved for a
    bar that isn't there. Without this override the chat page was left
@@ -7035,6 +7038,17 @@
 .ai-session-item .asi-del{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--faint);flex-shrink:0}
 .ai-session-item .asi-del:hover{background:#fce4ec;color:var(--danger)}
 .ai-new-chat-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;margin:10px;border-radius:10px;background:var(--green);color:#fff;font-weight:600;font-size:12.5px;cursor:pointer}
+/* ===== enzo-ai signature look ===== */
+.enzo-orb{position:relative;width:64px;height:64px;border-radius:20px;background:linear-gradient(145deg,#0F6B3F,#0a4a2c);box-shadow:0 8px 24px rgba(15,107,63,.35);animation:enzoFloat 3.5s ease-in-out infinite;isolation:isolate}
+.enzo-orb::before{content:"";position:absolute;inset:-3px;border-radius:23px;background:conic-gradient(from 0deg,#E8C15A,#0F6B3F,#E8C15A);z-index:-1;animation:enzoSpin 6s linear infinite}
+.enzo-orb span{font:800 32px/1 Georgia,serif;color:#E8C15A;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+@keyframes enzoSpin{to{transform:rotate(360deg)}}
+@keyframes enzoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.enzo-tag b{color:var(--green);font-weight:800}
+.enzo-made{margin-top:6px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.chat-avatar.enzo-av{background:linear-gradient(145deg,#0F6B3F,#0a4a2c)!important;color:#E8C15A!important;font:800 12px/1 Georgia,serif}
+.enzo-thinking{font-size:11px;color:var(--muted);font-style:italic;margin:0 6px}
+.ai-chat-textarea:focus{border-color:#E8C15A!important;box-shadow:0 0 0 3px rgba(232,193,90,.25)!important}
 .ai-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;gap:10px}
 .ai-empty-state .aie-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(145deg,var(--green) 0%,var(--green-dark) 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(15,107,63,0.28)}
 .ai-empty-state .aie-icon svg{color:#fff}
@@ -7307,7 +7321,7 @@ html, body { overscroll-behavior: none !important; }
 <div id="root"><div class="boot-spinner" aria-label="Loading"></div></div>
 <noscript>
   <h1>MyUTME – JAMB CBT Practice App for UTME</h1>
-  <p>MyUTME is a free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions from previous years, and drill topics subject by subject — with an AI Tutor available anytime you're stuck. Please enable JavaScript in your browser to use MyUTME.</p>
+  <p>MyUTME is a free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions from previous years, and drill topics subject by subject — with an Enzo AI available anytime you're stuck. Please enable JavaScript in your browser to use MyUTME.</p>
 </noscript>
 
 <div id="pwa-ios-tip">
@@ -7738,6 +7752,9 @@ const SUPPORT_BOT_NAME = "Support";
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/GwSJGQCaWbL0Hd4hw6Pu8W";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
+const AI_NAME = "Enzo AI";
+const AI_CREATOR = "Enzo";
+const AI_SHARE_URL = "https://myutme.com.ng/enzo-ai";
 const SEND_EMAIL_URL = SUPABASE_URL + "/functions/v1/Send-bulk-email";
 const ADMIN_GET_USERS_URL = SUPABASE_URL + "/functions/v1/admin-get-users";
 const ADMIN_WHATSAPP_NUMBER = "2347072853151";
@@ -9564,7 +9581,7 @@ function __consumeViewChangeFlag() {
 // setView() itself already auto-submits an in-progress exam when leaving
 // it, and calls render() at its end, so goBack() doesn't need to repeat
 // either.
-// Back + Home pair used on full-page screens (AI Tutor, Support, Topic Practice).
+// Back + Home pair used on full-page screens (Enzo AI, Support, Topic Practice).
 // "Back" returns to the screen the person really came from; "Home" always goes to Home.
 function navPairHtml(backAction) {
     return '<div class="nav-pair">' +
@@ -11531,12 +11548,12 @@ function renderNewsComments() {
 // ============================================================
 //  AUTH FUNCTIONS
 // ============================================================
-// AI Tutor and Support Chat cache their data in memory (state.aiMessages,
+// Enzo AI and Support Chat cache their data in memory (state.aiMessages,
 // state.aiSessions, state.supportMessages, etc.) and only reload from the
 // server when their "*Loaded" flag is false. That flag was never reset on
 // login/logout, so on a shared device — or any time one account signs out
 // and a different account signs in during the same page session — the new
-// user could still see the previous user's cached AI Tutor / Support Chat
+// user could still see the previous user's cached Enzo AI / Support Chat
 // conversation until a hard refresh. This resets all of that per-user chat
 // state so each sign-in/sign-out starts clean and reloads fresh data.
 function resetUserScopedChatState() {
@@ -14710,7 +14727,7 @@ async function loadAiSessions() {
         state.aiSessionsLoaded = true;
 
         // Note: deliberately NOT auto-resuming the most recent session here.
-        // Every visit to the AI Tutor starts fresh (state.aiCurrentSessionId
+        // Every visit to the Enzo AI starts fresh (state.aiCurrentSessionId
         // is reset to null in setView) — old chats stay one tap away via
         // the history panel (switchAiSession).
         if (state.aiCurrentSessionId) {
@@ -14818,41 +14835,60 @@ function toggleAiVoiceRecording() {
     }
     const fieldEl = document.getElementById('ai-chat-input');
     const existing = (fieldEl ? fieldEl.value : (state.aiInput || '')).trim();
-    let finalText = existing ? existing + ' ' : '';
+    const baseText = existing ? existing + ' ' : '';
 
-    aiSpeechRecognition = new SR();
-    aiSpeechRecognition.lang = 'en-US';
-    aiSpeechRecognition.continuous = true;
-    aiSpeechRecognition.interimResults = true;
+    // Drop any older recognizer still winding down, and ignore its late events.
+    if (aiSpeechRecognition) { try { aiSpeechRecognition.onresult = aiSpeechRecognition.onend = aiSpeechRecognition.onerror = null; aiSpeechRecognition.abort(); } catch (e) {} }
+    const rec = new SR();
+    aiSpeechRecognition = rec;
+    rec.lang = 'en-US';
+    rec.continuous = true;
+    rec.interimResults = true;
 
-    aiSpeechRecognition.onresult = function(e) {
-        let interim = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-            const t = e.results[i][0].transcript;
-            if (e.results[i].isFinal) finalText += t + ' ';
-            else interim += t;
+    // Rebuild the whole sentence from the engine's full result list on EVERY event, instead of
+    // appending piece by piece. Android Chrome re-sends earlier results and even sends growing
+    // copies of the same phrase ("hello", "hello world", ...) — appending those is what made
+    // each word show up 2-3 times. Here a result that repeats or extends the previous one
+    // replaces it, so every word appears once.
+    rec.onresult = function(e) {
+        if (rec !== aiSpeechRecognition) return;
+        const norm = function(x) { return x.toLowerCase().replace(/\s+/g, ' ').trim(); };
+        const segs = [];
+        for (let i = 0; i < e.results.length; i++) {
+            const t = (e.results[i][0].transcript || '').replace(/\s+/g, ' ').trim();
+            if (!t) continue;
+            const prev = segs.length ? segs[segs.length - 1] : null;
+            if (prev) {
+                const a = norm(prev), b = norm(t);
+                if (b === a || a.indexOf(b) === 0) continue;           // repeat of what we already have
+                if (b.indexOf(a) === 0) { segs[segs.length - 1] = t; continue; } // longer version of it
+            }
+            segs.push(t);
         }
+        const text = baseText + segs.join(' ');
         const liveEl = document.getElementById('ai-chat-input');
         if (liveEl) {
-            liveEl.value = finalText + interim;
+            liveEl.value = text;
             liveEl.style.height = 'auto';
             const liveH = liveEl.scrollHeight;
             liveEl.style.height = Math.min(liveH, 160) + 'px';
             liveEl.style.overflowY = liveH > 160 ? 'auto' : 'hidden';
         }
-        state.aiInput = finalText + interim;
+        state.aiInput = text;
     };
-    aiSpeechRecognition.onerror = function() {
+    rec.onerror = function() {
+        if (rec !== aiSpeechRecognition) return;
         state.aiRecording = false;
         showToast('Could not hear you clearly. Please try again.', 'error');
         render();
     };
-    aiSpeechRecognition.onend = function() {
+    rec.onend = function() {
+        if (rec !== aiSpeechRecognition) return;
         state.aiRecording = false;
         render();
     };
     try {
-        aiSpeechRecognition.start();
+        rec.start();
         state.aiRecording = true;
         render();
     } catch (e) {
@@ -14865,6 +14901,34 @@ function buildDocMarker(name, dataUrl) { return '[[doc:' + name.replace(/[|[\]]/
 function stripChatMarkers(message) {
     return (message || '').replace(/\[\[img:[^\]]+\]\]/g, '').replace(/\[\[doc:[^|]*\|[^\]]+\]\]/g, '').trim();
 }
+// Guests (not logged in) have no account, so their AI chats are saved under an anonymous id kept on
+// their phone (same one the News likes use). Text only: images/documents are replaced by a short note
+// so the table stays small. Failures are ignored — saving must never get in the way of the chat.
+function saveGuestAiMessage(sessionId, sender, message) {
+    try {
+        if (state.authUser || typeof supabase === 'undefined' || !supabase) return;
+        var raw = message || '';
+        var text = stripChatMarkers(raw);
+        if (/\[\[doc:/.test(raw)) text = '[document attached] ' + text;
+        if (/\[\[img:/.test(raw)) text = '[image attached] ' + text;
+        text = text.trim().slice(0, 8000);
+        if (!text) return;
+        supabase.from('ai_guest_messages').insert([{ guest_id: newsGuestId(), session_id: String(sessionId || ''), sender: sender, message: text }]).then(function() {}, function() {});
+    } catch (e) {}
+}
+
+function shareAiAnswer(answer) {
+    let body = (answer || '').trim();
+    if (body.length > 900) body = body.slice(0, 900).replace(/\s+\S*$/, '') + '\u2026';
+    const text = '*' + AI_NAME + ' \u2014 free UTME study partner, built by ' + AI_CREATOR + '*\n\n' + body +
+        '\n\n\uD83D\uDC49 Ask ' + AI_NAME + ' anything, free: ' + AI_SHARE_URL;
+    if (navigator.share) {
+        navigator.share({ text: text }).catch(function() {});
+    } else {
+        window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+    }
+}
+
 function copyChatMessage(text) {
     if (!text) { showToast('Nothing to copy.', 'error'); return; }
     const done = function() { showToast('Copied to clipboard', 'success'); };
@@ -14933,7 +14997,7 @@ async function sendAiMessage(text, questionContext) {
     if (state.authUser) {
         const r0 = await supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'user', message: storedMsg }]).select().single();
         inserted = r0.data;
-    } else { inserted = { id: 'g' + Date.now(), sender: 'user', message: storedMsg, created_at: new Date().toISOString() }; }
+    } else { inserted = { id: 'g' + Date.now(), sender: 'user', message: storedMsg, created_at: new Date().toISOString() }; saveGuestAiMessage(sessionId, 'user', storedMsg); }
     if (inserted) state.aiMessages.push(inserted);
 
     const session = state.aiSessions.find(function(s) { return s.id === sessionId; });
@@ -14987,7 +15051,7 @@ async function sendAiMessage(text, questionContext) {
         if (state.authUser) {
             const r1 = await supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'ai', message: aiMessage }]).select().single();
             aiInserted = r1.data;
-        } else { aiInserted = { id: 'g' + Date.now() + 'a', sender: 'ai', message: aiMessage, created_at: new Date().toISOString() }; }
+        } else { aiInserted = { id: 'g' + Date.now() + 'a', sender: 'ai', message: aiMessage, created_at: new Date().toISOString() }; saveGuestAiMessage(sessionId, 'ai', aiMessage); }
         if (aiInserted) state.aiMessages.push(aiInserted);
     } catch (e) {
         showNetworkAwareError('Could not reach AI assistant. Please try again.', e);
@@ -15000,7 +15064,7 @@ async function sendAiMessage(text, questionContext) {
 //  "ASK AI" ON A QUESTION
 //  Lets the student jump straight from a question (once its answer/
 //  explanation is already visible — review screens, instant-result modes,
-//  revise mode) into the AI Tutor with that question pre-loaded and
+//  revise mode) into the Enzo AI with that question pre-loaded and
 //  auto-sent, so the AI can explain it in depth right away.
 //  Deliberately not offered on live/timed CBT or Mock/Live Exam questions
 //  while they're still being attempted, to avoid enabling cheating during
@@ -15041,7 +15105,7 @@ function askAiButtonHtml(item, subjectName, userAnswerIdx, opts) {
 
 function askAiAboutQuestion(item, subjectName, userAnswerIdx) {
     if (!state.authUser) { guestNeedsAccount(); return; }
-    if (!item) { showToast('Could not load this question for the AI Tutor.', 'error'); return; }
+    if (!item) { showToast('Could not load this question for the Enzo AI.', 'error'); return; }
 
     const letters = 'ABCDEFGH';
     const options = item.options || [];
@@ -15070,7 +15134,7 @@ function askAiAboutQuestion(item, subjectName, userAnswerIdx) {
     };
 
     // Remember exactly where this question lives so the "Back to question"
-    // button in the AI Tutor can return the student to it — the underlying
+    // button in the Enzo AI can return the student to it — the underlying
     // exam/topic/cbt/revise state (index, questions, answers) is untouched
     // by setView('ai-assistant'), so jumping back to state.aiReturnView is
     // safe. 'revise' was missing here, so asking AI about a question while
@@ -15288,13 +15352,13 @@ const SUPPORT_KB = [
     { k: ['result analysis', 'my results', 'past results', 'see my score', 'where is my result', 'exam history', 'my history', 'review my answer'],
       a: 'Every finished CBT, Past Questions, Mock, Novel or Topic attempt is saved in Account → Result Analysis. Use the filter tabs (CBT Full, CBT Single, Exam, Mock, Novel CBT, Topic) to find it.' },
     { k: ['offline', 'no internet', 'without internet', 'no network', 'data off', 'work offline', 'no data', 'without data', 'without network', 'without wifi', 'use offline'],
-      a: 'CBT, Past Questions and Novel (CBT) run from questions saved on your phone, so once you have logged in and opened the app online once, they work without internet.\nThese need internet: Mock exams, Leaderboard, AI Tutor, Support chat, payments/activation and new Study Materials.\nIf a mode has no questions offline: connect once, open the app, wait ~5 seconds on Home, then try again.' },
+      a: 'CBT, Past Questions and Novel (CBT) run from questions saved on your phone, so once you have logged in and opened the app online once, they work without internet.\nThese need internet: Mock exams, Leaderboard, Enzo AI, Support chat, payments/activation and new Study Materials.\nIf a mode has no questions offline: connect once, open the app, wait ~5 seconds on Home, then try again.' },
     { k: ['refresh', 'reload', '+version', 'update the app', 'new version', 'latest version', 'app version', 'old version', 'pull down'],
       a: 'Tap the ⟳ refresh button at the top of Home to reload the app. On the website you can also drag down from the top; the installed app uses the button only.\nYour version shows next to the logo (like v11). If it looks old, close the app fully and reopen it while online, then tap refresh.\nOffline, refresh just says there is no connection — nothing is broken.' },
     { k: ['install app', 'add to home screen', 'install the app', 'download app', 'app icon', 'home screen', 'install pwa', 'how to install'],
       a: 'Go to Account → Install App (it shows when your browser supports it).\n• iPhone (Safari): Share → Add to Home Screen\n• Android (Chrome): menu ⋮ → Install app / Add to Home screen\nThen open MyUTME from the new icon.' },
     { k: ['ai tutor', 'tutor', 'ask ai', 'study help'],
-      a: 'AI Tutor (bottom menu) is for study questions — explanations, solving problems and topics. It needs internet. I only handle app and account problems, so use AI Tutor for subject questions.' },
+      a: 'Enzo AI (bottom menu) is for study questions — explanations, solving problems and topics. It needs internet. I only handle app and account problems, so use Enzo AI for subject questions.' },
     { k: ['study circle', 'whatsapp group', 'whatsapp channel', 'join group', 'community'],
       a: 'Account → Study Circle has our WhatsApp group and channel links — tap it and join.' },
     { k: ['telegram', 'facebook', 'instagram', 'tiktok', 'social media', 'connect with us'],
@@ -15409,7 +15473,7 @@ function findSupportMemoryMatch(text) {
     return best;
 }
 
-// Support kept answering real subject questions like AI Tutor would.
+// Support kept answering real subject questions like Enzo AI would.
 // Only genuine study-content words are listed here; app words such as
 // "past questions" are handled by the knowledge base above, and a message
 // that describes a problem ("not loading", "error"...) is never a study question.
@@ -15462,7 +15526,7 @@ async function generateSmartSupportReply(userText) {
         'RULES:\n' +
         '- Answer ONLY using the KNOWLEDGE below and the account facts. Never invent features, prices, buttons, or account details.\n' +
         '- Be brief and practical: numbered steps when there are steps. No greetings, no "As an AI", no small talk.\n' +
-        '- Do not answer study/subject questions; say AI Tutor handles those.\n' +
+        '- Do not answer study/subject questions; say Enzo AI handles those.\n' +
         '- If the knowledge does not clearly cover the problem, or someone must check the account/payment/data, reply with exactly: [[ESCALATE]]\n\n' +
         'ACCOUNT FACTS: ' + ctx + '\n\nKNOWLEDGE:\n' + buildSupportKnowledge() +
         (recent ? '\n\nRECENT CHAT:\n' + recent : '') +
@@ -15526,7 +15590,7 @@ async function resolveSupportReply(msg, issueKey) {
     if (legacy) return finalizeSupportReply(legacy);
 
     if (looksLikeStudyQuestion(msg)) {
-        return { text: 'That looks like a study question rather than an app issue — AI Tutor (bottom menu) is the place for that. I handle payments, activation, login and app problems. 🙂', escalate: false };
+        return { text: 'That looks like a study question rather than an app issue — Enzo AI (bottom menu) is the place for that. I handle payments, activation, login and app problems. 🙂', escalate: false };
     }
 
     if (supportTokens(msg).length < 2) {
@@ -15742,7 +15806,7 @@ function notifyTrialCapIfNeeded(totalAvailable) {
     }
 }
 
-// Non-activated users can message the AI Tutor, but only a handful of
+// Non-activated users can message the Enzo AI, but only a handful of
 // Client-side hourly trial cap — removed per product decision. This now
 // always allows, for every user (trial and active alike), regardless of
 // how many AI calls have been made. The AI backend's own server-side cap
@@ -17367,7 +17431,7 @@ function flushReviseReloadIfNeeded() {
 // ============================================================
 const NAV_PATH_MAP = {
     'home': '/',
-    'ai-assistant': '/ai-tutor',
+    'ai-assistant': '/enzo-ai',
     'mysubjects': '/practice-hub',
     'mockexam': '/mock-arena',
     'profile': '/account',
@@ -17473,7 +17537,7 @@ function setView(v, navOpts) {
         loadSupportMessages();
     }
     if (v === "ai-assistant") {
-        // Every fresh visit to the AI Tutor starts a brand-new chat (like
+        // Every fresh visit to the Enzo AI starts a brand-new chat (like
         // Claude's own app). The old chat isn't lost — it's still in
         // history, reachable via the history icon. No DB write happens
         // here; the session is only created once the user actually sends
@@ -17717,9 +17781,9 @@ function renderNow() {
     // link opened "Create account" instead of the exam.
     //
     // 'home' and 'ai-assistant' are also allowed so a guest can actually
-    // look around the app and try AI Tutor before ever creating an
+    // look around the app and try Enzo AI before ever creating an
     // account — Practice Hub, Mock Arena and Account still gate behind
-    // login, and AI Tutor itself still requires an account the moment a
+    // login, and Enzo AI itself still requires an account the moment a
     // guest tries to actually send a message (see sendAiMessage()).
     const GUEST_ALLOWED_VIEWS = ['exam-link-guest', 'live-exam-link-confirm', 'guest-result-check', 'home', 'ai-assistant', 'news', 'news-detail', 'news-comments'];
     // Guests can SEE every page. Only actions that need an account ask them to sign up (see guestNeedsAccount).
@@ -17975,13 +18039,13 @@ function renderAuthGate() {
         '<div class="gate-hero">' +
         '<div class="gate-brand">' + logoSvg(26) + '<span>My<span class="g">UTME</span></span></div>' +
         '<h1>Walk into JAMB fully prepared</h1>' +
-        '<p class="sub">Real past questions, realistic timed mock exams and an AI tutor that\u2019s with you every step — everything you need, in one app.</p>' +
+        '<p class="sub">Real past questions, realistic timed mock exams and Enzo AI that\u2019s with you every step — everything you need, in one app.</p>' +
         '</div>' +
         '<div class="gate-sheet">' +
         '<div class="gate-perks">' +
         '<div class="gate-perk"><span class="ic">' + svg('bookopen', 18) + '</span> Practice real JAMB CBT-style questions</div>' +
         '<div class="gate-perk"><span class="ic">' + svg('target', 18) + '</span> Sit timed mock exams that feel like the real thing</div>' +
-        '<div class="gate-perk"><span class="ic">' + svg('sparkles', 18) + '</span> Ask your AI tutor anything, anytime</div>' +
+        '<div class="gate-perk"><span class="ic">' + svg('sparkles', 18) + '</span> Ask Enzo AI anything, anytime</div>' +
         '<div class="gate-perk"><span class="ic">' + svg('chart', 18) + '</span> Track your progress subject by subject</div>' +
         '<div class="gate-perk"><span class="ic">' + svg('trophy', 18) + '</span> Compete on the leaderboard with other candidates</div>' +
         '<div class="gate-perk"><span class="ic">' + svg('wifioff', 18) + '</span> Keep studying even with low or no data</div>' +
@@ -18013,8 +18077,8 @@ const FAQ_FEATURES = [
     { key: 'mock_exam', icon: 'target', title: 'Full Timed Mock Exams',
       desc: 'Sit a complete 4-subject mock exam under real JAMB time limits and get your UTME-style score the moment you submit, so you always know exactly where you stand before the real thing.',
       defaultImg: 'https://loremflickr.com/800/450/exam,timer,clock' },
-    { key: 'ai_tutor', icon: 'sparkles', title: 'AI Tutor, 24/7',
-      desc: 'Stuck on a question or a topic at 1am with no one to ask? The AI Tutor gives a clear, patient, step-by-step explanation on demand — like a personal teacher who never sleeps.',
+    { key: 'ai_tutor', icon: 'sparkles', title: 'Enzo AI, 24/7',
+      desc: 'Stuck on a question or a topic at 1am with no one to ask? The Enzo AI gives a clear, patient, step-by-step explanation on demand — like a personal teacher who never sleeps.',
       defaultImg: 'https://loremflickr.com/800/450/chatbot,ai,assistant' },
     { key: 'revise_weak', icon: 'rotate', title: 'Revise Weak Questions',
       desc: 'The app quietly tracks every question you get wrong across every session and lets you retry just those — so revision time goes straight to what actually needs work instead of re-reading things you already know.',
@@ -18033,7 +18097,7 @@ const FAQ_QA = [
     { q: 'Can I use the app without internet?', a: 'Yes. Once questions and materials have loaded at least once, you can keep practicing offline. You\u2019ll need a connection again to sync new content, submit exams, or update your results.' },
     { q: 'How accurate are the practice questions?', a: 'Our question bank is built from real past JAMB questions and carefully reviewed CBT-style questions, kept as close as possible to what you\u2019ll actually face on exam day.' },
     { q: 'What subjects are covered?', a: 'All core JAMB subjects are covered. You can practice any subject individually, by topic, or combine them into a full mock exam just like the real UTME.' },
-    { q: 'How does the AI Tutor work?', a: 'The AI Tutor answers questions in plain language, explains concepts you\u2019re stuck on, and can walk you through why an answer is correct — available any time from the AI Tutor tab.' },
+    { q: 'How does the Enzo AI work?', a: 'The Enzo AI answers questions in plain language, explains concepts you\u2019re stuck on, and can walk you through why an answer is correct — available any time from the Enzo AI tab.' },
     { q: 'I forgot my password — what do I do?', a: 'Tap "Log in", then "Forgot password?" and enter your email. We\u2019ll send you a secure link to set a new password.' },
     { q: 'Is my information safe?', a: 'Yes. We only collect what\u2019s needed to run your account and never sell your data. See our full Privacy Policy for details.' },
     { q: 'How do I contact support?', a: 'Once logged in, open the menu and tap "Support Chat" to reach our team directly, or use the contact button below.' },
@@ -18193,7 +18257,7 @@ function renderFaqImageUploadModal() {
 // except Home. Home keeps its own colored brand header separately.
 const PAGE_TITLES = {
     'mysubjects': 'Practice Hub',
-    'ai-assistant': 'MyUTME AI Tutor',
+    'ai-assistant': 'Enzo AI',
     'mockexam': 'Mock Arena',
     'profile': 'Account',
     'profile-edit': 'Edit Profile',
@@ -18262,15 +18326,15 @@ function renderApp() {
         'mock-exam': state.mockFinished || state.mockSubmitted,
     };
     const isExamTaking = EXAM_TAKING_VIEWS.indexOf(state.view) !== -1 && !EXAM_RESULT_SHOWING[state.view];
-    // AI Tutor gets its own minimal, "free app" style bar: just a menu
+    // Enzo AI gets its own minimal, "free app" style bar: just a menu
     // (3-dash) button that opens chat history (new chat + past chats)
     // and a small title — no notification bell, no refresh button, no
     // profile avatar, and no separate in-page header duplicating this.
     // This, plus hiding the bottom nav below, frees up real space for
-    // the conversation and keeps AI Tutor from feeling oversized.
+    // the conversation and keeps Enzo AI from feeling oversized.
     const isAiAssistant = state.view === 'ai-assistant';
     // Support gets the exact same fullscreen, minimal-topbar treatment as
-    // AI Tutor now (back button + small title, bottom nav hidden) instead
+    // Enzo AI now (back button + small title, bottom nav hidden) instead
     // of the old half-and-half layout that kept the bottom nav and a big
     // duplicate in-page header.
     const isSupportChat = state.view === 'support';
@@ -18383,7 +18447,7 @@ function renderBottomNav() {
     const items = [
     { key: 'home', label: 'Home', icon: 'home' },
     { key: 'mysubjects', label: 'Practice Hub', icon: 'bookopen' },
-    { key: 'ai-assistant', label: 'AI Tutor', icon: 'sparkles' },
+    { key: 'ai-assistant', label: 'Enzo AI', icon: 'sparkles' },
     { key: 'mockexam', label: 'Mock Arena', icon: 'target' },
     { key: 'profile', label: 'Account', icon: 'user' },
 ];
@@ -18696,7 +18760,7 @@ function renderFreePlanLimitsCard(compact) {
         '<ul class="admin-list" style="font-size:11.5px;margin:0;padding-left:16px">' +
         '<li><b>Practice / CBT:</b> up to ' + TRIAL_QUESTION_CAP + ' questions per attempt</li>' +
         '<li><b>Past Questions:</b> first ' + FREE_QUESTION_LIMIT + ' questions of each paper</li>' +
-        '<li><b>AI Tutor:</b> limited number of questions per day</li>' +
+        '<li><b>Enzo AI:</b> limited number of questions per day</li>' +
         '<li><b>Mock Arena:</b> requires activation</li>' +
         '</ul>' +
         (compact ? '' : '<p style="font-size:11px;color:var(--muted);margin:8px 0 0">Activate to remove all of these limits.</p>') +
@@ -18710,7 +18774,7 @@ function renderHomeActivationCard() {
         '<div class="card" style="margin-bottom:12px;padding:12px 14px;border:1.5px solid var(--gold)">' +
         '<div style="display:flex;align-items:center;gap:10px">' +
         '<div style="flex:1;min-width:0"><p style="font-size:13px;font-weight:800;margin:0 0 2px">Account not activated</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0">' + TRIAL_QUESTION_CAP + ' questions per attempt · limited AI Tutor · Mock Arena locked</p></div>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0">' + TRIAL_QUESTION_CAP + ' questions per attempt · limited Enzo AI · Mock Arena locked</p></div>' +
         '<button class="btn btn-gold btn-sm" data-action="set-view" data-view="activate" style="flex-shrink:0;padding:8px 14px">Activate</button>' +
         '</div></div>'
     );
@@ -20879,7 +20943,7 @@ function renderFlashcardsDone() {
 // ============================================================
 //  SUPPORT CHAT
 // ============================================================
-// Turns AI Tutor text into properly displayed content instead of raw
+// Turns Enzo AI text into properly displayed content instead of raw
 // markdown/LaTeX/code-style syntax: "3 * 4" becomes "3 × 4", "x^2" becomes
 // x with a real superscript, \frac{1}{2} becomes a readable fraction,
 // **bold** becomes actual bold text, ```code``` becomes a real code block,
@@ -21076,9 +21140,9 @@ function renderAiAssistant() {
     if (!state.authUser && !state.aiGuestMode) { state.aiGuestMode = true; state.aiSessions = []; state.aiSessionsLoaded = true; state.aiMessages = []; state.aiMessagesLoaded = true; state.aiCurrentSessionId = 'guest-local'; }
     if (false) {
         return (
-            '<h2 class="title" style="font-size:14px">✨ MyUTME AI Tutor</h2>' +
+            '<h2 class="title" style="font-size:14px">✨ Enzo AI</h2>' +
             '<p class="sub" style="font-size:11px">Ask questions, get real explanations</p>' +
-            guestCardHtml('Create a free account to use the AI Tutor.')
+            guestCardHtml('Create a free account to use the Enzo AI.')
         );
     }
     if (!state.aiSessionsLoaded) {
@@ -21086,7 +21150,7 @@ function renderAiAssistant() {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading your chats...</p></div>';
     }
 
-    // The topbar now carries the "AI Tutor" title and the menu button
+    // The topbar now carries the "Enzo AI" title and the menu button
     // (new chat + past chats live behind it), so this in-page header is
     // no longer duplicated here — that reclaims vertical space for the
     // conversation instead of a second, bigger title block.
@@ -21098,17 +21162,28 @@ function renderAiAssistant() {
     if (!state.aiMessagesLoaded) {
         bubbles = '<div class="loading-spinner" style="padding:30px 0"><div class="spinner"></div></div>';
     } else if (state.aiMessages.length === 0) {
-        const suggestions = ['Explain photosynthesis simply', 'Why is my Chemistry score low?', 'Give me a Maths shortcut', 'Quiz me on English idioms'];
+        const suggestionPool = [
+            'Explain photosynthesis simply', 'Why is my Chemistry score low?', 'Give me a Maths shortcut',
+            'Quiz me on English idioms', 'Make me a 7-day revision plan', 'Explain it like I\'m 10',
+            'Test me on Physics formulas', 'How do I beat exam fear?', 'Summarise The Lekki Headmaster',
+            'Give me 5 tricky Biology questions'
+        ];
+        const suggestions = shuffleArray(suggestionPool.slice()).slice(0, 4);
         let chips = '';
         suggestions.forEach(function(s) {
             chips += '<button class="ai-suggestion-chip" data-action="ai-suggestion" data-text="' + esc(s) + '">' + esc(s) + '</button>';
         });
+        const hr = new Date().getHours();
+        const hello = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+        const fn = ((state.profile && state.profile.name) || '').trim().split(' ')[0];
+        const who = (fn && fn !== 'Guest') ? ', ' + esc(fn) : '';
         bubbles = (
             '<div class="ai-empty-state">' +
-            '<div class="aie-icon">' + svg('sparkles', 26) + '</div>' +
-            '<h3>Hey, I\'m your AI Tutor 👋</h3>' +
-            '<p>Ask me to explain a topic, break down a question you got wrong, or talk through your revision plan.</p>' +
+            '<div class="aie-icon enzo-orb"><span>e</span></div>' +
+            '<h3>' + hello + who + ' \uD83D\uDC4B</h3>' +
+            '<p class="enzo-tag">I\'m <b>' + AI_NAME + '</b>, your free UTME study partner. Ask me to explain a topic, fix a question you missed, or plan your revision.</p>' +
             '<div class="ai-suggestions-row">' + chips + '</div>' +
+            '<span class="enzo-made">Crafted by ' + AI_CREATOR + ' \u2726 ' + AI_NAME + '</span>' +
             '</div>'
         );
     } else {
@@ -21117,12 +21192,13 @@ function renderAiAssistant() {
             const actions = (
                 '<div class="chat-msg-actions">' +
                 '<button class="cma-btn" data-action="ai-copy-message" data-msgid="' + esc(m.id) + '" title="Copy" aria-label="Copy message">' + svg('copy', 13) + '</button>' +
+                (!isUser ? '<button class="cma-btn" data-action="ai-share-message" data-msgid="' + esc(m.id) + '" title="Share" aria-label="Share answer">' + svg('share', 13) + '</button>' : '') +
                 (isUser ? '<button class="cma-btn" data-action="ai-edit-message" data-msgid="' + esc(m.id) + '" title="Edit" aria-label="Edit message">' + svg('edit', 13) + '</button>' : '') +
                 '</div>'
             );
             bubbles += (
                 '<div class="chat-row ' + (isUser ? 'me' : 'them') + '">' +
-                (!isUser ? '<span class="chat-sender"><span class="chat-avatar ai">✨</span>AI Tutor</span>' : '') +
+                (!isUser ? '<span class="chat-sender"><span class="chat-avatar ai enzo-av">e</span>' + AI_NAME + '</span>' : '') +
                 '<div class="chat-bubble ' + (isUser ? 'me' : 'ai') + '">' +
                 renderChatBubbleContent(m.message) +
                 '<span class="chat-time">' + formatTimeAgo(m.created_at) + '</span>' +
@@ -21133,7 +21209,7 @@ function renderAiAssistant() {
         });
     }
     if (state.aiSending) {
-        bubbles += '<div class="typing-indicator"><span>✨</span><span class="dots"><span></span><span></span><span></span></span></div>';
+        bubbles += '<div class="typing-indicator"><span>✨</span><span class="enzo-thinking">' + AI_NAME + ' is thinking</span><span class="dots"><span></span><span></span><span></span></span></div>';
     }
 
     let historyPanel = '';
@@ -21228,7 +21304,7 @@ function renderAiAssistant() {
         attachMenu +
         '</div>' +
         '<button class="icon-btn chat-tool-btn' + (state.aiRecording ? ' recording' : '') + '" data-action="ai-toggle-voice" title="Voice input" aria-label="Voice input">' + svg(state.aiRecording ? 'stop' : 'mic', 18) + '</button>' +
-        '<textarea class="field ai-chat-textarea" id="ai-chat-input" placeholder="Message AI Tutor..." rows="1">' + esc(state.aiInput || '') + '</textarea>' +
+        '<textarea class="field ai-chat-textarea" id="ai-chat-input" placeholder="Ask Enzo AI anything..." rows="1">' + esc(state.aiInput || '') + '</textarea>' +
         '<button class="chat-send-fab" data-action="send-ai-message" aria-label="Send"' + (state.aiSending ? ' disabled' : '') + '>' + svg('send', 16) + '</button>' +
         '</div>' +
         '</div>' +
@@ -22050,7 +22126,7 @@ function renderActivationBanner() {
     const feats = [
         ['📚', 'Unlimited JAMB CBT', 'Every subject, no limits'],
         ['📝', 'Past Questions', '2021 – 2026, by subject'],
-        ['✨', 'AI Tutor', 'Instant answers, any time'],
+        ['✨', 'Enzo AI', 'Instant answers, any time'],
         ['🎯', 'Mock Arena', 'Live timed exams &amp; ranking'],
         ['📖', 'Novel CBT', 'Set texts &amp; comprehension'],
         ['🗂️', 'Study Materials', 'Past question files'],
@@ -23437,6 +23513,7 @@ const ADMIN_TABS = [
     { key: "courses", label: "🎓 Courses" },
     { key: "flagged", label: "🚩 Flagged" },
     { key: "support", label: "💬 Support" },
+    { key: "guestai", label: "👤 Guest AI" },
     { key: "logs", label: "📋 Logs" },
     { key: "errors", label: "🐞 Errors" },
 ];
@@ -23477,6 +23554,7 @@ function renderAdmin() {
     else if (state.adminTab === "support") body = renderAdminSupport();
     else if (state.adminTab === "logs") body = renderAdminLogs();
     else if (state.adminTab === "errors") body = renderAdminErrors();
+    else if (state.adminTab === "guestai") body = renderAdminGuestAi();
     else body = renderAdminOverview();
 
     return (
@@ -24962,6 +25040,62 @@ function exportAdminErrors() {
     if (window.__errExport) window.__errExport.openText(text, 'Error log (' + errs.length + ')');
 }
 
+// ============================================================
+//  ADMIN: GUEST AI CHATS (people who used the Enzo AI without an account)
+// ============================================================
+async function loadGuestAiChats() {
+    state.admin.guestAi = { loaded: false, rows: [], error: '' };
+    render();
+    try {
+        const res = await supabase.from('ai_guest_messages').select('*').order('created_at', { ascending: false }).limit(1000);
+        if (res.error) {
+            state.admin.guestAi = { loaded: true, rows: [], error: res.error.message || 'Could not load guest chats' };
+        } else {
+            state.admin.guestAi = { loaded: true, rows: (res.data || []).slice().reverse(), error: '' };
+        }
+    } catch (e) {
+        state.admin.guestAi = { loaded: true, rows: [], error: String((e && e.message) || e) };
+    }
+    render();
+}
+
+function renderAdminGuestAi() {
+    const g = state.admin.guestAi;
+    let html = '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">' +
+        '<h3 style="margin:0;font-size:16px">👤 Guest AI chats</h3>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-refresh-guestai">Refresh</button></div>' +
+        '<p style="font-size:11px;color:var(--muted);margin-bottom:10px">What people asked the Enzo AI without logging in. Newest 1000 messages, text only.</p>';
+    if (!g || !g.loaded) return html + '<div class="loading-spinner" style="padding:14px 0"><div class="spinner"></div></div>';
+    if (g.error) return html + '<p style="font-size:12px;color:#dc2626">Could not load: ' + esc(g.error) + '. If this says the table does not exist or permission is denied, run guest_ai_setup.sql in the Supabase SQL editor.</p>';
+    if (!g.rows.length) return html + '<p style="font-size:12px;color:var(--faint)">No guest AI chats yet.</p>';
+
+    const groups = {};
+    g.rows.forEach(function(m) {
+        const k = m.guest_id + '|' + (m.session_id || '');
+        (groups[k] = groups[k] || { guest: m.guest_id, msgs: [] }).msgs.push(m);
+    });
+    const list = Object.keys(groups).map(function(k) { return groups[k]; });
+    list.sort(function(a, b) { return new Date(b.msgs[b.msgs.length - 1].created_at) - new Date(a.msgs[a.msgs.length - 1].created_at); });
+
+    list.forEach(function(grp) {
+        const first = grp.msgs.find(function(m) { return m.sender === 'user'; }) || grp.msgs[0];
+        const last = grp.msgs[grp.msgs.length - 1];
+        const snippet = (first.message || '').replace(/\s+/g, ' ').slice(0, 70);
+        html += '<details class="card" style="margin-bottom:8px;padding:10px">' +
+            '<summary style="cursor:pointer;font-size:12px"><b>Guest ' + esc(String(grp.guest).slice(-6)) + '</b> · ' + grp.msgs.length + ' msgs · ' +
+            esc(formatTimeAgo(last.created_at)) + '<br><span style="color:var(--muted)">' + esc(snippet) + '</span></summary>' +
+            '<div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto">';
+        grp.msgs.forEach(function(m) {
+            const isUser = m.sender === 'user';
+            html += '<div style="align-self:' + (isUser ? 'flex-end' : 'flex-start') + ';max-width:88%;background:' + (isUser ? 'var(--green)' : 'var(--bg)') +
+                ';color:' + (isUser ? '#fff' : 'var(--ink)') + ';padding:8px 10px;border-radius:12px;font-size:12px;word-break:break-word">' +
+                renderChatBubbleContent(m.message) + '</div>';
+        });
+        html += '</div></details>';
+    });
+    return html;
+}
+
 function renderAdminErrors() {
     if (!state.admin.errorsLoaded) {
         loadAppErrors();
@@ -26119,7 +26253,7 @@ function renderAdminUserDetail() {
     } else if (state.adminUserAiError) {
         chatHtml = '<p style="font-size:12px;color:#dc2626;margin:0">Could not load chats: ' + esc(state.adminUserAiError) + '. This usually means the Supabase admin rules are missing: run admin_setup.sql in the Supabase SQL Editor, then reopen this user.</p>';
     } else if (state.adminUserAiMessages.length === 0) {
-        chatHtml = '<p style="font-size:12px;color:var(--faint);margin:0">No AI Tutor chats yet.</p>';
+        chatHtml = '<p style="font-size:12px;color:var(--faint);margin:0">No Enzo AI chats yet.</p>';
     } else {
         chatHtml += '<div style="max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">';
         state.adminUserAiMessages.forEach(function(m) {
@@ -26134,7 +26268,7 @@ function renderAdminUserDetail() {
     }
     body += (
         '<div class="card" style="margin-bottom:12px">' +
-        '<p style="font-weight:700;font-size:13px;margin:0 0 8px">💬 AI Tutor chat history</p>' +
+        '<p style="font-weight:700;font-size:13px;margin:0 0 8px">💬 Enzo AI chat history</p>' +
         chatHtml +
         '</div>'
     );
@@ -29515,6 +29649,7 @@ document.addEventListener('click', function(e) {
         state.admin.viewingMockAttempts = null;
         if (state.adminTab === 'analytics' && !state.analyticsLoading) { state.analyticsLoaded = false; loadAnalyticsData(); }
         if (state.adminTab === 'payments') loadAdminClaims();
+        if (state.adminTab === 'guestai') loadGuestAiChats();
         if (state.adminTab === 'documents') state.docsLoaded = false;
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
         else if (state.adminTab === 'mock') { state.mockLoaded = false; state.liveExamsLoaded = false;
@@ -29570,6 +29705,11 @@ document.addEventListener('click', function(e) {
         state.admin.logsLoaded = false;
         loadDeviceSessions();
         loadLogs();
+        return;
+    }
+
+    if (action === 'admin-refresh-guestai') {
+        loadGuestAiChats();
         return;
     }
 
@@ -31266,6 +31406,12 @@ if (action === 'browse-filter') {
         toggleAiVoiceRecording();
         return;
     }
+    if (action === 'ai-share-message') {
+        const msgId = el.getAttribute('data-msgid');
+        const m = state.aiMessages.find(function(x) { return String(x.id) === String(msgId); });
+        if (m) shareAiAnswer(stripChatMarkers(m.message));
+        return;
+    }
     if (action === 'ai-copy-message') {
         const msgId = el.getAttribute('data-msgid');
         const m = state.aiMessages.find(function(x) { return String(x.id) === String(msgId); });
@@ -31929,8 +32075,9 @@ async function init() {
         const path = window.location.pathname;
         if (path === '/login') { state.showLogin = true; return; }
         if (path === '/signup') { state.showSignup = true; return; }
-        const v = PATH_TO_NAV_VIEW[path];
+        const v = PATH_TO_NAV_VIEW[path] || (path === '/ai-tutor' ? 'ai-assistant' : null);
         if (v) state.view = v;
+        if (path === '/ai-tutor') { try { history.replaceState({ myutmeView: 'ai-assistant' }, '', '/enzo-ai'); } catch (e) {} }
         // on news.<your-domain> the app opens on the News page
         if (/^news\./i.test(window.location.hostname) && !new URLSearchParams(window.location.search).get('news')) state.view = 'news';
     })();
