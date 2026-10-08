@@ -11249,9 +11249,9 @@ function renderNewsStrip() {
         '</div>';
 }
 // Ad box (Adsterra 300x250). Loaded inside its own small frame (ad.html) so it can never cover the screen.
-// Not shown to the admin (clicking your own ads can get the account banned) or when offline.
+// Shown to everyone including the admin; hidden only when offline.
 function newsAdHtml(big) {
-    if (isAdmin() || !navigator.onLine) return '';
+    if (!navigator.onLine) return '';
     return big
         ? '<div class="nw-ad"><span class="al">Advertisement</span><div class="adframe" data-src="/ad.html" data-w="300" data-h="250" style="width:300px;height:250px;max-width:100%;margin:0 auto"></div></div>'
         : '<div class="nw-ad sm"><span class="al">Advertisement</span><div class="adframe" data-src="/ad-small.html" data-w="320" data-h="50" style="width:320px;height:50px;max-width:100%;margin:0 auto"></div></div>';
