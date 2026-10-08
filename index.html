@@ -9,6 +9,162 @@
      history.replaceState before anything else runs, so the app's own
      router (see applyInitialPathRoute() in init()) reads the correct
      path. Standard, widely-used technique — https://github.com/rafgraph/spa-github-pages -->
+<!-- ============================================================
+     ERROR EXPORT (debug helper)
+     Captures every error (JS crashes, promise rejections, console.error,
+     failed scripts/images, failed network requests) into localStorage so
+     they survive reloads, and adds a 🐞 button to copy / download / share
+     them. Set ERR_EXPORT_BUTTON to false before public launch to hide the
+     button (errors are still captured; open it anytime with ?debug=1).
+     ============================================================ -->
+<script>
+(function () {
+    var ERR_EXPORT_BUTTON = true;
+    var KEY = 'myutme_err_export', MAX = 500;
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { list = []; }
+    var params = new URLSearchParams(location.search);
+    if (params.get('debug') === '1') { try { localStorage.setItem('myutme_debug', '1'); } catch (e) {} }
+    if (params.get('debug') === '0') { try { localStorage.removeItem('myutme_debug'); } catch (e) {} }
+    var showBtn = ERR_EXPORT_BUTTON || localStorage.getItem('myutme_debug') === '1';
+    if (params.get('debug') === '0') showBtn = false;
+
+    function str(v) {
+        try {
+            if (v == null) return String(v);
+            if (typeof v === 'string') return v;
+            if (v instanceof Error) return v.name + ': ' + v.message;
+            return JSON.stringify(v, Object.getOwnPropertyNames(Object(v)));
+        } catch (e) { return String(v); }
+    }
+    function save() { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {} }
+    function push(type, message, detail) {
+        try {
+            var last = list[list.length - 1];
+            var msg = String(message).slice(0, 1500);
+            if (last && last.type === type && last.message === msg) { last.count = (last.count || 1) + 1; last.time = new Date().toISOString(); }
+            else list.push({ time: new Date().toISOString(), type: type, message: msg, detail: detail ? String(detail).slice(0, 3000) : '', page: location.pathname + location.search, count: 1 });
+            if (list.length > MAX) list.splice(0, list.length - MAX);
+            save(); updateBadge();
+        } catch (e) {}
+    }
+
+    window.addEventListener('error', function (e) {
+        if (e.target && e.target !== window && (e.target.src || e.target.href)) {
+            push('resource-load-failed', (e.target.tagName || '') + ' ' + (e.target.src || e.target.href));
+            return;
+        }
+        push('window.onerror', e.message || 'Script error', (e.filename || 'unknown') + ':' + (e.lineno || '?') + ':' + (e.colno || '?') + '\n' + ((e.error && e.error.stack) || ''));
+    }, true);
+    window.addEventListener('unhandledrejection', function (e) {
+        var r = e.reason;
+        push('unhandledrejection', str(r), r && r.stack);
+    });
+
+    ['error', 'warn'].forEach(function (lvl) {
+        var orig = console[lvl];
+        console[lvl] = function () {
+            try { push('console.' + lvl, Array.prototype.map.call(arguments, str).join(' '), (arguments[0] && arguments[0].stack) || ''); } catch (e) {}
+            return orig.apply(console, arguments);
+        };
+    });
+
+    if (window.fetch) {
+        var origFetch = window.fetch;
+        window.fetch = function (input, init) {
+            var url = (input && input.url) || String(input);
+            var method = (init && init.method) || (input && input.method) || 'GET';
+            return origFetch.apply(this, arguments).then(function (res) {
+                if (!res.ok) {
+                    res.clone().text().then(function (t) { push('http-' + res.status, method + ' ' + url, t.slice(0, 500)); }, function () { push('http-' + res.status, method + ' ' + url); });
+                }
+                return res;
+            }, function (err) {
+                push('fetch-failed', method + ' ' + url + ' — ' + str(err), err && err.stack);
+                throw err;
+            });
+        };
+    }
+
+    function report() {
+        var n = navigator, out = [];
+        out.push('MyUTME error report');
+        out.push('Generated: ' + new Date().toISOString());
+        out.push('URL: ' + location.href);
+        out.push('Online: ' + n.onLine);
+        out.push('User agent: ' + n.userAgent);
+        out.push('Screen: ' + screen.width + 'x' + screen.height + ' @' + (window.devicePixelRatio || 1) + 'x');
+        out.push('Standalone PWA: ' + (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+        out.push('Errors captured: ' + list.length);
+        out.push('==============================');
+        list.slice().reverse().forEach(function (r, i) {
+            out.push('#' + (i + 1) + ' [' + r.time + '] ' + r.type + (r.count > 1 ? ' (x' + r.count + ')' : '') + ' — page: ' + r.page);
+            out.push(r.message);
+            if (r.detail) out.push(r.detail);
+            out.push('------------------------------');
+        });
+        return out.join('\n');
+    }
+
+    var btn, badge, panel;
+    function updateBadge() { if (badge) { badge.textContent = list.length; badge.style.display = list.length ? 'inline-block' : 'none'; } }
+    function copyText(t, done) {
+        function fallback() {
+            var ta = panel.querySelector('textarea'); ta.focus(); ta.select();
+            try { document.execCommand('copy'); done(true); } catch (e) { done(false); }
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { done(true); }, fallback);
+        else fallback();
+    }
+    function open() {
+        if (panel) panel.remove();
+        panel = document.createElement('div');
+        panel.id = 'err-export-panel';
+        panel.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;font-family:system-ui,sans-serif';
+        panel.innerHTML = '<div style="background:#fff;color:#111;width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;border-radius:16px 16px 0 0;padding:14px;gap:10px;box-sizing:border-box">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center"><b>🐞 Error log (' + list.length + ')</b><button data-a="close" style="border:0;background:none;font-size:24px;line-height:1;color:#111">×</button></div>' +
+            '<textarea readonly style="flex:1;min-height:240px;font:11px/1.4 monospace;border:1px solid #ccc;border-radius:8px;padding:8px;box-sizing:border-box;width:100%;color:#111;background:#fafafa"></textarea>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+            '<button data-a="copy" style="flex:1;padding:10px;border:0;border-radius:8px;background:#0F6B3F;color:#fff;font-weight:600">Copy all</button>' +
+            '<button data-a="download" style="flex:1;padding:10px;border:0;border-radius:8px;background:#0F6B3F;color:#fff;font-weight:600">Download .txt</button>' +
+            '<button data-a="share" style="flex:1;padding:10px;border:0;border-radius:8px;background:#0F6B3F;color:#fff;font-weight:600">Share</button>' +
+            '<button data-a="clear" style="padding:10px;border:1px solid #B23420;border-radius:8px;background:#fff;color:#B23420;font-weight:600">Clear</button>' +
+            '</div></div>';
+        panel.querySelector('textarea').value = report();
+        panel.addEventListener('click', function (ev) {
+            var a = ev.target.getAttribute && ev.target.getAttribute('data-a');
+            if (ev.target === panel || a === 'close') { panel.remove(); panel = null; return; }
+            var text = report();
+            if (a === 'copy') copyText(text, function (ok) { ev.target.textContent = ok ? 'Copied ✓' : 'Select & copy manually'; setTimeout(function () { ev.target.textContent = 'Copy all'; }, 1800); });
+            if (a === 'download') {
+                var blob = new Blob([text], { type: 'text/plain' }), u = URL.createObjectURL(blob), l = document.createElement('a');
+                l.href = u; l.download = 'myutme-errors-' + Date.now() + '.txt'; document.body.appendChild(l); l.click(); l.remove();
+                setTimeout(function () { URL.revokeObjectURL(u); }, 2000);
+            }
+            if (a === 'share') {
+                if (navigator.share) navigator.share({ title: 'MyUTME error report', text: text }).catch(function () {});
+                else { ev.target.textContent = 'Not supported'; setTimeout(function () { ev.target.textContent = 'Share'; }, 1800); }
+            }
+            if (a === 'clear') { list = []; save(); updateBadge(); panel.querySelector('textarea').value = report(); }
+        });
+        document.body.appendChild(panel);
+    }
+    function mount() {
+        if (!showBtn || btn) return;
+        btn = document.createElement('button');
+        btn.id = 'err-export-btn';
+        btn.setAttribute('aria-label', 'Export errors');
+        btn.style.cssText = 'position:fixed;left:10px;bottom:90px;z-index:2147483646;width:42px;height:42px;border-radius:50%;border:0;background:#B23420;color:#fff;font-size:20px;box-shadow:0 2px 10px rgba(0,0,0,.35);opacity:.9;padding:0';
+        btn.innerHTML = '🐞<span style="position:absolute;top:-4px;right:-4px;background:#111;color:#fff;font:700 10px/16px sans-serif;min-width:16px;border-radius:8px;padding:0 3px;display:none"></span>';
+        badge = btn.querySelector('span');
+        btn.addEventListener('click', open);
+        document.body.appendChild(btn);
+        updateBadge();
+    }
+    if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
+    window.__errExport = { open: open, push: push, report: report, list: function () { return list; } };
+})();
+</script>
 <script>
 (function(l) {
     if (l.search && l.search[1] === '/') {
@@ -8754,6 +8910,7 @@ async function logAppError(context, err) {
             created_at: new Date().toISOString(),
         };
         appErrorLogBuffer.unshift(record);
+        try { if (window.__errExport) window.__errExport.push('app:' + record.context, record.message, 'user=' + record.username + ' view=' + record.page); } catch (_) {}
         if (appErrorLogBuffer.length > 300) appErrorLogBuffer.pop();
         if (typeof supabase !== 'undefined' && supabase) {
             supabase.from('app_errors').insert([record]).then(function() {}, function() {});
@@ -19468,7 +19625,7 @@ function loadTopicNotes(subjectId) {
     window.__topicNotes[subjectId] = null; // loading
     fetch('notes-' + subjectId + '.json?v=' + Date.now(), { cache: 'no-store' })
         .then(function(r) { return r.ok ? r.json() : null; })
-        .then(function(j) { window.__topicNotes[subjectId] = Object.assign({}, (j && j.topics) || {}, (typeof loadStagedNotes === 'function' ? loadStagedNotes()[subjectId] : null) || {}); if (state.view === 'topic-list') render(); })
+        .then(function(j) { window.__topicNotes[subjectId] = (j && j.topics) || {}; if (state.view === 'topic-list') render(); })
         .catch(function() { window.__topicNotes[subjectId] = undefined; });
 }
 function getTopicNote(subjectId, topicName) {
@@ -24800,6 +24957,7 @@ function renderAdminErrors() {
         '<div class="admin-view-mode-header">' +
         '<span class="mode-title">🐞 Error Log</span>' +
         '<button class="btn btn-outline btn-sm btn-refresh" data-action="admin-refresh-errors">' + svg('refresh', 15) + ' Refresh</button>' +
+        '<button class="btn btn-outline btn-sm" onclick="window.__errExport && window.__errExport.open()">📤 Export</button>' +
         '</div>' +
         '<p style="font-size:11px;color:var(--muted);margin-bottom:10px">Errors users encountered, kept out of their view. Showing last ' + Math.min(state.admin.errors.length, 200) + '.</p>' +
         '<div style="max-height:350px;overflow-y:auto">' + rows + '</div>'
@@ -25331,8 +25489,6 @@ function renderAdminTopicManagement() {
             '</div>' +
             '</div>';
     });
-
-    body += renderAdminNotesCard(subjectId, topics);
 
     if (!state.admin.adminSelectedTopicId) return body;
 
@@ -28419,33 +28575,6 @@ document.addEventListener('click', function(e) {
             console.error('Create topic error:', err);
             showNetworkAwareError('Error creating topic.', err);
         });
-        return;
-    }
-
-    if (action === 'admin-notes-pick') { adminPickNotesFile(); return; }
-    if (action === 'admin-notes-export') { exportSubjectNotes(state.admin.adminTopicSubject, false); return; }
-    if (action === 'admin-notes-copy') { exportSubjectNotes(state.admin.adminTopicSubject, true); return; }
-    if (action === 'admin-notes-remove') {
-        const nm = el.getAttribute('data-topic');
-        const sid = state.admin.adminTopicSubject;
-        const all = loadStagedNotes();
-        if (all[sid] && nm in all[sid]) {
-            delete all[sid][nm];
-            if (!Object.keys(all[sid]).length) delete all[sid];
-            saveStagedNotes(all);
-            showToast('Removed from the export list. Reload the notes page to see the published version.', 'success');
-            render();
-        }
-        return;
-    }
-    if (action === 'admin-notes-clear') {
-        const sid = state.admin.adminTopicSubject;
-        if (!confirm('Clear all notes waiting to be exported for this subject? (Only do this after you have uploaded the exported file to GitHub.)')) return;
-        const all = loadStagedNotes();
-        delete all[sid];
-        saveStagedNotes(all);
-        showToast('Export list cleared.', 'success');
-        render();
         return;
     }
 
@@ -31547,9 +31676,6 @@ document.addEventListener('change', function(e) {
     } else if (id === 'admin-view-subject-filter') {
         state.admin.viewModeSubject = e.target.value || '';
         render();
-    } else if (id === 'admin-notes-topic-select') {
-        state.admin.notesTopicName = e.target.value || '';
-        render();
     } else if (id === 'admin-topic-subject-select') {
         state.admin.adminTopicSubject = e.target.value || null;
         state.admin.adminTopicsLoaded = false;
@@ -32069,7 +32195,6 @@ async function init() {
 // Clicking it is handled by the normal data-action dispatcher in
 // handleAction(), which calls refreshApp() below.
 function refreshApp() {
-    if (window.__notesUploading) { showToast('A notes upload is in progress. Please wait a moment.', ''); return; }
     if (typeof getPaySession === 'function' && getPaySession()) { showToast('A payment is in progress. Finish or cancel it before refreshing.', ''); return; }
     const btn = document.querySelector('.topbar-refresh-btn');
     if (btn) btn.classList.add('is-spinning');
@@ -32399,230 +32524,6 @@ function runTopicJsonImport(raw, topicId) {
         console.error('Topic JSON import error:', err);
         showNetworkAwareError('Error importing questions JSON.', err);
     });
-}
-
-
-// ============================================================
-//  ADMIN: TOPIC NOTES — pick topic, upload notes file, export for GitHub
-// ============================================================
-// Why this is built the way it is:
-//  * The file picker is created OUTSIDE #root (a detached <input> on <body>).
-//    render() rewrites #root.innerHTML whenever the screen changes, and on
-//    phones the picker backgrounds the app so background refreshes fire while
-//    it is open. A picker living inside #root was destroyed mid-choice, so the
-//    file never arrived and the screen looked like it restarted.
-//  * Uploaded notes are saved to localStorage straight away ("waiting to be
-//    exported"), so nothing is lost even if the phone kills the page.
-//  * Nothing here ever calls location.reload(); refresh is blocked while a
-//    file is being read.
-const NOTES_STAGE_KEY = 'utme_admin_notes_staged_v1';
-function loadStagedNotes() {
-    try { return JSON.parse(localStorage.getItem(NOTES_STAGE_KEY) || '{}') || {}; } catch (e) { return {}; }
-}
-function saveStagedNotes(o) {
-    try { localStorage.setItem(NOTES_STAGE_KEY, JSON.stringify(o)); return true; } catch (e) { return false; }
-}
-window.addEventListener('beforeunload', function(ev) {
-    if (window.__notesUploading) { ev.preventDefault(); ev.returnValue = ''; }
-});
-
-function renderAdminNotesCard(subjectId, topics) {
-    const staged = loadStagedNotes()[subjectId] || {};
-    const names = Object.keys(staged);
-    let sel = state.admin.notesTopicName || '';
-    if (!topics.some(function(t) { return t.name === sel; })) sel = '';
-    let opts = '<option value="">Select topic name</option>';
-    topics.forEach(function(t) {
-        opts += '<option value="' + esc(t.name) + '"' + (sel === t.name ? ' selected' : '') + '>' + esc(t.name) + (staged[t.name] ? ' ✓' : '') + '</option>';
-    });
-    let h = '<div class="card" style="margin-top:12px">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 6px">📝 Topic Notes</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Pick a topic, then upload its notes file (.json, .txt or .md). In .txt/.md, lines starting with # become headings and lines starting with - become bullet lists. The page will not reload while uploading.</p>' +
-        '<select class="field" id="admin-notes-topic-select" style="margin-bottom:8px;font-size:13px">' + opts + '</select>' +
-        '<button class="btn btn-green" style="padding:10px" data-action="admin-notes-pick"' + (state.admin.notesBusy ? ' disabled' : '') + '>' +
-        (state.admin.notesBusy ? 'Reading file…' : '⬆️ Upload Notes File') + '</button>';
-    if (names.length) {
-        h += '<p style="font-size:12px;font-weight:600;margin:12px 0 6px">Waiting to be exported (' + names.length + ')</p>';
-        names.forEach(function(n) {
-            h += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border,#e5e5e5)">' +
-                '<span>' + esc(n) + '</span>' +
-                '<button class="mini-btn danger" data-action="admin-notes-remove" data-topic="' + esc(n) + '">×</button></div>';
-        });
-        h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">' +
-            '<button class="btn btn-green" style="flex:1;padding:10px" data-action="admin-notes-export">⬇️ Export notes-' + esc(subjectId) + '.json</button>' +
-            '<button class="btn btn-outline" style="flex:1;padding:10px" data-action="admin-notes-copy">📋 Copy JSON</button>' +
-            '</div>' +
-            '<p style="font-size:11px;color:var(--muted);margin:8px 0 0">Export merges these with the notes already published, so upload the file to your GitHub repo to replace <b>notes-' + esc(subjectId) + '.json</b>. After uploading, clear this list:</p>' +
-            '<button class="btn btn-outline" style="padding:8px;margin-top:6px" data-action="admin-notes-clear">Clear export list</button>';
-    }
-    return h + '</div>';
-}
-
-function notesTextToNote(text) {
-    const blocks = []; let intro = ''; let para = [], list = [];
-    function flushPara() {
-        if (!para.length) return;
-        const t = para.join(' ').trim(); para = [];
-        if (!t) return;
-        if (!intro && !blocks.length) intro = t; else blocks.push({ t: 'p', x: t });
-    }
-    function flushList() { if (list.length) { blocks.push({ t: 'list', items: list }); list = []; } }
-    String(text).replace(/\r\n?/g, '\n').split('\n').forEach(function(line) {
-        const l = line.trim();
-        if (!l) { flushPara(); flushList(); return; }
-        const hm = l.match(/^#{1,6}\s+(.*)$/);
-        if (hm) { flushPara(); flushList(); blocks.push({ t: 'h', x: hm[1] }); return; }
-        const lm = l.match(/^(?:[-*\u2022]|\d+[.)])\s+(.*)$/);
-        if (lm) { flushPara(); list.push(lm[1]); return; }
-        flushList(); para.push(l);
-    });
-    flushPara(); flushList();
-    return { intro: intro, blocks: blocks };
-}
-
-function looksLikeNote(o) {
-    return !!o && typeof o === 'object' && !Array.isArray(o) &&
-        (Array.isArray(o.blocks) || Array.isArray(o.sections) || typeof o.intro === 'string');
-}
-
-// Returns { map: {topicName: note}, label } or throws an Error with a friendly message.
-function normalizeUploadedNotes(raw, fileName, topicName) {
-    const isJson = /\.json$/i.test(fileName) || /^\s*[\[{]/.test(raw);
-    if (!isJson) {
-        const note = notesTextToNote(raw);
-        if (!note.intro && !note.blocks.length) throw new Error('The file is empty — no notes found.');
-        const m = {}; m[topicName] = note; return { map: m, count: 1 };
-    }
-    let data;
-    try { data = JSON.parse(raw); } catch (e) { throw new Error('Invalid JSON — could not read the notes file.'); }
-    let m = {};
-    if (looksLikeNote(data)) {
-        m[topicName] = data;
-    } else if (data && typeof data === 'object' && data.topics && typeof data.topics === 'object') {
-        const keys = Object.keys(data.topics).filter(function(k) { return looksLikeNote(data.topics[k]); });
-        if (!keys.length) throw new Error('No notes found inside this JSON file.');
-        if (keys.indexOf(topicName) !== -1) m[topicName] = data.topics[topicName];
-        else if (keys.length === 1) m[topicName] = data.topics[keys[0]];
-        else {
-            if (!confirm('This file contains notes for ' + keys.length + ' topics. Add all of them?')) throw new Error('Cancelled.');
-            keys.forEach(function(k) { m[k] = data.topics[k]; });
-        }
-    } else if (data && typeof data === 'object') {
-        const keys = Object.keys(data).filter(function(k) { return looksLikeNote(data[k]); });
-        if (!keys.length) throw new Error('This JSON does not look like notes (expected "intro" and "blocks").');
-        if (keys.indexOf(topicName) !== -1) m[topicName] = data[topicName];
-        else if (keys.length === 1) m[topicName] = data[keys[0]];
-        else {
-            if (!confirm('This file contains notes for ' + keys.length + ' topics. Add all of them?')) throw new Error('Cancelled.');
-            keys.forEach(function(k) { m[k] = data[k]; });
-        }
-    } else {
-        throw new Error('This JSON does not look like notes.');
-    }
-    return { map: m, count: Object.keys(m).length };
-}
-
-function readFileAsText(file) {
-    return new Promise(function(resolve, reject) {
-        const r = new FileReader();
-        r.onload = function() { resolve(String(r.result || '')); };
-        r.onerror = function() { reject(new Error('Could not read the file. Please try again.')); };
-        r.readAsText(file);
-    });
-}
-
-async function handleNotesFile(subjectId, topicName, file) {
-    state.admin.notesBusy = true;
-    window.__notesUploading = true;
-    render();
-    try {
-        if (file.size > 4 * 1024 * 1024) throw new Error('File is too large (max 4 MB).');
-        const raw = await readFileAsText(file);
-        const res = normalizeUploadedNotes(raw, file.name || '', topicName);
-        const all = loadStagedNotes();
-        all[subjectId] = Object.assign({}, all[subjectId] || {}, res.map);
-        if (!saveStagedNotes(all)) throw new Error('Not enough storage on this device to hold the notes. Export first, then clear the list.');
-        const cur = window.__topicNotes && window.__topicNotes[subjectId];
-        if (cur && typeof cur === 'object') window.__topicNotes[subjectId] = Object.assign({}, cur, res.map);
-        showToast(res.count === 1 ? 'Notes added for "' + topicName + '". Export when you are ready.' : res.count + ' topics\' notes added. Export when you are ready.', 'success');
-    } catch (err) {
-        if (err && err.message !== 'Cancelled.') showToast((err && err.message) || 'Could not add the notes file.', 'error');
-    } finally {
-        state.admin.notesBusy = false;
-        window.__notesUploading = false;
-        render();
-    }
-}
-
-function adminPickNotesFile() {
-    const subjectId = state.admin.adminTopicSubject;
-    const topicName = state.admin.notesTopicName;
-    if (!subjectId) { showToast('Select a subject first.', 'error'); return; }
-    if (!topicName) { showToast('Select the topic name first.', 'error'); return; }
-    if (state.admin.notesBusy) return;
-    document.querySelectorAll('input[data-notes-picker]').forEach(function(n) { n.remove(); });
-    const inp = document.createElement('input');
-    inp.type = 'file';
-    inp.accept = '.json,.txt,.md,application/json,text/plain,text/markdown';
-    inp.setAttribute('data-notes-picker', '1');
-    inp.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;';
-    document.body.appendChild(inp);
-    function cleanup() { setTimeout(function() { if (inp.parentNode) inp.parentNode.removeChild(inp); }, 0); }
-    inp.addEventListener('change', function(ev) {
-        ev.stopPropagation();
-        const f = inp.files && inp.files[0];
-        if (!f) { cleanup(); return; }
-        handleNotesFile(subjectId, topicName, f).then(cleanup, cleanup);
-    });
-    inp.addEventListener('cancel', cleanup);
-    inp.click();
-}
-
-function downloadTextFile(name, text, mime) {
-    const blob = new Blob([text], { type: mime || 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = name; a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function() { URL.revokeObjectURL(url); if (a.parentNode) a.parentNode.removeChild(a); }, 4000);
-}
-
-async function exportSubjectNotes(subjectId, copyOnly) {
-    if (!subjectId) { showToast('Select a subject first.', 'error'); return; }
-    const staged = loadStagedNotes()[subjectId] || {};
-    if (!Object.keys(staged).length) { showToast('No notes to export yet. Upload a notes file first.', 'error'); return; }
-    let base = null;
-    try {
-        const r = await fetch('notes-' + subjectId + '.json?v=' + Date.now(), { cache: 'no-store' });
-        if (r.ok) base = await r.json();
-        else if (r.status !== 404) throw new Error('status ' + r.status);
-    } catch (e) {
-        // Don't risk exporting a file that would wipe the notes already published.
-        showToast('Could not read the currently published notes. Check your internet and try again so existing notes are not overwritten.', 'error');
-        return;
-    }
-    if (!base || typeof base !== 'object') base = { version: 4, subject_id: subjectId, topics: {} };
-    base.version = base.version || 4;
-    base.subject_id = subjectId;
-    base.topics = Object.assign({}, base.topics || {}, staged);
-    const json = JSON.stringify(base);
-    if (copyOnly) {
-        try {
-            await navigator.clipboard.writeText(json);
-            showToast('Copied. Paste it into notes-' + subjectId + '.json on GitHub.', 'success');
-        } catch (e) {
-            const ta = document.createElement('textarea');
-            ta.value = json; ta.style.cssText = 'position:fixed;left:-9999px';
-            document.body.appendChild(ta); ta.select();
-            let ok = false; try { ok = document.execCommand('copy'); } catch (e2) {}
-            ta.remove();
-            showToast(ok ? 'Copied. Paste it into notes-' + subjectId + '.json on GitHub.' : 'Copy failed — use Export instead.', ok ? 'success' : 'error');
-        }
-        return;
-    }
-    downloadTextFile('notes-' + subjectId + '.json', json, 'application/json');
-    showToast('Exported notes-' + subjectId + '.json — upload it to your GitHub repo.', 'success');
 }
 
 async function loadAdminTopics(subjectId) {
