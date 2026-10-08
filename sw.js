@@ -15,7 +15,7 @@
 //    but the background refresh now also bypasses the HTTP cache.
 // v27: question files (questions-*.json) are now NETWORK-FIRST, so newly uploaded questions show
 // up straight away — you never need to edit this file just to publish questions again.
-const CACHE_NAME = "myutme-cache-v32";
+const CACHE_NAME = "myutme-cache-v33";
 
 const APP_SHELL = [
   "./",
