@@ -19,15 +19,15 @@
      ============================================================ -->
 <script>
 (function () {
-    var ERR_EXPORT_BUTTON = true;
+    var ERR_EXPORT_BUTTON = false;
     var KEY = 'myutme_err_export', MAX = 500;
+    try { if (localStorage.getItem('myutme_err_reset') !== '1') { localStorage.removeItem(KEY); localStorage.setItem('myutme_err_reset', '1'); } } catch (e) {} // one-time fresh start
     var list = [];
     try { list = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { list = []; }
     var params = new URLSearchParams(location.search);
     if (params.get('debug') === '1') { try { localStorage.setItem('myutme_debug', '1'); } catch (e) {} }
     if (params.get('debug') === '0') { try { localStorage.removeItem('myutme_debug'); } catch (e) {} }
-    var showBtn = ERR_EXPORT_BUTTON || localStorage.getItem('myutme_debug') === '1';
-    if (params.get('debug') === '0') showBtn = false;
+    var showBtn = false; // bug button permanently removed (errors are still captured quietly)
 
     function str(v) {
         try {
@@ -116,13 +116,15 @@
         if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { done(true); }, fallback);
         else fallback();
     }
-    function open() {
+    function open(customText, customTitle) {
+        if (typeof customText !== 'string') customText = null;
+        var getText = function () { return customText !== null ? customText : report(); };
         if (panel) panel.remove();
         panel = document.createElement('div');
         panel.id = 'err-export-panel';
         panel.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;font-family:system-ui,sans-serif';
         panel.innerHTML = '<div style="background:#fff;color:#111;width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;border-radius:16px 16px 0 0;padding:14px;gap:10px;box-sizing:border-box">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center"><b>🐞 Error log (' + list.length + ')</b><button data-a="close" style="border:0;background:none;font-size:24px;line-height:1;color:#111">×</button></div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center"><b>' + (customTitle || ('🐞 Error log (' + list.length + ')')) + '</b><button data-a="close" style="border:0;background:none;font-size:24px;line-height:1;color:#111">×</button></div>' +
             '<textarea readonly style="flex:1;min-height:240px;font:11px/1.4 monospace;border:1px solid #ccc;border-radius:8px;padding:8px;box-sizing:border-box;width:100%;color:#111;background:#fafafa"></textarea>' +
             '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
             '<button data-a="copy" style="flex:1;padding:10px;border:0;border-radius:8px;background:#0F6B3F;color:#fff;font-weight:600">Copy all</button>' +
@@ -130,11 +132,12 @@
             '<button data-a="share" style="flex:1;padding:10px;border:0;border-radius:8px;background:#0F6B3F;color:#fff;font-weight:600">Share</button>' +
             '<button data-a="clear" style="padding:10px;border:1px solid #B23420;border-radius:8px;background:#fff;color:#B23420;font-weight:600">Clear</button>' +
             '</div></div>';
-        panel.querySelector('textarea').value = report();
+        panel.querySelector('textarea').value = getText();
+        if (customText !== null) { var cb = panel.querySelector('[data-a="clear"]'); if (cb) cb.style.display = 'none'; }
         panel.addEventListener('click', function (ev) {
             var a = ev.target.getAttribute && ev.target.getAttribute('data-a');
             if (ev.target === panel || a === 'close') { panel.remove(); panel = null; return; }
-            var text = report();
+            var text = getText();
             if (a === 'copy') copyText(text, function (ok) { ev.target.textContent = ok ? 'Copied ✓' : 'Select & copy manually'; setTimeout(function () { ev.target.textContent = 'Copy all'; }, 1800); });
             if (a === 'download') {
                 var blob = new Blob([text], { type: 'text/plain' }), u = URL.createObjectURL(blob), l = document.createElement('a');
@@ -162,7 +165,7 @@
         updateBadge();
     }
     if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
-    window.__errExport = { open: open, push: push, report: report, list: function () { return list; } };
+    window.__errExport = { clear: function () { list = []; save(); updateBadge(); }, open: open, openText: function (t, title) { open(t, title); }, push: push, report: report, list: function () { return list; } };
 })();
 </script>
 <script>
@@ -7388,7 +7391,7 @@ html, body { overscroll-behavior: none !important; }
     });
 })();
 </script>
-<script src="offline-db.js?v=4" defer></script>
+<script src="offline-db.js?v=6" defer></script>
 <script>
 // ============================================================
 //  VIEWPORT HEIGHT FIX
@@ -24929,6 +24932,36 @@ function renderAdminSessions() {
     );
 }
 
+async function clearAllAppErrors() {
+    if (!confirm('Delete ALL logged errors? This cannot be undone.')) return;
+    appErrorLogBuffer = [];
+    try { if (window.__errExport) window.__errExport.clear(); } catch (e) {}
+    let failed = false;
+    try {
+        const res = await supabase.from('app_errors').delete().gte('created_at', '1970-01-01T00:00:00Z');
+        if (res && res.error) failed = true;
+    } catch (e) { failed = true; }
+    state.admin.errors = [];
+    state.admin.errorsLoaded = true;
+    render();
+    showToast(failed ? 'Cleared on this device, but the database refused to delete. Run  delete from app_errors;  in the Supabase SQL editor.' : 'All errors cleared.', failed ? 'error' : 'success');
+}
+
+function exportAdminErrors() {
+    const errs = state.admin.errors || [];
+    const lines = ['MyUTME error log — ' + errs.length + ' errors', 'Exported: ' + new Date().toISOString(), '=============================='];
+    errs.forEach(function(e, i) {
+        lines.push('#' + (i + 1) + '  ' + (e.created_at || ''));
+        lines.push('User: ' + (e.username || 'Unknown') + (e.user_id ? ' (' + e.user_id + ')' : ''));
+        lines.push('Page: ' + (e.page || '-'));
+        lines.push('Context: ' + (e.context || '-'));
+        lines.push('Message: ' + (e.message || ''));
+        lines.push('------------------------------');
+    });
+    const text = lines.join('\n');
+    if (window.__errExport) window.__errExport.openText(text, 'Error log (' + errs.length + ')');
+}
+
 function renderAdminErrors() {
     if (!state.admin.errorsLoaded) {
         loadAppErrors();
@@ -24957,7 +24990,8 @@ function renderAdminErrors() {
         '<div class="admin-view-mode-header">' +
         '<span class="mode-title">🐞 Error Log</span>' +
         '<button class="btn btn-outline btn-sm btn-refresh" data-action="admin-refresh-errors">' + svg('refresh', 15) + ' Refresh</button>' +
-        '<button class="btn btn-outline btn-sm" onclick="window.__errExport && window.__errExport.open()">📤 Export</button>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-export-errors">📤 Export All</button>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-clear-errors">🗑 Clear all</button>' +
         '</div>' +
         '<p style="font-size:11px;color:var(--muted);margin-bottom:10px">Errors users encountered, kept out of their view. Showing last ' + Math.min(state.admin.errors.length, 200) + '.</p>' +
         '<div style="max-height:350px;overflow-y:auto">' + rows + '</div>'
@@ -29539,6 +29573,16 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'admin-clear-errors') {
+        clearAllAppErrors();
+        return;
+    }
+
+    if (action === 'admin-export-errors') {
+        exportAdminErrors();
+        return;
+    }
+
     if (action === 'admin-refresh-errors') {
         state.admin.errorsLoaded = false;
         loadAppErrors();
@@ -32043,8 +32087,6 @@ async function init() {
     }
     if (typeof seedOfflineDataIfNeeded === 'function') {
         await seedOfflineDataIfNeeded();
-    } else {
-        console.warn('seedOfflineDataIfNeeded is not defined — skipping offline seed.');
     }
     render();
     handlePaystackReturn(); // back from Paystack's payment page
@@ -32214,7 +32256,12 @@ function refreshApp() {
             showToast("No internet connection. You're offline — CBT mode and anything already loaded still works.", 'offline');
             return;
         }
-        location.reload();
+        // The app now opens instantly from its saved copy, so a manual refresh
+        // must first download the newest version, then reload onto it.
+        if (btn) btn.classList.add('is-spinning');
+        swCheckUpdate(12000).then(function (ok) {
+            if (ok) { try { localStorage.setItem('myutme_last_update_check', String(Date.now())); } catch (e) {} }
+        }).then(function () { location.reload(); });
     }, 350);
 }
 
@@ -32372,13 +32419,38 @@ document.addEventListener('focusin', function (e) {
     }
 });
 
+// Asks the service worker to download the newest app files in the background.
+// Resolves true on success, false on any problem (offline, slow, no SW yet) —
+// it never throws and never shows an error.
+function swCheckUpdate(timeoutMs) {
+    return new Promise(function (resolve) {
+        try {
+            if (!navigator.onLine || !navigator.serviceWorker || !navigator.serviceWorker.controller) return resolve(false);
+            var ch = new MessageChannel();
+            var t = setTimeout(function () { resolve(false); }, timeoutMs || 15000);
+            ch.port1.onmessage = function (e) { clearTimeout(t); resolve(!!(e.data && e.data.ok)); };
+            navigator.serviceWorker.controller.postMessage({ type: 'CHECK_UPDATE' }, [ch.port2]);
+        } catch (e) { resolve(false); }
+    });
+}
+
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
         navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (reg) {
-            reg.update().catch(function () {});
-            document.addEventListener("visibilitychange", function () {
-                if (document.visibilityState === "visible") reg.update().catch(function () {});
-            });
+            // Automatic update: at most once every 24 hours, only when online,
+            // quietly in the background. Nothing is shown and nothing is logged
+            // if there is no network — it simply tries again on a later open.
+            // The downloaded update is used the next time the app is opened.
+            setTimeout(function () {
+                try {
+                    var last = Number(localStorage.getItem('myutme_last_update_check') || 0);
+                    if (!navigator.onLine || Date.now() - last < 24 * 60 * 60 * 1000) return;
+                    reg.update().catch(function () {});
+                    swCheckUpdate(20000).then(function (ok) {
+                        if (ok) { try { localStorage.setItem('myutme_last_update_check', String(Date.now())); } catch (e) {} }
+                    });
+                } catch (e) {}
+            }, 8000);
         }).catch(function (err) {
             console.warn("SW registration failed:", err);
         });

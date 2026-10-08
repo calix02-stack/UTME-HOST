@@ -667,14 +667,17 @@
         if (navigator.onLine === false) {
             return Promise.reject(new TypeError('Failed to fetch (offline)'));
         }
-        var fetchOpts = { cache: 'no-store' };
+        // 'no-cache' = ask the server "changed?" (ETag) and reuse the saved copy on a
+        // tiny 304 reply. Was 'no-store' + a ?v=timestamp, which re-downloaded every
+        // subject file (up to 1.6 MB each) on EVERY open and starved other requests.
+        var fetchOpts = { cache: 'no-cache' };
         var abortTimer;
         if (typeof AbortController !== 'undefined') {
             var ctrl = new AbortController();
-            abortTimer = setTimeout(function () { ctrl.abort(); }, 8000);
+            abortTimer = setTimeout(function () { ctrl.abort(); }, 20000);
             fetchOpts.signal = ctrl.signal;
         }
-        return fetch('questions-' + subjectId + '.json?v=' + Date.now(), fetchOpts)
+        return fetch('questions-' + subjectId + '.json', fetchOpts)
             .finally(function () { clearTimeout(abortTimer); })
             .then(function (res) {
                 if (res.status === 404) return { notFound: true };
