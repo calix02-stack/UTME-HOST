@@ -7309,6 +7309,692 @@ html, body { overscroll-behavior: none !important; }
 .claim-card{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;background:var(--card-bg);overflow:hidden}
 .claim-clip{font-size:11px;margin:2px 0 0;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 </style>
+<style id="myutme-ui-refresh">
+/* ============================================================
+   MYUTME UI REFRESH — presentation-only layer
+   All original screens, controls, and app logic are preserved.
+   ============================================================ */
+:root {
+  --green: #147653;
+  --green-dark: #0d563c;
+  --green-light: #e8f5ee;
+  --gold: #f1b54b;
+  --gold-dark: #d9972b;
+  --ink: #172a22;
+  --muted: #64736a;
+  --faint: #89968e;
+  --line: #e3eae5;
+  --bg: #f4f7f4;
+  --card-bg: #ffffff;
+  --shadow: 0 24px 70px rgba(24, 48, 36, .14);
+  --shadow-sm: 0 3px 12px rgba(24, 48, 36, .055);
+  --shadow-md: 0 10px 28px rgba(24, 48, 36, .095);
+  --shadow-lg: 0 22px 54px rgba(24, 48, 36, .16);
+  --drawer-bg: linear-gradient(160deg, #124f39 0%, #0d3025 100%);
+  --topbar-bg: linear-gradient(135deg, #147653 0%, #0d563c 100%);
+  --input-border: #d2ded6;
+  --modal-bg: #fff;
+  --explanation-bg: #e8f5ee;
+  --answered: #147653;
+  --unanswered: #d95749;
+  --current-q: #f1b54b;
+  --danger: #d95749;
+  --flag-color: #e0a238;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101a16;
+  --ink: #eef5f0;
+  --muted: #a7b7ad;
+  --faint: #819189;
+  --line: #2b3b33;
+  --card-bg: #192720;
+  --toggle-off: rgba(255,255,255,.2);
+  --shadow: 0 24px 70px rgba(0,0,0,.42);
+  --shadow-sm: 0 3px 12px rgba(0,0,0,.18);
+  --shadow-md: 0 10px 28px rgba(0,0,0,.26);
+  --shadow-lg: 0 22px 54px rgba(0,0,0,.34);
+  --drawer-bg: linear-gradient(160deg, #10271e 0%, #0b1712 100%);
+  --topbar-bg: #14221b;
+  --topbar-text: #eef5f0;
+  --input-border: #3b5045;
+  --modal-bg: #192720;
+  --explanation-bg: #1c3427;
+  --green-light: #1d3829;
+  --answered: #58bd85;
+  --unanswered: #f07465;
+  --current-q: #f1bd61;
+  --danger: #ef7668;
+  --flag-color: #f1bd61;
+}
+html, body { background: var(--bg); color: var(--ink); }
+body {
+  font-family: 'Poppins', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3, h4, .title, .hi-name, .mock-title, .h-title { letter-spacing: -.035em; }
+button, input, textarea, select { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+:focus-visible {
+  outline: 3px solid rgba(241,181,75,.9) !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(20,118,83,.14) !important;
+}
+
+/* App frame and responsive working area */
+#app-shell { background: var(--bg); }
+#app-inner {
+  background: var(--bg);
+  max-width: 100% !important;
+  box-shadow: none;
+}
+.topbar {
+  min-height: 66px;
+  padding: 10px clamp(16px, 3vw, 34px);
+  border: 0;
+  box-shadow: 0 1px 0 var(--line), 0 5px 18px rgba(22,42,33,.035);
+  backdrop-filter: blur(18px);
+}
+.topbar:not(.topbar-plain) {
+  background: linear-gradient(125deg, #126d4c 0%, #0d563c 100%);
+  border-bottom: 0;
+  box-shadow: 0 5px 22px rgba(13,86,60,.15);
+}
+.topbar.topbar-plain {
+  background: color-mix(in srgb, var(--card-bg) 94%, transparent);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+.topbar.topbar-plain .icon-btn, .topbar.topbar-plain .page-name { color: var(--ink); }
+.topbar .page-name { font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
+.topbar .brand span { font-family: 'Poppins', ui-sans-serif, sans-serif; font-weight: 700; }
+.topbar .icon-btn { width: 40px; height: 40px; border-radius: 13px; }
+.topbar:not(.topbar-plain) .icon-btn:hover { background: rgba(255,255,255,.14); }
+.topbar.topbar-plain .icon-btn:hover { background: var(--green-light); }
+.avatar { width: 38px; height: 38px; border: 2px solid rgba(255,255,255,.7); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.topbar-plain .avatar { border-color: var(--line); }
+.view {
+  min-height: 0;
+  padding: 24px clamp(16px, 3.2vw, 42px) 28px;
+  background: var(--bg);
+  max-height: calc(var(--app-vh, 100vh) - 134px) !important;
+}
+.view-content {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-bottom: 28px;
+}
+.view-chat { padding: 0 !important; }
+.view-chat .view-content { max-width: 100%; margin: 0; }
+.view-exam { max-height: calc(var(--app-vh, 100vh) - 66px) !important; }
+.view-nonav { max-height: calc(var(--app-vh, 100vh) - 66px) !important; }
+.view-picker .view-content { max-width: 1080px; }
+
+/* Typography, buttons, fields and shared surfaces */
+h2.title { font-family: inherit; font-size: clamp(20px, 2vw, 27px); line-height: 1.25; margin-bottom: 6px; }
+p.sub { font-size: 13px; line-height: 1.6; margin-bottom: 18px; }
+.section-hdr { align-items: center; margin: 8px 0 14px; }
+.section-hdr h2 { font-family: inherit; font-size: 20px; font-weight: 700; letter-spacing: -.03em; }
+.section-hdr .see-all { min-height: 38px; padding: 0 4px 0 10px; font-size: 12px; }
+.card, .course-card, .course-card-h, .exam-q-card-v2, .exam-lock-card,
+.topic-item-card, .mode-card-v2, .admin-mode-card, .acct-menu-item,
+.ph-mode-card, .myc-subject-card, .lit-tile, .man-card, .paid-card,
+.analytics-dash, .result-card, .review-item {
+  border-color: var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.card { padding: 18px; margin-bottom: 14px; }
+.card:hover, .course-card:hover, .course-card-h:hover, .mode-card-v2:hover,
+.topic-item-card:hover, .acct-menu-item:hover { box-shadow: var(--shadow-md); }
+.btn, .btn-green, .gate-btn-primary, .auth-submit, .exam-footer-v2 .ef-submit {
+  border-radius: 14px;
+  min-height: 48px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+.btn-green, .gate-btn-primary, .exam-footer-v2 .ef-submit {
+  background: linear-gradient(135deg, #16835b 0%, #0d6244 100%);
+  box-shadow: 0 8px 18px rgba(20,118,83,.18);
+}
+.btn-green:hover, .gate-btn-primary:hover, .exam-footer-v2 .ef-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(20,118,83,.25);
+}
+.btn-gold { border-radius: 13px; }
+input.field, textarea.field, select.field, input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+  border-radius: 12px;
+}
+input.field, textarea.field, select.field {
+  min-height: 46px;
+  padding: 11px 14px;
+  border-color: var(--input-border);
+  background: var(--card-bg);
+}
+input.field:focus, textarea.field:focus, select.field:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(20,118,83,.12);
+}
+label.field-label { font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: .09em; }
+.back-link { min-height: 42px; padding: 0 8px 0 0; font-size: 13px; font-weight: 600; }
+
+/* Home: make the next study action obvious and the dashboard easier to scan */
+.home-hero {
+  padding: 28px 28px 25px;
+  margin-bottom: 20px;
+  border-radius: 26px;
+  background: linear-gradient(120deg, #126d4c 0%, #0d563c 62%, #104532 100%);
+  box-shadow: 0 16px 34px rgba(13,86,60,.2);
+}
+.home-hero::after { height: 4px; }
+.home-hero .hi { font-size: 13px; color: rgba(255,255,255,.76); }
+.home-hero .name { font-family: inherit; font-size: clamp(27px,4vw,36px); line-height: 1.2; margin: 4px 0 18px; letter-spacing: -.045em; }
+.home-hero .cd-row {
+  padding: 11px 15px;
+  gap: 12px;
+  border-radius: 15px;
+  background: rgba(255,255,255,.11);
+  border: 1px solid rgba(255,255,255,.2);
+}
+.home-hero .cd-row .n { font-size: 16px; }
+.home-hero .cd-row .l { font-size: 10px; }
+.home-hero-badge { right: 25px; top: 25px; transform: scale(1.08); }
+.quick-actions { gap: 12px; margin: 8px 0 28px; }
+.qa-pill {
+  min-height: 112px;
+  padding: 16px 10px;
+  gap: 9px;
+  border-radius: 19px;
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+.qa-pill:hover { transform: translateY(-2px); border-color: rgba(20,118,83,.35); box-shadow: var(--shadow-md); }
+.qa-pill .qa-icon { width: 42px; height: 42px; border-radius: 14px; }
+.qa-pill span.lbl { font-size: 11px; }
+.course-scroll-row { gap: 14px; padding: 2px 2px 12px; }
+.course-card-h { width: 188px; border-radius: 18px; }
+.cch-img, .cch-img-fallback { height: 112px; }
+.cch-body { padding: 12px 13px 14px; }
+.cch-title { font-size: 13px; }
+.cch-meta { font-size: 10px; }
+.tile { border-radius: 20px; box-shadow: 0 10px 24px rgba(0,0,0,.12); }
+
+/* Practice pickers, subjects, topics and segmented controls */
+.subject-chip, .year-chip, .cbt-mode-btn, .qcount-chip, .myc-picker-opt,
+.revise-filter-tab, .subject-tab, .tp-topic, .paid-plan, .paid-seg button {
+  border-radius: 14px;
+  transition: border-color .18s ease, background .18s ease, color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.subject-chip, .year-chip, .cbt-mode-btn, .qcount-chip, .myc-picker-opt,
+.revise-filter-tab, .subject-tab, .tp-topic {
+  border-color: var(--line);
+  box-shadow: 0 2px 8px rgba(24,48,36,.035);
+}
+.subject-chip.selected, .year-chip.selected, .cbt-mode-btn.active,
+.qcount-chip.active, .myc-picker-opt.active, .revise-filter-tab.active,
+.subject-tab.active, .tp-topic.selected {
+  color: var(--green);
+  border-color: var(--green) !important;
+  background: var(--green-light) !important;
+  box-shadow: 0 0 0 3px rgba(20,118,83,.075);
+}
+.mode-note, .ph-slim-status { border-radius: 13px; padding: 11px 14px; line-height: 1.55; }
+.subject-grid { gap: 9px; }
+.subject-chip { padding: 13px 14px; }
+
+/* CBT and mock exam: calm paper-like reading surface with clearer answers */
+.exam-q-card-v2, .exam-question-card {
+  border-radius: 20px !important;
+  border: 1px solid var(--line) !important;
+  background: var(--card-bg) !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding: clamp(18px, 3vw, 28px) !important;
+}
+.exam-q-card-v2 .q-num { font-size: 11px; font-weight: 800; letter-spacing: .09em; }
+.exam-q-card-v2 .q-body { font-size: clamp(16px, 1.8vw, 20px); line-height: 1.7; }
+.exam-question-card p { color: var(--ink) !important; font-size: clamp(16px, 1.8vw, 19px) !important; line-height: 1.72; }
+.qa-option {
+  min-height: 56px;
+  border: 1.5px solid var(--line) !important;
+  border-radius: 15px !important;
+  background: var(--card-bg) !important;
+  color: var(--ink) !important;
+  box-shadow: 0 2px 8px rgba(24,48,36,.04) !important;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease, box-shadow .16s ease !important;
+}
+.qa-option:hover { border-color: rgba(20,118,83,.5) !important; box-shadow: 0 5px 14px rgba(24,48,36,.08) !important; }
+.qa-option.selected { border-color: var(--green) !important; background: var(--green-light) !important; box-shadow: 0 0 0 3px rgba(20,118,83,.1) !important; }
+.qa-option .qa-letter { background: var(--bg) !important; color: var(--ink) !important; border-radius: 10px; }
+.qa-option.correct { background: #e8f5ee !important; border-color: #168653 !important; }
+.qa-option.wrong { background: #fff0ed !important; border-color: #d95749 !important; }
+[data-theme="dark"] .qa-option.correct { background: #193b2b !important; }
+[data-theme="dark"] .qa-option.wrong { background: #3b2421 !important; }
+.exam-footer-v2 { background: color-mix(in srgb, var(--card-bg) 94%, transparent); border-top: 1px solid var(--line); backdrop-filter: blur(14px); padding-left: 14px; padding-right: 14px; }
+.exam-footer-v2 .ef-row button { min-height: 46px; border-radius: 13px; background: var(--green-light); }
+.exam-footer-v2 .ef-submit { min-height: 50px; }
+.exam-nav, .question-grid, .exam-map { border-radius: 16px; }
+
+/* Navigation and utility panels */
+.bottom-nav {
+  min-height: 72px;
+  padding: 7px max(12px, env(safe-area-inset-left)) calc(7px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--card-bg) 94%, transparent);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -5px 20px rgba(24,48,36,.045);
+  backdrop-filter: blur(18px);
+}
+.bottom-nav-item { min-height: 52px; gap: 4px; padding: 7px 3px; font-size: 10px; border-radius: 14px; }
+.bottom-nav-item.active { background: var(--green-light); color: var(--green); }
+.bottom-nav-item.active::before { display: none; }
+.bottom-nav-item.active svg { transform: translateY(-1px); }
+.drawer { background: var(--drawer-bg); box-shadow: 14px 0 42px rgba(0,0,0,.22); }
+.drawer .head { padding: 26px 22px 22px; }
+.drawer-item { min-height: 46px; margin: 3px 10px; padding: 0 14px; border-radius: 13px; }
+.drawer-item.active { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.1); }
+.drawer-overlay { backdrop-filter: blur(3px); }
+
+/* Authentication and public welcome screens */
+.gate-hero { padding: 48px 28px 54px; }
+.gate-brand { margin-bottom: 28px; }
+.gate-hero h1 { font-family: inherit; font-size: clamp(30px, 4vw, 42px); letter-spacing: -.045em; }
+.gate-hero .sub { max-width: 500px; font-size: 14px; }
+.gate-sheet { padding: 28px clamp(20px, 4vw, 38px) calc(30px + env(safe-area-inset-bottom)); }
+.gate-perks { gap: 14px; }
+.gate-perk { font-size: 13px; }
+.gate-perk .ic { width: 42px; height: 42px; border-radius: 14px; }
+.gate-btn-primary, .gate-btn-outline { min-height: 52px; border-radius: 15px; }
+.auth-overlay, .reset-overlay { background: rgba(9,24,17,.55); backdrop-filter: blur(8px); }
+.auth-modal, .reset-modal {
+  width: min(100% - 28px, 500px);
+  min-height: auto;
+  max-height: min(92dvh, 900px);
+  margin: auto;
+  border-radius: 26px;
+  overflow: auto;
+  box-shadow: 0 24px 80px rgba(0,0,0,.28);
+}
+.auth-hero { padding: 26px 28px 38px; }
+.auth-hero h1 { font-family: inherit; letter-spacing: -.04em; }
+
+/* Dialogs, banners, chat and result summaries */
+[class$="-modal"], [class$="-sheet"], .modal-card, .modal-content {
+  border-radius: 22px;
+}
+.inapp-notif-banner, #inapp-notif-banner { box-shadow: var(--shadow-md); border-radius: 16px; }
+.toast-msg { border-radius: 14px; box-shadow: var(--shadow-md); }
+.chat-input-row, .chat-composer, .ai-chat-page .chat-input-row { border-color: var(--line); }
+.ai-chat-page { max-width: 920px; margin: 0 auto; }
+.result-card, .paid-card { overflow: hidden; }
+.result-card { box-shadow: var(--shadow-md); }
+
+/* Small-screen fit and wide-screen breathing room */
+@media (max-width: 767px) {
+  #app-shell { padding: 0 !important; align-items: stretch; }
+  #app-inner, #app-inner.gate-shell, #app-inner.faq-shell {
+    width: 100%; max-width: 100% !important; height: var(--app-vh, 100dvh);
+    min-height: var(--app-vh, 100dvh); max-height: var(--app-vh, 100dvh) !important;
+    margin: 0; border-radius: 0; box-shadow: none;
+  }
+  .view { padding: 18px 16px 22px; max-height: calc(var(--app-vh, 100vh) - 134px) !important; }
+  .view-content { max-width: 100%; }
+  .view-exam, .view-nonav { max-height: calc(var(--app-vh, 100vh) - 66px) !important; }
+  .topbar { min-height: 60px; padding: 8px 14px; }
+  .topbar .icon-btn { width: 38px; height: 38px; }
+  .home-hero { padding: 23px 20px 20px; border-radius: 22px; }
+  .home-hero .name { font-size: 27px; }
+  .home-hero-badge { right: 18px; top: 17px; transform: scale(.9); }
+  .qa-pill { min-height: 98px; padding: 12px 5px; }
+  .qa-pill .qa-icon { width: 38px; height: 38px; }
+  .course-card-h { width: 164px; }
+  .cch-img, .cch-img-fallback { height: 98px; }
+  .bottom-nav { min-height: 66px; padding-top: 4px; }
+  .bottom-nav-item { min-height: 48px; font-size: 9px; }
+  .auth-overlay, .reset-overlay { background: var(--card-bg); backdrop-filter: none; }
+  .auth-modal, .reset-modal { width: 100%; max-height: 100dvh; min-height: 100dvh; margin: 0; border-radius: 0; box-shadow: none; }
+  .gate-hero { padding: max(34px, env(safe-area-inset-top)) 22px 48px; }
+  .gate-hero h1 { font-size: 28px; }
+  .gate-sheet { border-radius: 24px 24px 0 0; padding: 24px 20px calc(26px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 768px) {
+  #app-shell {
+    min-height: 100vh; min-height: 100dvh;
+    padding: 24px;
+    align-items: center;
+    background: radial-gradient(ellipse at 15% 12%, rgba(20,118,83,.11), transparent 34%),
+                radial-gradient(ellipse at 88% 88%, rgba(241,181,75,.12), transparent 30%), var(--bg);
+  }
+  #app-inner {
+    width: min(100%, 1440px); max-width: 1440px !important;
+    height: min(94dvh, 1040px); min-height: 600px;
+    max-height: min(94dvh, 1040px) !important;
+    border: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .view { padding: 30px clamp(28px, 5vw, 72px) 34px; }
+  .home-hero { padding: 34px 38px 30px; }
+  .home-grid { gap: 16px; }
+  .quick-actions { gap: 16px; }
+  .bottom-nav { justify-content: center; gap: 12px; min-height: 76px; }
+  .bottom-nav-item { flex: 0 1 136px; max-width: 150px; }
+  #app-inner.gate-shell, #app-inner.faq-shell { max-width: 1040px !important; }
+  #app-inner.gate-shell .gate-perks { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; }
+  #app-inner.gate-shell .gate-sheet { max-width: 780px; width: calc(100% - 56px); margin: -28px auto 24px; border-radius: 26px; }
+}
+@media (min-width: 768px) and (max-height: 720px) {
+  #app-shell { padding-top: 12px; padding-bottom: 12px; }
+  #app-inner { height: 96dvh; max-height: 96dvh !important; min-height: 560px; }
+}
+@media (max-width: 370px) {
+  .quick-actions { gap: 6px; }
+  .qa-pill { border-radius: 15px; }
+  .qa-pill span.lbl { font-size: 9px; }
+  .bottom-nav-item { font-size: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+</style>
+<style id="myutme-study-dashboard">
+/* Added home tools and layout: goals, measurable study rhythm, and focus timer. */
+.home-quick-heading { margin: 24px 0 10px; }
+.home-quick-heading p, .study-studio-heading p, .study-tool-heading p,
+.next-step-copy p { margin: 3px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.study-next-step {
+  display: flex; align-items: center; gap: 16px;
+  padding: 20px 22px; margin: 18px 0 22px;
+  border: 1px solid rgba(20,118,83,.16); border-radius: 22px;
+  background: linear-gradient(110deg, var(--green-light), color-mix(in srgb, var(--card-bg) 75%, var(--green-light)));
+  box-shadow: var(--shadow-sm);
+}
+.next-step-icon {
+  display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 48px;
+  color: var(--green); border-radius: 16px; background: var(--card-bg);
+}
+.next-step-copy { min-width: 0; flex: 1; }
+.study-eyebrow { color: var(--green); font-size: 9px; font-weight: 800; letter-spacing: .12em; margin: 0 0 4px; }
+.next-step-copy h2 { font-size: 16px; line-height: 1.3; margin: 0; color: var(--ink); letter-spacing: -.025em; }
+.next-step-copy p { font-size: 11px; }
+.next-step-button, .study-insights-link {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 42px; padding: 0 16px; border: 0; border-radius: 13px;
+  background: var(--green); color: #fff; font-size: 11px; font-weight: 700; white-space: nowrap;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.next-step-button:hover, .study-insights-link:hover { transform: translateY(-1px); box-shadow: 0 7px 18px rgba(20,118,83,.2); }
+.study-studio {
+  margin: 26px 0 30px; padding: clamp(18px, 2.7vw, 28px);
+  border: 1px solid var(--line); border-radius: 24px;
+  background: var(--card-bg); box-shadow: var(--shadow-sm);
+}
+.study-studio-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+.study-studio-heading h2 { margin: 0; color: var(--ink); font-size: 21px; letter-spacing: -.04em; }
+.study-studio-sub { max-width: 600px; }
+.study-insights-link { background: var(--green-light); color: var(--green); flex-shrink: 0; }
+.study-stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.study-stat {
+  display: flex; align-items: center; gap: 11px; min-width: 0; padding: 13px;
+  border: 1px solid var(--line); border-radius: 16px; background: var(--bg);
+}
+.study-stat-icon {
+  display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px;
+  border-radius: 11px; background: var(--green-light); color: var(--green);
+  font-size: 19px; font-weight: 700;
+}
+.study-stat div { display: flex; flex-direction: column; min-width: 0; }
+.study-stat strong { color: var(--ink); font-size: 18px; line-height: 1.15; font-weight: 800; letter-spacing: -.03em; }
+.study-stat span:last-child { color: var(--muted); font-size: 9px; line-height: 1.35; margin-top: 3px; }
+.study-tools-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.study-tool-card { min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 18px; background: var(--card-bg); }
+.study-tool-heading { display: flex; align-items: center; gap: 11px; }
+.study-tool-heading h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: -.02em; }
+.study-tool-heading p { font-size: 10px; }
+.study-tool-icon { display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; border-radius: 13px; font-size: 22px; font-weight: 700; }
+.goal-icon { color: #177b58; background: #e9f5ee; }
+.focus-icon { color: #9b6a14; background: #fff3dc; }
+.goal-progress-copy { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 17px 0 8px; }
+.goal-progress-copy strong { color: var(--ink); font-size: 17px; font-weight: 800; }
+.goal-progress-copy strong span { color: var(--muted); font-size: 11px; font-weight: 500; }
+.goal-progress-copy > span { color: var(--green); font-size: 11px; font-weight: 800; }
+.goal-progress-track { height: 8px; overflow: hidden; border-radius: 99px; background: var(--line); }
+.goal-progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #16835b, #55b77f); transition: width .45s cubic-bezier(.2,.8,.2,1); }
+.study-goal-choices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 13px; }
+.study-goal-choice {
+  min-height: 36px; border: 1px solid var(--line); border-radius: 11px;
+  color: var(--muted); background: var(--bg); font-size: 11px; font-weight: 700;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease, color .16s ease;
+}
+.study-goal-choice:hover { transform: translateY(-1px); border-color: var(--green); }
+.study-goal-choice.selected { color: #fff; border-color: var(--green); background: var(--green); box-shadow: 0 4px 10px rgba(20,118,83,.17); }
+.study-tool-note { margin: 10px 0 0; color: var(--faint); font-size: 9px; line-height: 1.45; }
+.focus-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 16px 0 0; }
+.focus-clock { color: var(--ink); font-family: var(--font-mono); font-size: clamp(27px, 4vw, 34px); font-weight: 800; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.focus-buttons { display: flex; gap: 7px; }
+.focus-primary, .focus-reset {
+  min-height: 38px; padding: 0 13px; border-radius: 11px; font-size: 10px; font-weight: 700;
+  transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
+}
+.focus-primary { color: #fff; background: var(--green); }
+.focus-primary:hover { background: var(--green-dark); box-shadow: 0 5px 12px rgba(20,118,83,.18); }
+.focus-reset { color: var(--muted); border: 1px solid var(--line); background: var(--bg); }
+.focus-primary:active, .focus-reset:active, .study-goal-choice:active { transform: scale(.97); }
+.study-studio .study-eyebrow { font-size: 9px; }
+.home-quick-heading .section-hdr { align-items: center; }
+[data-theme=\"dark\"] .study-next-step { background: linear-gradient(110deg, #1c3528, var(--card-bg)); border-color: #2a4937; }
+[data-theme=\"dark\"] .study-stat, [data-theme=\"dark\"] .focus-reset { background: #15231c; }
+[data-theme=\"dark\"] .goal-icon { background: #1d3829; color: #75d59b; }
+[data-theme=\"dark\"] .focus-icon { background: #3c3220; color: #f1bd61; }
+@media (max-width: 600px) {
+  .study-next-step { align-items: flex-start; flex-wrap: wrap; gap: 12px; padding: 16px; }
+  .next-step-icon { width: 42px; height: 42px; flex-basis: 42px; border-radius: 14px; }
+  .next-step-copy { flex-basis: calc(100% - 56px); }
+  .next-step-button { width: 100%; margin-top: 2px; }
+  .study-studio { margin: 20px 0 24px; padding: 17px 14px; border-radius: 20px; }
+  .study-studio-heading { gap: 8px; margin-bottom: 15px; }
+  .study-studio-heading h2 { font-size: 18px; }
+  .study-studio-sub { max-width: 215px; font-size: 10px !important; }
+  .study-insights-link { min-height: 36px; padding: 0 10px; font-size: 9px; }
+  .study-stats-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .study-stat { gap: 8px; padding: 10px; border-radius: 14px; }
+  .study-stat-icon { width: 30px; height: 30px; flex-basis: 30px; font-size: 16px; }
+  .study-stat strong { font-size: 16px; }
+  .study-stat span:last-child { font-size: 8px; }
+  .study-tools-grid { grid-template-columns: 1fr; gap: 9px; margin-top: 10px; }
+  .study-tool-card { padding: 14px; border-radius: 16px; }
+  .focus-clock { font-size: 30px; }
+}
+@media (max-width: 370px) {
+  .study-studio-heading { flex-direction: column; }
+  .study-studio-sub { max-width: none; }
+  .study-insights-link { align-self: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .goal-progress-track span, .study-goal-choice, .focus-primary, .focus-reset, .next-step-button { transition: none !important; }
+}
+</style>
+<style id="myutme-cross-app-polish">
+/* Keep the same visual language across setup, practice, results, and chat. */
+.section-hdr > div { min-width: 0; }
+.section-hdr > div h2 { margin: 0; color: var(--ink); font-size: 17px; line-height: 1.25; letter-spacing: -.035em; }
+.section-hdr > div p { margin: 3px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.practice-hub-intro {
+  position: relative; overflow: hidden; margin: 0 0 20px; padding: 21px 22px 19px;
+  border: 1px solid rgba(20,118,83,.14); border-radius: 22px;
+  background: linear-gradient(120deg, #e8f5ee 0%, var(--card-bg) 76%);
+}
+.practice-hub-intro::after {
+  content: ""; position: absolute; width: 150px; height: 150px; right: -48px; top: -72px;
+  border-radius: 50%; background: rgba(20,118,83,.075); pointer-events: none;
+}
+.practice-hub-kicker { display: flex; align-items: center; justify-content: space-between; gap: 8px; position: relative; z-index: 1; }
+.practice-hub-count { padding: 5px 9px; color: var(--green); border: 1px solid rgba(20,118,83,.16); border-radius: 999px; background: rgba(255,255,255,.66); font-size: 9px; font-weight: 800; white-space: nowrap; }
+.practice-hub-intro h1 { position: relative; z-index: 1; margin: 7px 0 4px; color: var(--ink); font-size: 22px; font-weight: 800; letter-spacing: -.05em; }
+.practice-hub-intro > p { position: relative; z-index: 1; max-width: 520px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.practice-hub-progress { position: relative; z-index: 1; height: 6px; margin-top: 15px; overflow: hidden; border-radius: 99px; background: rgba(20,118,83,.12); }
+.practice-hub-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #147653, #68be88); }
+.practice-subject-heading { margin: 0 0 10px; }
+.practice-mode-heading { align-items: flex-end; }
+.myc-subject-grid { gap: 10px; }
+.myc-subject-card { border-radius: 17px; }
+.myc-subject-card-img { padding: 8px; }
+.myc-sc-cover { height: clamp(56px, 8vw, 82px); border-radius: 11px; margin-bottom: 9px; }
+.myc-sc-name { font-size: 13px; line-height: 1.3; }
+.myc-sc-tag { margin-top: 4px; font-size: 9px; }
+.ph-mode-card { min-height: 76px; padding: 14px 16px; border-radius: 17px; }
+.ph-mode-icon { width: 44px; height: 44px; border-radius: 14px; }
+.ph-mode-label { font-size: 13px; }
+.ph-mode-sub { font-size: 10px; line-height: 1.4; }
+.mode-grid-v2 { gap: 12px; }
+.mode-card-v2 { min-height: 76px; border-radius: 17px; padding: 14px; }
+.mode-note { border-radius: 14px; line-height: 1.55; }
+.cbt-mode-select { gap: 10px; }
+.cbt-mode-btn { min-height: 88px; border-radius: 16px; }
+.subject-chip { min-height: 46px; border-radius: 14px; }
+.picker-footer { padding-top: 10px; }
+.picker-footer .btn { min-height: 48px; border-radius: 15px; font-weight: 800; }
+.tp-list { gap: 10px; }
+.tp-row { min-height: 72px; border-radius: 16px; }
+.topic-item-card { min-height: 74px; }
+.revise-filter-tab, .subject-tab, .tp-topic, .leaderboard-tab, .result-mode-tab, .notif-tab {
+  min-height: 38px; border-radius: 999px; padding-inline: 13px; font-weight: 700;
+}
+.result-mode-tabs { gap: 7px; margin: 12px 0 14px; }
+.result-mode-tab { margin: 0; color: var(--muted); background: var(--card-bg); border: 1px solid var(--line); }
+.result-mode-tab.active { color: #fff; background: var(--green); border-color: var(--green); }
+.history-results-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.history-card { margin: 0; padding: 16px; border-radius: 18px; border-top: 3px solid var(--green); box-shadow: var(--shadow-sm); }
+.history-card .h-title { font-size: 14px; line-height: 1.4; }
+.history-card .h-score { font-size: 21px; }
+.history-card .h-actions { margin-top: 11px; }
+.history-card .h-actions .btn { min-height: 38px; }
+.analytics-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0 16px; }
+.analytics-stat-card {
+  display: grid; grid-template-columns: 36px minmax(0, 1fr); grid-template-rows: auto auto;
+  align-items: center; column-gap: 10px; min-height: 76px; padding: 13px 14px;
+  border-radius: 17px; text-align: left; box-shadow: var(--shadow-sm);
+}
+.analytics-stat-icon { grid-column: 1; grid-row: 1 / 3; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: var(--green); background: var(--green-light); font-size: 17px; }
+.analytics-stat-card .val { grid-column: 2; grid-row: 1; align-self: end; font-size: 19px; line-height: 1.1; }
+.analytics-stat-card .lbl { grid-column: 2; grid-row: 2; align-self: start; margin: 3px 0 0; font-size: 9px; }
+.analytics-dashboard-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.analytics-panel { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 20px; background: var(--card-bg); box-shadow: var(--shadow-sm); }
+.analytics-panel .analytics-section-title { margin: 0 0 12px; color: var(--ink); font-size: 13px; }
+.analytics-panel > .card { border-radius: 15px; box-shadow: none; }
+.analytics-panel .heatmap-grid { gap: 9px; }
+.analytics-panel .heatmap-row .hm-label { flex-basis: 100px; }
+.analytics-panel .heatmap-row .hm-bar-track { height: 10px; border-radius: 99px; }
+.analytics-panel .missed-list-row { min-height: 44px; margin-bottom: 6px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.missed-review-cta {
+  display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 42px; margin-top: 10px; padding: 0 13px; border: 0; border-radius: 12px;
+  color: #fff; background: var(--green); font-size: 11px; font-weight: 800; text-align: left;
+}
+.mock-arena-header {
+  display: flex; flex-direction: column; gap: 16px; margin: 0 0 18px; padding: 20px;
+  border: 1px solid rgba(20,118,83,.16); border-radius: 22px;
+  background: linear-gradient(120deg, var(--green-light), var(--card-bg) 78%);
+}
+.mock-arena-copy h1 { margin: 4px 0 3px; color: var(--ink); font-size: 23px; letter-spacing: -.05em; }
+.mock-arena-copy p { max-width: 470px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.mock-arena-actions { display: flex; gap: 8px; }
+.mock-arena-actions .btn { flex: 1; min-height: 42px; padding: 8px 12px; border-radius: 13px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.leaderboard-tabs { gap: 8px; margin: 14px 0; }
+.leaderboard-tab { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding-inline: 12px; }
+.arena-tab-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; color: var(--muted); background: var(--bg); font-size: 9px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.leaderboard-tab.active .arena-tab-count { color: var(--green); background: rgba(255,255,255,.92); }
+.mock-exam-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.mock-exam-grid > .card { margin: 0; }
+.mock-card { margin: 0; padding: 17px; border-width: 1px; border-radius: 18px; box-shadow: var(--shadow-sm); }
+.mock-card .mock-title { font-size: 15px; line-height: 1.35; }
+.mock-card .mock-date { line-height: 1.55; }
+.mock-card.active { border-width: 2px; }
+.mock-empty-state { padding: 26px 18px; }
+.acct-hero { padding: 18px 20px; border-radius: 22px; }
+.acct-avatar-wrap, .acct-avatar-wrap img, .acct-avatar-wrap .acct-avatar-fallback { width: 58px; height: 58px; }
+.acct-hero-name { font-size: 18px; }
+.acct-hero-user, .acct-hero-email { font-size: 11px; }
+.acct-menu-grid, .ph-mode-list { gap: 10px; }
+.acct-menu-item { min-height: 68px; border-radius: 16px; }
+.profile-fill > .title { margin-bottom: 12px !important; }
+.ai-chat-page { display: flex; flex-direction: column; width: 100%; max-width: 960px; height: 100%; min-height: 0; margin: 0 auto; }
+.ai-chat-page .chat-window { flex: 1 1 auto; min-height: 0; width: 100%; max-width: 860px; margin: 0 auto; }
+.ai-chat-page .chat-input-row { flex: 0 0 auto; }
+.ai-empty-state { width: min(100%, 520px); margin: auto; padding: 28px 18px; }
+.ai-suggestions-row { max-width: 480px; }
+.ai-suggestion-chip { min-height: 38px; border-radius: 13px; line-height: 1.35; }
+.chat-bubble { max-width: min(82%, 620px); padding: 11px 14px; border-radius: 17px; line-height: 1.55; }
+.field, input, select, textarea { border-radius: 12px; }
+.btn, .mini-btn { border-radius: 12px; }
+.exam-shell { width: min(100%, 920px); margin-inline: auto; }
+.timer-bar { min-height: 52px; border-radius: 14px; padding: 9px 15px; }
+.subject-tabs { gap: 7px; }
+.subject-tab { padding-inline: 14px; }
+.qa-option { min-height: 58px; padding: 15px 17px; border-radius: 16px; line-height: 1.5; }
+.explanation-box { padding: 14px 16px; border-radius: 15px; }
+[data-theme=\"dark\"] .practice-hub-intro, [data-theme=\"dark\"] .mock-arena-header { background: linear-gradient(120deg, #1c3528, var(--card-bg) 78%); border-color: #2a4937; }
+[data-theme=\"dark\"] .practice-hub-count { background: #1b3024; border-color: #345543; }
+[data-theme=\"dark\"] .analytics-stat-icon { color: #75d59b; background: #1d3829; }
+[data-theme=\"dark\"] .analytics-panel { background: var(--card-bg); }
+[data-theme=\"dark\"] .analytics-panel .missed-list-row { background: #15231c; }
+@media (min-width: 700px) {
+  .myc-subject-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+  .myc-subject-card { min-height: 140px; }
+  .myc-add-tile { min-height: 140px; }
+  .ph-mode-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .mode-grid-v2 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .subject-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .topic-item-list, .tp-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .history-results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .analytics-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .analytics-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .analytics-trend-panel, .analytics-time-panel { grid-column: 1 / -1; }
+  .mock-arena-header { flex-direction: row; align-items: center; justify-content: space-between; gap: 20px; padding: 24px; }
+  .mock-arena-actions { flex: 0 0 auto; }
+  .mock-arena-actions .btn { flex: initial; min-width: 126px; }
+  .mock-exam-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mock-exam-grid > .card { grid-column: 1 / -1; }
+  .ai-chat-page .chat-input-row { width: min(100%, 900px); margin-inline: auto; }
+}
+@media (max-width: 420px) {
+  .practice-hub-intro { padding: 17px 16px; border-radius: 19px; }
+  .practice-hub-intro h1 { font-size: 20px; }
+  .ph-mode-card { min-height: 68px; padding: 11px 12px; }
+  .ph-mode-icon { width: 39px; height: 39px; border-radius: 12px; }
+  .ph-mode-label { font-size: 12px; }
+  .ph-mode-sub { font-size: 9px; }
+  .mock-arena-header { padding: 16px; border-radius: 19px; }
+  .mock-arena-actions .btn { padding-inline: 7px; font-size: 9px; }
+  .analytics-panel { padding: 13px; }
+}
+/* Re-enable only intentional navigation/modal motion. The app's original
+   global fast-mode reset stays in place for everything else. */
+.view-content.view-enter { animation: viewEnter .32s cubic-bezier(.16,1,.3,1) both !important; }
+.modal-anim-on [class*="-overlay"] { animation: overlayFadeIn .18s ease both !important; }
+.modal-anim-on [class$="-modal"], .modal-anim-on [class$="-sheet"] { animation: modalPopIn .22s cubic-bezier(.16,1,.3,1) both !important; }
+button, .btn, .icon-btn, a, input, select, textarea, .card, [class*="-card"], [class*="-chip"], [class*="-tab"],
+.bottom-nav-item, .drawer-item, .toggle-row, .acct-menu-item, .lb-row, .topic-item-card, .ph-mode-card, .myc-subject-card, .qa-pill, .tp-row {
+  transition: transform .16s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease, color .16s ease !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .view-content.view-enter, .modal-anim-on [class*="-overlay"], .modal-anim-on [class$="-modal"], .modal-anim-on [class$="-sheet"] { animation: none !important; }
+  button, .btn, .icon-btn, a, input, select, textarea, .card, [class*="-card"], [class*="-chip"], [class*="-tab"],
+  .bottom-nav-item, .drawer-item, .toggle-row, .acct-menu-item, .lb-row, .topic-item-card, .ph-mode-card, .myc-subject-card, .qa-pill, .tp-row { transition: none !important; }
+}
+</style>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -10679,6 +11365,7 @@ async function loadHistory() {
         render();
         return;
     }
+    const requestedUserId = String(state.authUser.id);
 
     const pending = loadPendingSubmissions().map(function(e) {
         return Object.assign({}, e, { _pending: true });
@@ -10688,10 +11375,11 @@ async function loadHistory() {
         const { data, error } = await supabase
             .from('exam_history')
             .select('*')
-            .eq('user_id', state.authUser.id)
+            .eq('user_id', requestedUserId)
             .order('submitted_at', { ascending: false });
             
         if (error) throw error;
+        if (!state.authUser || String(state.authUser.id) !== requestedUserId) return;
         const serverEntries = data || [];
         saveOfflineCache(historyOfflineCacheKey(), serverEntries);
         // Any locally-queued submission whose client_submission_id already
@@ -10703,6 +11391,7 @@ async function loadHistory() {
         state.historyLoaded = true;
         render();
     } catch (e) {
+        if (!state.authUser || String(state.authUser.id) !== requestedUserId) return;
         console.warn("Load history exception:", e.message || e);
         // No connection: fall back to whatever was cached from the last
         // successful load, plus anything still waiting to sync, instead of
@@ -18678,12 +19367,20 @@ const atMax = mySubjectIds.length === 4;
     const slimStatus = isOverLimit
         ? '<p class="ph-slim-status ph-slim-warn">⚠️ ' + mySubjectIds.length + ' subjects enrolled — remove ' + excessCount + ' to get back to 4.</p>'
         : '';
+    const subjectProgress = Math.min(100, Math.round(mySubjectIds.length / 4 * 100));
 
     return (
         slimStatus +
+        '<section class="practice-hub-intro" aria-labelledby="practice-hub-title">' +
+        '<div class="practice-hub-kicker"><span class="study-eyebrow">YOUR JAMB SETUP</span><span class="practice-hub-count">' + Math.min(mySubjectIds.length, 4) + ' / 4 subjects</span></div>' +
+        '<h1 id="practice-hub-title">Your study set</h1>' +
+        '<p>English is included automatically. Choose your other subjects, then pick a practice mode.</p>' +
+        '<div class="practice-hub-progress" role="progressbar" aria-label="Selected subjects" aria-valuemin="0" aria-valuemax="4" aria-valuenow="' + Math.min(mySubjectIds.length, 4) + '"><span style="width:' + subjectProgress + '%"></span></div>' +
+        '</section>' +
+        '<div class="section-hdr practice-subject-heading"><div><h2>My subjects</h2><p>Tap any subject to practice it directly</p></div></div>' +
         '<div class="myc-subject-grid">' + subjectCards + addTile + '</div>' +
         pickerHtml +
-        '<div class="section-hdr" style="margin-top:16px;margin-bottom:10px"><h2>Practice Modes</h2></div>' +
+        '<div class="section-hdr practice-mode-heading" style="margin-top:24px;margin-bottom:12px"><div><h2>Choose a practice mode</h2><p>Switch between exam-style practice and focused revision</p></div></div>' +
         modeGrid
     );
 }
@@ -18780,11 +19477,200 @@ function renderHomeActivationCard() {
     );
 }
 
+function homeDateKey(value) {
+    const d = value instanceof Date ? value : new Date(value);
+    if (isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function ensureHomeDashboardData() {
+    const owner = state.authUser && state.authUser.id ? String(state.authUser.id) : 'guest';
+    if (window.__myutmeHomeMetricsOwner !== owner) {
+        window.__myutmeHomeMetricsOwner = owner;
+        state.historyEntries = [];
+        state.historyLoaded = false;
+        state.weakQuestions = [];
+        state.weakQuestionsLoaded = false;
+    }
+    if (!state.authUser) {
+        state.historyLoaded = true;
+        state.weakQuestionsLoaded = true;
+        return;
+    }
+    if (!state.historyLoaded && window.__myutmeHomeHistoryLoadingOwner !== owner) {
+        window.__myutmeHomeHistoryLoadingOwner = owner;
+        loadHistory().finally(function() {
+            if (window.__myutmeHomeHistoryLoadingOwner === owner) window.__myutmeHomeHistoryLoadingOwner = null;
+        });
+    }
+    if (!state.weakQuestionsLoaded && window.__myutmeHomeWeakLoadingOwner !== owner) {
+        window.__myutmeHomeWeakLoadingOwner = owner;
+        loadWeakQuestions().finally(function() {
+            if (window.__myutmeHomeWeakLoadingOwner === owner) window.__myutmeHomeWeakLoadingOwner = null;
+        });
+    }
+}
+
+function getHomeStudyMetrics() {
+    const entries = state.historyEntries || [];
+    const now = new Date();
+    const today = homeDateKey(now);
+    let todayQuestions = 0;
+    let totalCorrect = 0;
+    let totalAvailable = 0;
+    const activeDays = {};
+    entries.forEach(function(entry) {
+        const dateKey = homeDateKey(entry.submitted_at);
+        const answered = Number(entry.answered_count);
+        const total = Number(entry.total_questions);
+        const hasAnsweredCount = entry.answered_count !== undefined && entry.answered_count !== null && entry.answered_count !== '';
+        const questionCount = hasAnsweredCount && Number.isFinite(answered) ? Math.max(0, answered) : (Number.isFinite(total) ? total : 0);
+        if (dateKey) activeDays[dateKey] = true;
+        if (dateKey === today) todayQuestions += questionCount;
+        totalCorrect += Number(entry.total_score) || 0;
+        totalAvailable += Number(entry.max_score) || 0;
+    });
+    const yesterdayDate = new Date(now);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    let cursor = activeDays[today] ? new Date(now) : (activeDays[homeDateKey(yesterdayDate)] ? yesterdayDate : null);
+    let streak = 0;
+    while (cursor && activeDays[homeDateKey(cursor)] && streak < 366) {
+        streak++;
+        cursor.setDate(cursor.getDate() - 1);
+    }
+    const accuracy = totalAvailable > 0 ? Math.round(totalCorrect / totalAvailable * 100) : null;
+    return {
+        entries: entries,
+        todayQuestions: todayQuestions,
+        streak: streak,
+        accuracy: accuracy,
+        weakCount: state.authUser && state.weakQuestionsLoaded ? (state.weakQuestions || []).length : null,
+        historyReady: !!state.historyLoaded,
+        weakReady: !!state.weakQuestionsLoaded
+    };
+}
+
+function homeGoalStorageKey() {
+    const user = state.authUser && state.authUser.id ? String(state.authUser.id) : 'guest';
+    return 'myutme_home_goal_v1_' + encodeURIComponent(user);
+}
+
+function getHomeDailyGoal() {
+    const allowed = [10, 20, 30, 40];
+    const saved = parseInt(storage.get(homeGoalStorageKey()), 10);
+    return allowed.indexOf(saved) !== -1 ? saved : 20;
+}
+
+function homeFocusStorageKey() {
+    const user = state.authUser && state.authUser.id ? String(state.authUser.id) : 'guest';
+    return 'myutme_home_focus_v1_' + encodeURIComponent(user);
+}
+
+function getHomeFocusState() {
+    try {
+        const parsed = JSON.parse(storage.get(homeFocusStorageKey()) || 'null');
+        if (parsed && ['idle', 'running', 'paused', 'done'].indexOf(parsed.status) !== -1) return parsed;
+    } catch (e) {}
+    return { status: 'idle', duration: 1500, remaining: 1500, endAt: null };
+}
+
+function formatHomeFocusTime(seconds) {
+    const safe = Math.max(0, Math.floor(Number(seconds) || 0));
+    return String(Math.floor(safe / 60)).padStart(2, '0') + ':' + String(safe % 60).padStart(2, '0');
+}
+
+function renderHomeStudyStudio(metrics) {
+    const goal = getHomeDailyGoal();
+    const progress = Math.min(100, Math.round(metrics.todayQuestions / goal * 100));
+    const focus = getHomeFocusState();
+    const focusSeconds = focus.status === 'running'
+        ? Math.max(0, Math.ceil(((focus.endAt || Date.now()) - Date.now()) / 1000))
+        : (focus.remaining || focus.duration || 1500);
+    const focusLabel = focus.status === 'running' ? 'Focus session in progress' :
+        focus.status === 'paused' ? 'Paused — ready when you are' :
+        focus.status === 'done' ? 'Focus block complete' : 'A quiet 25-minute study block';
+    const focusButton = focus.status === 'running' ? 'Pause' :
+        focus.status === 'paused' ? 'Resume' :
+        focus.status === 'done' ? 'Start again' : 'Start focus';
+    const goalOptions = [10, 20, 30, 40].map(function(value) {
+        return '<button type="button" class="study-goal-choice' + (goal === value ? ' selected' : '') +
+            '" data-myutme-action="set-goal" data-goal="' + value + '" aria-pressed="' + (goal === value ? 'true' : 'false') +
+            '" aria-label="Set daily goal to ' + value + ' questions">' + value + '</button>';
+    }).join('');
+    const todayValue = !state.authUser ? '—' : (metrics.historyReady ? String(metrics.todayQuestions) : '…');
+    const streakValue = !state.authUser ? '—' : (metrics.historyReady ? String(metrics.streak) : '…');
+    const accuracyValue = metrics.accuracy === null ? '—' : metrics.accuracy + '%';
+    const weakValue = !state.authUser ? '—' : (metrics.weakCount === null ? '…' : String(metrics.weakCount));
+    const syncText = !state.authUser
+        ? 'Sign in to see saved results here. Your focus timer and goal stay on this device.'
+        : (!metrics.historyReady || !metrics.weakReady)
+            ? 'Loading your saved study activity…'
+            : metrics.entries.length
+                ? 'Based on your saved practice and exam results.'
+                : 'Your progress will appear here after your first completed practice session.';
+    return (
+        '<section class="study-studio" aria-labelledby="study-studio-title">' +
+        '<div class="study-studio-heading"><div><p class="study-eyebrow">YOUR STUDY RHYTHM</p><h2 id="study-studio-title">A clear plan for today</h2><p class="study-studio-sub">' + esc(syncText) + '</p></div>' +
+        '<button type="button" class="study-insights-link" data-action="set-view" data-view="analytics">View insights <span aria-hidden="true">→</span></button></div>' +
+        '<div class="study-stats-grid">' +
+        '<div class="study-stat"><span class="study-stat-icon">◎</span><div><strong>' + todayValue + '</strong><span>Questions today</span></div></div>' +
+        '<div class="study-stat"><span class="study-stat-icon">✦</span><div><strong>' + streakValue + '</strong><span>Day streak</span></div></div>' +
+        '<div class="study-stat"><span class="study-stat-icon">↗</span><div><strong>' + accuracyValue + '</strong><span>Overall accuracy</span></div></div>' +
+        '<div class="study-stat"><span class="study-stat-icon">↺</span><div><strong>' + weakValue + '</strong><span>To review</span></div></div>' +
+        '</div>' +
+        '<div class="study-tools-grid">' +
+        '<div class="study-tool-card goal-tool">' +
+        '<div class="study-tool-heading"><span class="study-tool-icon goal-icon">◎</span><div><h3>Daily question goal</h3><p>Choose a target that feels doable.</p></div></div>' +
+        '<div class="goal-progress-copy"><strong>' + todayValue + ' <span>/ ' + goal + ' questions</span></strong><span>' + progress + '%</span></div>' +
+        '<div class="goal-progress-track" role="progressbar" aria-label="Daily question goal" aria-valuemin="0" aria-valuemax="' + goal + '" aria-valuenow="' + Math.min(goal, metrics.todayQuestions) + '"><span style="width:' + progress + '%"></span></div>' +
+        '<div class="study-goal-choices" role="group" aria-label="Daily question target">' + goalOptions + '</div>' +
+        '<p class="study-tool-note">Progress updates from completed sessions.</p>' +
+        '</div>' +
+        '<div class="study-tool-card focus-tool">' +
+        '<div class="study-tool-heading"><span class="study-tool-icon focus-icon">◷</span><div><h3>Focus timer</h3><p data-focus-label>' + esc(focusLabel) + '</p></div></div>' +
+        '<div class="focus-controls"><strong class="focus-clock" data-focus-time>' + formatHomeFocusTime(focusSeconds) + '</strong><div class="focus-buttons">' +
+        '<button type="button" class="focus-primary" data-myutme-action="focus-toggle">' + focusButton + '</button>' +
+        '<button type="button" class="focus-reset" data-myutme-action="focus-reset" aria-label="Reset focus timer">Reset</button>' +
+        '</div></div>' +
+        '<p class="study-tool-note">Put your phone on silent and focus on one task.</p>' +
+        '</div>' +
+        '</div>' +
+        '</section>'
+    );
+}
+
+function renderHomeNextStep(metrics) {
+    if (metrics.weakCount > 0) {
+        return (
+            '<section class="study-next-step">' +
+            '<span class="next-step-icon">' + svg('rotate', 22) + '</span>' +
+            '<div class="next-step-copy"><span class="study-eyebrow">RECOMMENDED NEXT</span><h2>Turn missed questions into marks</h2>' +
+            '<p>' + metrics.weakCount + ' question' + (metrics.weakCount === 1 ? '' : 's') + ' in your review list ' +
+            (metrics.weakReady ? 'ready for another look.' : 'will be ready when your study data finishes loading.') + '</p></div>' +
+            '<button type="button" class="next-step-button" data-action="set-view" data-view="revise">Review questions <span aria-hidden="true">→</span></button>' +
+            '</section>'
+        );
+    }
+    return (
+        '<section class="study-next-step">' +
+        '<span class="next-step-icon">' + svg('target', 22) + '</span>' +
+        '<div class="next-step-copy"><span class="study-eyebrow">RECOMMENDED NEXT</span><h2>' +
+        (metrics.entries.length ? 'Build on your recent practice' : 'Start with a short practice session') +
+        '</h2><p>' +
+        (metrics.entries.length ? 'A timed CBT is a good way to check what is sticking.' : 'Try a few questions first, then use your results to guide the next session.') +
+        '</p></div>' +
+        '<button type="button" class="next-step-button" data-action="start-full-mock-utme">Start JAMB CBT <span aria-hidden="true">→</span></button>' +
+        '</section>'
+    );
+}
+
 function renderHome() {
+    ensureHomeDashboardData();
     const firstName = (state.profile.name || "Guest").trim().split(" ")[0];
     const hour = new Date().getHours();
     const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
     const cd = getJambCountdown();
+    const metrics = getHomeStudyMetrics();
 
     if (!state.coursesLoaded) loadCourses();
 
@@ -18843,15 +19729,18 @@ function renderHome() {
         '<div><span class="n" id="jamb-cd-days">' + cd.days + (cd.days === 1 ? ' day' : ' days') + '</span><br><span class="l">to JAMB ' + cd.year + ' · next day in <b id="jamb-cd-clock">' + cd.clock + '</b></span></div>' +
         '</div>' +
         '</div>' +
-        renderNewsStrip() +
+        renderHomeNextStep(metrics) +
+        '<div class="section-hdr home-quick-heading"><div><h2>Quick start</h2><p>Choose the kind of practice you need</p></div></div>' +
         qaHtml +
+        renderHomeStudyStudio(metrics) +
         '<div class="section-hdr">' +
-        '<h2>Courses</h2>' +
+        '<div><h2>Explore your subjects</h2><p>Continue with a course or browse the full library</p></div>' +
         '<button class="see-all" data-action="set-view" data-view="all-courses">See all →</button>' +
         '</div>' +
         '<div class="course-scroll-row">' + courseCards + '</div>' +
-        adBox() +
-        renderHomeExtras()
+        renderHomeExtras() +
+        renderNewsStrip() +
+        adBox()
     );
 }
 
@@ -20465,15 +21354,17 @@ async function loadWeakQuestions() {
         render();
         return;
     }
+    const requestedUserId = String(state.authUser.id);
     
     try {
         const { data, error } = await supabase
             .from('weak_questions')
             .select('*')
-            .eq('user_id', state.authUser.id)
+            .eq('user_id', requestedUserId)
             .order('created_at', { ascending: false });
             
         if (error) {
+            if (!state.authUser || String(state.authUser.id) !== requestedUserId) return;
             console.warn("Load weak questions error:", error.message, error.code);
             showUserError("Load weak questions", error, "Couldn't load your weak questions right now.");
             state.weakQuestions = [];
@@ -20492,6 +21383,7 @@ async function loadWeakQuestions() {
             }
             return Object.assign({}, row, { questions: q });
         }));
+        if (!state.authUser || String(state.authUser.id) !== requestedUserId) return;
 
         // Safety net: de-dupe by question_id in case older duplicate rows
         // already exist in the database from before this was fixed. Rows
@@ -20509,6 +21401,7 @@ async function loadWeakQuestions() {
         state.weakQuestionsLoaded = true;
         render();
     } catch (e) {
+        if (!state.authUser || String(state.authUser.id) !== requestedUserId) return;
         console.warn("Load weak questions exception:", e.message || e);
         showUserError("Load weak questions", e, "Couldn't load your weak questions right now.");
         state.weakQuestions = [];
@@ -21573,7 +22466,8 @@ function renderHistoryCore() {
         '<p class="sub" style="font-size:11px">View all your exam results and performance</p>' +
         statsHtml +
         '<button class="btn btn-green" style="margin-bottom:8px" data-action="set-view" data-view="analytics">' + svg('chart', 14) + ' Open Personal Analytics Dashboard</button>' +
-        filterHtml
+        filterHtml +
+        '<div class="history-results-grid">'
     );
 
     filtered.forEach(function(entry) {
@@ -21612,6 +22506,7 @@ function renderHistoryCore() {
         );
     });
 
+    html += '</div>';
     return html;
 }
 
@@ -21707,10 +22602,13 @@ function renderAnalyticsDashboard() {
     });
     const overallPct = totalMax > 0 ? Math.round((totalCorrect / totalMax) * 100) : 0;
 
+    const subjectCount = Object.keys(aggregateSubjectAccuracy(entries)).length;
     const overviewHtml = (
         '<div class="analytics-stat-grid">' +
-        '<div class="analytics-stat-card"><p class="val" style="color:var(--green)">' + entries.length + '</p><p class="lbl">Exams Taken</p></div>' +
-        '<div class="analytics-stat-card"><p class="val" style="color:' + (overallPct >= 70 ? 'var(--green)' : overallPct >= 50 ? 'var(--gold)' : 'var(--danger)') + '">' + overallPct + '%</p><p class="lbl">Overall Accuracy</p></div>' +
+        '<div class="analytics-stat-card"><span class="analytics-stat-icon">▣</span><p class="val" style="color:var(--green)">' + entries.length + '</p><p class="lbl">Exams taken</p></div>' +
+        '<div class="analytics-stat-card"><span class="analytics-stat-icon">↗</span><p class="val" style="color:' + (overallPct >= 70 ? 'var(--green)' : overallPct >= 50 ? 'var(--gold)' : 'var(--danger)') + '">' + overallPct + '%</p><p class="lbl">Overall accuracy</p></div>' +
+        '<div class="analytics-stat-card"><span class="analytics-stat-icon">◎</span><p class="val" style="color:var(--ink)">' + totalQuestions + '</p><p class="lbl">Questions in sessions</p></div>' +
+        '<div class="analytics-stat-card"><span class="analytics-stat-icon">⌘</span><p class="val" style="color:var(--ink)">' + subjectCount + '</p><p class="lbl">Subjects tracked</p></div>' +
         '</div>'
     );
 
@@ -21782,6 +22680,7 @@ function renderAnalyticsDashboard() {
                 '</div>'
             );
         });
+        missedHtml += '<button class="missed-review-cta" data-action="set-view" data-view="revise">Review these questions <span aria-hidden="true">→</span></button>';
     }
 
     // ---- Time-per-question averages ----
@@ -21816,10 +22715,12 @@ function renderAnalyticsDashboard() {
     return (
         backBtn + header +
         overviewHtml +
-        trendHtml +
-        heatmapHtml +
-        missedHtml +
-        timeHtml
+        '<div class="analytics-dashboard-grid">' +
+        '<section class="analytics-panel analytics-trend-panel" aria-label="Accuracy trend">' + trendHtml + '</section>' +
+        '<section class="analytics-panel" aria-label="Subject strengths">' + heatmapHtml + '</section>' +
+        '<section class="analytics-panel" aria-label="Missed questions">' + missedHtml + '</section>' +
+        '<section class="analytics-panel analytics-time-panel" aria-label="Question pacing">' + timeHtml + '</section>' +
+        '</div>'
     );
 }
 
@@ -22522,6 +23423,8 @@ function renderMockExamPickerCore() {
     const tab = state.liveExamTab || 'ongoing';
     const filtered = allExams.filter(function(e) { return status(e) === tab; })
         .sort(function(a, b) { return new Date(a.scheduled_date) - new Date(b.scheduled_date); });
+    const tabCounts = { upcoming: 0, ongoing: 0, completed: 0 };
+    allExams.forEach(function(exam) { tabCounts[status(exam)]++; });
 
     // Only play the pop-in / confetti / bounce animations once per fresh
     // visit or deliberate tab switch (see setView + 'live-exam-tab' above).
@@ -22532,8 +23435,9 @@ function renderMockExamPickerCore() {
     const enterCls = freshEnter ? ' enter' : '';
 
     let tabsHtml = '<div class="leaderboard-tabs">';
-    [['upcoming', '📅 Upcoming'], ['ongoing', '🟢 Ongoing'], ['completed', '🔒 Completed']].forEach(function(t) {
-        tabsHtml += '<button class="leaderboard-tab' + (tab === t[0] ? ' active' : '') + '" data-action="live-exam-tab" data-tab="' + t[0] + '">' + t[1] + '</button>';
+    [['upcoming', 'Upcoming'], ['ongoing', 'Live now'], ['completed', 'Completed']].forEach(function(t) {
+        tabsHtml += '<button class="leaderboard-tab' + (tab === t[0] ? ' active' : '') + '" data-action="live-exam-tab" data-tab="' + t[0] + '" aria-pressed="' + (tab === t[0] ? 'true' : 'false') + '">' +
+            '<span class="arena-tab-label">' + t[1] + '</span><span class="arena-tab-count">' + tabCounts[t[0]] + '</span></button>';
     });
     tabsHtml += '</div>';
 
@@ -22649,14 +23553,14 @@ function renderMockExamPickerCore() {
 
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<h2 class="title">Mock Arena</h2>' +
-        '<p class="sub">Create your own, or join anyone\'s exam</p>' +
-        '<div style="display:flex;gap:6px;margin-bottom:12px">' +
+        '<section class="mock-arena-header">' +
+        '<div class="mock-arena-copy"><span class="study-eyebrow">PRACTICE TOGETHER</span><h1>Mock Arena</h1><p>Create your own exam or join a session with other students.</p></div>' +
+        '<div class="mock-arena-actions">' +
         (creationOff
-            ? '<button class="btn btn-outline" style="flex:1;padding:8px;font-size:12px;opacity:0.5;pointer-events:none">➕ Create (off)</button>'
-            : '<button class="btn btn-green mock-fun-btn" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="create">➕ Create</button>') +
-        '<button class="btn btn-outline mock-fun-btn" style="flex:1;padding:8px;font-size:12px" data-action="live-exam-view" data-view="join-code">🔑 Join by Code</button>' +
-        '</div>' +
+            ? '<button class="btn btn-outline mock-fun-btn" disabled title="Exam creation is currently unavailable">Create unavailable</button>'
+            : '<button class="btn btn-green mock-fun-btn" data-action="live-exam-view" data-view="create">＋ Create exam</button>') +
+        '<button class="btn btn-outline mock-fun-btn" data-action="live-exam-view" data-view="join-code">Join with code</button>' +
+        '</div></section>' +
         (state.lastCreatedJoinCode ?
             '<div class="card" style="border-color:var(--gold);text-align:center;padding:12px;margin-bottom:12px">' +
             '<p style="font-size:10px;color:var(--muted);margin:0 0 4px">🔒 Your private exam\'s join code</p>' +
@@ -22671,7 +23575,7 @@ function renderMockExamPickerCore() {
             '<button class="mini-btn" style="margin-left:6px" data-action="dismiss-live-exam-link-banner">Dismiss</button>' +
             '</div>' : '') +
         tabsHtml +
-        cards
+        '<div class="mock-exam-grid">' + cards + '</div>'
     );
 }
 
@@ -32858,6 +33762,96 @@ function deleteQuestionOffline(questionId) {
     }, { passive: true });
 })();
 
+</script>
+<script id="myutme-study-tools">
+/* Local-only interactions for the home dashboard. No server schema or
+   existing exam flow is changed. */
+(function() {
+    function saveFocus(focus) {
+        storage.set(homeFocusStorageKey(), JSON.stringify(focus));
+    }
+
+    function focusRemaining(focus, now) {
+        if (focus.status === 'running') return Math.max(0, Math.ceil(((focus.endAt || now) - now) / 1000));
+        return Math.max(0, Math.floor(Number(focus.remaining || focus.duration || 1500)));
+    }
+
+    function updateFocusDisplay() {
+        const focus = getHomeFocusState();
+        const seconds = focusRemaining(focus, Date.now());
+        const timeEl = document.querySelector('[data-focus-time]');
+        const labelEl = document.querySelector('[data-focus-label]');
+        const toggleEl = document.querySelector('[data-myutme-action="focus-toggle"]');
+        if (timeEl) timeEl.textContent = formatHomeFocusTime(seconds);
+        if (labelEl) {
+            labelEl.textContent = focus.status === 'running' ? 'Focus session in progress' :
+                focus.status === 'paused' ? 'Paused — ready when you are' :
+                focus.status === 'done' ? 'Focus block complete' : 'A quiet 25-minute study block';
+        }
+        if (toggleEl) {
+            toggleEl.textContent = focus.status === 'running' ? 'Pause' :
+                focus.status === 'paused' ? 'Resume' :
+                focus.status === 'done' ? 'Start again' : 'Start focus';
+        }
+    }
+
+    function tickFocusTimer() {
+        const focus = getHomeFocusState();
+        if (focus.status !== 'running') return;
+        if (focusRemaining(focus, Date.now()) <= 0) {
+            focus.status = 'done';
+            focus.remaining = 0;
+            focus.endAt = null;
+            saveFocus(focus);
+            updateFocusDisplay();
+            if (typeof showToast === 'function') showToast('Focus block complete. Take a short break before the next one.', 'success');
+            return;
+        }
+        updateFocusDisplay();
+    }
+
+    window.setInterval(tickFocusTimer, 1000);
+
+    document.addEventListener('click', function(event) {
+        const control = event.target.closest('[data-myutme-action]');
+        if (!control) return;
+        const action = control.getAttribute('data-myutme-action');
+
+        if (action === 'set-goal') {
+            const goal = parseInt(control.getAttribute('data-goal'), 10);
+            if ([10, 20, 30, 40].indexOf(goal) === -1) return;
+            storage.set(homeGoalStorageKey(), String(goal));
+            render();
+            return;
+        }
+
+        if (action === 'focus-reset') {
+            saveFocus({ status: 'idle', duration: 1500, remaining: 1500, endAt: null });
+            render();
+            return;
+        }
+
+        if (action === 'focus-toggle') {
+            const focus = getHomeFocusState();
+            const now = Date.now();
+            if (focus.status === 'running') {
+                focus.remaining = focusRemaining(focus, now);
+                focus.status = 'paused';
+                focus.endAt = null;
+            } else {
+                if (focus.status === 'done') {
+                    focus.duration = 1500;
+                    focus.remaining = 1500;
+                }
+                focus.remaining = Math.max(1, focus.remaining || focus.duration || 1500);
+                focus.endAt = now + focus.remaining * 1000;
+                focus.status = 'running';
+            }
+            saveFocus(focus);
+            render();
+        }
+    });
+})();
 </script>
 </body>
 </html>
