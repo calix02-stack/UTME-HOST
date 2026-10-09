@@ -8479,8 +8479,11 @@ const COURSE_EXAM_TYPES = [
     { key: "jamb", label: "JAMB" },
 ];
 // Number of course cards shown in the "Courses" preview row on the home screen.
-// The full list is always available via the "See all" link (renderAllCourses).
+// The full list is always available via the "See all" link (removed).
 const HOME_COURSE_PREVIEW_COUNT = 4;
+// The course catalog was removed completely (database table dropped). These stubs keep old call sites harmless.
+function loadCourses() { state.courses = []; state.coursesLoaded = true; state.coursesLoading = false; }
+async function loadMyEnrollments() { state.myEnrollments = []; state.myEnrollmentsLoaded = true; state.myEnrollmentsLoading = false; }
 
 const DEFAULT_COURSES = COURSE_EXAM_TYPES.reduce(function(list, examType) {
     SUBJECTS.filter(function(s) { return s.id !== "lhm"; }).forEach(function(s) {
@@ -9434,12 +9437,7 @@ function myElectivesStorageKey() {
 // (from a previous login on ANY device), that's the source of truth —
 // otherwise a fresh browser/device would show an empty Practice Hub even
 // though the account already has its 4 subjects locked in elsewhere.
-function reconcileElectivesFromProfile(prof) {
-    if (prof && Array.isArray(prof.elective_subjects) && prof.elective_subjects.length > 0) {
-        state.myElectives = prof.elective_subjects;
-        storage.set(myElectivesStorageKey(), JSON.stringify(state.myElectives));
-    }
-}
+function reconcileElectivesFromProfile(prof) {} // subjects are device-only now
 function loadMyElectivesLocal() {
     try {
         const raw = storage.get(myElectivesStorageKey());
@@ -9450,18 +9448,8 @@ function loadMyElectivesLocal() {
     }
 }
 function saveMyElectivesLocal() {
+    // Saved on this device only. No database call.
     storage.set(myElectivesStorageKey(), JSON.stringify(state.myElectives || []));
-    // Best-effort sync to the account itself (not just this device/browser),
-    // so the same 4 subjects show up after logging in elsewhere. Requires an
-    // `elective_subjects` jsonb column on `profiles` — silently ignored if
-    // that column hasn't been added yet (see comment above signUp()).
-    //   alter table profiles add column if not exists elective_subjects jsonb;
-    if (state.authUser) {
-        supabase.from('profiles')
-            .update({ elective_subjects: state.myElectives || [] })
-            .eq('id', state.authUser.id)
-            .then(function() {}, function() {});
-    }
 }
 
 function enrolledSubjectIds() {
@@ -9491,14 +9479,18 @@ function getMySubjectIds() {
 // Questions, single-subject CBT, Flashcards). Admin sees every subject so
 // they can check/change any of them without switching accounts. Everyone
 // else keeps their own combo. Full CBT / Mock still use getMySubjectIds().
+function hasSavedSubjects() {
+    return Array.isArray(state.myElectives) && state.myElectives.length > 0;
+}
 function getBrowsableSubjectIds() {
-    if (isAdmin()) {
+    if (isAdmin() || !hasSavedSubjects()) {
+        // Admin, or a student who has not saved subjects yet: show every subject.
         return SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).map(function(s) { return s.id; });
     }
     return getMySubjectIds();
 }
 function hasCourseAccess(subjectId) {
-    if (isAdmin()) return true;
+    if (isAdmin() || !hasSavedSubjects()) return true;
     const ids = enrolledSubjectIds();
     if (ids === null) return true;
     return ids.has(subjectId);
@@ -9618,6 +9610,10 @@ async function logAppError(context, err) {
         appErrorLogBuffer.unshift(record);
         try { if (window.__errExport) window.__errExport.push('app:' + record.context, record.message, 'user=' + record.username + ' view=' + record.page); } catch (_) {}
         if (appErrorLogBuffer.length > 300) appErrorLogBuffer.pop();
+        window.__errSeen = window.__errSeen || {};
+        const _ek = record.context + '|' + record.message;
+        if (window.__errSeen[_ek] || Object.keys(window.__errSeen).length > 30) return;
+        window.__errSeen[_ek] = 1;
         if (typeof supabase !== 'undefined' && supabase) {
             supabase.from('app_errors').insert([record]).then(function() {}, function() {});
         }
@@ -10091,6 +10087,7 @@ myEnrollmentsLoaded: false,
 myKeys: [],
 myKeysLoaded: false,
 myEnrollmentsLoading: false,
+    browsePick: [],
     myElectives: [], // English + up to 3 elective subject IDs — local/offline, see loadMyElectivesLocal()
     showElectiveOnboarding: false, // first-run "pick your 3 subjects" popup shown right after signup
     onboardingElectives: [], // subject IDs picked so far inside that popup (max 3)
@@ -10376,7 +10373,7 @@ async function loadLeaderboard(type) {
         // Leaderboard is Mock Exam only — CBT/Subject leaderboards were removed.
         const table = 'mock_scores';
         const { data, error } = await withNetworkTimeout(
-            supabase.from(table).select('*').order('score', { ascending: false }),
+            supabase.from(table).select('*').order('score', { ascending: false }).limit(100),
             8000, 'Leaderboard load'
         );
 
@@ -10909,13 +10906,14 @@ function buildSettingsResult(rows) {
             examCreationEnabled: settings.exam_creation_enabled !== false,
             jambExamDate: settings.jamb_exam_date || null,
             activationRequired: !(settings.activation_required === false || settings.activation_required === 'false' || settings.activation_required === 0 || settings.activation_required === '0'),
-            faqImages: settings.faq_images || {},
+            faqImages: {},
             supportMemory: (settings.support_memory && Array.isArray(settings.support_memory.entries)) ? settings.support_memory.entries : [],
         };
     return result;
 }
 
 let _settingsInflight = null;
+function loadFaqImagesIfChanged() {} // FAQ images removed completely
 async function loadSettings() {
     // Cache-first: return what we already have instantly, refresh in background.
     const cached = state.settingsCache || loadOfflineCache('settings');
@@ -10924,10 +10922,12 @@ async function loadSettings() {
         _settingsInflight = (async function() {
             try {
                 const { data, error } = await withNetworkTimeout(
-                    supabase.from('admin_settings').select('*'), 8000, 'Settings load'
+                    supabase.from('admin_settings').select('*').neq('setting_key', 'faq_images'), 8000, 'Settings load'
                 );
                 if (error) return null;
                 const result = buildSettingsResult(data);
+                result.faqImages = {}; void (state.settingsCache && state.settingsCache.faqImages && Object.keys(state.settingsCache.faqImages).length ? state.settingsCache.faqImages : null) || loadOfflineCache('faq_images') || (cached && cached.faqImages) || {};
+                loadFaqImagesIfChanged();
                 const prev = state.settingsCache;
                 state.settingsCache = result;
                 saveOfflineCache('settings', result);
@@ -10951,8 +10951,11 @@ async function loadSettings() {
     return r || buildSettingsResult([]);
 }
 
+let _docsAt = 0;
 async function loadDocuments(filterSubject) {
     try {
+        if (state.docsLoaded && Date.now() - _docsAt < 15 * 60 * 1000) { return; }
+        _docsAt = Date.now();
         let query = supabase.from('materials').select('id, name, file_name, file_type, created_at, subject_id, subject_name');
         const { data, error } = await query.order('created_at', { ascending: false });
         if (error) {
@@ -10966,6 +10969,7 @@ async function loadDocuments(filterSubject) {
         state.docsLoaded = true;
         render();
     } catch (e) {
+        _docsAt = 0;
         console.warn("Load documents exception:", e);
         state.docsLoaded = true;
         state.docsList = [];
@@ -10973,8 +10977,20 @@ async function loadDocuments(filterSubject) {
     }
 }
 
+// Keeps each downloaded study file on THIS phone, so it is only ever downloaded once per device.
+function _docIdb() {
+    return new Promise(function(res, rej) {
+        const r = indexedDB.open('myutme-docs', 1);
+        r.onupgradeneeded = function() { r.result.createObjectStore('f'); };
+        r.onsuccess = function() { res(r.result); }; r.onerror = function() { rej(r.error); };
+    });
+}
+async function _docGet(id) { try { const db = await _docIdb(); return await new Promise(function(res) { const q = db.transaction('f').objectStore('f').get(id); q.onsuccess = function() { res(q.result || null); }; q.onerror = function() { res(null); }; }); } catch (e) { return null; } }
+async function _docPut(id, v) { try { const db = await _docIdb(); db.transaction('f', 'readwrite').objectStore('f').put(v, id); } catch (e) {} }
 async function loadSingleDocumentFile(docId) {
     try {
+        const _saved = await _docGet(docId);
+        if (_saved) { if (!state.docFileUrls) state.docFileUrls = {}; state.docFileUrls[docId] = _saved; render(); return; }
         const { data, error } = await supabase
             .from('materials')
             .select('id, file_url')
@@ -10986,6 +11002,7 @@ async function loadSingleDocumentFile(docId) {
         }
         if (!state.docFileUrls) state.docFileUrls = {};
         state.docFileUrls[docId] = data.file_url;
+        _docPut(docId, data.file_url);
         render();
     } catch (e) {
         showNetworkAwareError('Could not load file.', e);
@@ -11489,7 +11506,7 @@ async function loadLogs() {
             .from('activity_logs')
             .select('*')
             .order('created_at', { ascending: false })
-            .limit(500);
+            .limit(150);
         if (error) {
             console.warn("Load logs error:", error.message, error.code, error.details, error.hint);
             state.admin.logs = [];
@@ -11513,7 +11530,7 @@ async function loadAppErrors() {
             .from('app_errors')
             .select('*')
             .order('created_at', { ascending: false })
-            .limit(300);
+            .limit(100);
         if (error) {
             console.warn("Load app errors error:", error.message);
             // Fall back to whatever we've captured client-side this session
@@ -11787,7 +11804,7 @@ function applyNotifRows(data) {
     });
     state.notifsLoaded = true;
     state.notifsUnreadCount = state.notifsList.filter(function(n) {
-        return state.readNotifs.indexOf(n.id) === -1;
+        return state.readNotifs.indexOf(String(n.id)) === -1;
     }).length;
     state.notifs = state.notifsList.map(function(n) {
         return {
@@ -11796,36 +11813,85 @@ function applyNotifRows(data) {
             body: n.body,
             image_url: n.image_url || null,
             time: formatTimeAgo(n.created_at),
-            unread: state.readNotifs.indexOf(n.id) === -1,
+            unread: state.readNotifs.indexOf(String(n.id)) === -1,
         };
     });
     render();
 }
-async function loadNotifications() {
+function notifCacheKey() { return 'notifs_' + (state.authUser ? state.authUser.id : 'guest'); }
+function mergeNotifRow(n) {
+    const rows = loadOfflineCache(notifCacheKey()) || [];
+    if (!rows.some(function(x) { return String(x.id) === String(n.id); })) {
+        rows.unshift(n);
+        saveOfflineCache(notifCacheKey(), rows.slice(0, 60));
+    }
+    applyNotifRows(rows);
+}
+let _readsPulledFor = null;
+async function pullNotifReads() {
+    if (!state.authUser || _readsPulledFor === state.authUser.id) return;
+    _readsPulledFor = state.authUser.id;
     try {
-        const { data, error } = await withNetworkTimeout(
-            supabase.from('notifications').select('*').order('created_at', { ascending: false }),
-            8000, 'Notifications load'
-        );
-        if (error) {
-            console.warn("Load notifications error:", error);
-            applyNotifRows(loadOfflineCache('notifs') || []);
-            return;
+        const r = await supabase.from('notification_reads').select('notification_id').eq('user_id', state.authUser.id);
+        if (r.error) { _readsPulledFor = null; return; }
+        let changed = false;
+        (r.data || []).forEach(function(x) {
+            const k = String(x.notification_id);
+            if (state.readNotifs.indexOf(k) === -1) { state.readNotifs.push(k); changed = true; }
+        });
+        if (changed) storage.set("readNotifications", JSON.stringify(state.readNotifs));
+    } catch (e) { _readsPulledFor = null; }
+}
+function pushNotifReads(ids) {
+    try {
+        if (!state.authUser || !ids || !ids.length) return;
+        const rows = ids.filter(function(i) { return /^\d+$/.test(String(i)); }).map(function(i) {
+            return { user_id: state.authUser.id, notification_id: Number(i) };
+        });
+        if (!rows.length) return;
+        supabase.from('notification_reads').upsert(rows, { onConflict: 'user_id,notification_id' }).then(function() {}, function() {});
+    } catch (e) {}
+}
+// Downloads only notifications newer than what this device already has. A full refresh happens at most once a day.
+async function loadNotifications() {
+    const key = notifCacheKey();
+    const cached = loadOfflineCache(key) || [];
+    const lastFull = Number(storage.get('notifsFullAt_' + key) || 0);
+    const needFull = !cached.length || (Date.now() - lastFull > 24 * 3600 * 1000);
+    try {
+        await pullNotifReads();
+        let q = supabase.from('notifications')
+            .select('id,title,body,image_url,target_user_id,created_at,news_id')
+            .order('created_at', { ascending: false }).limit(60);
+        if (!needFull) q = q.gt('created_at', cached[0].created_at);
+        const { data, error } = await withNetworkTimeout(q, 8000, 'Notifications load');
+        if (error) { console.warn("Load notifications error:", error); applyNotifRows(cached); return; }
+        let rows;
+        if (needFull) {
+            rows = data || [];
+            storage.set('notifsFullAt_' + key, String(Date.now()));
+        } else {
+            const have = {};
+            cached.forEach(function(x) { have[String(x.id)] = 1; });
+            rows = (data || []).filter(function(x) { return !have[String(x.id)]; }).concat(cached);
         }
-        saveOfflineCache('notifs', data || []);
-        applyNotifRows(data);
+        rows = rows.slice(0, 60);
+        saveOfflineCache(key, rows);
+        applyNotifRows(rows);
     } catch (e) {
         console.warn("Load notifications exception:", e);
-        applyNotifRows(loadOfflineCache('notifs') || []);
+        applyNotifRows(cached);
     }
 }
 
 function markNotificationRead(notifId) {
+    notifId = String(notifId);
     if (state.readNotifs.indexOf(notifId) === -1) {
-        state.readNotifs.push(notifId);
+        state.readNotifs.push(String(notifId));
+        pushNotifReads([notifId]);
         storage.set("readNotifications", JSON.stringify(state.readNotifs));
         state.notifsUnreadCount = state.notifsList.filter(function(n) {
-            return state.readNotifs.indexOf(n.id) === -1;
+            return state.readNotifs.indexOf(String(n.id)) === -1;
         }).length;
         updateAppBadge();
         render();
@@ -11833,9 +11899,11 @@ function markNotificationRead(notifId) {
 }
 
 function markAllNotificationsRead() {
+    const newlyRead = [];
     state.notifsList.forEach(function(n) {
-        if (state.readNotifs.indexOf(n.id) === -1) state.readNotifs.push(n.id);
+        if (state.readNotifs.indexOf(String(n.id)) === -1) { state.readNotifs.push(String(n.id)); newlyRead.push(n.id); }
     });
+    pushNotifReads(newlyRead);
     storage.set("readNotifications", JSON.stringify(state.readNotifs));
     state.notifsUnreadCount = 0;
     updateAppBadge();
@@ -11907,18 +11975,28 @@ async function loadNews() {
     try {
         await waitForSupabaseReady(6000);
         const r = await withNetworkTimeout(Promise.all([
-            supabase.from('news_posts').select('*').order('created_at', { ascending: false }).limit(30),
-            supabase.from('news_post_likes').select('news_id,user_id,guest_id'),
-            supabase.from('news_post_comments').select('news_id')
+            supabase.from('news_posts').select('id,title,body,image_url,notify,created_at,news_post_likes(count),news_post_comments(count)').order('created_at', { ascending: false }).limit(30),
+            // only THIS person's own likes (a handful of rows), not everybody's
+            (function() {
+                const _u = state.authUser && state.authUser.id;
+                const q = supabase.from('news_post_likes').select('news_id,user_id,guest_id');
+                return (_u ? q.eq('user_id', _u) : q.eq('guest_id', newsGuestId())).limit(200);
+            })()
         ]), 10000, 'News load');
         if (r[0].error) throw r[0].error;
-        if ((r[0].data || []).length || !state.news.length) state.news = r[0].data || [];
+        const _rows = r[0].data || [];
+        state.newsLikes = {}; state.newsCommentCounts = {};
+        _rows.forEach(function(n) {
+            state.newsLikes[n.id] = (n.news_post_likes && n.news_post_likes[0] && n.news_post_likes[0].count) || 0;
+            state.newsCommentCounts[n.id] = (n.news_post_comments && n.news_post_comments[0] && n.news_post_comments[0].count) || 0;
+            delete n.news_post_likes; delete n.news_post_comments;
+        });
+        if (_rows.length || !state.news.length) state.news = _rows;
         saveNewsCache(state.news);
         const uid = state.authUser && state.authUser.id;
         state.newsLikeRows = r[1].data || [];
-        state.newsLikes = {}; state.newsMyLikes = {}; state.newsCommentCounts = {};
-        (r[1].data || []).forEach(function(l) { state.newsLikes[l.news_id] = (state.newsLikes[l.news_id] || 0) + 1; if ((uid && l.user_id === uid) || (!uid && l.guest_id && l.guest_id === newsGuestId())) state.newsMyLikes[l.news_id] = true; });
-        (r[2].data || []).forEach(function(c) { state.newsCommentCounts[c.news_id] = (state.newsCommentCounts[c.news_id] || 0) + 1; });
+        state.newsMyLikes = {};
+        (r[1].data || []).forEach(function(l) { state.newsMyLikes[l.news_id] = true; });
         ok = true;
     } catch (e) {
         console.warn('News load failed:', e);
@@ -11934,12 +12012,12 @@ async function loadNews() {
     render();
 }
 // refresh news when the app comes back to the screen or the internet returns
-document.addEventListener('visibilitychange', function() { if (!document.hidden && Date.now() - newsLastLoad > 60000) loadNews(); });
+document.addEventListener('visibilitychange', function() { if (!document.hidden && Date.now() - newsLastLoad > 300000) loadNews(); });
 window.addEventListener('online', function() { newsRetries = 0; loadNews(); });
 async function loadNewsComments(id) {
     state.newsCommentsFor = id;
     try {
-        const { data } = await supabase.from('news_post_comments').select('*').eq('news_id', id).order('created_at', { ascending: true });
+        const { data } = await supabase.from('news_post_comments').select('*').eq('news_id', id).order('created_at', { ascending: true }).limit(200);
         if (state.newsCommentsFor === id) { state.newsComments = data || []; render(); }
     } catch (e) { console.warn(e); }
 }
@@ -12293,7 +12371,7 @@ function startLastSeenHeartbeat() {
         supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', userId).then(function() {}, function() {});
     }
     ping(); // update immediately, don't wait up to 2 minutes for the first write
-    lastSeenInterval = setInterval(ping, 2 * 60 * 1000);
+    // (removed) the repeating 2-minute timer; one write per app open is enough
 }
 function stopLastSeenHeartbeat() {
     if (lastSeenInterval) {
@@ -12391,72 +12469,14 @@ async function detectDeviceName() {
     return os + ' · ' + browser + ' · ' + deviceTag();
 }
 let deviceSessionInterval = null;
-async function registerDeviceSession() {
-    if (!state.authUser) return;
-    try {
-        const deviceId = getDeviceId();
-        const deviceName = await detectDeviceName();
-        await supabase.from('device_sessions').upsert([{
-            user_id: state.authUser.id,
-            device_id: deviceId,
-            device_name: deviceName,
-            is_active: true,
-            last_active: new Date().toISOString(),
-        }], { onConflict: 'user_id,device_id' });
-    } catch (e) {
-        // Table likely not migrated yet — ignore, this feature is optional.
-    }
-    startDeviceSessionHeartbeat();
-}
-function startDeviceSessionHeartbeat() {
-    stopDeviceSessionHeartbeat();
-    if (!state.authUser) return;
-    const userId = state.authUser.id;
-    const deviceId = getDeviceId();
-    function ping() {
-        if (!state.authUser || state.authUser.id !== userId) return;
-        supabase.from('device_sessions')
-            .update({ is_active: true, last_active: new Date().toISOString() })
-            .eq('user_id', userId).eq('device_id', deviceId)
-            .then(function() {}, function() {});
-    }
-    deviceSessionInterval = setInterval(ping, 2 * 60 * 1000);
-}
-function stopDeviceSessionHeartbeat() {
-    if (deviceSessionInterval) {
-        clearInterval(deviceSessionInterval);
-        deviceSessionInterval = null;
-    }
-}
-async function endDeviceSession() {
-    if (!state.authUser) return;
-    try {
-        await supabase.from('device_sessions')
-            .update({ is_active: false, last_active: new Date().toISOString() })
-            .eq('user_id', state.authUser.id).eq('device_id', getDeviceId());
-    } catch (e) { console.warn("Ignored error:", e); }
-}
-async function loadDeviceSessions() {
-    // Guard against duplicate concurrent loads — renderAdminSessions() calls
-    // this every time it's asked to render before deviceSessionsLoaded is
-    // true, so without this it could stack up parallel requests.
-    if (state.admin.deviceSessionsLoading) return;
-    state.admin.deviceSessionsLoading = true;
-    try {
-        const { data, error } = await supabase
-            .from('device_sessions')
-            .select('*')
-            .order('last_active', { ascending: false });
-        if (error) throw error;
-        state.admin.deviceSessions = data || [];
-    } catch (e) {
-        state.admin.deviceSessions = null; // null = couldn't load (table missing / no access)
-    }
-    state.admin.deviceSessionsLoading = false;
-    state.admin.deviceSessionsLoaded = true;
-    render();
-}
+// Device-session tracking was removed completely (table dropped) to cut database traffic.
+async function registerDeviceSession() {}
+function startDeviceSessionHeartbeat() {}
+function stopDeviceSessionHeartbeat() {}
+async function endDeviceSession() {}
+async function loadDeviceSessions() { state.admin.deviceSessions = null; state.admin.deviceSessionsLoaded = true; }
 
+async function attachOwnAvatar(prof) { if (prof) delete prof.profile_image_url; } // profile photos removed
 async function checkAuthSession(retriesLeft) {
     if (retriesLeft === undefined) retriesLeft = 2;
     try {
@@ -12484,13 +12504,14 @@ async function checkAuthSession(retriesLeft) {
             loadMyElectivesLocal();
             const cachedProfile = loadOfflineCache('profile_' + user.id);
             const { data: prof, error: pErr } = await withNetworkTimeout(
-                supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+                supabase.from('profiles').select('id,username,email,updated_at,is_active,activation_expiry,last_seen,full_name,wallet_balance,created_at').eq('id', user.id).maybeSingle(),
                 8000, 'Profile load'
             ).catch(function(e) {
                 console.warn('Profile load timed out, using cache if available:', e);
                 return { data: cachedProfile, error: cachedProfile ? null : e };
             });
             if (!pErr && prof) {
+                await attachOwnAvatar(prof, cachedProfile);
                 state.authProfile = prof;
                 reconcileElectivesFromProfile(prof);
                 state.profile.name = prof.username || "User";
@@ -12499,7 +12520,7 @@ async function checkAuthSession(retriesLeft) {
                 state.profile.is_active = prof.is_active !== false;
                 state.profile.activation_expiry = prof.activation_expiry || null;
                 state.profile.fullName = prof.full_name || '';
-                state.profile.avatarUrl = prof.profile_image_url || null;
+                state.profile.avatarUrl = null;
                 saveOfflineCache('profile_' + user.id, prof);
             } else {
                 state.profile.name = user.user_metadata?.username || user.email?.split('@')[0] || "User";
@@ -12524,7 +12545,7 @@ async function checkAuthSession(retriesLeft) {
         }
         const readNotifs = storage.get("readNotifications");
         if (readNotifs) {
-            try { state.readNotifs = JSON.parse(readNotifs) || []; } catch (e) { state.readNotifs = []; }
+            try { state.readNotifs = (JSON.parse(readNotifs) || []).map(String); } catch (e) { state.readNotifs = []; }
         }
         state.authReady = true;
         // On a poor (but not dead) connection this can resolve well after
@@ -12552,24 +12573,38 @@ async function checkAuthSession(retriesLeft) {
 }
 
 let notifChannel = null;
-function setupRealtimeNotifications() {
+function teardownNotifChannel() {
     if (notifChannel) {
-        notifChannel.unsubscribe();
+        try { notifChannel.unsubscribe(); } catch (e) {}
+        try { if (supabase.removeChannel) supabase.removeChannel(notifChannel); } catch (e) {}
         notifChannel = null;
     }
+}
+function setupRealtimeNotifications() {
+    teardownNotifChannel();
     if (!state.authUser) return;
-    
+    if (document.hidden) return; // paused in the background; resumes when the app is opened again
     notifChannel = supabase.channel('notif-inbox')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, function(payload) {
             const n = payload.new;
             if (!n.target_user_id || n.target_user_id === state.authUser.id) {
                 showInAppNotificationBanner(n);
-                loadNotifications();
+                mergeNotifRow(n);
                 if (n.news_id || String(n.title || '').indexOf('📰') === 0) loadNews();
             }
         })
         .subscribe();
 }
+let _lastNotifResume = 0;
+document.addEventListener('visibilitychange', function() {
+    if (!state.authUser) return;
+    if (document.hidden) { teardownNotifChannel(); return; }
+    try { updateLocalStreak(); } catch (e) {}
+    if (Date.now() - _lastNotifResume < 60000) return;
+    _lastNotifResume = Date.now();
+    setupRealtimeNotifications();
+    loadNotifications(); // only fetches what is newer than what we already have
+});
 
 let inAppBannerTimer = null;
 function showInAppNotificationBanner(n) {
@@ -12744,10 +12779,11 @@ async function signIn(emailOrUsername, password) {
             loadMyElectivesLocal();
             const { data: prof, error: pErr } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('id,username,email,updated_at,is_active,activation_expiry,last_seen,full_name,wallet_balance,created_at')
                 .eq('id', data.user.id)
                 .maybeSingle();
             if (!pErr && prof) {
+                await attachOwnAvatar(prof, loadOfflineCache('profile_' + data.user.id));
                 state.authProfile = prof;
                 reconcileElectivesFromProfile(prof);
                 state.profile.name = prof.username || "User";
@@ -12756,7 +12792,7 @@ async function signIn(emailOrUsername, password) {
                 state.profile.is_active = prof.is_active !== false;
                 state.profile.activation_expiry = prof.activation_expiry || null;
                 state.profile.fullName = prof.full_name || '';
-                state.profile.avatarUrl = prof.profile_image_url || null;
+                state.profile.avatarUrl = null;
             } else {
                 state.profile.name = data.user.user_metadata?.username || data.user.email?.split('@')[0] || "User";
                 state.profile.email = data.user.email || "";
@@ -14780,139 +14816,18 @@ function compressImageFile(file, maxDimension, quality, callback) {
     };
     reader.readAsDataURL(file);
 }
-async function adminSaveCourse() {
-    if (!state.admin.editingCourseId) { showToast('Select an existing course to edit.', 'error'); return; }
-    const title = state.admin.courseTitle.trim();
-    const examType = state.admin.courseExamType;
-    const subjects = state.admin.courseSubjects || [];
-    const price = 0; // courses are not sold
-    const description = state.admin.courseDescription.trim();
-    const imageUrl = state.admin.courseImageData || null;
-
-    if (!title) { showToast('Enter a course title.', 'error'); return; }
-    if (subjects.length === 0) { showToast('Select at least one subject.', 'error'); return; }
-    if (blockIfOffline()) return;
-
-    const courseId = isValidUuid(state.admin.editingCourseId)
-        ? state.admin.editingCourseId
-        : (crypto.randomUUID ? crypto.randomUUID() : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        })));
-
-    try {
-        const result = await supabase.from('courses').upsert([{
-            id: courseId, title: title, exam_type: examType, subject_ids: subjects,
-            price: price, description: description, image_url: imageUrl,
-        }]);
-        if (result.error) {
-            console.error('Course save error: ' + (result.error.message || 'no message') +
-                ' | details: ' + (result.error.details || 'none') +
-                ' | hint: ' + (result.error.hint || 'none') +
-                ' | code: ' + (result.error.code || 'none'));
-            showNetworkAwareError('Error saving course: ' + (result.error.message || 'unknown'), result.error);
-            return;
-        }
-        showToast('Course saved!', 'success');
-        state.admin.courseTitle = "";
-        state.admin.courseExamType = "jamb";
-        state.admin.courseSubjects = [];
-        state.admin.coursePrice = "";
-        state.admin.courseDescription = "";
-        state.admin.courseImageData = null;
-        state.admin.editingCourseId = null;
-        state.coursesLoaded = false;
-        loadCourses();
-    } catch (e) {
-        console.warn('Save course error:', e);
-        showNetworkAwareError('Error saving course: ' + (e.message || 'unknown'), e);
-    }
-}
 let coursesRetryAt = 0;
-async function loadCourses() {
-    if (state.coursesLoading) return;
-    // If a recent attempt failed/timed out, wait a bit before hammering the
-    // network again (renderHome/renderAllCourses call this on every render).
-    if (!state.coursesLoaded && Date.now() < coursesRetryAt) return;
-    state.coursesLoading = true;
 
-    if (!state.coursesLoaded && state.courses.length === 0) {
-        // Show something real immediately instead of an empty screen: the
-        // last successfully-fetched course list (titles, prices, images)
-        // if we have one cached from a previous session, otherwise the
-        // generic placeholder list.
-        const cachedCourses = loadOfflineCache('courses');
-        state.courses = (cachedCourses && cachedCourses.length) ? cachedCourses : DEFAULT_COURSES;
-    }
-
+let _plansAt = 0;
+async function loadActivationPlans(force) {
     try {
-        const timeout = new Promise(function(_, reject) {
-            setTimeout(function() { reject(new Error('Courses request timed out')); }, 20000);
-        });
-        const result = await Promise.race([
-            supabase.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: false }),
-            timeout
-        ]);
-        if (!result.error && result.data) {
-            state.courses = result.data;
-            state.coursesLoaded = true;
-            saveOfflineCache('courses', result.data);
-        } else {
-            coursesRetryAt = Date.now() + 15000;
+        if (!force && state.activationPlansLoaded && Date.now() - _plansAt < 30 * 60 * 1000) return state.activationPlans;
+        if (!force && !state.activationPlansLoaded) {
+            try {
+                const c = JSON.parse(localStorage.getItem('plansCache') || 'null');
+                if (c && c.rows && Date.now() - c.at < 30 * 60 * 1000) { state.activationPlans = c.rows; state.activationPlansLoaded = true; _plansAt = c.at; return c.rows; }
+            } catch (_) {}
         }
-    } catch (e) {
-        console.warn('Load courses failed or timed out:', e);
-        // Don't mark coursesLoaded = true here - leaving it false lets the
-        // next render() retry the real fetch (so images eventually show)
-        // instead of getting stuck on the imageless placeholder forever.
-        coursesRetryAt = Date.now() + 15000;
-    } finally {
-        state.coursesLoading = false;
-        render();
-    }
-}
-async function loadMyEnrollments() {
-    if (state.myEnrollmentsLoading) return;
-    state.myEnrollmentsLoading = true;
-    if (!state.authUser) { state.myEnrollments = []; state.myEnrollmentsLoaded = true; state.myEnrollmentsLoading = false; render(); return; }
-    try {
-        const { data, error } = await withNetworkTimeout(
-            supabase.from('course_enrollments').select('*').eq('user_id', state.authUser.id),
-            8000, 'My courses load'
-        );
-        if (error) throw error;
-        state.myEnrollments = data || [];
-        state.myEnrollmentsLoaded = true;
-        state.myEnrollmentsLoading = false;
-        saveOfflineCache('my_enrollments_' + state.authUser.id, state.myEnrollments);
-        render();
-    } catch (e) {
-        console.warn('Load my enrollments failed or timed out:', e);
-        // Don't wipe out what the user is actually enrolled in just because
-        // the request failed or timed out — show the last known-good list
-        // (from this session or a previous one) instead of an empty screen.
-        const cached = loadOfflineCache('my_enrollments_' + state.authUser.id);
-        state.myEnrollments = (cached && cached.length) ? cached : state.myEnrollments;
-        state.myEnrollmentsLoaded = true;
-        state.myEnrollmentsLoading = false;
-        render();
-    }
-}
-async function adminDeleteCourse(courseId) {
-    if (!confirm('Delete this course?')) return;
-    if (blockIfOffline()) return;
-    try {
-        await supabase.from('courses').delete().eq('id', courseId);
-        showToast('Course deleted.', 'success');
-        state.coursesLoaded = false;
-        loadCourses();
-    } catch (e) {
-        showNetworkAwareError('Error deleting course.', e);
-    }
-}
-
-async function loadActivationPlans() {
-    try {
         const { data, error } = await supabase
             .from('activation_plans')
             .select('*')
@@ -14926,6 +14841,8 @@ async function loadActivationPlans() {
         }
         state.activationPlans = data || [];
         state.activationPlansLoaded = true;
+        _plansAt = Date.now();
+        try { localStorage.setItem('plansCache', JSON.stringify({ at: _plansAt, rows: state.activationPlans })); } catch (_) {}
         return state.activationPlans;
     } catch (e) {
         console.warn("Load activation plans exception:", e);
@@ -14951,7 +14868,7 @@ async function adminAddPlan() {
             .insert([{ name: name, days: days, price: price }]);
 
         showToast("Plan added successfully!", "success");
-        await loadActivationPlans();
+        await loadActivationPlans(true);
         render();
     } catch (e) {
         console.warn("Add plan error:", e);
@@ -14967,7 +14884,7 @@ async function adminDeletePlan(planId) {
     try {
         await supabase.from('activation_plans').delete().eq('id', planId);
         showToast("Plan deleted.", "success");
-        await loadActivationPlans();
+        await loadActivationPlans(true);
         render();
     } catch (e) {
         console.warn("Delete plan error:", e);
@@ -15593,18 +15510,7 @@ function stripChatMarkers(message) {
 // Guests (not logged in) have no account, so their AI chats are saved under an anonymous id kept on
 // their phone (same one the News likes use). Text only: images/documents are replaced by a short note
 // so the table stays small. Failures are ignored — saving must never get in the way of the chat.
-function saveGuestAiMessage(sessionId, sender, message) {
-    try {
-        if (state.authUser || typeof supabase === 'undefined' || !supabase) return;
-        var raw = message || '';
-        var text = stripChatMarkers(raw);
-        if (/\[\[doc:/.test(raw)) text = '[document attached] ' + text;
-        if (/\[\[img:/.test(raw)) text = '[image attached] ' + text;
-        text = text.trim().slice(0, 8000);
-        if (!text) return;
-        supabase.from('ai_guest_messages').insert([{ guest_id: newsGuestId(), session_id: String(sessionId || ''), sender: sender, message: text }]).then(function() {}, function() {});
-    } catch (e) {}
-}
+function saveGuestAiMessage() {} // guest AI chats are no longer stored
 
 function shareAiAnswer(answer) {
     let body = (answer || '').trim();
@@ -18793,6 +18699,9 @@ const FAQ_QA = [
 ];
 
 function faqImgHtml(featureKey, altText) {
+    return ''; // FAQ images removed completely
+}
+function __oldFaqImgHtml(featureKey, altText) {
     const feature = FAQ_FEATURES.find(function(f) { return f.key === featureKey; });
     const url = (state.settingsCache.faqImages || {})[featureKey] || (feature && feature.defaultImg) || '';
     const adminBtn = isAdmin()
@@ -18946,6 +18855,7 @@ function renderFaqImageUploadModal() {
 // except Home. Home keeps its own colored brand header separately.
 const PAGE_TITLES = {
     'mysubjects': 'Practice Hub',
+    'browse-subjects': 'Browse Subjects',
     'ai-assistant': 'Enzo AI',
     'mockexam': 'Mock Arena',
     'profile': 'Account',
@@ -18972,8 +18882,6 @@ const PAGE_TITLES = {
     'privacy': 'Privacy Policy',
     'terms': 'Terms of Service',
     'my-keys': 'My Keys',
-    'all-courses': 'All Courses',
-    'course-detail': 'Course',
     'subject-modes': 'Subject',
     // Shown only once a mode's Result/Review screen is up (see
     // EXAM_RESULT_SHOWING in renderApp) — while the timed question screen
@@ -19169,8 +19077,6 @@ function renderView() {
     if (v === "lit-exam") return renderLitExam();
 
     if (v === "home") return renderHome();
-    if (v === "all-courses") return renderAllCourses();
-    if (v === "course-detail") return renderCourseDetail();
     if (v === "subject-modes") return renderSubjectModes();
     if (v === "notifications") return renderNotifications();
     if (v === "news") return renderNewsFeed();
@@ -19190,6 +19096,7 @@ function renderView() {
     if (v === "exam") return renderExamMode();
     if (v === "mockexam") return renderMockExamPicker();
     if (v === "mysubjects") return renderMyCourses();
+    if (v === "browse-subjects") return renderBrowseSubjects();
 if (v === "subject-modes") return renderSubjectModes();
     if (v === "learning") return renderLearningHub();
     if (v === "documents") return renderDocumentsUser();
@@ -19217,7 +19124,41 @@ if (v === "subject-modes") return renderSubjectModes();
 // ============================================================
 //  MY SUBJECTS (home for subject combo + practice modes)
 // ============================================================
-function renderMyCourses() { return renderMyCoursesCore() + adBox(); }
+function renderMyCourses() { return renderBrowseSubjectsBanner() + renderMyCoursesCore() + adBox(); }
+function renderBrowseSubjectsBanner() {
+    const saved = hasSavedSubjects();
+    return '<div class="card" style="margin-bottom:12px;padding:12px 14px;border:1.5px solid var(--green)">' +
+        '<p style="font-size:13px;font-weight:800;margin:0 0 3px">' + (saved ? 'Your 4 subjects are saved' : 'Showing all subjects') + '</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">' + (saved ? 'Only your saved subjects appear in practice modes.' : 'Choose and save your 4 subjects to focus on them.') + '</p>' +
+        '<button class="btn btn-green btn-sm" style="padding:8px 14px" data-action="open-browse-subjects">Browse all subjects</button></div>';
+}
+function renderBrowseSubjectsCard() {
+    return '<div class="card" style="margin:12px 0;padding:14px;display:flex;align-items:center;gap:10px;cursor:pointer" data-action="open-browse-subjects">' +
+        '<div style="flex:1;min-width:0"><p style="font-size:14px;font-weight:800;margin:0 0 2px">Browse all subjects</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0">' + (hasSavedSubjects() ? 'Change your 4 saved subjects' : 'Pick your 4 subjects and save them') + '</p></div>' +
+        '<span style="font-size:18px;color:var(--green)">→</span></div>';
+}
+function renderBrowseSubjects() {
+    const eng = SUBJECTS.find(function(x) { return x.id === 'eng'; });
+    const picks = state.browsePick || [];
+    const left = 3 - picks.length;
+    let rows = '<div class="cbt-combo-row" style="margin-bottom:8px">' + subjectBadge(eng) +
+        '<span class="ccr-name">' + esc(eng.name) + '</span><span class="ccr-tag">Compulsory</span></div>';
+    SUBJECTS.filter(function(x) { return x.id !== 'eng' && x.id !== 'lhm'; }).forEach(function(x) {
+        const on = picks.indexOf(x.id) !== -1;
+        rows += '<button class="subject-chip' + (on ? ' selected' : '') + '" style="width:100%;margin-bottom:8px;display:flex;align-items:center;gap:10px;text-align:left" data-action="browse-toggle-subject" data-subjectid="' + x.id + '">' +
+            subjectBadge(x) + '<span class="sname" style="flex:1">' + esc(x.name) + '</span>' +
+            '<span style="font-weight:800;color:var(--green)">' + (on ? '✓' : '') + '</span></button>';
+    });
+    return '<button class="back-link" data-action="set-view" data-view="mysubjects">' + svg('chevleft', 14) + ' Practice Hub</button>' +
+        '<h2 class="title" style="font-size:15px">Browse all subjects</h2>' +
+        '<p class="sub" style="font-size:11px">English is compulsory. Pick 3 more subjects, then save. Until you save, every practice mode shows all subjects.</p>' +
+        '<p class="section-label">' + (left > 0 ? left + ' more to pick' : 'Ready to save') + '</p>' +
+        rows +
+        '<button class="btn btn-green" style="width:100%;margin-top:6px;padding:12px' + (left === 0 ? '' : ';opacity:.5;pointer-events:none') + '" data-action="browse-save-subjects">Save my 4 subjects</button>' +
+        (hasSavedSubjects() ? '<button class="btn btn-outline" style="width:100%;margin-top:8px;padding:10px" data-action="browse-clear-subjects">Clear and show all subjects</button>' : '') +
+        adBox();
+}
 function renderMyCoursesCore() {
     // Local/offline: state.myElectives is loaded from localStorage the moment
     // we know who's logged in (see loadMyElectivesLocal()), so this page has
@@ -19257,7 +19198,7 @@ const atMax = mySubjectIds.length === 4;
         }) || list.find(function(c) {
             return Array.isArray(c.subject_ids) && c.subject_ids.indexOf(sid) !== -1;
         });
-        return (course && course.image_url) ? course.image_url : null;
+        return null; // course images removed
     }
 
     let subjectCards = '';
@@ -19511,6 +19452,30 @@ function ensureHomeDashboardData() {
     }
 }
 
+// Streak: stored on this device only (no database calls). One day is counted per calendar day the
+// app is opened. Opening the day after extends it; missing a whole day resets it to 1.
+function streakDayNumber(d) { d = d || new Date(); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000); }
+function streakStorageKey() { return 'streak_v2_' + (state.authUser ? state.authUser.id : 'guest'); }
+function updateLocalStreak() {
+    try {
+        const key = streakStorageKey(), today = streakDayNumber();
+        let rec = null;
+        try { rec = JSON.parse(storage.get(key) || 'null'); } catch (e) { rec = null; }
+        if (!rec || typeof rec.last !== 'number' || typeof rec.count !== 'number') rec = { count: 1, last: today };
+        else if (rec.last === today) return rec;
+        else if (rec.last === today - 1) { rec.count += 1; rec.last = today; }
+        else if (today > rec.last) { rec.count = 1; rec.last = today; }
+        else { rec.last = today; }
+        storage.set(key, JSON.stringify(rec));
+        return rec;
+    } catch (e) { return null; }
+}
+function getLocalStreak() {
+    try {
+        const rec = updateLocalStreak();
+        return rec ? rec.count : 0;
+    } catch (e) { return 0; }
+}
 function getHomeStudyMetrics() {
     const entries = state.historyEntries || [];
     const now = new Date();
@@ -19530,14 +19495,7 @@ function getHomeStudyMetrics() {
         totalCorrect += Number(entry.total_score) || 0;
         totalAvailable += Number(entry.max_score) || 0;
     });
-    const yesterdayDate = new Date(now);
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    let cursor = activeDays[today] ? new Date(now) : (activeDays[homeDateKey(yesterdayDate)] ? yesterdayDate : null);
-    let streak = 0;
-    while (cursor && activeDays[homeDateKey(cursor)] && streak < 366) {
-        streak++;
-        cursor.setDate(cursor.getDate() - 1);
-    }
+    const streak = state.authUser ? getLocalStreak() : 0;
     const accuracy = totalAvailable > 0 ? Math.round(totalCorrect / totalAvailable * 100) : null;
     return {
         entries: entries,
@@ -19598,7 +19556,7 @@ function renderHomeStudyStudio(metrics) {
             '" aria-label="Set daily goal to ' + value + ' questions">' + value + '</button>';
     }).join('');
     const todayValue = !state.authUser ? '—' : (metrics.historyReady ? String(metrics.todayQuestions) : '…');
-    const streakValue = !state.authUser ? '—' : (metrics.historyReady ? String(metrics.streak) : '…');
+    const streakValue = !state.authUser ? '—' : String(metrics.streak);
     const accuracyValue = metrics.accuracy === null ? '—' : metrics.accuracy + '%';
     const weakValue = !state.authUser ? '—' : (metrics.weakCount === null ? '…' : String(metrics.weakCount));
     const syncText = !state.authUser
@@ -19733,11 +19691,7 @@ function renderHome() {
         '<div class="section-hdr home-quick-heading"><div><h2>Quick start</h2><p>Choose the kind of practice you need</p></div></div>' +
         qaHtml +
         renderHomeStudyStudio(metrics) +
-        '<div class="section-hdr">' +
-        '<div><h2>Explore your subjects</h2><p>Continue with a course or browse the full library</p></div>' +
-        '<button class="see-all" data-action="set-view" data-view="all-courses">See all →</button>' +
-        '</div>' +
-        '<div class="course-scroll-row">' + courseCards + '</div>' +
+        renderBrowseSubjectsCard() +
         renderHomeExtras() +
         renderNewsStrip() +
         adBox()
@@ -19765,45 +19719,6 @@ function renderHomeExtras() {
     );
 
     return tipHtml;
-}
-function renderAllCourses() { return renderAllCoursesCore() + adBox(); }
-function renderAllCoursesCore() {
-    if (!state.coursesLoaded) loadCourses();
-    const list = state.courses;
-
-    let rows = '';
-    if (!state.coursesLoaded && list.length === 0) {
-        for (let i = 0; i < 4; i++) {
-            rows += '<div class="card skeleton-card" style="display:flex;gap:12px;padding:12px;align-items:center;margin-bottom:10px"><div class="skeleton-shimmer img" style="width:60px;height:60px;border-radius:10px;flex-shrink:0"></div><div style="flex:1"><div class="skeleton-shimmer line" style="width:70%"></div><div class="skeleton-shimmer line" style="width:40%;margin-top:6px"></div></div></div>';
-        }
-    } else if (list.length === 0) {
-        rows = '<div class="card" style="text-align:center;padding:32px 16px"><p style="font-size:28px;margin:0 0 6px">📚</p><p style="font-size:13px;color:var(--faint);margin:0">No courses available yet. Check back soon!</p></div>';
-    } else {
-        list.forEach(function(c) {
-            const primarySubjectId = (c.subject_ids || [])[0];
-            const img = c.image_url
-                ? '<img src="' + esc(c.image_url) + '" style="width:60px;height:60px;border-radius:10px;object-fit:cover;flex-shrink:0" />'
-                : '<div style="width:60px;height:60px;border-radius:10px;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">📚</div>';
-            const subjCount = (c.subject_ids || []).length;
-            rows += (
-                '<div class="card" data-action="open-subject-modes" data-subjectid="' + primarySubjectId + '" style="cursor:pointer;display:flex;gap:12px;padding:12px;align-items:center;margin-bottom:10px">' +
-                img +
-                '<div style="flex:1;min-width:0">' +
-                '<p style="font-size:14px;font-weight:800;margin:0 0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.title) + '</p>' +
-                '<p style="font-size:11px;color:var(--muted);margin:0;display:flex;align-items:center;gap:4px">' + svg('list', 11) + subjCount + ' subject' + (subjCount === 1 ? '' : 's') + '</p>' +
-                '</div>' +
-                svg('chevright', 16) +
-                '</div>'
-            );
-        });
-    }
-
-    return (
-        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
-        '<h2 class="title" style="margin-bottom:2px;font-size:18px">All Courses</h2>' +
-        '<p class="sub" style="font-size:11px;margin-bottom:14px">Browse every subject course available</p>' +
-        rows
-    );
 }
 function renderFeature(tile) {
     return (
@@ -22736,7 +22651,7 @@ function renderProfileCore() {
     const fullName = state.profile.fullName || state.profile.name || 'Guest';
     const username = state.profile.name || 'Guest';
     const email = state.profile.email || '';
-    const avatarUrl = state.profile.avatarUrl || null;
+    const avatarUrl = null;
     
     let daysLeft = 0;
     if (expiry) {
@@ -22786,7 +22701,7 @@ function renderProfileCore() {
     }
     
     // Avatar fallback letter
-    const avatarLetter = (fullName || username || 'G').trim().charAt(0).toUpperCase();
+    const avatarLetter = (username || fullName || 'G').trim().charAt(0).toUpperCase();
     const avatarHtml = avatarUrl 
         ? '<img src="' + esc(avatarUrl) + '" alt="Profile" />' 
         : '<div class="acct-avatar-fallback">' + esc(avatarLetter) + '</div>';
@@ -22798,7 +22713,6 @@ function renderProfileCore() {
         '<div class="acct-hero-row">' +
         '<div class="acct-avatar-wrap">' +
         avatarHtml +
-        '<button class="acct-avatar-edit" data-action="open-avatar-upload" title="Change profile photo" onclick="event.stopPropagation()">✎</button>' +
         '</div>' +
         '<div style="flex:1;min-width:0">' +
         '<h3 class="acct-hero-name">' + esc(fullName) + '</h3>' +
@@ -22978,7 +22892,7 @@ function renderProfileEdit() {
     const username = state.profile.name || 'Guest';
     const email = state.profile.email || '';
     const fileData = state.avatarUploadFile || null;
-    const avatarUrl = fileData ? fileData.dataUrl : (state.profile.avatarUrl || null);
+    const avatarUrl = null;
     const avatarLetter = fullName.trim().charAt(0).toUpperCase() || 'U';
 
     const avatarBlockHtml = avatarUrl
@@ -22988,15 +22902,12 @@ function renderProfileEdit() {
     return (
         '<button class="back-link" data-action="cancel-profile-edit">' + svg("chevleft", 14) + ' Account</button>' +
         '<h2 class="title" style="font-size:14px">Edit Profile</h2>' +
-        '<p class="sub" style="font-size:11px">Update your photo, name and username</p>' +
+        '<p class="sub" style="font-size:11px">Update your name and username</p>' +
 
         '<div style="display:flex;flex-direction:column;align-items:center;margin:14px 0 20px">' +
         '<div style="position:relative;width:92px;height:92px">' +
         avatarBlockHtml +
-        '<button class="acct-avatar-edit" data-action="choose-profile-photo" title="Change profile photo" style="width:30px;height:30px;font-size:13px;bottom:-2px;right:-2px">✎</button>' +
         '</div>' +
-        '<input type="file" id="profile-edit-avatar-input" accept="image/*" style="display:none" />' +
-        '<button data-action="choose-profile-photo" style="font-size:11px;color:var(--green);font-weight:700;margin-top:10px;background:none;border:none;cursor:pointer">Change Photo</button>' +
         '</div>' +
 
         '<div class="card">' +
@@ -24092,7 +24003,7 @@ function renderNotifications() {
             if (n.image_url) {
                 fileHtml = renderFileActions(n.image_url, 'notification-image', 'image/');
             }
-            const isUnread = state.readNotifs.indexOf(n.id) === -1;
+            const isUnread = state.readNotifs.indexOf(String(n.id)) === -1;
             items += (
                 '<div class="notif-item' + (isUnread ? ' unread' : '') + '" data-action="' + (n.news_id ? 'news-open' : 'mark-notif-read') + '" data-nid="' + n.id + '" data-id="' +
                 (n.news_id || n.id) + '">' +
@@ -24414,10 +24325,8 @@ const ADMIN_TABS = [
     { key: "mock", label: "🎯 Mock" },
     { key: "activation", label: "🔑 Activation" },
     { key: "payments", label: "💳 Payments" },
-    { key: "courses", label: "🎓 Courses" },
     { key: "flagged", label: "🚩 Flagged" },
     { key: "support", label: "💬 Support" },
-    { key: "guestai", label: "👤 Guest AI" },
     { key: "logs", label: "📋 Logs" },
     { key: "errors", label: "🐞 Errors" },
 ];
@@ -24453,7 +24362,6 @@ function renderAdmin() {
     else if (state.adminTab === "mock") body = renderAdminMock();
     else if (state.adminTab === "activation") body = renderAdminActivation();
     else if (state.adminTab === "payments") body = renderAdminPayments();
-    else if (state.adminTab === "courses") body = renderAdminCourses();
     else if (state.adminTab === "flagged") body = renderAdminFlagged();
     else if (state.adminTab === "support") body = renderAdminSupport();
     else if (state.adminTab === "logs") body = renderAdminLogs();
@@ -25040,7 +24948,6 @@ function renderAdminAnalytics() {
         { id: 'engagement', accent: ADASH.purple, label: '🎯 Engagement',       body: function() { return renderAnalyticsEngagementTab(d); } },
         { id: 'content',    accent: ADASH.teal,   label: '🗂️ Content',          body: function() { return renderAnalyticsContentTab(d); } },
         { id: 'logs',       accent: ADASH.pink,   label: '📋 Logs',             body: function() { return renderAnalyticsLogsTab(d); } },
-        { id: 'sessions',   accent: ADASH.orange, label: '🔐 Login & Sessions', body: function() { return renderAdminSessions(); } }
     ];
 
     // Sticky header: range selector + refresh + jump-to-section chips
@@ -25947,21 +25854,7 @@ function exportAdminErrors() {
 // ============================================================
 //  ADMIN: GUEST AI CHATS (people who used the Enzo AI without an account)
 // ============================================================
-async function loadGuestAiChats() {
-    state.admin.guestAi = { loaded: false, rows: [], error: '' };
-    render();
-    try {
-        const res = await supabase.from('ai_guest_messages').select('*').order('created_at', { ascending: false }).limit(1000);
-        if (res.error) {
-            state.admin.guestAi = { loaded: true, rows: [], error: res.error.message || 'Could not load guest chats' };
-        } else {
-            state.admin.guestAi = { loaded: true, rows: (res.data || []).slice().reverse(), error: '' };
-        }
-    } catch (e) {
-        state.admin.guestAi = { loaded: true, rows: [], error: String((e && e.message) || e) };
-    }
-    render();
-}
+function loadGuestAiChats() {} // removed
 
 function renderAdminGuestAi() {
     const g = state.admin.guestAi;
@@ -26879,28 +26772,7 @@ function renderAdminSettings() {
         '<input type="file" id="offline-import-file-input" accept="application/json" style="display:none" />' +
         '</div>' +
 
-        '<div class="card" style="margin-top:10px">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 4px">' + svg('image', 15) + ' Help &amp; FAQs Page Images</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 12px">Upload a screenshot or image for each feature shown on the public Help &amp; FAQs page.</p>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-        FAQ_FEATURES.map(function(f) {
-            const url = (s.faqImages || {})[f.key];
-            return (
-                '<button data-action="open-faq-image-upload" data-key="' + esc(f.key) + '" style="border:1.5px solid var(--line);border-radius:10px;overflow:hidden;padding:0;background:var(--bg);cursor:pointer;text-align:left">' +
-                '<div style="width:100%;aspect-ratio:16/10;background:var(--green-light);display:flex;align-items:center;justify-content:center;overflow:hidden">' +
-                (url
-                    ? '<img src="' + esc(url) + '" style="width:100%;height:100%;object-fit:cover" alt="' + esc(f.title) + '" />'
-                    : svg('image', 22).replace('stroke="currentColor"', 'stroke="var(--green)"')) +
-                '</div>' +
-                '<div style="padding:6px 8px">' +
-                '<p style="font-size:10.5px;font-weight:700;color:var(--ink);margin:0 0 1px;line-height:1.3">' + esc(f.title) + '</p>' +
-                '<p style="font-size:9.5px;color:' + (url ? 'var(--green)' : 'var(--faint)') + ';margin:0">' + (url ? 'Uploaded — tap to change' : 'No image yet — tap to add') + '</p>' +
-                '</div>' +
-                '</button>'
-            );
-        }).join('') +
-        '</div>' +
-        '</div>'
+        ''
     );
 }
 
@@ -27023,8 +26895,8 @@ function renderAdminUsers() {
         
         const displayName = user.full_name || user.username || 'User';
         const avatarLetter = displayName.trim().charAt(0).toUpperCase();
-        const avatarHtml = user.profile_image_url 
-            ? '<img src="' + esc(user.profile_image_url) + '" style="width:32px;height:32px;border-radius:999px;object-fit:cover" />' 
+        const avatarHtml = null 
+            ? '<img src="' + esc(null) + '" style="width:32px;height:32px;border-radius:999px;object-fit:cover" />' 
             : '<div style="width:32px;height:32px;border-radius:999px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + esc(avatarLetter) + '</div>';
         const isOnlineNow = user.last_seen && (Date.now() - new Date(user.last_seen).getTime()) < 5 * 60 * 1000;
         const joinedLabel = user.created_at ? new Date(user.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
@@ -27099,8 +26971,8 @@ function renderAdminUserDetail() {
 
     const displayName = user.full_name || user.username || 'User';
     const avatarLetter = displayName.trim().charAt(0).toUpperCase();
-    const avatarHtml = user.profile_image_url
-        ? '<img src="' + esc(user.profile_image_url) + '" style="width:56px;height:56px;border-radius:999px;object-fit:cover" />'
+    const avatarHtml = null
+        ? '<img src="' + esc(null) + '" style="width:56px;height:56px;border-radius:999px;object-fit:cover" />'
         : '<div style="width:56px;height:56px;border-radius:999px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">' + esc(avatarLetter) + '</div>';
 
     const isActive = user.is_active !== false;
@@ -27822,62 +27694,6 @@ function renderAdminFlagged() {
 // ============================================================
 //  ADMIN ACTIVATION
 // ============================================================
-function renderAdminCourses() {
-    if (!state.coursesLoaded) loadCourses();
-    const isEditing = !!state.admin.editingCourseId;
-    const examTypes = ['jamb'];
-    const typeOpts = examTypes.map(function(t) {
-        return '<option value="' + t + '"' + (state.admin.courseExamType === t ? ' selected' : '') + '>' + t.toUpperCase() + '</option>';
-    }).join('');
-
-    let subjChecks = '';
-    SUBJECTS.filter(function(s) { return s.id !== 'lhm'; }).forEach(function(s) {
-        const checked = (state.admin.courseSubjects || []).indexOf(s.id) !== -1;
-        subjChecks += (
-            '<label style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px">' +
-            '<input type="checkbox" data-action="toggle-course-subject" data-subject="' + s.id + '"' + (checked ? ' checked' : '') + ' style="accent-color:var(--green)" />' +
-            esc(s.name) + '</label>'
-        );
-    });
-
-    let preview = '';
-    if (state.admin.courseImageData) {
-        preview = '<img src="' + state.admin.courseImageData + '" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;margin-top:6px" />';
-    }
-
-    let list = '';
-    state.courses.forEach(function(c) {
-        list += (
-            '<div class="admin-mode-card">' +
-            '<div class="mode-info"><span class="mode-name" style="font-size:12px">' + esc(c.title) + '</span>' +
-            '<span class="mode-count" style="font-size:10px">' + (c.exam_type||'').toUpperCase() + '</span></div>' +
-            '<div class="mode-actions">' +
-            '<span class="edit-icon" data-action="admin-edit-course" data-courseid="' + c.id + '">✏️</span>' +
-            '<span class="edit-icon" style="background:var(--danger)" data-action="admin-delete-course" data-courseid="' + c.id + '">🗑️</span>' +
-            '</div></div>'
-        );
-    });
-
-    return (
-        '<div class="card" style="margin-bottom:12px">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 10px">' + (isEditing ? '✏️ Edit Course' : '🎓 Create Course') + '</p>' +
-        '<label class="field-label">Exam Type</label>' +
-        '<select class="field" id="course-exam-type" style="margin-bottom:8px">' + typeOpts + '</select>' +
-        '<label class="field-label">Course Name</label>' +
-        '<input class="field" id="course-title-input" placeholder="e.g. JAMB 2027" value="' + esc(state.admin.courseTitle) + '" style="margin-bottom:8px" />' +
-        '<label class="field-label">Description</label>' +
-        '<textarea class="field" id="course-desc-input" rows="2" placeholder="What this course covers..." style="margin-bottom:8px">' + esc(state.admin.courseDescription) + '</textarea>' +
-        '<label class="field-label">Course Image</label>' +
-        '<input type="file" id="course-image-input" accept="image/*" style="margin-bottom:4px" />' +
-        preview +
-        '<label class="field-label" style="margin-top:8px">Subjects included</label>' +
-        '<div style="max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:10px">' + subjChecks + '</div>' +
-        (isEditing ? '<button class="btn btn-green" data-action="admin-save-course" style="padding:10px">Update Course</button><button class="btn btn-outline" style="margin-top:6px;padding:8px" data-action="admin-cancel-course-edit">Cancel Edit</button>' : '<p style="font-size:12px;color:var(--faint)">Select a course below to edit it. Creating new courses is disabled.</p>') +
-'</div>' +
-        '<p class="section-label">Existing Courses</p>' +
-        (list || '<p style="font-size:12px;color:var(--faint)">No courses yet.</p>')
-    );
-}
 
 function renderAdminActivation() {
     let plansHtml = "";
@@ -28310,6 +28126,38 @@ document.addEventListener('click', function(e) {
     if (action === 'myc-toggle-add') {
         state.mycAdding = !state.mycAdding;
         state.mycSwappingSubjectId = null;
+        render();
+        return;
+    }
+    if (action === 'open-browse-subjects') {
+        state.browsePick = (state.myElectives || []).filter(function(x) { return x !== 'eng' && x !== 'lhm'; }).slice(0, 3);
+        setView('browse-subjects');
+        return;
+    }
+    if (action === 'browse-toggle-subject') {
+        const sid = el.getAttribute('data-subjectid');
+        if (!Array.isArray(state.browsePick)) state.browsePick = [];
+        const i = state.browsePick.indexOf(sid);
+        if (i !== -1) state.browsePick.splice(i, 1);
+        else if (state.browsePick.length < 3) state.browsePick.push(sid);
+        else showToast('You can pick only 3 more. Tap one to remove it.', 'error');
+        render();
+        return;
+    }
+    if (action === 'browse-save-subjects') {
+        if (!state.authUser) { guestNeedsAccount('save your subjects'); return; }
+        if ((state.browsePick || []).length !== 3) return;
+        state.myElectives = state.browsePick.slice();
+        saveMyElectivesLocal();
+        showToast('Your 4 subjects are saved!', 'success');
+        setView('mysubjects');
+        return;
+    }
+    if (action === 'browse-clear-subjects') {
+        state.myElectives = [];
+        state.browsePick = [];
+        saveMyElectivesLocal();
+        showToast('Showing all subjects.', 'success');
         render();
         return;
     }
@@ -29094,10 +28942,6 @@ document.addEventListener('click', function(e) {
                     updateData.full_name = newFullName;
                 }
 
-                if (state.avatarUploadFile && state.avatarUploadFile.dataUrl) {
-                    updateData.profile_image_url = state.avatarUploadFile.dataUrl;
-                }
-
                 if (Object.keys(updateData).length === 0) {
                     state.profileEditLoading = false;
                     state.view = 'profile';
@@ -29124,9 +28968,6 @@ document.addEventListener('click', function(e) {
                 }
                 if (updateData.full_name !== undefined) {
                     state.profile.fullName = updateData.full_name;
-                }
-                if (updateData.profile_image_url !== undefined) {
-                    state.profile.avatarUrl = updateData.profile_image_url;
                 }
 
                 storage.set('profile', JSON.stringify(state.profile));
@@ -31782,11 +31623,6 @@ if (action === 'browse-filter') {
         render();
         return;
     }
-    if (action === 'open-course') {
-        state.selectedCourseId = el.getAttribute('data-courseid');
-        setView('course-detail');
-        return;
-    }
     if (action === 'open-subject-mode') {
         state.selectedSubjectId = el.getAttribute('data-subjectid');
         setView('subject-modes');
@@ -31798,41 +31634,6 @@ if (action === 'browse-filter') {
         const i = state.admin.courseSubjects.indexOf(sid);
         if (i !== -1) state.admin.courseSubjects.splice(i, 1);
         else state.admin.courseSubjects.push(sid);
-        return;
-    }
-    if (action === 'admin-save-course') {
-        state.admin.courseExamType = document.getElementById('course-exam-type')?.value || 'jamb';
-        state.admin.courseTitle = document.getElementById('course-title-input')?.value || '';
-        state.admin.courseDescription = document.getElementById('course-desc-input')?.value || '';
-        adminSaveCourse();
-        return;
-    }
-    if (action === 'admin-edit-course') {
-        const courseId = el.getAttribute('data-courseid');
-        const c = state.courses.find(function(x) { return x.id === courseId; });
-        if (!c) return;
-        state.admin.editingCourseId = c.id;
-        state.admin.courseTitle = c.title;
-        state.admin.courseExamType = c.exam_type;
-        state.admin.courseSubjects = (c.subject_ids || []).slice();
-        state.admin.courseDescription = c.description || '';
-        state.admin.courseImageData = c.image_url || null;
-        render();
-        return;
-    }
-    if (action === 'admin-cancel-course-edit') {
-        state.admin.editingCourseId = null;
-        state.admin.courseTitle = "";
-        state.admin.courseExamType = "jamb";
-        state.admin.courseSubjects = [];
-        state.admin.coursePrice = "";
-        state.admin.courseDescription = "";
-        state.admin.courseImageData = null;
-        render();
-        return;
-    }
-    if (action === 'admin-delete-course') {
-        adminDeleteCourse(el.getAttribute('data-courseid'));
         return;
     }
 
@@ -32547,30 +32348,6 @@ if (action === 'browse-filter') {
         if (input) input.click();
         return;
     }
-    if (action === 'save-avatar-upload') {
-        if (!state.avatarUploadFile || !state.avatarUploadFile.dataUrl) {
-            showToast('Please choose a photo first.', 'error');
-            return;
-        }
-        
-        const dataUrl = state.avatarUploadFile.dataUrl;
-        
-        supabase.from('profiles')
-            .update({ profile_image_url: dataUrl })
-            .eq('id', state.authUser.id)
-            .then(function() {
-                state.profile.avatarUrl = dataUrl;
-                state.showAvatarUpload = false;
-                state.avatarUploadFile = null;
-                showToast('Profile photo updated!', 'success');
-                render();
-            })
-            .catch(function(err) {
-                console.warn('Avatar upload error:', err);
-                showNetworkAwareError('Error updating profile photo.', err);
-            });
-        return;
-    }
 
     // ============================================================
     //  NEW: HELP & FAQs PAGE
@@ -32619,53 +32396,6 @@ if (action === 'browse-filter') {
     if (action === 'choose-faq-image') {
         const input = document.getElementById('faq-image-file-input');
         if (input) input.click();
-        return;
-    }
-    if (action === 'save-faq-image-upload') {
-        if (!state.faqImageUploadFile || !state.faqImageUploadFile.dataUrl) {
-            showToast('Please choose an image first.', 'error');
-            return;
-        }
-        const key = state.faqImageUploadKey;
-        const dataUrl = state.faqImageUploadFile.dataUrl;
-        const updatedImages = Object.assign({}, state.settingsCache.faqImages || {});
-        updatedImages[key] = dataUrl;
-
-        supabase.from('admin_settings')
-            .upsert({ setting_key: 'faq_images', setting_value: updatedImages }, { onConflict: 'setting_key' })
-            .then(function() {
-                state.settingsCache.faqImages = updatedImages;
-                state.showFaqImageUpload = false;
-                state.faqImageUploadKey = null;
-                state.faqImageUploadFile = null;
-                showToast('Feature image updated!', 'success');
-                render();
-            })
-            .catch(function(err) {
-                console.warn('FAQ image upload error:', extractErrorMessage(err), err);
-                showNetworkAwareError('Error saving feature image.', err);
-            });
-        return;
-    }
-    if (action === 'remove-faq-image') {
-        const key = state.faqImageUploadKey;
-        const updatedImages = Object.assign({}, state.settingsCache.faqImages || {});
-        delete updatedImages[key];
-
-        supabase.from('admin_settings')
-            .upsert({ setting_key: 'faq_images', setting_value: updatedImages }, { onConflict: 'setting_key' })
-            .then(function() {
-                state.settingsCache.faqImages = updatedImages;
-                state.showFaqImageUpload = false;
-                state.faqImageUploadKey = null;
-                state.faqImageUploadFile = null;
-                showToast('Feature image removed.', 'success');
-                render();
-            })
-            .catch(function(err) {
-                console.warn('FAQ image remove error:', extractErrorMessage(err), err);
-                showNetworkAwareError('Error removing feature image.', err);
-            });
         return;
     }
 
@@ -33223,9 +32953,7 @@ async function init() {
 
     // Check for expired users on init and periodically
     await checkAndDeactivateExpiredUsers();
-    setInterval(function() {
-        checkAndDeactivateExpiredUsers();
-    }, 5 * 60 * 1000); // Every 5 minutes
+    // (removed) the 5-minute timer: the database now deactivates expired plans itself every 15 minutes
 
     // check for payment confirmations while a request is pending (user) or the Payments tab is open (admin)
     setInterval(function() {
@@ -33235,13 +32963,13 @@ async function init() {
     }, 45000);
 
     loadAllUsers();
-    loadLeaderboard('cbt');
+    // (removed) leaderboard is loaded only when someone opens it
     loadNotifications();
     loadActivationPlans();
     loadFlaggedCount();
     if (state.authUser) cacheAllDataForOffline();
 
-    addLog(state.authUser ? state.authUser.id : null, state.profile.name || 'Guest', 'page_view', 'App opened');
+    // (removed) page_view log: one database write on every app open
     if (state.authUser) startLastSeenHeartbeat();
     window.addEventListener('online', function() {
         // Reconnect handling now runs silently — no "Back online — syncing
@@ -33274,7 +33002,7 @@ async function init() {
             state.settingsCache = s;
             if (prev && s && prev.jambExamDate !== s.jambExamDate) render();
         });
-    }, 60000);
+    }, 10 * 60 * 1000); // every 10 minutes (was every minute)
 
 }
 
