@@ -11873,7 +11873,15 @@ async function loadNotifications() {
         } else {
             const have = {};
             cached.forEach(function(x) { have[String(x.id)] = 1; });
-            rows = (data || []).filter(function(x) { return !have[String(x.id)]; }).concat(cached);
+            const _fresh = (data || []).filter(function(x) { return !have[String(x.id)]; });
+            rows = _fresh.concat(cached);
+            try {
+                const _mine = _fresh.filter(function(n) { return !n.target_user_id || (state.authUser && n.target_user_id === state.authUser.id); });
+                if (_mine.length && cached.length) {
+                    showInAppNotificationBanner(_mine[0]);
+                    if (_mine.some(function(n) { return n.news_id || String(n.title || '').indexOf('📰') === 0; })) loadNews();
+                }
+            } catch (_) {}
         }
         rows = rows.slice(0, 60);
         saveOfflineCache(key, rows);
@@ -12581,7 +12589,11 @@ function teardownNotifChannel() {
     }
 }
 function setupRealtimeNotifications() {
+    // Realtime connection removed: the free plan allows only 200 at once. New alerts are now
+    // fetched when the app opens / comes back to the screen (see loadNotifications), and device
+    // push notifications still arrive when the app is closed.
     teardownNotifChannel();
+    return;
     if (!state.authUser) return;
     if (document.hidden) return; // paused in the background; resumes when the app is opened again
     notifChannel = supabase.channel('notif-inbox')
@@ -12600,7 +12612,7 @@ document.addEventListener('visibilitychange', function() {
     if (!state.authUser) return;
     if (document.hidden) { teardownNotifChannel(); return; }
     try { updateLocalStreak(); } catch (e) {}
-    if (Date.now() - _lastNotifResume < 60000) return;
+    if (Date.now() - _lastNotifResume < 120000) return;
     _lastNotifResume = Date.now();
     setupRealtimeNotifications();
     loadNotifications(); // only fetches what is newer than what we already have
