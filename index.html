@@ -10987,6 +10987,29 @@ function _docIdb() {
 }
 async function _docGet(id) { try { const db = await _docIdb(); return await new Promise(function(res) { const q = db.transaction('f').objectStore('f').get(id); q.onsuccess = function() { res(q.result || null); }; q.onerror = function() { res(null); }; }); } catch (e) { return null; } }
 async function _docPut(id, v) { try { const db = await _docIdb(); db.transaction('f', 'readwrite').objectStore('f').put(v, id); } catch (e) {} }
+// Uploads a study file to the 'materials' storage bucket and returns its
+// public link. Returns null on any failure so callers can fall back safely.
+async function _uploadMaterialBlob(blob, fileName, fileType, slug) {
+    try {
+        const ext = ((fileName || '').split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+        const path = (slug || 'general') + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+        const up = await supabase.storage.from('materials').upload(path, blob, {
+            contentType: fileType || blob.type || 'application/octet-stream',
+            cacheControl: '31536000'
+        });
+        if (up.error) { console.warn('Storage upload failed:', up.error.message); return null; }
+        return supabase.storage.from('materials').getPublicUrl(path).data.publicUrl || null;
+    } catch (e) { console.warn('Storage upload exception:', e); return null; }
+}
+// Best-effort removal of the stored file behind a link in the 'materials' bucket.
+async function _removeMaterialFileByUrl(fileUrl) {
+    try {
+        const marker = '/object/public/materials/';
+        const i = (fileUrl || '').indexOf(marker);
+        if (i < 0) return;
+        await supabase.storage.from('materials').remove([decodeURIComponent(fileUrl.slice(i + marker.length).split('?')[0])]);
+    } catch (e) { console.warn('Storage remove ignored:', e); }
+}
 async function loadSingleDocumentFile(docId) {
     try {
         const _saved = await _docGet(docId);
@@ -11000,9 +11023,24 @@ async function loadSingleDocumentFile(docId) {
             showNetworkAwareError('Could not load file.', error);
             return;
         }
+        // Files now live in Supabase Storage (the row holds a link, not the
+        // file itself). Download once, turn it into the same data URL the
+        // viewer already understands, and cache it on this phone as before.
+        let fileUrl = data.file_url;
+        if (/^https?:/i.test(fileUrl || '')) {
+            const resp = await fetch(fileUrl);
+            if (!resp.ok) throw new Error('File download failed (' + resp.status + ')');
+            const blob = await resp.blob();
+            fileUrl = await new Promise(function(res, rej) {
+                const r = new FileReader();
+                r.onload = function() { res(r.result); };
+                r.onerror = function() { rej(r.error); };
+                r.readAsDataURL(blob);
+            });
+        }
         if (!state.docFileUrls) state.docFileUrls = {};
-        state.docFileUrls[docId] = data.file_url;
-        _docPut(docId, data.file_url);
+        state.docFileUrls[docId] = fileUrl;
+        _docPut(docId, fileUrl);
         render();
     } catch (e) {
         showNetworkAwareError('Could not load file.', e);
@@ -26868,6 +26906,7 @@ function renderAdminDocuments() {
         '<p style="font-size:10px;color:var(--faint);margin:0 0 10px">' + (state.admin.docFile ? esc(state.admin
             .docFile.name) : "No file chosen") + '</p>' +
         '<button class="btn btn-green" data-action="admin-upload-doc" style="padding:10px">Upload Document</button>' +
+        '<button class="btn btn-outline btn-sm" data-action="admin-migrate-docs" style="margin-top:8px;width:100%">Move old files to storage (one-time)</button>' +
         '</div>' +
         '<p class="section-label">Filter by category</p>' +
         renderDocCategoryChips(state.docsCategoryFilter || 'all', 'set-docs-category') +
@@ -31059,19 +31098,58 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'admin-migrate-docs') {
+        if (!confirm('Move all old study files into storage? Keep this screen open until it finishes.')) return;
+        (async function() {
+            showToast('Moving files...', 'success');
+            let moved = 0, failed = 0;
+            const list = await supabase.from('materials').select('id, file_name, file_type, subject_id').like('file_url', 'data:%');
+            if (list.error) { showNetworkAwareError('Could not read documents.', list.error); return; }
+            for (const row of (list.data || [])) {
+                try {
+                    const one = await supabase.from('materials').select('file_url').eq('id', row.id).single();
+                    const dataUrl = one.data && one.data.file_url;
+                    if (!dataUrl) { failed++; continue; }
+                    const blob = await (await fetch(dataUrl)).blob();
+                    const url = await _uploadMaterialBlob(blob, row.file_name, row.file_type, row.subject_id);
+                    if (!url) { failed++; continue; }
+                    const upd = await supabase.from('materials').update({ file_url: url }).eq('id', row.id);
+                    if (upd.error) { await _removeMaterialFileByUrl(url); failed++; continue; }
+                    moved++;
+                } catch (e) { failed++; }
+            }
+            state.docsLoaded = false;
+            await loadDocuments();
+            render();
+            showToast('Moved ' + moved + ' file(s)' + (failed ? ', ' + failed + ' failed (is the storage policy added?).' : '.'), failed ? 'error' : 'success');
+        })();
+        return;
+    }
+
     if (action === 'admin-upload-doc') {
         if (!state.admin.docFile) { showToast('Choose a file first.', 'error'); return; }
         const name = state.admin.docName.trim() || state.admin.docFile.name;
         const category = (state.admin.docCategory || '').trim() || 'Uncategorized';
         const categorySlug = category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'general';
-        supabase.from('materials').insert([{
-            subject_id: categorySlug,
-            subject_name: category,
-            name: name,
-            file_name: state.admin.docFile.name,
-            file_url: state.admin.docFile.dataUrl,
-            file_type: state.admin.docFile.type,
-        }]).then(function(res) {
+        const _pickedFile = state.admin.docFile;
+        (async function() {
+            let storedUrl = null;
+            try {
+                const blob = await (await fetch(_pickedFile.dataUrl)).blob();
+                storedUrl = await _uploadMaterialBlob(blob, _pickedFile.name, _pickedFile.type, categorySlug);
+            } catch (e) { storedUrl = null; }
+            // If storage isn't available, keep the old behaviour (file kept in the row).
+            return storedUrl || _pickedFile.dataUrl;
+        })().then(function(fileUrlToSave) {
+            return supabase.from('materials').insert([{
+                subject_id: categorySlug,
+                subject_name: category,
+                name: name,
+                file_name: _pickedFile.name,
+                file_url: fileUrlToSave,
+                file_type: _pickedFile.type,
+            }]);
+        }).then(function(res) {
             // The insert call resolves normally (it doesn't throw) even when
             // Supabase rejects the row — e.g. a row-level-security policy,
             // or the file's base64 data being too large for the column/
@@ -31115,7 +31193,11 @@ document.addEventListener('click', function(e) {
         if (!docId) { showToast('Document ID not found.', 'error'); return; }
         if (!confirm('Delete this document permanently?')) return;
         
-        supabase.from('materials').delete().eq('id', docId).then(function() {
+        supabase.from('materials').select('file_url').eq('id', docId).maybeSingle().then(function(r) {
+            return (r && r.data && r.data.file_url) ? _removeMaterialFileByUrl(r.data.file_url) : null;
+        }).catch(function() {}).then(function() {
+            return supabase.from('materials').delete().eq('id', docId);
+        }).then(function() {
             showToast('Document deleted successfully.', 'success');
             state.docsLoaded = false;
             state.docsList = [];
