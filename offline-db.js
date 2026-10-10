@@ -451,7 +451,10 @@
             function onNetworkResult(file) {
                 networkDone = true;
                 if (settled) return;
-                if (file.notFound || !file.questions || !file.questions.length) { maybeFail(); return; }
+                if (file.notFound || !file.questions || !file.questions.length) {
+                    reportDiagnostic('loadQuestionsOffline: network file ' + (file.notFound ? 'NOT FOUND (404)' : 'has no questions') + ' for ' + subjectId, { type: type, subjectId: subjectId });
+                    maybeFail(); return;
+                }
                 var filtered = filterQuestions(file.questions, type, year, limit);
                 if (filtered.length > 0) {
                     finish(filtered);
@@ -470,6 +473,7 @@
             function onNetworkError(err) {
                 networkDone = true;
                 networkErr = err;
+                reportDiagnostic('loadQuestionsOffline: network fetch failed for ' + subjectId, { type: type, subjectId: subjectId, error: err && err.message, online: navigator.onLine });
                 maybeFail();
             }
             function startNetwork() {
@@ -681,8 +685,11 @@
             .finally(function () { clearTimeout(abortTimer); })
             .then(function (res) {
                 if (res.status === 404) return { notFound: true };
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                return res.json().then(function (data) {
+                if (!res.ok) throw new Error('HTTP ' + res.status + ' for questions-' + subjectId + '.json');
+                return res.text().then(function (txt) {
+                    try { return JSON.parse(txt); }
+                    catch (pe) { throw new Error('questions-' + subjectId + '.json is not valid JSON (host returned: ' + String(txt).slice(0, 40).replace(/\s+/g, ' ') + ')'); }
+                }).then(function (data) {
                     // Real export shape (confirmed from an actual exported file):
                     // { version, subject_id, exportedAt, questions: [...], passages: [...],
                     //   topics: [...], topic_questions: [...] }
@@ -776,11 +783,18 @@
             return fetchSubjectFile(subjectId).then(function (file) {
                 networkReached = true;
                 if (file.notFound) {
-                    return storeGetAllByIndex('questions', 'by_subject', subjectId).then(function (existing) {
-                        return storeDeleteAll('questions', existing.map(function (q) { return q.id; }));
-                    }).then(function () {
-                        results[subjectId] = { status: 'wiped' };
-                    });
+                    // A 404 does NOT mean the subject was removed on purpose — it is just as
+                    // likely a failed/partial deploy or a host hiccup. Deleting the local copy
+                    // here is what left every mode empty while Topic Practice (separate store)
+                    // kept working. Keep what is on the device and log it instead.
+                    reportDiagnostic('reconcile: questions-' + subjectId + '.json returned 404 - local copy kept', { subjectId: subjectId });
+                    results[subjectId] = { status: 'missing-kept' };
+                    return;
+                }
+                if (!file.questions || !file.questions.length) {
+                    reportDiagnostic('reconcile: questions-' + subjectId + '.json has 0 questions - local copy kept', { subjectId: subjectId });
+                    results[subjectId] = { status: 'empty-kept' };
+                    return;
                 }
                 var fp = fingerprint(file);
                 return Promise.all([

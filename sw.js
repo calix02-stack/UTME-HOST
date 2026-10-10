@@ -17,7 +17,7 @@
 //    but the background refresh now also bypasses the HTTP cache.
 // v27: question files (questions-*.json) are now NETWORK-FIRST, so newly uploaded questions show
 // up straight away — you never need to edit this file just to publish questions again.
-const CACHE_NAME = "myutme-cache-v49";
+const CACHE_NAME = "myutme-cache-v50";
 
 const APP_SHELL = [
   "./",
@@ -155,8 +155,10 @@ self.addEventListener("fetch", (event) => {
           if (networkResponse && networkResponse.status === 200) {
             const clone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(cacheKey, clone));
+            return networkResponse;
           }
-          return networkResponse;
+          // 404 / 5xx (bad deploy, host hiccup): prefer the good saved copy over passing the error on.
+          return caches.match(cacheKey).then((cached) => cached || networkResponse);
         })
         .catch(() => caches.match(cacheKey).then((cached) => cached || Response.error()))
     );
