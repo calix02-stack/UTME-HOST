@@ -7995,6 +7995,34 @@ button, .btn, .icon-btn, a, input, select, textarea, .card, [class*="-card"], [c
   .bottom-nav-item, .drawer-item, .toggle-row, .acct-menu-item, .lb-row, .topic-item-card, .ph-mode-card, .myc-subject-card, .qa-pill, .tp-row { transition: none !important; }
 }
 </style>
+<style id="removed-features">
+/* Removed features: live exams, share links, leaderboards, mock registration */
+[data-action^="live-"],[data-action*="live-exam"],[data-action*="leaderboard"],[data-action="register-mock"],[data-action="start-guest-live-exam"],[data-action="join-live-exam"]{display:none!important}
+</style>
+<style id="ui-refresh">
+/* MyUTME design refresh: calmer palette, softer depth, rounder shapes, floating nav */
+:root:not([data-theme="dark"]){
+  --green:#0B6B45; --green-dark:#064A2E; --green-light:#E6F4EC;
+  --gold:#E9B44C; --gold-dark:#C9922B;
+  --bg:#F5F7F3; --line:#E3E9E4; --card-bg:#fff;
+  --shadow-sm:0 1px 3px rgba(6,74,46,.06),0 4px 14px rgba(6,74,46,.05);
+  --shadow-md:0 2px 6px rgba(6,74,46,.06),0 12px 28px rgba(6,74,46,.09);
+  --topbar-bg:linear-gradient(135deg,#0B6B45 0%,#064A2E 100%);
+}
+body{letter-spacing:-.005em;-webkit-font-smoothing:antialiased}
+h1,h2,h3,.view h2{letter-spacing:-.02em}
+.card{border-radius:22px;border:1px solid var(--line);box-shadow:var(--shadow-sm)}
+.btn,button.btn{border-radius:14px;font-weight:600;transition:transform .12s ease,box-shadow .2s ease}
+.btn:active{transform:scale(.97)}
+.btn-primary{box-shadow:0 6px 16px rgba(11,107,69,.28)}
+input,select,textarea{border-radius:14px!important}
+.bottom-nav{margin:0 12px calc(env(safe-area-inset-bottom) + 10px);border-radius:24px;border:1px solid var(--line);
+  box-shadow:0 10px 30px rgba(6,74,46,.16);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+:root:not([data-theme="dark"]) .bottom-nav{background:rgba(255,255,255,.92)}
+.bottom-nav-item{border-radius:18px;font-weight:600}
+.bottom-nav-item.active{background:var(--green-light);color:var(--green)}
+::selection{background:rgba(233,180,76,.35)}
+</style>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -8140,7 +8168,8 @@ const SUPABASE_ANON_KEY =
 // comes back online we swap the stub out for the real client automatically.
 let usingOfflineSupabaseStub = false;
 
-function createOfflineSupabaseStub() {
+function createOfflineSupabaseStub() { return wrapLocalOnly(_createOfflineSupabaseStubRaw()); }
+function _createOfflineSupabaseStubRaw() {
     const offlineError = { message: "No internet connection. Please try again.", offline: true };
     const offlineResult = { data: null, error: offlineError, count: null };
     function makeChain() {
@@ -8190,8 +8219,97 @@ function fastFetch(input, init) {
     return fetch(input, opts).finally(function() { clearTimeout(t); });
 }
 
+
+// ============================================================
+//  LOCAL-ONLY DATA LAYER (egress cut)
+//  Scores/progress live on the phone; removed features are no-ops.
+//  Only auth, activation keys, payments, plans, news, notifications,
+//  materials, support and admin settings still reach Supabase.
+// ============================================================
+
+// Safety stubs for removed features (live exams, leaderboards, mock registration).
+function loadPendingLiveExamJoins() { return []; }
+function loadPendingMockRegistrations() { return []; }
+function pendingLiveExamJoinsKey() { return 'removed_live_joins'; }
+function pendingMockRegistrationsKey() { return 'removed_mock_regs'; }
+function joinLiveExamByCode() { return Promise.resolve(); }
+function joinAndStartLiveExamViaLink() { return Promise.resolve(); }
+function buildLeaderboardCanvas() { return Promise.resolve(null); }
+function renderLeaderboardCore() { return ''; }
+var LOCAL_TABLES = ['cbt_scores','mock_scores','subject_scores','exam_history','topic_progress','ai_assistant_sessions','ai_assistant_messages'];
+var DEAD_TABLES = ['activity_logs','app_errors','live_exams','live_exam_registrations','live_exam_attempts','mock_registrations','unverified_mock_results','mock_exams','mock_attempts'];
+function localTableBuilder(table, dead) {
+    var key = 'myutme_local_' + table;
+    function read() { if (dead) return []; try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; } }
+    function write(rows) { if (dead) return; try { localStorage.setItem(key, JSON.stringify(rows)); } catch (e) {} }
+    var st = { op: 'select', filters: [], order: null, limit: null, single: false, payload: null, conflict: null };
+    var b = {};
+    function addF(fn) { return function (c, v) { st.filters.push(function (r) { return fn(r[c], v); }); return b; }; }
+    b.select = function () { return b; };
+    b.insert = function (p) { st.op = 'insert'; st.payload = [].concat(p); return b; };
+    b.upsert = function (p, o) { st.op = 'upsert'; st.payload = [].concat(p); st.conflict = o && o.onConflict; return b; };
+    b.update = function (p) { st.op = 'update'; st.payload = p; return b; };
+    b.delete = function () { st.op = 'delete'; return b; };
+    b.eq = addF(function (a, v) { return a === v || String(a) === String(v); });
+    b.neq = addF(function (a, v) { return String(a) !== String(v); });
+    b.gte = addF(function (a, v) { return a >= v; });
+    b.lte = addF(function (a, v) { return a <= v; });
+    b.gt = addF(function (a, v) { return a > v; });
+    b.lt = addF(function (a, v) { return a < v; });
+    b.in = addF(function (a, v) { return (v || []).indexOf(a) !== -1; });
+    b.like = b.ilike = function () { return b; };
+    b.order = function (c, o) { st.order = { c: c, asc: !(o && o.ascending === false) }; return b; };
+    b.limit = function (n) { st.limit = n; return b; };
+    b.range = function () { return b; };
+    b.single = b.maybeSingle = function () { st.single = true; return b; };
+    function run() {
+        var rows = read(), out;
+        function match(r) { return st.filters.every(function (f) { return f(r); }); }
+        if (st.op === 'insert') {
+            st.payload.forEach(function (p) { rows.push(Object.assign({ id: 'l_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), created_at: new Date().toISOString() }, p)); });
+            write(rows); out = st.payload;
+        } else if (st.op === 'upsert') {
+            var ks = (st.conflict || 'id').split(',');
+            st.payload.forEach(function (p) {
+                var i = rows.findIndex(function (r) { return ks.every(function (k) { return r[k] === p[k]; }); });
+                if (i >= 0) rows[i] = Object.assign({}, rows[i], p); else rows.push(Object.assign({ id: 'l_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) }, p));
+            });
+            write(rows); out = st.payload;
+        } else if (st.op === 'update') {
+            rows = rows.map(function (r) { return match(r) ? Object.assign({}, r, st.payload) : r; }); write(rows); out = [];
+        } else if (st.op === 'delete') {
+            write(rows.filter(function (r) { return !match(r); })); out = [];
+        } else {
+            out = rows.filter(match);
+            if (st.order) out.sort(function (x, y) { var a = x[st.order.c], z = y[st.order.c]; return (a > z ? 1 : a < z ? -1 : 0) * (st.order.asc ? 1 : -1); });
+            if (st.limit) out = out.slice(0, st.limit);
+        }
+        if (st.single) return { data: out[0] || null, error: null };
+        return { data: out, error: null, count: out.length };
+    }
+    b.then = function (res, rej) { return Promise.resolve().then(run).then(res, rej); };
+    b.catch = function (rej) { return b.then(null, rej); };
+    b.finally = function (f) { return b.then(function (v) { f(); return v; }, function (e) { f(); throw e; }); };
+    return b;
+}
+function wrapLocalOnly(client) {
+    if (!client || client.__localWrapped) return client;
+    var realFrom = client.from;
+    return new Proxy(client, {
+        get: function (t, p) {
+            if (p === '__localWrapped') return true;
+            if (p === 'from') return function (table) {
+                if (LOCAL_TABLES.indexOf(table) !== -1) return localTableBuilder(table, false);
+                if (DEAD_TABLES.indexOf(table) !== -1) return localTableBuilder(table, true);
+                return realFrom.call(t, table);
+            };
+            var v = t[p];
+            return typeof v === 'function' ? v.bind(t) : v;
+        }
+    });
+}
 function createRealSupabaseClient() {
-    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    return wrapLocalOnly(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { fetch: fastFetch },
         auth: {
             persistSession: true,
@@ -8199,7 +8317,7 @@ function createRealSupabaseClient() {
             detectSessionInUrl: true,
             storage: window.localStorage,
         },
-    });
+    }));
 }
 
 let supabase;
@@ -8868,128 +8986,7 @@ function shareResultCardImage(opts) {
 // admin export the exact ranked leaderboard for one specific exam/subject
 // (see shareLeaderboardImage below), same visual language as the
 // candidate-facing result card above.
-function buildLeaderboardCanvas(opts) {
-    const allEntries = opts.entries || [];
-    // Cap what actually gets drawn so the image stays a reasonable size
-    // even when hundreds of people attempted — the list is already sorted
-    // highest score first, so this keeps the part people care about.
-    const MAX_ROWS = 50;
-    const entries = allEntries.slice(0, MAX_ROWS);
-    const truncatedCount = allEntries.length - entries.length;
 
-    const dpr = Math.max(2, window.devicePixelRatio || 1);
-    const W = 680;
-    const padX = 30;
-    const INK = '#13291D';
-    const MUTED = '#5B6B60';
-    const LINE = '#E7EAE8';
-    const GOLD = '#C4901F';
-    const GREEN = '#0F6B3F';
-    const sans = "'Poppins', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-    const mono = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
-
-    const headH = 78;
-    const rowH = 46;
-    const rowsH = Math.max(entries.length, 1) * rowH;
-    const footH = truncatedCount > 0 ? 30 : 0;
-    const H = headH + rowsH + footH + 20;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-
-    // Background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, W, H);
-
-    // Top rule
-    ctx.fillStyle = INK;
-    ctx.fillRect(0, 0, W, 3);
-
-    let y = 3;
-
-    // Header
-    y += 30;
-    ctx.fillStyle = INK;
-    ctx.font = '700 20px ' + sans;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('🏆 ' + (opts.title || 'Leaderboard'), padX, y);
-    if (opts.subtitle) {
-        y += 22;
-        ctx.fillStyle = MUTED;
-        ctx.font = '600 13px ' + sans;
-        ctx.fillText(opts.subtitle, padX, y);
-    }
-    y += 20;
-    ctx.strokeStyle = LINE;
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(W - padX, y); ctx.stroke();
-
-    // Rows
-    if (entries.length === 0) {
-        y += rowH / 2 + 6;
-        ctx.fillStyle = MUTED;
-        ctx.font = '600 14px ' + sans;
-        ctx.textAlign = 'center';
-        ctx.fillText('No submitted attempts yet.', W / 2, y);
-    } else {
-        entries.forEach(function(en, i) {
-            y += rowH;
-            const rank = en.rank != null ? en.rank : i + 1;
-            const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
-            const baseY = y - rowH / 2 + 6;
-
-            // Rank / medal
-            ctx.textAlign = 'left';
-            ctx.font = '700 15px ' + mono;
-            ctx.fillStyle = medal ? GOLD : MUTED;
-            ctx.fillText(medal || ('#' + rank), padX, baseY);
-
-            // Name + meta
-            ctx.fillStyle = INK;
-            ctx.font = '700 15px ' + sans;
-            ctx.fillText(en.name || 'Unknown', padX + 46, baseY - 7);
-            if (en.meta) {
-                ctx.fillStyle = MUTED;
-                ctx.font = '600 11px ' + sans;
-                ctx.fillText(en.meta, padX + 46, baseY + 10);
-            }
-
-            // Score
-            ctx.textAlign = 'right';
-            ctx.fillStyle = GREEN;
-            ctx.font = '700 17px ' + mono;
-            const scoreText = String(en.score);
-            const scoreW = ctx.measureText(scoreText).width;
-            ctx.fillText(scoreText, W - padX, baseY);
-            if (en.maxScore != null) {
-                ctx.fillStyle = MUTED;
-                ctx.font = '600 12px ' + mono;
-                ctx.fillText('/' + en.maxScore, W - padX - scoreW - 4, baseY);
-            }
-
-            ctx.strokeStyle = LINE;
-            ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(W - padX, y); ctx.stroke();
-        });
-    }
-
-    if (truncatedCount > 0) {
-        y += footH;
-        ctx.fillStyle = MUTED;
-        ctx.font = '600 italic 12px ' + sans;
-        ctx.textAlign = 'center';
-        ctx.fillText('+ ' + truncatedCount + ' more not shown', W / 2, y - 8);
-    }
-
-    // Bottom rule
-    ctx.fillStyle = INK;
-    ctx.fillRect(0, H - 3, W, 3);
-
-    return canvas;
-}
 
 // Renders a leaderboard to a PNG and shares/downloads it — same
 // share-or-download fallback pattern as shareResultCardImage above.
@@ -11156,16 +11153,8 @@ async function syncPendingAttemptSubmissions() {
 // (`mock_attempts` insert). Both are deferred to local storage and replayed
 // once back online, the same way queuePendingAttemptSync above already
 // defers the final "submitted" update.
-function pendingMockRegistrationsKey() {
-    return 'pendingMockRegistrations_' + (state.authUser ? state.authUser.id : 'guest');
-}
-function loadPendingMockRegistrations() {
-    try {
-        const raw = storage.get(pendingMockRegistrationsKey());
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) { return []; }
-}
+
+
 function savePendingMockRegistrations(list) {
     storage.set(pendingMockRegistrationsKey(), JSON.stringify(list || []));
 }
@@ -11204,16 +11193,8 @@ async function syncPendingMockRegistrations() {
 
 // Same idea as the mock registration queue above, for joining a Live Exam
 // (`live_exam_registrations`) via a shared ?liveexamlink= URL while offline.
-function pendingLiveExamJoinsKey() {
-    return 'pendingLiveExamJoins_' + (state.authUser ? state.authUser.id : 'guest');
-}
-function loadPendingLiveExamJoins() {
-    try {
-        const raw = storage.get(pendingLiveExamJoinsKey());
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) { return []; }
-}
+
+
 function savePendingLiveExamJoins(list) {
     storage.set(pendingLiveExamJoinsKey(), JSON.stringify(list || []));
 }
@@ -13289,10 +13270,7 @@ const LIVE_EXAM_START_PRESETS = [
 ];
 
 // Kept only for display purposes (e.g. showing "today" as the date label).
-function getLiveExamTimeConstraints() {
-    const now = new Date();
-    return { dateStr: now.toISOString().slice(0, 10) };
-}
+
 
 async function loadLiveExams() {
     try {
@@ -13351,71 +13329,7 @@ async function loadLiveExamAttempts() {
     render();
 }
 
-async function createLiveExam() {
-    if (!state.authUser) { guestNeedsAccount(); return; }
-    // Guard against double-taps / rapid repeat clicks on "Create & Get Join
-    // Code" — the request can take a moment on a slow connection, and
-    // without this guard each extra tap before the first insert finishes
-    // fires its own createLiveExam() call, creating duplicate exams.
-    if (state.creatingLiveExam) return;
-    if (state.settingsCache.examCreationEnabled === false && !isAdmin()) {
-        showToast('Exam creation is currently turned off by the admin.', 'error');
-        return;
-    }
-    const f = state.liveExamCreateForm;
-    const examTypeMeta = LIVE_EXAM_TYPES.find(function(t) { return t.key === f.examType; });
-    if (!examTypeMeta || !examTypeMeta.enabled) { showToast('Select a valid exam type.', 'error'); return; }
 
-    // Every exam is single-subject now — the old JAMB Style (English + 3
-    // electives) option has been removed.
-    if (!f.subject) { showToast('Select a subject.', 'error'); return; }
-    const subjectIds = [f.subject];
-    if (!f.title.trim()) { showToast('Enter a title.', 'error'); return; }
-    // Start time is chosen as "minutes from now" (no clock picker), so it's always
-    // computed fresh off the current clock at submit time — nothing can go stale.
-    const offsetMinutes = Math.max(0, Math.min(120, parseInt(f.startOffsetMinutes, 10)));
-    if (isNaN(offsetMinutes)) { showToast('Pick a start time.', 'error'); return; }
-    const scheduledDate = new Date(Date.now() + offsetMinutes * 60000);
-
-    const numQuestions = Math.max(20, Math.min(40, parseInt(f.numQuestions) || 40));
-    const durationMinutes = Math.max(1, (parseInt(f.durationHours) || 0) * 60 + (parseInt(f.durationMinutes) || 0));
-    const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60000 + 30 * 60000);
-
-    let code = generateJoinCode();
-    state.creatingLiveExam = true;
-    const { data, error } = await supabase.from('live_exams').insert([{
-        created_by: state.authUser.id,
-        creator_username: state.profile.name,
-        title: f.title.trim(),
-        join_code: code,
-        exam_type: f.examType,
-        // subject_id kept as the primary/first subject for backward
-        // compatibility with anything still reading a single value;
-        // subject_ids carries the same single-subject list.
-        subject_id: subjectIds[0],
-        subject_ids: subjectIds,
-        num_questions: numQuestions,
-        questions_per_subject: numQuestions,
-        time_limit_minutes: durationMinutes,
-        is_public: !!f.isPublic,
-        scheduled_date: scheduledDate.toISOString(),
-        registration_deadline: scheduledDate.toISOString(),
-        end_date: endDate.toISOString(),
-        results_released: true,
-    }]).select().single();
-
-    state.creatingLiveExam = false;
-    if (error) { showNetworkAwareError('Error creating exam: ' + error.message, error); return; }
-    if (!f.isPublic) {
-        state.lastCreatedJoinCode = code;
-    }
-    state.lastCreatedLiveExamId = data ? data.id : null;
-    showToast('🎉 Live exam created!', 'success');
-    state.liveExamCreateForm = { title: '', examType: '', subject: '', subjects: [], mode: '1', startOffsetMinutes: 10, numQuestions: 40, durationHours: 1, durationMinutes: 30, isPublic: true };
-    state.liveExamCreateStep = 'type';
-    state.liveExamView = 'browse';
-    loadLiveExams();
-}
 
 async function joinLiveExamNow(examId) {
     if (!state.authUser) { guestNeedsAccount(); return; }
@@ -13480,33 +13394,8 @@ async function joinLiveExamNow(examId) {
     showToast('Joined! Come back when it starts.', 'success');
     await loadLiveExamRegistrations();
 }
-async function joinLiveExamByCode(code) {
-    const c = (code || '').trim().toUpperCase();
-    if (!c) { showToast('Enter a join code.', 'error'); return; }
-    const { data: exam, error } = await supabase.from('live_exams').select('*').eq('join_code', c).maybeSingle();
-    if (error || !exam) { showToast('No exam found with that code.', 'error'); return; }
-    if (state.liveExams.every(function(e) { return e.id !== exam.id; })) state.liveExams.unshift(exam);
-    state.liveExamView = 'browse';
-    state.liveExamJoinCodeInput = '';
-    await joinLiveExamNow(exam.id);
-    render();
-}
-async function inviteFriendToLiveExam(examId, username) {
-    const u = (username || '').trim();
-    if (!u) { showToast('Enter a username.', 'error'); return; }
-    const { data: user, error } = await supabase.from('profiles').select('id, username').eq('username', u).maybeSingle();
-    if (error || !user) { showToast('No user found with that username.', 'error'); return; }
-    const exam = state.liveExams.find(function(e) { return e.id === examId; });
-    await supabase.from('notifications').insert([{
-        title: '🎯 You\'re invited to a Mock Arena exam!',
-        body: (exam ? exam.creator_username : 'A user') + ' invited you to "' + (exam ? exam.title : '') + '". Join with code: ' + (exam ? exam.join_code : ''),
-        target_user_id: user.id,
-        created_at: new Date().toISOString(),
-    }]);
-    showToast('Invite sent to ' + u + '!', 'success');
-    state.liveExamInviteUsername = '';
-    render();
-}
+
+
 
 // registerForLiveExam removed — live exams are single-subject and joined via joinLiveExamNow()
 async function loadMockExams() {
@@ -14024,31 +13913,12 @@ function liveExamLinkStatus(exam) {
 // Registered user, exam is ongoing: register them if needed (reusing the
 // exact same joinLiveExamNow used everywhere else, so it gets the same
 // double-tap/duplicate-key protection), then drop them into the real exam.
-async function joinAndStartLiveExamViaLink(examId) {
-    if (!state.authUser) { guestNeedsAccount(); return; }
-    let already = (state.liveExamRegistrations || []).find(function(r) { return r.live_exam_id === examId; });
-    if (!already) {
-        await joinLiveExamNow(examId);
-        // joinLiveExamNow() already toasts its own error (e.g. an RLS
-        // rejection) and returns without throwing, so check the cache it
-        // updates rather than assuming the join went through — starting
-        // the exam on an unregistered account just fails a step later
-        // inside startMockExam() with a more confusing message.
-        already = (state.liveExamRegistrations || []).find(function(r) { return r.live_exam_id === examId; });
-        if (!already) return;
-    }
-    state.pendingLiveExamLinkId = null;
-    startMockExam(examId, 'live');
-}
+
 
 // Registered user, exam hasn't started yet: just reserve their spot so it
 // shows up as "Joined" in their own Mock Arena list — they don't need this
 // link again, they can come back through the app like any other exam.
-async function reserveLiveExamViaLink(examId) {
-    if (!state.authUser) { guestNeedsAccount(); return; }
-    await joinLiveExamNow(examId);
-    render();
-}
+
 
 // Signed-out visitor, exam is ongoing: same in-memory, no-account pattern
 // used by the Live Exam Link guest flow (separate from the Mock Exam
@@ -17024,7 +16894,7 @@ async function loadSubjectProgress(ids) {
         const store = loadTopicProgressStore();
         for (let k = 0; k < ids.length; k++) {
             const sid = ids[k];
-            let total = 0, mastered = 0, attempts = 0;
+            let total = 0, mastered = 0, attempts = 0, tried = 0, topicCount = 0;
             try {
                 const topics = await window.OfflineDB.getTopicsOffline(sid);
                 for (let j = 0; j < (topics || []).length; j++) {
@@ -17033,12 +16903,17 @@ async function loadSubjectProgress(ids) {
                     const rec = store[t.id] || {};
                     const ms = {};
                     (rec.m || []).forEach(function(id) { ms[id] = 1; });
+                    topicCount++;
+                    // Only topics the person has actually practised count toward the subject score,
+                    // so one perfect topic is no longer shown as a red 5% for the whole subject.
+                    if (!((rec.a || 0) > 0 || (rec.m || []).length > 0)) continue;
+                    tried++;
                     total += (qs || []).length;
                     mastered += (qs || []).filter(function(q) { return isTopicQDone(ms, q); }).length;
                     attempts += rec.a || 0;
                 }
             } catch (e) { console.warn('Subject progress error:', sid, e); }
-            out[sid] = { total: total, mastered: mastered, attempts: attempts };
+            out[sid] = { total: total, mastered: mastered, attempts: attempts, tried: tried, count: topicCount };
         }
     } finally {
         state.subjProg = out;
@@ -19094,7 +18969,6 @@ function renderBottomNav() {
     const items = [
     { key: 'home', label: 'Home', icon: 'home' },
     { key: 'mysubjects', label: 'Practice Hub', icon: 'bookopen' },
-    { key: 'ai-assistant', label: 'Enzo AI', icon: 'sparkles' },
     { key: 'mockexam', label: 'Mock Arena', icon: 'target' },
     { key: 'profile', label: 'Account', icon: 'user' },
 ];
@@ -20512,6 +20386,7 @@ function renderTopicsPicker() {
         const sp = state.subjProgLoaded && state.subjProg ? state.subjProg[s.id] : null;
         if (sp && sp.total > 0) {
             pg = renderProgressBlock(progressPct(sp.mastered, sp.total), sp.attempts > 0, true);
+            pg.note = pg.note.replace('</span>', ' \u00b7 ' + sp.tried + ' of ' + sp.count + ' topics practised</span>');
         }
         rows += (
             '<button class="tp-row" style="--tc:' + s.color + '" data-action="select-topic-subject" data-subject="' + s.id + '">' +
@@ -23921,111 +23796,7 @@ function renderLbRow(rank, displayName, isCurrentUser, score, outOf, isUnverifie
 }
 
 function renderLeaderboard() { return renderLeaderboardCore() + adBox(); }
-function renderLeaderboardCore() {
-    if (state.loadingLeaderboard) {
-        return (
-            '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-            '<p class="sub" style="font-size:11px;margin-bottom:10px">See how you rank against other candidates</p>' +
-            '<div class="loading-spinner"><div class="spinner"></div><p>Loading leaderboard...</p></div>'
-        );
-    }
 
-    const displayData = state.leaderboardData || [];
-    const tab = state.leaderboardTab || 'overall';
-
-    let tabsHtml = '<div class="leaderboard-tabs" style="margin-bottom:10px">' +
-        '<button class="leaderboard-tab' + (tab === 'overall' ? ' active' : '') + '" data-action="leaderboard-tab" data-tab="overall">Overall</button>' +
-        '<button class="leaderboard-tab' + (tab === 'subject' ? ' active' : '') + '" data-action="leaderboard-tab" data-tab="subject">By Subject</button>' +
-        '</div>';
-
-    // ---------- OVERALL TAB ----------
-    if (tab === 'overall') {
-        let rows = "";
-        if (displayData.length === 0) {
-            rows = '<div class="lb-empty">No Overall scores yet. Complete a full 4-subject Mock Exam (English + 3 electives) to appear here — 1-subject mocks only count toward the By Subject board.</div>';
-        } else {
-            const sorted = displayData.slice().sort(function(a, b) { return b.score - a.score; });
-            sorted.forEach(function(entry, i) {
-                const isCurrentUser = entry.is_current_user || entry.user_id === state.profile.id;
-                // Overall only ever contains 4-subject mock attempts now, so
-                // the total is always out of 400 (English + 3 electives).
-                rows += renderLbRow(i + 1, entry.display_name || entry.candidate_code, isCurrentUser, entry.score, 400);
-            });
-        }
-        return (
-            '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-            '<p class="sub" style="font-size:11px;margin-bottom:10px">See how you rank against other candidates. Usernames are partially hidden to protect privacy — you\'ll see your own name in full. Ranked by 4-subject Mock score (out of 400) — 1-subject mocks don\'t count here.</p>' +
-            tabsHtml +
-            '<div style="margin-bottom:10px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">' +
-            '<span>Rank</span><span>Candidate</span><span>Score</span>' +
-            '</div>' +
-            rows +
-            '<button class="btn btn-outline btn-refresh" style="margin-top:12px;padding:10px" data-action="refresh-leaderboard">' + svg('refresh', 15) + ' Refresh</button>'
-        );
-    }
-
-    // ---------- BY SUBJECT TAB ----------
-    // Uses the full pool (every candidate with a real subject score, from
-    // either a 4-subject or 1-subject mock) rather than displayData, which
-    // is scoped to Overall (/400, 4-subject-only) attempts.
-    const subjectPool = state.subjectLeaderboardPool || [];
-    const selectedSid = state.subjectLeaderboardSubject;
-
-    if (!selectedSid) {
-        // Subject picker list — one row per subject, tap to drill in.
-        let subjRows = SUBJECTS.map(function(s) {
-            const attemptCount = subjectPool.filter(function(e) { return e.subject_scores && (s.id in e.subject_scores); }).length;
-            return (
-                '<button type="button" class="row-btn" data-action="view-subject-leaderboard" data-subjectid="' + s.id + '" ' +
-                'style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:12px;margin-bottom:6px;border:1px solid var(--line);border-radius:10px;background:var(--card);text-align:left">' +
-                '<span style="font-size:13px;font-weight:600">' + esc(s.name) + '</span>' +
-                '<span style="font-size:11px;color:var(--muted)">' + attemptCount + ' attempt' + (attemptCount === 1 ? '' : 's') + ' ›</span>' +
-                '</button>'
-            );
-        }).join('');
-        return (
-            '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 Mock Exam Leaderboard</h2>' +
-            '<p class="sub" style="font-size:11px;margin-bottom:10px">Pick a subject to see the best scores for that subject.</p>' +
-            tabsHtml +
-            subjRows
-        );
-    }
-
-    // Drilled into one subject's leaderboard.
-    const subj = SUBJECTS.find(function(s) { return s.id === selectedSid; });
-    const currentUserId = state.profile ? state.profile.id : null;
-    const entries = subjectPool
-        .filter(function(e) { return e.subject_scores && (selectedSid in e.subject_scores); })
-        .map(function(e) {
-            return {
-                display_name: e.display_name || e.candidate_code,
-                is_current_user: e.is_current_user || e.user_id === currentUserId,
-                score: e.subject_scores[selectedSid],
-                is_unverified: !!e.is_unverified,
-            };
-        })
-        .sort(function(a, b) { return b.score - a.score; });
-
-    let subjLbRows = "";
-    if (entries.length === 0) {
-        subjLbRows = '<div class="lb-empty">No one has attempted ' + esc(subj ? subj.name : 'this subject') + ' yet.</div>';
-    } else {
-        entries.forEach(function(entry, i) {
-            subjLbRows += renderLbRow(i + 1, entry.display_name, entry.is_current_user, entry.score, 100, entry.is_unverified);
-        });
-    }
-
-    return (
-        '<button type="button" class="btn btn-outline btn-sm" style="margin-bottom:10px" data-action="back-subject-leaderboard">‹ All Subjects</button>' +
-        '<h2 class="title" style="margin-bottom:2px;font-size:18px">🏆 ' + esc(subj ? subj.name : 'Subject') + ' Leaderboard</h2>' +
-        '<p class="sub" style="font-size:11px;margin-bottom:10px">Best score per candidate. Retaking this subject updates your score here, higher or lower. Entries marked <b>UNVERIFIED</b> were taken via a shared exam link without an account.</p>' +
-        '<div style="margin-bottom:10px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">' +
-        '<span>Rank</span><span>Candidate</span><span>Score</span>' +
-        '</div>' +
-        subjLbRows +
-        '<button class="btn btn-outline btn-refresh" style="margin-top:12px;padding:10px" data-action="refresh-leaderboard">' + svg('refresh', 15) + ' Refresh</button>'
-    );
-}
 
 // ============================================================
 //  NOTIFICATIONS
@@ -29995,24 +29766,9 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    if (action === 'copy-live-exam-link') {
-        const examId = el.getAttribute('data-examid');
-        const link = window.location.origin + window.location.pathname + '?liveexamlink=' + examId;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(link)
-                .then(function() { showToast('Exam link copied — share it with anyone!', 'success'); })
-                .catch(function() { fallbackCopy(link); });
-        } else {
-            fallbackCopy(link);
-        }
-        return;
-    }
 
-    if (action === 'dismiss-live-exam-link-banner') {
-        state.lastCreatedLiveExamId = null;
-        render();
-        return;
-    }
+
+
 
     if (action === 'dismiss-join-code-banner') {
         state.lastCreatedJoinCode = null;
@@ -30020,49 +29776,16 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    if (action === 'start-guest-live-exam') {
-        const nameInput = document.getElementById('liveexamlink-guest-name');
-        if (nameInput) state.liveExamLinkGuestName = nameInput.value;
-        const name = (state.liveExamLinkGuestName || '').trim();
-        if (!name) { showToast('Please enter your name.', 'error'); return; }
-        if (!state.pendingLiveExamLinkId) { showToast('This exam link is no longer valid.', 'error'); return; }
-        startGuestLiveExam(state.pendingLiveExamLinkId, name);
-        return;
-    }
 
-    if (action === 'confirm-live-exam-link-join') {
-        const examId = el.getAttribute('data-examid');
-        joinAndStartLiveExamViaLink(examId);
-        return;
-    }
 
-    if (action === 'reserve-live-exam-link') {
-        const examId = el.getAttribute('data-examid');
-        reserveLiveExamViaLink(examId);
-        return;
-    }
 
-    if (action === 'refresh-leaderboard') {
-        loadLeaderboard('mock');
-        showToast('Refreshing leaderboard...', '');
-        return;
-    }
-    if (action === 'leaderboard-tab') {
-        state.leaderboardTab = el.getAttribute('data-tab') || 'overall';
-        state.subjectLeaderboardSubject = null;
-        render();
-        return;
-    }
-    if (action === 'view-subject-leaderboard') {
-        state.subjectLeaderboardSubject = el.getAttribute('data-subjectid');
-        render();
-        return;
-    }
-    if (action === 'back-subject-leaderboard') {
-        state.subjectLeaderboardSubject = null;
-        render();
-        return;
-    }
+
+
+
+
+
+
+
 
     // MOCK
     if (action === 'toggle-mock-subject') {
@@ -30078,39 +29801,11 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    if (action === 'register-mock') {
-        const examId = el.getAttribute('data-examid');
-        if (!state.authUser) { showToast('Please login first.', 'error'); return; }
-        // Each admin-scheduled mock is already fixed to exactly one subject
-        // (set by the admin at creation time) — registration should just use
-        // that subject directly, the same way joinLiveExamNow() does for
-        // Mock Arena exams. It should never show a picker of every subject
-        // in the app, since the exam itself already decided the subject.
-        if (state.registeringMockId === examId) return;
-        const exam = (state.mockExams || []).find(function(e) { return e.id === examId; });
-        if (!exam) { showToast('Exam not found.', 'error'); return; }
-        state.registeringMockId = examId;
-        registerForMock(examId, '1', [exam.subject_id]).then(function() {
-            state.registeringMockId = null;
-        });
-        return;
-    }
 
-    if (action === 'mock-reg-cancel') {
-        state.showMockRegisterModal = false;
-        state.mockRegPending = null;
-        state.mockSelectedSubjects = [];
-        render();
-        return;
-    }
 
-    if (action === 'mock-reg-confirm') {
-        const pending = state.mockRegPending;
-        if (!pending) { state.showMockRegisterModal = false; render(); return; }
-        if (pending.source === 'live') registerForLiveExam(pending.examId, state.mockSelectedSubjects);
-        else registerForMock(pending.examId, state.mockRegMode || '4', state.mockSelectedSubjects);
-        return;
-    }
+
+
+
 
     if (action === 'start-mock') {
         const examId = el.getAttribute('data-examid');
@@ -30124,23 +29819,8 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    if (action === 'live-exam-view') {
-        const targetView = el.getAttribute('data-view');
-        if (targetView === 'create' && state.settingsCache.examCreationEnabled === false && !isAdmin()) {
-            showToast('Exam creation is currently turned off by the admin.', 'error');
-            return;
-        }
-        state.liveExamView = targetView;
-        if (state.liveExamView === 'create') state.liveExamCreateStep = 'type';
-        render();
-        return;
-    }
-    if (action === 'live-exam-tab') {
-        state.liveExamTab = el.getAttribute('data-tab');
-        state.mockAnimatedTabs = {}; // deliberate switch — play the entrance animation fresh
-        render();
-        return;
-    }
+
+
     if (action === 'admin-exam-status-tab') {
         state.admin.examStatusTab = el.getAttribute('data-tab');
         render();
@@ -30199,55 +29879,13 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
-    if (action === 'submit-create-live-exam') {
-        if (state.creatingLiveExam) return;
-        state.liveExamCreateForm.title = document.getElementById('live-title')?.value || '';
-        state.liveExamCreateForm.durationHours = parseInt(document.getElementById('live-duration-hours')?.value || 0);
-        state.liveExamCreateForm.durationMinutes = parseInt(document.getElementById('live-duration-minutes')?.value || 30);
-        createLiveExam();
-        return;
-    }
+
     if (action === 'submit-join-code') {
         joinLiveExamByCode(document.getElementById('live-join-code')?.value || '');
         return;
     }
-    if (action === 'join-live-exam') {
-        const examId = el.getAttribute('data-examid');
-        joinLiveExamNow(examId);
-        return;
-    }
-    if (action === 'admin-delete-live-exam') {
-        const examId = el.getAttribute('data-examid');
-        if (!confirm('Delete this Mock Arena exam?')) return;
-        // Finished exams were silently failing to delete: guests who sat the
-        // exam get a row in unverified_mock_results (live_exam_id FK) so they
-        // can check their result later, and that row was never cleaned up
-        // here. A finished exam is exactly the kind most likely to have guest
-        // results, so its live_exams row hits a foreign-key violation on
-        // delete — but each step below never checked its `error`, so the
-        // failure was swallowed and the app claimed success anyway even
-        // though the exam was still sitting there untouched.
-        supabase.from('live_exam_registrations').delete().eq('live_exam_id', examId).then(function(res) {
-            if (res.error) return Promise.reject(res.error);
-            return supabase.from('live_exam_attempts').delete().eq('live_exam_id', examId);
-        }).then(function(res) {
-            if (res.error) return Promise.reject(res.error);
-            return supabase.from('unverified_mock_results').delete().eq('live_exam_id', examId);
-        }).then(function(res) {
-            if (res.error) return Promise.reject(res.error);
-            return supabase.from('live_exams').delete().eq('id', examId);
-        }).then(function(res) {
-            if (res.error) return Promise.reject(res.error);
-            state.liveExams = (state.liveExams || []).filter(function(e) { return e.id !== examId; });
-            showToast('Live exam deleted.', 'success');
-            loadLiveExams();
-            render();
-        }).catch(function(err) {
-            console.error('Delete live exam error:', err);
-            showNetworkAwareError('Error deleting exam — it was NOT deleted.', err);
-        });
-        return;
-    }
+
+
 
     if (action === 'start-mock') {
         const examId = el.getAttribute('data-examid');
@@ -31456,81 +31094,17 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    if (action === 'admin-view-live-exam-attempts') {
-        const examId = el.getAttribute('data-examid');
-        state.admin.viewingLiveExamAttempts = examId;
-        render();
-        return;
-    }
 
-    if (action === 'admin-live-exam-attempts-back') {
-        state.admin.viewingLiveExamAttempts = null;
-        render();
-        return;
-    }
+
+
 
     // Exports the exact ranked leaderboard currently shown for one
     // admin-scheduled mock exam (i.e. one subject) as a shareable PNG.
-    if (action === 'admin-share-mock-leaderboard') {
-        const examId = el.getAttribute('data-examid');
-        const exam = state.mockExams.find(function(e) { return e.id === examId; });
-        const allAttempts = state.admin.mockAttemptsAll || [];
-        const sorted = allAttempts.filter(function(a) { return a.mock_exam_id === examId && a.is_submitted; })
-            .sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
-        const examSubj = exam ? SUBJECTS.find(function(s) { return s.id === exam.subject_id; }) : null;
-        const entries = sorted.map(function(attempt, i) {
-            const user = (state.allUsers || []).find(function(u) { return u.id === attempt.user_id; });
-            const displayName = user ? (user.full_name || user.username || 'Unknown') : 'Unknown user';
-            const username = user ? user.username : '';
-            return {
-                rank: i + 1,
-                name: displayName,
-                meta: username ? '@' + username : '',
-                score: attempt.score != null ? attempt.score : 0,
-                maxScore: 100
-            };
-        });
-        shareLeaderboardImage({
-            title: exam ? exam.title : 'Mock Exam Leaderboard',
-            subtitle: (examSubj ? examSubj.name : 'Mock Exam') + (exam ? ' · ' + new Date(exam.scheduled_date).toLocaleDateString() : ''),
-            entries: entries
-        });
-        return;
-    }
+
 
     // Same as above, but for a Mock Arena exam created by a user — this is
     // the "exact subject leaderboard" for that specific exam/subject.
-    if (action === 'admin-share-live-leaderboard') {
-        const examId = el.getAttribute('data-examid');
-        const exam = state.liveExams.find(function(e) { return e.id === examId; });
-        const allAttempts = state.admin.liveExamAttemptsAll || [];
-        const sorted = allAttempts.filter(function(a) { return a.live_exam_id === examId && a.is_submitted; })
-            .sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
-        const subjIds = exam ? ((exam.subject_ids && exam.subject_ids.length) ? exam.subject_ids : [exam.subject_id]) : [];
-        const subjNames = subjIds.map(function(sid) {
-            const sj = SUBJECTS.find(function(s) { return s.id === sid; });
-            return sj ? sj.name : sid;
-        }).join(', ');
-        const maxScore = Math.max(100, subjIds.length * 100);
-        const entries = sorted.map(function(attempt, i) {
-            const user = (state.allUsers || []).find(function(u) { return u.id === attempt.user_id; });
-            const displayName = user ? (user.full_name || user.username || 'Unknown') : 'Unknown user';
-            const username = user ? user.username : '';
-            return {
-                rank: i + 1,
-                name: displayName,
-                meta: username ? '@' + username : '',
-                score: attempt.score != null ? attempt.score : 0,
-                maxScore: maxScore
-            };
-        });
-        shareLeaderboardImage({
-            title: exam ? exam.title : 'Mock Arena Leaderboard',
-            subtitle: (subjNames || 'Mock Arena') + (exam ? ' · ' + new Date(exam.scheduled_date).toLocaleDateString() : ''),
-            entries: entries
-        });
-        return;
-    }
+
 
     if (action === 'admin-send-notification') {
         const title = document.getElementById('admin-notif-title')?.value?.trim() || '';
