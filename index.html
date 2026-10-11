@@ -7848,7 +7848,7 @@ var DEAD_TABLES = [];
 function localTableBuilder(table, dead) {
     var key = 'myutme_local_' + table;
     function read() { if (dead) return []; try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; } }
-    function write(rows) { if (dead) return; try { localStorage.setItem(key, JSON.stringify(rows)); } catch (e) {} }
+    function write(rows) { if (dead) return; try { localStorage.setItem(key, JSON.stringify(rows)); } catch (e) {} try { if (typeof backupMarkDirty === 'function' && BACKUP_TABLES.indexOf(table) !== -1) backupMarkDirty(); } catch (e) {} }
     var st = { op: 'select', filters: [], order: null, limit: null, single: false, payload: null, conflict: null };
     var b = {};
     function addF(fn) { return function (c, v) { st.filters.push(function (r) { return fn(r[c], v); }); return b; }; }
@@ -10693,6 +10693,7 @@ function weakLocalRead(uid) {
 function weakLocalWrite(uid, rows) {
     try { localStorage.setItem(weakLocalKey(uid), JSON.stringify(rows)); }
     catch (e) { console.warn("Could not save missed questions on this device:", e); }
+    try { backupMarkDirty(); } catch (e) {}
 }
 // One-time copy of any missed questions already saved in Supabase, so
 // nobody loses their existing list. After it succeeds once, Supabase is
@@ -11485,6 +11486,8 @@ let lastSeenInterval = null;
 function startLastSeenHeartbeat() {
     stopLastSeenHeartbeat();
     if (!state.authUser) return;
+    setTimeout(function() { try { backupRestoreOnce(); } catch (e) {} }, 2500);
+    setTimeout(function() { try { backupCheckSchedule(); } catch (e) {} }, 6000);
     const userId = state.authUser.id;
     function ping() {
         if (!state.authUser || state.authUser.id !== userId) return;
@@ -12420,6 +12423,7 @@ function fridaySaveRecord(rec) {
     const all = fridayRecords().filter(function(r) { return r.week !== rec.week; });
     all.push(rec);
     try { storage.set(fridayStoreKey(), JSON.stringify(all)); } catch (e) {}
+    try { backupMarkDirty(); } catch (e) {}
 }
 function isFridayToday() { return new Date().getDay() === 5; }
 // The Mock is open for 24 hours (Friday 12:00 am to Saturday 12:00 am).
@@ -13878,6 +13882,159 @@ async function fetchAiAssistant(init) {
     if (res) return res;
     throw lastErr || new Error('AI request failed');
 }
+
+// ============================================================
+//  CLOUD BACKUP — ONE small row per student (not one row per item).
+//  Everything the student does on this phone (scores and history for
+//  every mode, topic progress, missed questions, Friday Mock records)
+//  is copied to a single row in `user_backups`:
+//    - uploaded in the background, at most ONCE EVERY 24 HOURS
+//    - downloaded only ONCE per device (new phone / cleared browser)
+//  The phone stays the main store, so the app is still fast + offline.
+// ============================================================
+var BACKUP_TABLES = ['cbt_scores', 'mock_scores', 'subject_scores', 'exam_history', 'topic_progress'];
+var _backupTimer = null, _backupDirty = false, _backupBusy = false, _backupLastSig = '', _backupLastAt = 0;
+
+var BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;   // everything stays on the phone; the cloud copy refreshes once a day
+function backupLastAt(uid) { try { return Number(localStorage.getItem('utme_backup_at_' + uid) || 0); } catch (e) { return 0; } }
+function backupIsDirty(uid) { try { return localStorage.getItem('utme_backup_dirty_' + uid) === '1'; } catch (e) { return false; } }
+
+// Called whenever something is saved on the phone. Only sets a flag - NO network call.
+function backupMarkDirty() {
+    try { if (!state.authUser) return; localStorage.setItem('utme_backup_dirty_' + state.authUser.id, '1'); } catch (e) { return; }
+    _backupDirty = true;
+}
+
+// Uploads only if something changed AND 24 hours have passed since the last upload.
+// Checked when the app opens, comes back to the screen, or reconnects.
+function backupCheckSchedule() {
+    try {
+        if (!state.authUser) return;
+        var uid = state.authUser.id;
+        if (!backupIsDirty(uid)) return;
+        var wait = BACKUP_INTERVAL_MS - (Date.now() - backupLastAt(uid));
+        if (wait <= 0) { backupUpload(); return; }
+        if (_backupTimer) clearTimeout(_backupTimer);
+        _backupTimer = setTimeout(backupCheckSchedule, Math.min(wait + 1000, 24 * 60 * 60 * 1000));
+    } catch (e) {}
+}
+
+function backupCollect(uid) {
+    var data = { v: 1, weak: weakLocalRead(uid), tables: {}, friday: [] };
+    BACKUP_TABLES.forEach(function(t) {
+        try {
+            var rows = JSON.parse(localStorage.getItem('myutme_local_' + t) || '[]');
+            data.tables[t] = rows.filter(function(r) { return r && String(r.user_id) === String(uid); });
+        } catch (e) { data.tables[t] = []; }
+    });
+    try { data.friday = JSON.parse(storage.get('friday_mock_' + uid) || '[]'); } catch (e) {}
+    return data;
+}
+
+async function backupUpload(force) {
+    if (_backupBusy) return;
+    try {
+        if (!state.authUser || !isOnline()) return;
+        var uid = state.authUser.id;
+        if (!force) {
+            if (!backupIsDirty(uid)) return;
+            if (Date.now() - backupLastAt(uid) < BACKUP_INTERVAL_MS) return;
+        }
+        var data = backupCollect(uid);
+        // Safety cap: keep the row small by trimming the oldest history if it ever gets huge.
+        var json = JSON.stringify(data);
+        var guard = 0;
+        while (json.length > 900000 && guard++ < 5) {
+            ['exam_history', 'subject_scores', 'cbt_scores', 'mock_scores'].forEach(function(t) {
+                var r = data.tables[t] || [];
+                if (r.length > 60) data.tables[t] = r.slice(-Math.floor(r.length * 0.7));
+            });
+            json = JSON.stringify(data);
+        }
+        if (json === _backupLastSig) {
+            try { localStorage.removeItem('utme_backup_dirty_' + uid); localStorage.setItem('utme_backup_at_' + uid, String(Date.now())); } catch (e) {}
+            _backupDirty = false;
+            return;
+        }
+        _backupBusy = true;
+        var res = await supabase.from('user_backups').upsert(
+            { user_id: uid, data: data, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id' }
+        );
+        if (res && res.error) {
+            console.warn('Backup upload failed:', res.error.message);
+        } else {
+            _backupLastSig = json;
+            _backupDirty = false;
+            try { localStorage.removeItem('utme_backup_dirty_' + uid); localStorage.setItem('utme_backup_at_' + uid, String(Date.now())); } catch (e) {}
+        }
+    } catch (e) {
+        console.warn('Backup upload error:', e && e.message ? e.message : e);
+    } finally {
+        _backupBusy = false;
+    }
+}
+
+// Runs once per device per student: brings the cloud copy back, merging
+// with anything already on this phone (nothing is overwritten or lost).
+async function backupRestoreOnce() {
+    try {
+        if (!state.authUser || !isOnline()) return;
+        var uid = state.authUser.id;
+        var flag = 'utme_backup_restored_' + uid;
+        try { if (localStorage.getItem(flag)) return; } catch (e) { return; }
+        var res = await supabase.from('user_backups').select('data').eq('user_id', uid).maybeSingle();
+        if (res && res.error) { console.warn('Backup restore skipped:', res.error.message); return; }
+        var d = res && res.data && res.data.data;
+        var added = 0;
+        if (d) {
+            // missed questions
+            var weak = weakLocalRead(uid);
+            var haveQ = {};
+            weak.forEach(function(w) { haveQ[w.question_id] = true; });
+            (d.weak || []).forEach(function(w) { if (w && w.question_id && !haveQ[w.question_id]) { weak.push(w); haveQ[w.question_id] = true; added++; } });
+            try { localStorage.setItem(weakLocalKey(uid), JSON.stringify(weak)); } catch (e) {}
+            // scores / history / topic progress for every mode
+            BACKUP_TABLES.forEach(function(t) {
+                var incoming = (d.tables && d.tables[t]) || [];
+                if (!incoming.length) return;
+                var key = 'myutme_local_' + t;
+                var rows = [];
+                try { rows = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
+                var have = {};
+                rows.forEach(function(r) { have[r.id || JSON.stringify(r)] = true; });
+                incoming.forEach(function(r) {
+                    var k = r.id || JSON.stringify(r);
+                    if (!have[k]) { rows.push(r); have[k] = true; added++; }
+                });
+                try { localStorage.setItem(key, JSON.stringify(rows)); } catch (e) {}
+            });
+            // Friday Mock records
+            if (d.friday && d.friday.length) {
+                var fr = fridayRecords();
+                var weeks = {};
+                fr.forEach(function(r) { weeks[r.week] = true; });
+                d.friday.forEach(function(r) { if (r && r.week && !weeks[r.week]) { fr.push(r); weeks[r.week] = true; added++; } });
+                try { storage.set(fridayStoreKey(), JSON.stringify(fr)); } catch (e) {}
+            }
+        }
+        try { localStorage.setItem(flag, '1'); } catch (e) {}
+        if (added > 0) {
+            state.historyLoaded = false;
+            state.analyticsLoaded = false;
+            state.weakQuestionsLoaded = false;
+            try { render(); } catch (e) {}
+        }
+        // Mark the merged result to be uploaded (it still waits for the 24-hour rule).
+        backupMarkDirty();
+        backupCheckSchedule();
+    } catch (e) {
+        console.warn('Backup restore error:', e && e.message ? e.message : e);
+    }
+}
+
+document.addEventListener('visibilitychange', function() { if (!document.hidden) backupCheckSchedule(); });
+window.addEventListener('online', function() { backupCheckSchedule(); });
 
 async function loadSupportMessages() {
     if (!state.authUser) { state.supportMessages = []; state.supportMessagesLoaded = true; render(); return; }
