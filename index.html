@@ -2153,6 +2153,19 @@
         background: var(--line);
         color: var(--muted);
     }
+    /* ---- Inline "Better Explanation" + Review page ---- */
+    .iai-wrap { margin-top: 8px; }
+    .iai-box { margin-top: 10px; padding: 12px 13px; border: 1px solid var(--line); border-left: 4px solid var(--green); border-radius: 12px; background: var(--green-light); font-size: 13.5px; line-height: 1.55; }
+    .iai-box .label { display: block; font-size: 11px; font-weight: 800; color: var(--green); margin-bottom: 6px; letter-spacing: .2px; }
+    .iai-text { word-wrap: break-word; overflow-wrap: anywhere; }
+    .iai-loading { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+    .iai-loading .spinner { width: 18px; height: 18px; margin: 0; flex: 0 0 auto; }
+    .iai-error { color: #B3261E; border-left-color: #B3261E; background: transparent; }
+    .iai-warn { margin: 2px 0 10px; padding: 9px 10px; border-radius: 10px; background: #FFF4E5; border: 1px solid #F5B461; color: #8A4B00; font-size: 12.5px; font-weight: 600; }
+    .rv-chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: var(--green-light); color: var(--green); }
+    .rv-chip.rv-bad { background: #FDECEA; color: #B3261E; }
+    .rv-chip.rv-skip { background: var(--line); color: var(--muted); }
+    .rv-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
     .revise-filter-tabs {
         display: flex;
         gap: 6px;
@@ -8194,7 +8207,7 @@ const HOME_TILES = [
         colorDark: "#2C5850" },
     { key: "documents", label: "Study Materials", blurb: "Past questions & study files", icon: "folder",
         color: "#46527A", colorDark: "#323C5C" },
-    { key: "revise", label: "Revise Weak Qs", blurb: "Retry missed questions", icon: "rotate",
+    { key: "revise", label: "Missed Questions", blurb: "Retry missed questions", icon: "rotate",
         color: "#0F6B3F", colorDark: "#0A4A2B" },
     { key: "history", label: "Result Analysis", blurb: "View all your results", icon: "clock",
         color: "#6E5296", colorDark: "#4A3B66" },
@@ -9380,7 +9393,7 @@ let state = {
     reviseSubject: null,
     reviseIndex: 0,
     reviseCurrentWid: null,
-    reviseFilter: 'due', // 'due' | 'all' — spaced-repetition filter for Revise Weak
+    reviseFilter: 'all', // 'due' | 'all' — spaced-repetition filter for Missed Questions
 
     // Flashcards
     flashcardSubject: null,
@@ -10632,89 +10645,100 @@ async function checkAndDeactivateExpiredUsers() {
 // ============================================================
 //  WEAK QUESTIONS FUNCTIONS
 // ============================================================
-async function saveWeakQuestion(userId, questionId, subjectId, mode, userAnswer, correctAnswer) {
-    if (!userId || !questionId) return;
-    
-    const uAns = (userAnswer !== undefined && userAnswer !== null) ? userAnswer : -1;
-    const cAns = (correctAnswer !== undefined && correctAnswer !== null) ? correctAnswer : -1;
-    
+// Missed questions now live ON THE DEVICE (localStorage), not in Supabase.
+// This removes two database calls per missed question and keeps the
+// Missed Questions screen instant and working offline.
+function weakLocalKey(uid) { return 'utme_weak_v2_' + uid; }
+function weakLocalRead(uid) {
     try {
-        const { data: existing, error: checkError } = await supabase
-            .from('weak_questions')
-            .select('id, attempts')
-            .eq('user_id', userId)
-            .eq('question_id', questionId)
-            .maybeSingle();
-            
-        if (checkError) {
-            console.warn("Check weak question error:", checkError.message, checkError.code);
-            return;
-        }
-        
-        if (existing) {
-            const { error: updateError } = await supabase
-                .from('weak_questions')
-                .update({
-                    user_answer: uAns,
-                    correct_answer: cAns,
-                    mode: mode || 'unknown',
-                    attempts: (existing.attempts || 1) + 1,
-                    last_attempted: new Date().toISOString(),
-                })
-                .eq('id', existing.id);
-            if (updateError) console.warn("Update weak question error:", updateError.message, updateError.code);
-        } else {
-            const { error: insertError } = await supabase
-                .from('weak_questions')
-                .insert([{
-                    user_id: userId,
-                    question_id: questionId,
-                    subject_id: subjectId || '',
-                    mode: mode || 'unknown',
-                    user_answer: uAns,
-                    correct_answer: cAns,
-                }]);
-            if (insertError) console.warn("Insert weak question error:", insertError.message, insertError.code);
-        }
+        const raw = localStorage.getItem(weakLocalKey(uid));
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+}
+function weakLocalWrite(uid, rows) {
+    try { localStorage.setItem(weakLocalKey(uid), JSON.stringify(rows)); }
+    catch (e) { console.warn("Could not save missed questions on this device:", e); }
+}
+// One-time copy of any missed questions already saved in Supabase, so
+// nobody loses their existing list. After it succeeds once, Supabase is
+// never asked for missed questions again on this device.
+async function weakMigrateOnce(uid) {
+    const flagKey = 'utme_weak_migrated_' + uid;
+    try { if (localStorage.getItem(flagKey)) return; } catch (e) { return; }
+    try {
+        const { data, error } = await supabase.from('weak_questions').select('*').eq('user_id', uid);
+        if (error) { console.warn("Missed-question migration skipped:", error.message); return; }
+        const local = weakLocalRead(uid);
+        const have = {};
+        local.forEach(function(r) { have[r.question_id] = true; });
+        (data || []).forEach(function(row) {
+            if (!row.question_id || have[row.question_id]) return;
+            have[row.question_id] = true;
+            local.push({
+                id: 'w_' + row.question_id,
+                question_id: row.question_id,
+                subject_id: row.subject_id || '',
+                mode: row.mode || 'unknown',
+                user_answer: row.user_answer,
+                correct_answer: row.correct_answer,
+                attempts: row.attempts || 1,
+                created_at: row.created_at || new Date().toISOString(),
+                last_attempted: row.last_attempted || row.created_at || new Date().toISOString(),
+            });
+        });
+        weakLocalWrite(uid, local);
+        localStorage.setItem(flagKey, '1');
     } catch (e) {
-        console.warn("Save weak question error:", e.message || e);
+        console.warn("Missed-question migration error:", e.message || e);
     }
 }
-// Saves a batch of missed questions to Weak Questions one at a time (not in
-// parallel). saveWeakQuestion does a check-then-insert/update, which is not
-// atomic — firing many of these at once for the same user can race and
-// create duplicate rows for the same question. Running them sequentially
-// closes that race. Also de-dupes by questionId first, in case the same
-// question ever ends up twice in one exam's missed list.
+async function saveWeakQuestion(userId, questionId, subjectId, mode, userAnswer, correctAnswer) {
+    if (!userId || !questionId) return;
+    const uAns = (userAnswer !== undefined && userAnswer !== null) ? userAnswer : -1;
+    const cAns = (correctAnswer !== undefined && correctAnswer !== null) ? correctAnswer : -1;
+    const rows = weakLocalRead(userId);
+    const now = new Date().toISOString();
+    const ex = rows.find(function(r) { return r.question_id === questionId; });
+    if (ex) {
+        ex.user_answer = uAns;
+        ex.correct_answer = cAns;
+        ex.mode = mode || ex.mode || 'unknown';
+        ex.attempts = (ex.attempts || 1) + 1;
+        ex.last_attempted = now;
+    } else {
+        rows.push({
+            id: 'w_' + questionId,
+            question_id: questionId,
+            subject_id: subjectId || '',
+            mode: mode || 'unknown',
+            user_answer: uAns,
+            correct_answer: cAns,
+            attempts: 1,
+            created_at: now,
+            last_attempted: now,
+        });
+    }
+    weakLocalWrite(userId, rows);
+}
+// Saves a batch of missed questions (de-duplicated by question id).
 async function saveWeakQuestionsSequentially(userId, items, mode) {
     if (!userId || !items || !items.length) return;
     const seen = new Set();
-    const deduped = [];
-    items.forEach(function(wq) {
-        if (seen.has(wq.questionId)) return;
+    for (const wq of items) {
+        if (seen.has(wq.questionId)) continue;
         seen.add(wq.questionId);
-        deduped.push(wq);
-    });
-    for (const wq of deduped) {
         try {
             await saveWeakQuestion(userId, wq.questionId, wq.subjectId, mode, wq.userAnswer, wq.correctAnswer);
         } catch (e) {
-            console.warn('Save weak question (sequential) error:', e);
+            console.warn('Save weak question (batch) error:', e);
         }
     }
 }
 async function removeWeakQuestion(userId, questionId) {
     if (!userId || !questionId) return;
-    
-    try {
-        await supabase
-            .from('weak_questions')
-            .delete()
-            .eq('user_id', userId)
-            .eq('question_id', questionId);
-    } catch (e) {
-        console.warn("Remove weak question error:", e);
-    }
+    const rows = weakLocalRead(userId).filter(function(r) { return r.question_id !== questionId; });
+    weakLocalWrite(userId, rows);
 }
 
 // ============================================================
@@ -13423,7 +13447,7 @@ async function sendAiMessage(text, questionContext) {
     render();
 
     try {
-        const res = await fetch(AI_ASSISTANT_URL, {
+        const res = await fetchAiAssistant({
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -13479,7 +13503,7 @@ async function sendAiMessage(text, questionContext) {
 //  auto-sent, so the AI can explain it in depth right away.
 //  Deliberately not offered on live/timed CBT or Mock/Live Exam questions
 //  while they're still being attempted, to avoid enabling cheating during
-//  a real exam simulation. It's fully available in Revise Weak Questions.
+//  a real exam simulation. It's fully available in Missed Questions.
 // ============================================================
 let aiQuestionCache = {};
 let aiQuestionCacheSeq = 0;
@@ -13557,6 +13581,227 @@ function askAiAboutQuestion(item, subjectName, userAnswerIdx) {
     state.aiReturnView = cameFromQuestion;
     render();
     sendAiMessage(prompt, questionContext);
+}
+
+// ============================================================
+//  INLINE "BETTER EXPLANATION" — shows right under the question,
+//  never sends the student to the AI chat page.
+// ============================================================
+var inlineAiState = {};
+var INLINE_AI_LS_KEY = 'utme_aiexp_v1';
+var INLINE_AI_LS_MAX = 80;
+
+function inlineAiLocalGet(qid) {
+    try {
+        var m = JSON.parse(localStorage.getItem(INLINE_AI_LS_KEY) || '{}');
+        return (m[qid] && m[qid].t) || null;
+    } catch (e) { return null; }
+}
+function inlineAiLocalSet(qid, text) {
+    try {
+        var m = JSON.parse(localStorage.getItem(INLINE_AI_LS_KEY) || '{}');
+        m[qid] = { t: text, ts: Date.now() };
+        var ids = Object.keys(m);
+        if (ids.length > INLINE_AI_LS_MAX) {
+            ids.sort(function(x, y) { return m[x].ts - m[y].ts; })
+               .slice(0, ids.length - INLINE_AI_LS_MAX)
+               .forEach(function(k) { delete m[k]; });
+        }
+        localStorage.setItem(INLINE_AI_LS_KEY, JSON.stringify(m));
+    } catch (e) { /* storage full — fine, it is only a speed-up */ }
+}
+
+function parseInlineAiReply(raw) {
+    var text = String(raw || '').trim();
+    var possibleError = text.indexOf('[[POSSIBLE_ERROR]]') !== -1;
+    if (possibleError) text = text.split('[[POSSIBLE_ERROR]]').join('').trim();
+    return { text: text, possibleError: possibleError };
+}
+
+async function requestInlineExplanation(item, subjectName) {
+    if (!item || !item.id) { showToast('Could not load this question.', 'error'); return; }
+    var qid = String(item.id);
+    var cur = inlineAiState[qid];
+    if (cur && cur.status === 'loading') return;
+    if (cur && cur.status === 'done') { cur.open = !cur.open; render(); return; }
+    if (!state.authUser) { guestNeedsAccount(); return; }
+
+    var local = inlineAiLocalGet(qid);
+    if (local) {
+        inlineAiState[qid] = { status: 'done', open: true, text: local, possibleError: false };
+        render();
+        return;
+    }
+    if (blockIfOffline("No internet connection. Please try again.")) return;
+
+    inlineAiState[qid] = { status: 'loading', open: true };
+    render();
+
+    var letters = 'ABCDEFGH';
+    var options = item.options || [];
+    var hasCorrect = item.correct_answer !== undefined && item.correct_answer !== null;
+    // The AI is told the recorded correct answer (so it can check it),
+    // but the student never sees this prompt — only the finished explanation.
+    var payload = {
+        userId: state.authUser.id,
+        message: 'Please explain this question in depth, step by step.',
+        questionContext: {
+            questionId: qid,
+            subject: subjectName || item.subject_name || null,
+            text: item.text,
+            options: options.length ? options : null,
+            correctAnswer: hasCorrect ? letters[item.correct_answer] : null
+        }
+    };
+
+    for (var attempt = 0; attempt < 3; attempt++) {
+        try {
+            var res = await fetchAiAssistant({
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+                body: JSON.stringify(payload)
+            });
+            var data = await res.json().catch(function() { return null; });
+            if (res.ok && data && data.reply) {
+                var parsed = parseInlineAiReply(data.reply);
+                inlineAiState[qid] = { status: 'done', open: true, text: parsed.text, possibleError: parsed.possibleError };
+                if (!parsed.possibleError && parsed.text.indexOf('Sorry, I could not') !== 0) inlineAiLocalSet(qid, parsed.text);
+                render();
+                return;
+            }
+        } catch (e) {
+            console.warn('Inline explanation attempt ' + (attempt + 1) + ' failed:', e);
+        }
+        // The first try sometimes fails while the AI "wakes up" — wait a moment and try again.
+        if (attempt < 2) await new Promise(function(r) { setTimeout(r, 1200); });
+    }
+    inlineAiState[qid] = { status: 'error', open: true };
+    render();
+}
+
+function inlineAiButtonHtml(item, subjectName) {
+    var st = (inlineAiState || {})[String(item && item.id)];
+    var label = '✨ Get a Better Explanation';
+    if (st && st.status === 'loading') label = '⏳ Thinking…';
+    else if (st && st.status === 'done') label = st.open ? 'Hide explanation' : '✨ Show better explanation';
+    else if (st && st.status === 'error') label = '↻ Try again';
+    return askAiButtonHtml(item, subjectName, null, { label: label, style: 'font-size:12px;padding:8px 12px' });
+}
+
+function inlineAiBoxHtml(item) {
+    if (!item || !item.id) return '';
+    var st = (inlineAiState || {})[String(item.id)];
+    if (!st || !st.open) return '';
+    if (st.status === 'loading') {
+        return '<div class="iai-box iai-loading"><div class="spinner"></div><span>Enzo AI is preparing a detailed explanation…</span></div>';
+    }
+    if (st.status === 'error') {
+        return '<div class="iai-box iai-error">Could not get the explanation right now. Please tap <b>Try again</b>.</div>';
+    }
+    var warn = st.possibleError
+        ? '<div class="iai-warn">⚠️ Enzo AI thinks this question or its saved answer may be wrong. Please tap <b>Flag</b> so our admin can review it.</div>'
+        : '';
+    return '<div class="iai-box"><span class="label">✨ ENZO AI EXPLAINS</span>' + warn +
+        '<div class="iai-text">' + formatAiChatText(st.text) + '</div></div>';
+}
+
+function renderInlineAiSection(item, subjectName) {
+    if (!item) return '';
+    return '<div class="iai-wrap">' + inlineAiButtonHtml(item, subjectName) + inlineAiBoxHtml(item) + '</div>';
+}
+
+// ============================================================
+//  REVIEW PAGE — its own screen, one question at a time
+// ============================================================
+function openReviewSession(kind) {
+    var cfg = {
+        cbt:   { q: state.cbtQuestions,   a: state.cbtAnswers,   title: 'CBT Review' },
+        exam:  { q: state.examQuestions,  a: state.examAnswers,  title: 'Past Questions Review' },
+        topic: { q: state.topicQuestions, a: state.topicAnswers, title: 'Topic Practice Review' },
+        lit:   { q: state.litQuestions,   a: state.litAnswers,   title: 'Novel Review' }
+    }[kind];
+    if (!cfg || !cfg.q || !cfg.q.length) { showToast('Nothing to review yet.', 'error'); return; }
+    state.reviewSession = {
+        kind: kind,
+        items: cfg.q.slice(),
+        answers: (cfg.a || []).slice(),
+        title: cfg.title,
+        index: 0,
+        returnView: state.view
+    };
+    state.view = 'review';
+    state.drawerOpen = false;
+    render();
+    try { window.scrollTo(0, 0); } catch (e) {}
+}
+
+function renderReviewPage() {
+    var rs = state.reviewSession;
+    var backBtn = '<button class="back-link" data-action="review-back">' + svg("chevleft", 14) + ' Back to result</button>';
+    if (!rs || !rs.items || !rs.items.length) {
+        return backBtn + '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Nothing to review.</p></div>';
+    }
+    var total = rs.items.length;
+    if (rs.index >= total) rs.index = total - 1;
+    if (rs.index < 0) rs.index = 0;
+    var i = rs.index;
+    var item = rs.items[i];
+    var userAns = rs.answers[i];
+    var subj = SUBJECTS.find(function(x) { return x.id === item.subject_id; });
+    var subjName = subj ? subj.name : (item.subject_name || '');
+    var answered = userAns !== null && userAns !== undefined && userAns >= 0;
+    var isCorrect = answered && userAns === item.correct_answer;
+
+    var opts = '';
+    (item.options || []).forEach(function(o, k) {
+        var cls = 'qa-option disabled';
+        if (k === item.correct_answer) cls += ' correct';
+        else if (answered && k === userAns) cls += ' wrong';
+        opts += '<button class="' + cls + '"><span class="qa-letter">' + String.fromCharCode(65 + k) + '</span><span>' + escM(o) + '</span></button>';
+    });
+
+    var chip = !answered
+        ? '<span class="rv-chip rv-skip">Not answered</span>'
+        : (isCorrect ? '<span class="rv-chip">✅ You got it right</span>'
+                     : '<span class="rv-chip rv-bad">❌ You chose ' + String.fromCharCode(65 + userAns) + '</span>');
+
+    var explanation = '<div class="explanation-box" style="margin-top:6px"><span class="label">💡 Explanation</span><p>' +
+        (item.explanation ? escM(item.explanation) : 'No explanation provided.') + '</p></div>';
+
+    return (
+        backBtn +
+        '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(rs.title) + '</h2>' +
+        '<p class="sub" style="font-size:11px">' + esc(subjName) + '</p>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+        '<span style="font-size:13px;font-weight:600">Question ' + (i + 1) + ' of ' + total + '</span>' + chip +
+        '</div>' +
+        '<div class="card exam-question-card"><p style="font-weight:600;margin:0;font-size:16px">' + escM(item.text) + '</p></div>' +
+        '<div class="exam-options-wrap">' + opts + '</div>' +
+        explanation +
+        '<div class="rv-actions">' + inlineAiButtonHtml(item, subjName) +
+        renderFlagButton(item.id, item.subject_id || '', rs.kind, item) + '</div>' +
+        inlineAiBoxHtml(item) +
+        '<div style="display:flex;gap:6px;margin-top:14px">' +
+        (i > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="review-prev">Previous</button>' : '') +
+        (i < total - 1
+            ? '<button class="btn btn-green" style="flex:1" data-action="review-next">Next</button>'
+            : '<button class="btn btn-green" style="flex:1" data-action="review-back">Finish review</button>') +
+        '</div>'
+    );
+}
+
+// Retries once if the AI server hiccups (the first try often failed while it woke up).
+async function fetchAiAssistant(init) {
+    var res = null, lastErr = null;
+    for (var i = 0; i < 2; i++) {
+        try {
+            res = await fetch(AI_ASSISTANT_URL, init);
+            if (res.status < 500) return res;
+        } catch (e) { lastErr = e; res = null; }
+        if (i === 0) await new Promise(function(r) { setTimeout(r, 1200); });
+    }
+    if (res) return res;
+    throw lastErr || new Error('AI request failed');
 }
 
 async function loadSupportMessages() {
@@ -13744,7 +13989,7 @@ const SUPPORT_KB = [
     { k: ['novel', 'literature', 'set text', 'lekki headmaster', 'life changer'],
       a: 'Novel (CBT) is in Practice Hub → Novel (CBT). It tests the JAMB set texts in CBT format, with its own time limit. Start it like the normal CBT and your result goes to Result Analysis.' },
     { k: ['revise weak', 'weak question', 'retry missed', 'missed question', 'wrong questions', 'revise mode'],
-      a: 'Revise Weak (Practice Hub → Revise Weak) gives you the questions you missed before so you can retry them. It fills up as you take other tests — if it is empty, you have no missed questions saved yet.' },
+      a: 'Missed Questions (Practice Hub → Missed Questions) gives you the questions you missed before so you can retry them. It fills up as you take other tests — if it is empty, you have no missed questions saved yet.' },
     { k: ['topic practice', 'topic mode', 'read notes', 'study notes', 'by topic', 'topic question'],
       a: 'Topic Practice (Practice Hub → Topic Practice) lets you pick a subject and topic, then either read the notes or take a short CBT on that topic.' },
     { k: ['study material', 'documents', 'pdf', 'uploaded file', 'download file', 'past q file', 'material'],
@@ -13936,7 +14181,7 @@ async function generateSmartSupportReply(userText) {
         (recent ? '\n\nRECENT CHAT:\n' + recent : '') +
         '\n\nUSER\'S MESSAGE: ' + userText;
     try {
-        const res = await fetch(AI_ASSISTANT_URL, {
+        const res = await fetchAiAssistant({
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -15000,7 +15245,7 @@ function saveFlashcardProgress(questionId, knewIt) {
 
 // ============================================================
 //  SPACED REPETITION — v1 (device-local, simplified SM-2)
-//  Applied to the existing "Revise Weak" question list. Schedule is kept
+//  Applied to the existing "Missed Questions" question list. Schedule is kept
 //  in localStorage for now, keyed by user id + question id. Exactly like
 //  the flashcard progress store above, this is a single swappable pair
 //  of functions (getReviewSchedule / saveReviewSchedule) — moving this to
@@ -15070,7 +15315,7 @@ function updateReviewScheduleForQuestion(questionId, wasCorrect) {
 }
 
 // A question with no schedule entry yet has never been reviewed, so it
-// counts as due immediately (matches how "Revise Weak" already works
+// counts as due immediately (matches how "Missed Questions" already works
 // today — everything missed shows up right away).
 function isQuestionDueForReview(questionId, schedule) {
     const entry = schedule[questionId];
@@ -16440,7 +16685,7 @@ const FAQ_FEATURES = [
     { key: 'ai_tutor', icon: 'sparkles', title: 'Enzo AI, 24/7',
       desc: 'Stuck on a question or a topic at 1am with no one to ask? The Enzo AI gives a clear, patient, step-by-step explanation on demand — like a personal teacher who never sleeps.',
       defaultImg: 'https://loremflickr.com/800/450/chatbot,ai,assistant' },
-    { key: 'revise_weak', icon: 'rotate', title: 'Revise Weak Questions',
+    { key: 'revise_weak', icon: 'rotate', title: 'Missed Questions',
       desc: 'The app quietly tracks every question you get wrong across every session and lets you retry just those — so revision time goes straight to what actually needs work instead of re-reading things you already know.',
       defaultImg: 'https://loremflickr.com/800/450/revision,notebook,study' },
     { key: 'analytics', icon: 'chart', title: 'Performance Analytics',
@@ -16636,7 +16881,8 @@ const PAGE_TITLES = {
     'learning': 'My Learning',
     'documents': 'Study Materials',
     'literature': 'Novel (CBT)',
-    'revise': 'Revise Weak',
+    'revise': 'Missed Questions',
+    'review': 'Review Questions',
     'flashcards': 'Flashcards',
     'history': 'Result Analysis',
     'analytics': 'Analytics',
@@ -16859,6 +17105,7 @@ if (v === "subject-modes") return renderSubjectModes();
     if (v === "literature") return renderLiteratureHome();
     if (v === "literature-cbt") return renderLiteratureCbt();
     if (v === "revise") return renderReviseWeak();
+    if (v === "review") return renderReviewPage();
     if (v === "flashcards") return renderFlashcards();
     if (v === "topic") return renderTopicsPicker();
     if (v === "topic-list") return renderTopicsListPage();
@@ -17036,7 +17283,7 @@ const atMax = mySubjectIds.length === 4;
         { view: 'mockexam', label: 'Mock Arena', sub: 'Create or join a mock exam', icon: 'target', tint: '#6E5296' },
         { view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
         { view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#3E7C74' },
-        { view: 'revise', label: 'Revise Weak', sub: 'Retry missed Qs', icon: 'rotate', tint: '#0F6B3F' },
+        { view: 'revise', label: 'Missed Questions', sub: 'Retry missed Qs', icon: 'rotate', tint: '#0F6B3F' },
         { view: 'topic', label: 'Topic Practice', sub: 'Read notes or take a CBT', icon: 'list', tint: '#6B4F82' },
         { view: 'documents', label: 'Study Materials', sub: 'Past Q & files', icon: 'folder', tint: '#46527A' },
     ];
@@ -17120,7 +17367,7 @@ function renderLearningHubCore() {
         { key: 'mockexam', label: 'Mock Arena', blurb: 'Create or join a mock arena exam', icon: 'target', color: '#6E5296' },
         { key: 'flashcards', label: 'Flashcards', blurb: 'Flip through Q&A fast', icon: 'cards', color: '#97527A' },
         { key: 'literature', label: 'Novel (CBT)', blurb: 'Set texts & comprehension', icon: 'book', color: '#3E7C74' },
-        { key: 'revise', label: 'Revise Weak Qs', blurb: 'Retry questions you missed', icon: 'rotate', color: '#0F6B3F' },
+        { key: 'revise', label: 'Missed Questions', blurb: 'Retry questions you missed', icon: 'rotate', color: '#0F6B3F' },
         { key: 'topic', label: 'Topic Practice', blurb: 'Read topic notes or take a topic CBT', icon: 'list', color: '#6B4F82' },
         { key: 'documents', label: 'Study Materials', blurb: 'Past questions & study files', icon: 'folder', color: '#46527A' },
         { key: 'history', label: 'Result Analysis', blurb: 'Your exam results & performance', icon: 'clock', color: '#6E5296' },
@@ -17788,31 +18035,7 @@ function renderCbtExam() {
             
         }
 
-        let reviewItems = "";
-        state.cbtQuestions.forEach(function(item, i) {
-            const userAns = state.cbtAnswers[i];
-            const isCorrect = userAns === item.correct_answer;
-            const userLetter = userAns !== null && userAns !== undefined ? String.fromCharCode(65 + userAns) : '—';
-            const correctLetter = String.fromCharCode(65 + item.correct_answer);
-            const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
-            reviewItems += (
-                '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
-                '<div class="q-text">Q' + (i + 1) + ' (' + (subj ? subj.name : '') + '). ' + escM(item.text) +
-                '</div>' +
-                '<div class="answer-row">' +
-                '<span>Your answer: <span class="' + (isCorrect ? 'correct-answer' : 'wrong-answer') + '">' +
-                userLetter + '</span></span>' +
-                '<span>Correct answer: <span class="correct-answer">' + correctLetter + '</span></span>' +
-                '</div>' +
-                (item.explanation ?
-                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + escM(item.explanation) + '</p></div>' : '') +
-                '<div class="flag-btn">' +
-                askAiButtonHtml(item, (subj ? subj.name : ''), userAns, { style: 'margin-right:6px' }) +
-                renderFlagButton(item.id, subj ? subj.id : '', 'cbt', item) + '</div>' +
-                '</div>'
-            );
-        });
-
+        
         const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
 
         // Only show the breakdown that's actually relevant to this
@@ -17839,9 +18062,9 @@ function renderCbtExam() {
             slipHtml +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="cbt-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="cbt-toggle-review">' +
-            (state.cbtReviewMode ? 'Hide Review' : 'Show Review') +
+            'Review Questions' +
             '</button>' +
-            (state.cbtReviewMode ? '<div style="margin-top:12px">' + reviewItems + '</div>' : '')
+            ''
         );
     }
 
@@ -18077,30 +18300,7 @@ function renderExamExam() {
             
         }
 
-        let reviewItems = "";
-        state.examQuestions.forEach(function(item, i) {
-            const userAns = state.examAnswers[i];
-            const isCorrect = userAns === item.correct_answer;
-            const userLetter = userAns !== null && userAns !== undefined ? String.fromCharCode(65 + userAns) : '—';
-            const correctLetter = String.fromCharCode(65 + item.correct_answer);
-            const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
-            reviewItems += (
-                '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
-                '<div class="q-text">Q' + (i + 1) + '. ' + escM(item.text) + '</div>' +
-                '<div class="answer-row">' +
-                '<span>Your answer: <span class="' + (isCorrect ? 'correct-answer' : 'wrong-answer') + '">' +
-                userLetter + '</span></span>' +
-                '<span>Correct answer: <span class="correct-answer">' + correctLetter + '</span></span>' +
-                '</div>' +
-                (item.explanation ?
-                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + escM(item.explanation) + '</p></div>' : '') +
-                '<div class="flag-btn">' +
-                askAiButtonHtml(item, (subj ? subj.name : ''), userAns, { style: 'margin-right:6px' }) +
-                renderFlagButton(item.id, subj ? subj.id : '', 'exam', item) + '</div>' +
-                '</div>'
-            );
-        });
-
+        
         const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
 
         return (
@@ -18114,9 +18314,9 @@ function renderExamExam() {
             }) +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="exam-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="exam-toggle-review">' +
-            (state.examReviewMode ? 'Hide Review' : 'Show Review') +
+            'Review Questions' +
             '</button>' +
-            (state.examReviewMode ? '<div style="margin-top:12px">' + reviewItems + '</div>' : '')
+            ''
         );
     }
 
@@ -18180,6 +18380,7 @@ function renderExamExam() {
                (isInstant && instantResult !== undefined && item ?
                    '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><p>' + escM(item.explanation || 'No explanation provided.') + '</p>' +
                    '<div class="ask-ai-row">' + askAiButtonHtml(item, (subj ? subj.name : ''), state.examAnswers[state.examIndex]) + '</div>' +
+                   inlineAiBoxHtml(item) +
                    '</div>' : '')
               )
         ) +
@@ -18440,30 +18641,7 @@ function renderTopicExam() {
             
         }
 
-        let reviewItems = "";
-        state.topicQuestions.forEach(function(item, i) {
-            const userAns = state.topicAnswers[i];
-            const isCorrect = userAns === item.correct_answer;
-            const userLetter = userAns !== null && userAns !== undefined ? String.fromCharCode(65 + userAns) : '—';
-            const correctLetter = String.fromCharCode(65 + item.correct_answer);
-            const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
-            reviewItems += (
-                '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
-                '<div class="q-text">Q' + (i + 1) + '. ' + escM(item.text) + '</div>' +
-                '<div class="answer-row">' +
-                '<span>Your answer: <span class="' + (isCorrect ? 'correct-answer' : 'wrong-answer') + '">' +
-                userLetter + '</span></span>' +
-                '<span>Correct answer: <span class="correct-answer">' + correctLetter + '</span></span>' +
-                '</div>' +
-                (item.explanation ?
-                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + escM(item.explanation) + '</p></div>' : '') +
-                '<div class="flag-btn">' +
-                askAiButtonHtml(item, (subj ? subj.name : ''), userAns, { style: 'margin-right:6px' }) +
-                renderFlagButton(item.id, subj ? subj.id : '', 'topic', item) + '</div>' +
-                '</div>'
-            );
-        });
-
+        
         const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
         const topicName = state.topicsList.find(function(t) { return t.id === state.topicId; })?.name || 'Topic Practice';
 
@@ -18487,9 +18665,9 @@ function renderTopicExam() {
             })() +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="topic-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="topic-toggle-review">' +
-            (state.topicReviewMode ? 'Hide Review' : 'Show Review') +
+            'Review Questions' +
             '</button>' +
-            (state.topicReviewMode ? '<div style="margin-top:12px">' + reviewItems + '</div>' : '')
+            ''
         );
     }
 
@@ -18598,29 +18776,7 @@ function renderLitExam() {
             
         }
 
-        let reviewItems = "";
-        state.litQuestions.forEach(function(item, i) {
-            const userAns = state.litAnswers[i];
-            const isCorrect = userAns === item.correct_answer;
-            const userLetter = userAns !== null && userAns !== undefined ? String.fromCharCode(65 + userAns) : '—';
-            const correctLetter = String.fromCharCode(65 + item.correct_answer);
-            const subj = SUBJECTS.find(function(s) { return s.id === item.subject_id; });
-            reviewItems += (
-                '<div class="review-item ' + (isCorrect ? 'correct' : 'wrong') + '">' +
-                '<div class="q-text">Q' + (i + 1) + '. ' + escM(item.text) + '</div>' +
-                '<div class="answer-row">' +
-                '<span>Your answer: <span class="' + (isCorrect ? 'correct-answer' : 'wrong-answer') + '">' +
-                userLetter + '</span></span>' +
-                '<span>Correct answer: <span class="correct-answer">' + correctLetter + '</span></span>' +
-                '</div>' +
-                (item.explanation ?
-                    '<div class="explanation-box"><span class="label">💡 Explanation</span><p>' + escM(item.explanation) + '</p></div>' : '') +
-                '<div class="flag-btn">' +
-                renderFlagButton(item.id, subj ? subj.id : '', 'novel', item) + '</div>' +
-                '</div>'
-            );
-        });
-
+        
         const candidateName = state.profile.fullName || state.profile.name || 'Candidate';
 
         return (
@@ -18634,9 +18790,9 @@ function renderLitExam() {
             }) +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="lit-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="lit-toggle-review">' +
-            (state.litReviewMode ? 'Hide Review' : 'Show Review') +
+            'Review Questions' +
             '</button>' +
-            (state.litReviewMode ? '<div style="margin-top:12px">' + reviewItems + '</div>' : '')
+            ''
         );
     }
 
@@ -19023,23 +19179,10 @@ async function loadWeakQuestions() {
     const requestedUserId = String(state.authUser.id);
     
     try {
-        const { data, error } = await supabase
-            .from('weak_questions')
-            .select('*')
-            .eq('user_id', requestedUserId)
-            .order('created_at', { ascending: false });
-            
-        if (error) {
-            if (!state.authUser || String(state.authUser.id) !== requestedUserId) return;
-            console.warn("Load weak questions error:", error.message, error.code);
-            showUserError("Load weak questions", error, "Couldn't load your weak questions right now.");
-            state.weakQuestions = [];
-            state.weakQuestionsLoaded = true;
-            render();
-            return;
-        }
-
-        const rows = data || [];
+        await weakMigrateOnce(requestedUserId);
+        const rows = weakLocalRead(requestedUserId).slice().sort(function(x, y) {
+            return new Date(y.created_at) - new Date(x.created_at);
+        });
         const withQuestions = await Promise.all(rows.map(async function(row) {
             let q = null;
             try {
@@ -19087,7 +19230,7 @@ const REVISE_MODE_META = {
 };
 
 // Applies the spaced-repetition due/all filter used across the three
-// Revise Weak screens. "Due" means either never reviewed yet (no
+// Missed Questions screens. "Due" means either never reviewed yet (no
 // schedule entry — matches the app's original all-missed-questions
 // behavior) or its next-due date has arrived.
 function getFilteredWeakQuestions() {
@@ -19116,15 +19259,15 @@ function renderReviseWeak() {
         return (
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
             '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 30) + '</div>' +
-            '<h2 class="title">Revise Weak Questions</h2>' +
+            '<h2 class="title">Missed Questions</h2>' +
             '<p class="sub">Retry questions you\'ve missed</p>' +
-            guestCardHtml('Create a free account to access your weak questions.')
+            guestCardHtml('Create a free account to access your missed questions.')
         );
     }
     
     if (!state.weakQuestionsLoaded) {
         loadWeakQuestions();
-        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading weak questions...</p></div>';
+        return '<div class="loading-spinner"><div class="spinner"></div><p>Loading missed questions...</p></div>';
     }
 
     if (state.weakQuestions.length === 0) {
@@ -19132,15 +19275,14 @@ function renderReviseWeak() {
             '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) +
             ' Home</button>' +
             '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 30) + '</div>' +
-            '<h2 class="title">Revise Weak Questions</h2>' +
+            '<h2 class="title">Missed Questions</h2>' +
             '<p class="sub">Retry questions you\'ve missed</p>' +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">You have no weak questions saved. Keep practicing!</p></div>'
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">No missed questions yet. Keep practicing!</p></div>'
         );
     }
 
-    if (state.reviseView === 'subjects') return renderReviseModeSubjects();
     if (state.reviseView === 'questions') return renderReviseModeQuestions();
-    return renderReviseModes();
+    return renderReviseModeSubjects();
 }
 
 function renderReviseModes() {
@@ -19174,7 +19316,7 @@ function renderReviseModes() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
         '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 30) + '</div>' +
-        '<h2 class="title">Revise Weak Questions</h2>' +
+        '<h2 class="title">Missed Questions</h2>' +
         '<p class="sub">Choose a mode to see what you\'ve missed</p>' +
         renderReviseFilterTabs() +
         cards
@@ -19182,18 +19324,14 @@ function renderReviseModes() {
 }
 
 function renderReviseModeSubjects() {
-    const mode = state.reviseMode;
-    const meta = REVISE_MODE_META[mode] || REVISE_MODE_META.unknown;
     const filtered = getFilteredWeakQuestions();
-    const inMode = filtered.filter(function(wq) { return (wq.mode || 'unknown') === mode; });
-
     const counts = {};
-    inMode.forEach(function(wq) { counts[wq.subject_id] = (counts[wq.subject_id] || 0) + 1; });
+    filtered.forEach(function(wq) { counts[wq.subject_id] = (counts[wq.subject_id] || 0) + 1; });
     const subjIds = Object.keys(counts);
 
     let cards = "";
     if (subjIds.length === 0) {
-        cards = '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Nothing due here right now. Switch to "All" above to see every missed question in this mode.</p></div>';
+        cards = '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Nothing due right now. Switch to "All" above to see every missed question.</p></div>';
     }
     subjIds.forEach(function(sid) {
         const subj = SUBJECTS.find(function(s) { return s.id === sid; });
@@ -19210,9 +19348,10 @@ function renderReviseModeSubjects() {
     });
 
     return (
-        '<button class="back-link" data-action="revise-back-to-modes">' + svg("chevleft", 14) + ' All modes</button>' +
-        '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(meta.label) + '</h2>' +
-        '<p class="sub" style="font-size:11px">Choose a subject</p>' +
+        '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
+        '<div class="feature-icon" style="background:#0F6B3F">' + svg("rotate", 30) + '</div>' +
+        '<h2 class="title">Missed Questions</h2>' +
+        '<p class="sub">Pick a subject and retry the questions you missed</p>' +
         renderReviseFilterTabs() +
         cards
     );
@@ -19228,17 +19367,17 @@ function renderReviseModeQuestions() {
     const schedule = getReviewSchedule();
     const filtered = getFilteredWeakQuestions();
     let list = filtered.filter(function(wq) {
-        return (wq.mode || 'unknown') === mode && wq.subject_id === subjectId;
+        return wq.subject_id === subjectId;
     });
     list.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
 
     if (list.length === 0) {
         state.reviseCurrentWid = null;
         return (
-            '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
+            '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' Subjects' + '</button>' +
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subjName) + '</h2>' +
             renderReviseFilterTabs() +
-            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">No more weak questions here. Great job!</p></div>'
+            '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">No missed questions here. Great job!</p></div>'
         );
     }
 
@@ -19264,7 +19403,7 @@ function renderReviseModeQuestions() {
     const q = wq.questions;
     if (!q) {
         return (
-            '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
+            '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' Subjects' + '</button>' +
             '<div class="card"><p style="text-align:center;color:var(--muted);padding:16px 0;font-size:13px">Question data not found.</p></div>'
         );
     }
@@ -19297,7 +19436,8 @@ function renderReviseModeQuestions() {
             '<div class="explanation-box" style="margin-top:6px">' +
             '<span class="label">' + (resultCorrect ? '✅ Correct!' : '❌ Wrong') + '</span>' +
             (q.explanation ? '<p>' + escM(q.explanation) + '</p>' : '<p>No explanation provided.</p>') +
-            '</div>'
+            '</div>' +
+            renderInlineAiSection(q, subjName)
         );
         // Don't write to history for revise attempts
         // Score is handled in the click handler
@@ -19320,16 +19460,15 @@ function renderReviseModeQuestions() {
     }
 
     return (
-        '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' ' + esc(meta.label) + '</button>' +
+        '<button class="back-link" data-action="revise-back-to-subjects">' + svg("chevleft", 14) + ' Subjects' + '</button>' +
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subjName) + '</h2>' +
-        '<p class="sub" style="font-size:11px">' + esc(meta.label) + ' · ' + total + ' missed question' + (total === 1 ? '' : 's') + '</p>' +
+        '<p class="sub" style="font-size:11px">' + 'Missed Questions · ' + total + ' missed question' + (total === 1 ? '' : 's') + '</p>' +
         
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
         '<span style="font-size:13px;font-weight:600">Question ' + (state.reviseIndex + 1) + ' of ' + total + '</span>' +
         '<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end">' +
         (isAnswered ? '' : nextReviewHtml) +
-        askAiButtonHtml(q, subjName, (isAnswered ? userAnswer : wq.user_answer), { label: '✨ Better Explanation', style: 'font-size:9px;padding:6px 8px;white-space:nowrap' }) +
-        renderFlagButton(q.id, subjectId, mode, q) +
+        renderFlagButton(q.id, subjectId, (wq.mode || 'unknown'), q) +
         '<button class="mini-btn danger" data-action="weak-remove-question" data-wid="' + wq.id + '" data-qid="' + q.id + '" style="font-size:9px">✕</button>' +
         '</div>' +
         '</div>' +
@@ -19433,7 +19572,7 @@ function renderFlashcards() {
         '<span class="fc-label">Answer</span>' +
         backAnswerHtml +
         (q.explanation ? '<p class="fc-explain">' + escM(q.explanation) + '</p>' : '') +
-        (state.flashcardFlipped ? '<div class="ask-ai-row" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + askAiButtonHtml(q, (subj ? subj.name : q.subject_name), null, { label: '✨ Further Explanation', inline: true }) + '</div>' : '') +
+        (state.flashcardFlipped ? '<div class="ask-ai-row" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + askAiButtonHtml(q, (subj ? subj.name : q.subject_name), null, { label: '✨ Further Explanation', inline: true }) + '</div>' + inlineAiBoxHtml(q) : '') +
         '</div>' +
         '</div>' +
         '</div>' +
@@ -20692,7 +20831,7 @@ function renderActivationBanner() {
         ['🎯', 'Mock Arena', 'Live timed exams &amp; ranking'],
         ['📖', 'Novel CBT', 'Set texts &amp; comprehension'],
         ['🗂️', 'Study Materials', 'Past question files'],
-        ['🔁', 'Revise Weak Qs', 'Retry what you missed'],
+        ['🔁', 'Missed Questions', 'Retry what you missed'],
         ['📊', 'Result Analysis', 'Track your progress'],
     ];
     return (
@@ -22823,7 +22962,7 @@ function renderAdminSettings() {
         '</div>' +
         
         '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔄 Revise Weak Questions</p>' +
+        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔄 Missed Questions</p>' +
         '<label class="field-label">Time limit</label>' +
         '<div class="time-selector" style="margin:2px 0 4px">' +
         '<div class="time-input-group"><input type="number" id="admin-revise-hours" min="0" max="6" value="' + reviseHours + '" style="width:45px" /><label>h</label></div>' +
@@ -24937,8 +25076,7 @@ document.addEventListener('click', function(e) {
         return;
     }
     if (action === 'cbt-toggle-review') {
-        state.cbtReviewMode = !state.cbtReviewMode;
-        render();
+        openReviewSession('cbt');
         return;
     }
     if (action === 'download-cbt-pdf') {
@@ -25153,8 +25291,7 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'exam-toggle-review') {
-        state.examReviewMode = !state.examReviewMode;
-        render();
+        openReviewSession('exam');
         return;
     }
     if (action === 'download-exam-pdf') {
@@ -25514,8 +25651,7 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'topic-toggle-review') {
-        state.topicReviewMode = !state.topicReviewMode;
-        render();
+        openReviewSession('topic');
         return;
     }
     if (action === 'download-topic-pdf') {
@@ -25626,8 +25762,7 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'lit-toggle-review') {
-        state.litReviewMode = !state.litReviewMode;
-        render();
+        openReviewSession('lit');
         return;
     }
     if (action === 'download-lit-pdf') {
@@ -27185,7 +27320,7 @@ if (action === 'browse-filter') {
         // (the due/all filter applied first), or the index can point at
         // a different question than what's on screen.
         let list = getFilteredWeakQuestions().filter(function(wq) {
-            return (wq.mode || 'unknown') === mode && wq.subject_id === subjectId;
+            return wq.subject_id === subjectId;
         });
         if (state.reviseIndex < list.length - 1) {
             state.reviseIndex++;
@@ -27210,7 +27345,7 @@ if (action === 'browse-filter') {
             const mode = state.reviseMode;
             const subjectId = state.reviseSubject;
             let list = getFilteredWeakQuestions().filter(function(wq) {
-                return (wq.mode || 'unknown') === mode && wq.subject_id === subjectId;
+                return wq.subject_id === subjectId;
             });
             const wq = list[state.reviseIndex];
             state.weakQuestionStates['answer_' + wq.id] = undefined;
@@ -27222,6 +27357,30 @@ if (action === 'browse-filter') {
         return;
     }
     
+    if (action === 'review-next') {
+        if (state.reviewSession && state.reviewSession.index < state.reviewSession.items.length - 1) {
+            state.reviewSession.index++;
+            render();
+            try { window.scrollTo(0, 0); } catch (e) {}
+        }
+        return;
+    }
+    if (action === 'review-prev') {
+        if (state.reviewSession && state.reviewSession.index > 0) {
+            state.reviewSession.index--;
+            render();
+            try { window.scrollTo(0, 0); } catch (e) {}
+        }
+        return;
+    }
+    if (action === 'review-back') {
+        var rv = state.reviewSession;
+        state.view = (rv && rv.returnView) || 'home';
+        state.reviewSession = null;
+        render();
+        try { window.scrollTo(0, 0); } catch (e) {}
+        return;
+    }
     if (action === 'revise-done') {
         flushReviseReloadIfNeeded();
         state.reviseView = 'subjects';
@@ -27253,7 +27412,7 @@ if (action === 'browse-filter') {
 
         if (isCorrect) {
             // Getting it right removes the question from the weak list
-            // entirely, so it's no longer part of "Revise Weak" — drop its
+            // entirely, so it's no longer part of "Missed Questions" — drop its
             // spaced-repetition entry too rather than let it linger.
             const schedule = getReviewSchedule();
             delete schedule[wq.question_id];
@@ -27282,10 +27441,10 @@ if (action === 'browse-filter') {
         const wid = el.getAttribute('data-wid');
         const qid = el.getAttribute('data-qid');
         if (!state.authUser) { showToast('Please login first.', 'error'); return; }
-        if (!confirm('Remove this question from your weak list?')) return;
+        if (!confirm('Remove this question from your missed list?')) return;
 
         removeWeakQuestion(state.authUser.id, qid).then(function() {
-            showToast('Removed from weak list.', 'success');
+            showToast('Removed from missed list.', 'success');
             delete state.weakQuestionStates['view_' + wid];
             delete state.weakQuestionStates['reattempt_' + wid];
             delete state.weakQuestionStates['answer_' + wid];
@@ -27323,7 +27482,7 @@ if (action === 'browse-filter') {
         const key = el.getAttribute('data-aikey');
         const entry = aiQuestionCache[key];
         if (!entry) { showToast('Could not load this question. Please try again.', 'error'); return; }
-        askAiAboutQuestion(entry.item, entry.subjectName, entry.userAnswerIdx);
+        requestInlineExplanation(entry.item, entry.subjectName);
         return;
     }
 
