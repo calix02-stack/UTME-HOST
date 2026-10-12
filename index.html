@@ -9081,7 +9081,7 @@ function getJambCountdown() {
     const year = now.getFullYear();
     // Exam date comes from Admin > Settings (YYYY-MM-DD). Falls back to April 15.
     let target = null;
-    const cfg = state.settingsCache && state.settingsCache.jambExamDate;
+    const cfg = '2027-03-16'; // fixed in the app; the day count drops by itself every midnight
     if (cfg && /^\d{4}-\d{2}-\d{2}$/.test(cfg)) {
         const parts = cfg.split('-');
         const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -9608,9 +9608,9 @@ let state = {
         qSubject: "",
         qYear: null,
         questionsPerSubject: 40,
-        cbtTimeLimit: 100,
-        subjectTimeLimit: 25,
-        mockTimeLimit: 30,
+        cbtTimeLimit: 120,
+        subjectTimeLimit: 30,
+        mockTimeLimit: 120,
         mockQuestionsPerSubject: 40,
         editingQuestionId: null,
         docSubject: "",
@@ -9791,11 +9791,11 @@ myEnrollmentsLoading: false,
     adminUserAiError: '',
     settingsCache: {
         cbtQuestionsPerSubject: 40,
-        cbtTimeLimit: 100,
+        cbtTimeLimit: 120,
         subjectQuestionsPerSubject: 40,
-        subjectTimeLimit: 25,
+        subjectTimeLimit: 30,
         mockQuestionsPerSubject: 40,
-        mockTimeLimit: 30,
+        mockTimeLimit: 120,
         calculatorEnabled: true,
         examTimeLimit: 100,
         novelTimeLimit: 100,
@@ -9806,7 +9806,7 @@ myEnrollmentsLoading: false,
         mockSubjectCount: 4,
         underConstruction: false,
         constructionReopenTime: null,
-        jambExamDate: null,
+        jambExamDate: '2027-03-16',
         faqImages: {},
     },
 
@@ -10359,26 +10359,27 @@ function buildSettingsResult(rows) {
         const settings = {};
         (rows || []).forEach(function(s) { settings[s.setting_key] = s.setting_value; });
 
+        // Everything below is fixed in the app (no database values). Only the support assistant's memory is still read.
         const result = {
-            cbtQuestionsPerSubject: settings.cbt_settings?.questions_per_subject || 40,
-            cbtTimeLimit: settings.cbt_settings?.time_limit_minutes || 100,
-            subjectQuestionsPerSubject: settings.subject_settings?.questions_per_subject || 40,
-            subjectTimeLimit: settings.subject_settings?.time_limit_minutes || 25,
-            mockQuestionsPerSubject: settings.mock_settings?.questions_per_subject || 40,
-            mockTimeLimit: settings.mock_settings?.time_limit_minutes || 30,
-            calculatorEnabled: settings.calculator_enabled !== false,
-            examTimeLimit: settings.exam_settings?.time_limit_minutes || 100,
-            novelTimeLimit: settings.novel_settings?.time_limit_minutes || 100,
-            novelQuestionsPerSubject: settings.novel_settings?.questions_per_subject || 40,
-            topicTimeLimit: settings.topic_settings?.time_limit_minutes || 60,
-            reviseTimeLimit: settings.revise_settings?.time_limit_minutes || 60,
-            cbtSubjectCount: settings.cbt_settings?.subject_count || 3,
-            mockSubjectCount: settings.mock_settings?.subject_count || 4,
-            underConstruction: settings.under_construction || false,
-            constructionReopenTime: settings.construction_reopen_time || null,
-            examCreationEnabled: settings.exam_creation_enabled !== false,
-            jambExamDate: settings.jamb_exam_date || null,
-            activationRequired: !(settings.activation_required === false || settings.activation_required === 'false' || settings.activation_required === 0 || settings.activation_required === '0'),
+            cbtQuestionsPerSubject: 40,
+            cbtTimeLimit: 120,            // 2 hours
+            subjectQuestionsPerSubject: 40,
+            subjectTimeLimit: 30,         // 30 minutes
+            mockQuestionsPerSubject: 40,
+            mockTimeLimit: 120,           // 2 hours
+            calculatorEnabled: true,
+            examTimeLimit: 100,
+            novelTimeLimit: 100,
+            novelQuestionsPerSubject: 40,
+            topicTimeLimit: 60,
+            reviseTimeLimit: 60,
+            cbtSubjectCount: 3,
+            mockSubjectCount: 4,
+            underConstruction: false,
+            constructionReopenTime: null,
+            examCreationEnabled: true,
+            jambExamDate: '2027-03-16',
+            activationRequired: true,
             faqImages: {},
             supportMemory: (settings.support_memory && Array.isArray(settings.support_memory.entries)) ? settings.support_memory.entries : [],
         };
@@ -11774,13 +11775,15 @@ async function checkAuthSession(retriesLeft) {
             storage.set('wasEverLoggedIn', 'true');
             loadMyElectivesLocal();
             const cachedProfile = loadOfflineCache('profile_' + user.id);
-            const { data: prof, error: pErr } = await withNetworkTimeout(
-                supabase.from('profiles').select('id,username,email,updated_at,is_active,activation_expiry,full_name,created_at').eq('id', user.id).maybeSingle(),
+            let { data: prof, error: pErr } = await withNetworkTimeout(
+                supabase.from('profiles').select('id,username,email,updated_at,is_active,activation_expiry,full_name,created_at,department').eq('id', user.id).maybeSingle(),
                 8000, 'Profile load'
             ).catch(function(e) {
                 console.warn('Profile load timed out, using cache if available:', e);
                 return { data: cachedProfile, error: cachedProfile ? null : e };
             });
+            // If Supabase refuses the request (quota/restriction), keep the saved profile and expiry instead of treating the student as a fresh active user.
+            if (pErr && cachedProfile) { prof = cachedProfile; pErr = null; }
             if (!pErr && prof) {
                 await attachOwnAvatar(prof, cachedProfile);
                 state.authProfile = prof;
@@ -11791,6 +11794,7 @@ async function checkAuthSession(retriesLeft) {
                 state.profile.is_active = prof.is_active !== false;
                 state.profile.activation_expiry = prof.activation_expiry || null;
                 state.profile.fullName = prof.full_name || '';
+                if (prof.department !== undefined) { state.profile.department = prof.department || ''; state.deptCheckedFor = user.id; }
                 state.profile.avatarUrl = null;
                 saveOfflineCache('profile_' + user.id, prof);
             } else {
@@ -11838,6 +11842,16 @@ async function checkAuthSession(retriesLeft) {
             setTimeout(function() { checkAuthSession(retriesLeft - 1); }, 1200);
             return;
         }
+        // Supabase unreachable or refusing (e.g. quota restriction): keep a previously logged-in student in the app using the saved profile.
+        try {
+            const _cp = JSON.parse(storage.get('profile') || 'null');
+            if (!state.authUser && storage.get('wasEverLoggedIn') === 'true' && _cp && _cp.id) {
+                state.authUser = { id: _cp.id, email: _cp.email || '' };
+                state.profile = Object.assign({}, state.profile, _cp);
+                state.showLogin = false; state.showSignup = false;
+                loadMyElectivesLocal();
+            }
+        } catch (e2) {}
         state.authReady = true;
         render();
     }
@@ -12053,7 +12067,7 @@ async function signIn(emailOrUsername, password) {
             loadMyElectivesLocal();
             const { data: prof, error: pErr } = await supabase
                 .from('profiles')
-                .select('id,username,email,updated_at,is_active,activation_expiry,full_name,created_at')
+                .select('id,username,email,updated_at,is_active,activation_expiry,full_name,created_at,department')
                 .eq('id', data.user.id)
                 .maybeSingle();
             if (!pErr && prof) {
@@ -12066,6 +12080,7 @@ async function signIn(emailOrUsername, password) {
                 state.profile.is_active = prof.is_active !== false;
                 state.profile.activation_expiry = prof.activation_expiry || null;
                 state.profile.fullName = prof.full_name || '';
+                if (prof.department !== undefined) { state.profile.department = prof.department || ''; state.deptCheckedFor = data.user.id; }
                 state.profile.avatarUrl = null;
             } else {
                 state.profile.name = data.user.user_metadata?.username || data.user.email?.split('@')[0] || "User";
@@ -12889,11 +12904,11 @@ let coursesRetryAt = 0;
 let _plansAt = 0;
 async function loadActivationPlans(force) {
     try {
-        if (!force && state.activationPlansLoaded && Date.now() - _plansAt < 30 * 60 * 1000) return state.activationPlans;
+        if (!force && state.activationPlansLoaded && Date.now() - _plansAt < 24 * 3600 * 1000) return state.activationPlans;
         if (!force && !state.activationPlansLoaded) {
             try {
                 const c = JSON.parse(localStorage.getItem('plansCache') || 'null');
-                if (c && c.rows && Date.now() - c.at < 30 * 60 * 1000) { state.activationPlans = c.rows; state.activationPlansLoaded = true; _plansAt = c.at; return c.rows; }
+                if (c && c.rows && Date.now() - c.at < 24 * 3600 * 1000) { state.activationPlans = c.rows; state.activationPlansLoaded = true; _plansAt = c.at; return c.rows; }
             } catch (_) {}
         }
         const { data, error } = await supabase
@@ -13026,8 +13041,10 @@ async function loadActivationKeys() {
 // ============================================================
 //  PAYMENT REQUESTS ("I've paid") - ADMIN
 // ============================================================
-async function loadAdminClaims(quiet) {
+async function loadAdminClaims(quiet, force) {
     if (!isAdmin()) return;
+    if (!force && Date.now() - Number(storage.get('claimsAt') || 0) < 24 * 3600 * 1000) return;
+    storage.set('claimsAt', String(Date.now()));
     const hadLoaded = state.adminClaimsLoaded;
     const before = adminPendingClaimCount();
     try {
@@ -13083,7 +13100,7 @@ async function adminConfirmClaim(id) {
         showToast((e && e.message) || 'Could not confirm.', 'error');
     }
     state.adminClaimBusy = false;
-    await loadAdminClaims();
+    await loadAdminClaims(false, true);
 }
 
 // Activate a user directly after checking the payment yourself (Paystack dashboard / bank)
@@ -13107,7 +13124,7 @@ async function adminActivateByReference() {
         await supabase.from('payment_claims').update({ status: 'confirmed', confirmed_at: new Date().toISOString(), admin_note: 'Activated by admin' })
             .eq('user_id', u.id).eq('plan_id', String(planId)).eq('status', 'pending');
     } catch (e) {}
-    loadAdminClaims();
+    loadAdminClaims(false, true);
 }
 
 async function adminRejectClaim(id) {
@@ -13122,7 +13139,7 @@ async function adminRejectClaim(id) {
         showToast('Request rejected.', 'success');
     } catch (e) { showToast((e && e.message) || 'Could not reject.', 'error'); }
     state.adminClaimBusy = false;
-    await loadAdminClaims();
+    await loadAdminClaims(false, true);
 }
 
 async function adminGenerateKey(planId) {
@@ -14893,7 +14910,7 @@ async function startCbt() {
     }
 
     let allQuestions = [];
-    const perSubject = state.cbtQuestionCount || 25;
+    const perSubject = state.cbtQuestionCount || 40;
     state.cbtEngBatch = null;
 
     // FIX: this whole load used to run with no timeout or error handling —
@@ -15346,6 +15363,7 @@ function loadTopicProgressDirty() {
 }
 let topicProgressSyncInFlight = false;
 async function syncTopicProgress() {
+    return; // topic progress is now saved on the phone only (no database)
     if (topicProgressSyncInFlight) return;
     if (!state.authUser || state.authUser.id === 'guest' || !isOnline()) return;
     topicProgressSyncInFlight = true;
@@ -16709,6 +16727,9 @@ function renderNow() {
         return (prevChatEl.scrollHeight - prevChatEl.scrollTop - prevChatEl.clientHeight) < 120; // already at/near bottom
     })();
 
+    const _pkEl = document.querySelector('.picker-scroll');
+    const _pkPrev = _pkEl ? { top: _pkEl.scrollTop, view: window.__pkView } : null;
+
     const activeEl = document.activeElement;
     const activeId = activeEl && activeEl.id ? activeEl.id : null;
     const activeSelStart = (activeEl && typeof activeEl.selectionStart === 'number') ? activeEl.selectionStart : null;
@@ -16906,6 +16927,10 @@ function renderNow() {
             elx.scrollLeft = prev.left;
         }
     });
+    (function() {
+        const _pk2 = document.querySelector('.picker-scroll');
+        if (_pk2) { if (_pkPrev && _pkPrev.view === state.view) _pk2.scrollTop = _pkPrev.top; window.__pkView = state.view; } else { window.__pkView = null; }
+    })();
     (function() {
         const chatEl = document.querySelector('.chat-window');
         if (chatEl) {
@@ -17720,7 +17745,7 @@ function renderSubjectModes() {
     if (!s) return renderMyCourses();
 
     const modes = [
-        { action: 'subj-start-cbt', label: 'CBT Practice', sub: 'Timed, ' + (state.cbtQuestionCount || 25) + ' questions', icon: 'monitor', tint: '#35618C' },
+        { action: 'subj-start-cbt', label: 'CBT Practice', sub: 'Timed, ' + (state.cbtQuestionCount || 40) + ' questions', icon: 'monitor', tint: '#35618C' },
         { action: 'subj-start-exam', label: 'Past Questions', sub: 'Pick a year, 2021–2026', icon: 'clipboard', tint: '#A65640' },
         { action: 'subj-start-flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
     ];
@@ -18150,10 +18175,10 @@ function renderLiteratureCbt() {
         '<div><h2 class="title" style="margin:0;font-size:14px">Novel (CBT)</h2><p class="sub" style="margin:0;font-size:10.5px;padding:0">Practice Novel questions</p></div>' +
         '</div>' +
         '<div class="picker-scroll">' +
+        renderUserQuestionCountPicker('litQuestionCount', state.litQuestionCount) +
         '<div class="mode-note">Select <b>Novel (CBT)</b> to practice questions from the set texts and comprehension passages.</div>' +
         '<p class="section-label">Select Literature</p>' +
         '<div class="subject-grid">' + chips + '</div>' +
-        (ready ? renderUserQuestionCountPicker('litQuestionCount', state.litQuestionCount) : '') +
         '</div>' +
         '<div class="picker-footer">' +
         '<button class="btn ' + (ready && state.litQuestionCount ? "btn-green" : "btn-outline") + '" data-action="start-literature-cbt"' + (ready && state.litQuestionCount ?
@@ -18279,8 +18304,8 @@ function renderCbtMode() {
         mwModeHeader('mysubjects', '#3B6EA5', 'monitor', 'JAMB CBT', 'Real JAMB-style practice screen') +
         '<div class="picker-scroll cbt-wide">' +
         modeHtml +
+        renderUserQuestionCountPicker('cbtQuestionCount', state.cbtQuestionCount) +
         body +
-        (ready ? renderUserQuestionCountPicker('cbtQuestionCount', state.cbtQuestionCount) : '') +
         '</div>' +
         '<div class="picker-footer">' +
         '<button class="btn ' + (canStart ? "btn-green" : "btn-outline") + '" data-action="start-cbt"' + (canStart ? '' :
@@ -18452,7 +18477,7 @@ function renderCbtExam() {
     const totalQ = state.cbtQuestions.length;
     const answeredCount = state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
     const settings = state.settingsCache;
-    const calcEnabled = settings.calculatorEnabled !== false;
+    const calcEnabled = true;
 
     let subjectTabs = '';
     if (state.cbtSubjectOrder.length > 1) {
@@ -18609,6 +18634,7 @@ function renderExamMode() {
         mwModeHeader('mysubjects', '#E2543A', 'clipboard', 'JAMB Past Questions', '2021\u20132026 \u00B7 one subject at a time') +
         '<div class="picker-scroll">' +
         modeHtml +
+        renderUserQuestionCountPicker('examQuestionCount', state.examQuestionCount) +
         '<div class="mode-note">Pick <b>one subject</b> and a <b>past year</b> (2021–2026) to sit an exam.' + 
         (isInstant ? ' <b>Instant Check</b> shows feedback right after each answer.' : '') +
         '</div>' +
@@ -18618,7 +18644,6 @@ function renderExamMode() {
         '</div>' +
         '<p class="section-label">Choose 1 subject</p>' +
         '<div class="subject-grid">' + chips + '</div>' +
-        (ready ? renderUserQuestionCountPicker('examQuestionCount', state.examQuestionCount) : '') +
         '</div>' +
         '<div class="picker-footer">' +
         '<p class="picker-count">' + (selectedSubject ? esc(selectedSubject.name) + ' · ' + state.examYear :
@@ -18703,7 +18728,7 @@ function renderExamExam() {
     
     const answeredCount = state.examAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
     const settings = state.settingsCache;
-    const calcEnabled = settings.calculatorEnabled !== false;
+    const calcEnabled = true;
     const isInstant = state.examVariant === 'instant';
     const instantResult = state.examInstantResults[state.examIndex];
 
@@ -19054,7 +19079,7 @@ function renderTopicExam() {
     
     const answeredCount = state.topicAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
     const settings = state.settingsCache;
-    const calcEnabled = settings.calculatorEnabled !== false;
+    const calcEnabled = true;
 
     let opts = "";
     if (item && item.options) {
@@ -19179,7 +19204,7 @@ function renderLitExam() {
     
     const answeredCount = state.litAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
     const settings = state.settingsCache;
-    const calcEnabled = settings.calculatorEnabled !== false;
+    const calcEnabled = true;
     let opts = "";
     if (item && item.options) {
         item.options.forEach(function(o, i) {
@@ -21434,7 +21459,7 @@ function renderMockExam() {
     const totalQ = state.mockQuestions.length;
     const answeredCount = state.mockAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
     const settings = state.settingsCache;
-    const calcEnabled = settings.calculatorEnabled !== false;
+    const calcEnabled = true;
    
     let subjectTabs = '';
     state.mockSubjectOrder.forEach(function(sid) {
@@ -23260,7 +23285,7 @@ function renderQuestionCountPicker(id, current, min) {
 // (CBT, Exam, Novel). Unlike the admin picker above, this updates state
 // directly and re-renders — it isn't tied to a form/save button.
 function renderUserQuestionCountPicker(stateKey, current) {
-    const val = (current === null) ? 0 : (current || 25);
+    const val = (current === null) ? 0 : (current || 40);
     let chips = '';
     [25, 30, 35, 40].forEach(function(n) {
         chips += '<button type="button" class="qcount-chip' + (val === n ? ' selected' : '') + '" data-action="select-question-count" data-key="' + stateKey + '" data-value="' + n + '">' + n + '</button>';
@@ -23274,167 +23299,11 @@ function renderUserQuestionCountPicker(stateKey, current) {
 }
 
 function renderAdminSettings() {
-    const s = state.settingsCache;
-    const cbtHours = Math.floor((s.cbtTimeLimit || 100) / 60);
-    const cbtMinutes = (s.cbtTimeLimit || 100) % 60;
-    const subjectHours = Math.floor((s.subjectTimeLimit || 25) / 60);
-    const subjectMinutes = (s.subjectTimeLimit || 25) % 60;
-    const examHours = Math.floor((s.examTimeLimit || 100) / 60);
-    const examMinutes = (s.examTimeLimit || 100) % 60;
-    const novelHours = Math.floor((s.novelTimeLimit || 100) / 60);
-    const novelMinutes = (s.novelTimeLimit || 100) % 60;
-    const reviseHours = Math.floor((s.reviseTimeLimit || 60) / 60);
-    const reviseMinutes = (s.reviseTimeLimit || 60) % 60;
-    const mockHours = Math.floor((s.mockTimeLimit || 30) / 60);
-    const mockMinutes = (s.mockTimeLimit || 30) % 60;
-
-    return (
-        '<div class="card">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 10px">⚙️ Settings</p>' +
-        
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">📚 CBT Mode</p>' +
-        '<label class="field-label">Subjects (excluding English)</label>' +
-        '<input class="field" id="admin-cbt-subject-count" type="number" value="' + (s.cbtSubjectCount || 3) + '" style="margin-bottom:6px;font-size:13px" />' +
-        '<label class="field-label">Questions per subject (25–40)</label>' +
-        renderQuestionCountPicker('admin-cbt-questions', s.cbtQuestionsPerSubject || 40) +
-        '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-cbt-hours" min="0" max="6" value="' + cbtHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-cbt-minutes" min="0" max="59" value="' + cbtMinutes + '" style="width:45px" /><label>m</label></div>' +
-        '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.cbtTimeLimit || 100) + ' minutes</p>' +
-        '</div>' +
-        
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">📝 Single Subject (CBT)</p>' +
-        '<label class="field-label">Questions per subject (25–40)</label>' +
-        renderQuestionCountPicker('admin-subject-questions', s.subjectQuestionsPerSubject || 40) +
-        '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-subject-hours" min="0" max="6" value="' + subjectHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-subject-minutes" min="0" max="59" value="' + subjectMinutes + '" style="width:45px" /><label>m</label></div>' +
-        '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.subjectTimeLimit || 25) + ' minutes</p>' +
-        '</div>' +
-        
-        // EXAM MODE TIME REMOVED per Section 9a
-        
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">📖 Novel (CBT)</p>' +
-        '<label class="field-label">Questions per subject</label>' +
-        '<input class="field" id="admin-novel-questions" type="number" value="' + (s.novelQuestionsPerSubject || 40) + '" style="margin-bottom:6px;font-size:13px" />' +
-        '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-novel-hours" min="0" max="6" value="' + novelHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-novel-minutes" min="0" max="59" value="' + novelMinutes + '" style="width:45px" /><label>m</label></div>' +
-        '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.novelTimeLimit || 100) + ' minutes</p>' +
-        '</div>' +
-        
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔄 Missed Questions</p>' +
-        '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-revise-hours" min="0" max="6" value="' + reviseHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-revise-minutes" min="0" max="59" value="' + reviseMinutes + '" style="width:45px" /><label>m</label></div>' +
-        '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.reviseTimeLimit || 60) + ' minutes</p>' +
-        '</div>' +
-        
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🎯 Mock Exam</p>' +
-        '<label class="field-label">Number of subjects</label>' +
-        '<input class="field" id="admin-mock-subject-count" type="number" value="' + (s.mockSubjectCount || 4) + '" style="margin-bottom:6px;font-size:13px" />' +
-        '<label class="field-label">Questions per subject</label>' +
-        '<input class="field" id="admin-mock-questions" type="number" value="' + (s.mockQuestionsPerSubject || 40) + '" style="margin-bottom:6px;font-size:13px" />' +
-        '<label class="field-label">Time limit</label>' +
-        '<div class="time-selector" style="margin:2px 0 4px">' +
-        '<div class="time-input-group"><input type="number" id="admin-mock-hours" min="0" max="6" value="' + mockHours + '" style="width:45px" /><label>h</label></div>' +
-        '<div class="time-input-group"><input type="number" id="admin-mock-minutes" min="0" max="59" value="' + mockMinutes + '" style="width:45px" /><label>m</label></div>' +
-        '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' + (s.mockTimeLimit || 30) + ' minutes</p>' +
-        '</div>' +
-
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🎯 Mock Arena — User Exam Creation</p>' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
-        '<label style="font-size:13px;color:var(--ink)">' +
-        '<input type="checkbox" id="admin-exam-creation-enabled" ' + (s.examCreationEnabled !== false ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--green);vertical-align:middle;margin-right:4px" />' +
-        'Allow users to create Mock Arena exams</label>' +
-        '</div>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">' +
-        (s.examCreationEnabled !== false
-            ? 'ON — any user can create their own Mock Arena exam.'
-            : 'OFF — the "Create an Exam" option is hidden/blocked for everyone. Joining existing exams still works.') +
-        '</p>' +
-        '</div>' +
-
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">📅 JAMB Exam Date (countdown)</p>' +
-        '<input class="field" id="admin-jamb-date" type="date" value="' + esc(s.jambExamDate || '') + '" style="font-size:13px;margin-bottom:4px" />' +
-        '<p style="font-size:9px;color:var(--faint);margin:0">Students see the countdown to this date. Leave empty to use April 15 each year.</p>' +
-        '</div>' +
-
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔧 Maintenance Mode</p>' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
-        '<label style="font-size:13px;color:var(--ink)">' +
-        '<input type="checkbox" id="admin-under-construction" ' + (s.underConstruction ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--green);vertical-align:middle;margin-right:4px" />' +
-        'Enable "Under Construction" mode</label>' +
-        '</div>' +
-        '<label class="field-label">Scheduled Reopen Time</label>' +
-        '<input class="field" id="admin-reopen-time" type="datetime-local" value="' + (s.constructionReopenTime || '') + '" style="margin-bottom:4px;font-size:13px" />' +
-        '<p style="font-size:9px;color:var(--faint);margin:0 0 6px">Leave empty for no scheduled reopen</p>' +
-        '</div>' +
-        
-        '<div style="border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px">' +
-        '<p style="font-weight:600;font-size:12px;margin:0 0 6px">🔑 Activation</p>' +
-        '<label style="font-size:13px;color:var(--ink);display:block;margin-bottom:6px">' +
-        '<input type="checkbox" id="admin-activation-required" ' + (s.activationRequired !== false ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--green);vertical-align:middle;margin-right:4px" />' +
-        'Require activation</label>' +
-        '<p style="font-size:9px;color:var(--faint);margin:0">' + (isAdmin() ? '(You are the admin, so you always have full access. To test, open the app on a student account.) ' : '') + (s.activationRequired !== false
-            ? 'ON — users must activate to unlock everything (free users get the limited trial).'
-            : 'OFF — activation is disabled. Every logged-in user has full access without activating. Tick it and Save when you want activation to start.') + '</p>' +
-        '</div>' +
-        '<label class="field-label" style="margin-top:6px">Enable Calculator</label>' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
-        '<label style="font-size:13px;color:var(--ink)">' +
-        '<input type="checkbox" id="admin-calc-enabled" ' + (state.admin.calculatorEnabled !== false ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--green);vertical-align:middle;margin-right:4px" />' +
-        'Show calculator in exams</label>' +
-        '</div>' +
-        '<button class="btn btn-green" data-action="admin-save-settings" style="padding:10px">Save Settings</button>' +
-        '</div>' +
-        '<div class="card" style="margin-top:10px">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 10px">📁 Per-Subject Question Files</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Export one subject at a time, upload the file next to your index.html on your server.</p>' +
-        '<label class="field-label">Subject</label>' +
-        '<select class="field" id="admin-export-subject-select" style="margin-bottom:6px;font-size:13px">' +
-        SUBJECTS.map(function(s) { return '<option value="' + s.id + '">' + esc(s.name) + '</option>'; }).join('') +
-        '</select>' +
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">' +
-        '<button class="btn btn-outline" style="flex:1;padding:8px;font-size:12px" data-action="export-subject-file">⬇️ Export</button>' +
-        '<button class="btn btn-green btn-refresh" style="flex:1;padding:8px;font-size:12px" data-action="sync-subject-files-now">' + svg('refresh', 15) + ' Sync All</button>' +
-        '</div>' +
-        '<button class="btn btn-outline" style="padding:8px;font-size:12px" data-action="force-sync-subject-file">🔁 Force Replace</button>' +
-        '</div>' +
-        '<div class="card" style="margin-top:10px">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 10px">📦 Offline Question Data</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Export all questions as <b>questions-seed.json</b>, or import a seed/backup file.</p>' +
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">' +
-        '<button class="btn btn-outline" style="flex:1;padding:8px;font-size:12px" data-action="offline-export-questions">⬇️ Export</button>' +
-        '<button class="btn btn-outline" style="flex:1;padding:8px;font-size:12px" data-action="offline-import-questions-trigger">⬆️ Import</button>' +
-        '</div>' +
-        '<input type="file" id="offline-import-file-input" accept="application/json" style="display:none" />' +
-        '</div>' +
-
-        ''
-    );
+    return '<div class="card" style="padding:14px"><h3 style="margin:0 0 6px;font-size:15px">Settings</h3>' +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 8px">These are now fixed inside the app and are no longer stored in Supabase:</p>' +
+        '<p style="font-size:12px;margin:0">Full CBT: 2h 00m · Mock: 2h 00m · Single subject: 30m<br>Questions per subject: 40 (students can choose 25/30/35/40)<br>Calculator: always on · Activation: compulsory<br>JAMB countdown: fixed to 16 March 2027</p></div>';
 }
 
-// ============================================================
-//  ADMIN DOCUMENTS
-// ============================================================
 function renderAdminDocuments() { 
     let docList = "";
     if (!state.docsLoaded) {
@@ -24619,7 +24488,7 @@ document.addEventListener('click', function(e) {
     if (action === 'admin-activate-ref') { adminActivateByReference(); return; }
     if (action === 'admin-claim-confirm') { adminConfirmClaim(el.getAttribute('data-id')); return; }
     if (action === 'admin-claim-reject') { adminRejectClaim(el.getAttribute('data-id')); return; }
-    if (action === 'admin-claims-refresh') { loadAdminClaims(); return; }
+    if (action === 'admin-claims-refresh') { loadAdminClaims(false, true); return; }
 
     if (action === 'dismiss-activation-banner') {
         state.showActivationBanner = false;
@@ -24813,7 +24682,7 @@ document.addEventListener('click', function(e) {
 
     // CALCULATOR
     if (action === 'toggle-calculator') {
-        if (state.settingsCache.calculatorEnabled !== false) {
+        if (true) {
             state.showCalculator = !state.showCalculator;
             if (state.showCalculator) {
                 state.calcDisplay = "0";
@@ -26442,7 +26311,7 @@ document.addEventListener('click', function(e) {
         state.admin.viewModeQuestions = false;
         state.admin.viewingMockAttempts = null;
         if (state.adminTab === 'analytics' && !state.analyticsLoading) { state.analyticsLoaded = false; loadAnalyticsData(); }
-        if (state.adminTab === 'payments') loadAdminClaims();
+        if (state.adminTab === 'payments') loadAdminClaims(false, true);
         if (state.adminTab === 'guestai') loadGuestAiChats();
         if (state.adminTab === 'documents') state.docsLoaded = false;
         else if (state.adminTab === 'notifications') state.notifsLoaded = false;
@@ -26968,6 +26837,7 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'admin-save-settings') {
+        showToast('Settings are fixed in the app.', ''); return;
         const cbtQs = parseInt(document.getElementById('admin-cbt-questions')?.value || 40);
         const cbtH = parseInt(document.getElementById('admin-cbt-hours')?.value || 0);
         const cbtM = parseInt(document.getElementById('admin-cbt-minutes')?.value || 0);
@@ -29108,8 +28978,8 @@ async function init() {
     setInterval(function() {
         if (document.visibilityState !== 'visible' || !state.authUser) return;
         if ((state.myClaims || []).some(function(c) { return c.status === 'pending'; })) loadMyClaims();
-        if (isAdmin()) loadAdminClaims(true);   // admin: quietly watch for new payment requests on any screen
-    }, 45000);
+        // (removed) admin no longer polls payment requests in the background; the phone push alert tells you
+    }, 20 * 60 * 1000); // every 20 minutes while a payment request is pending
 
     loadAllUsers();
     // (removed) leaderboard is loaded only when someone opens it
@@ -29141,18 +29011,7 @@ async function init() {
         render();
     });
 
-    setInterval(function() {
-        const examViews = ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'];
-        if (examViews.indexOf(state.view) !== -1) return;
-        // Also skip while the login/signup/reset modal is open — this
-        // background refresh's render() was interrupting people mid-login.
-        if (state.showLogin || state.showSignup || state.showReset) return;
-        loadSettings().then(function(s) {
-            var prev = state.settingsCache;
-            state.settingsCache = s;
-            if (prev && s && prev.jambExamDate !== s.jambExamDate) render();
-        });
-    }, 10 * 60 * 1000); // every 10 minutes (was every minute)
+    // (removed) settings no longer refresh on a timer; they are fixed in the app
 
 }
 
