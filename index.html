@@ -296,7 +296,7 @@
 #mw-refresh div{background:#fff;border-radius:20px;padding:26px 22px;max-width:380px;text-align:center;color:#10241A}
 #mw-refresh h3{font:800 22px 'Bricolage Grotesque',system-ui;margin:12px 0 6px}#mw-refresh p{margin:0 0 18px;color:#4A5F53;font-size:15px}
 #mw-refresh button{width:100%;border:0;border-radius:12px;padding:14px;background:#0F6B3F;color:#fff;font:600 16px Figtree,system-ui;cursor:pointer}
-@media(min-width:900px){.mw-hero .mw-g{grid-template-columns:1.1fr .9fr;align-items:center;gap:56px;padding-top:56px}.mw-rows{grid-template-columns:1fr 1fr;column-gap:48px}.mw-sec{padding:80px 0}.mw-cta{grid-template-columns:1fr auto;align-items:center;padding:40px}}
+@media(min-width:900px){.mw-hero .mw-g{grid-template-columns:1.1fr .9fr;align-items:center;gap:56px;padding-top:56px}.mw-rows{grid-template-columns:1fr 1fr;column-gap:48px}.mw-rows .mw-row:last-child:nth-child(odd){grid-column:1/-1}.mw-sec{padding:80px 0}.mw-cta{grid-template-columns:1fr auto;align-items:center;padding:40px}}
 @media(prefers-reduced-motion:reduce){.mw *{transition:none!important}}
 .mw button:focus-visible,.mw a:focus-visible,.mw summary:focus-visible,.mwl button:focus-visible{outline:3px solid #E4A93A;outline-offset:2px}
 #mw-inst{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:2147482000;max-width:460px;margin:0 auto;background:#fff;color:#10241A;border-radius:16px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,.35);font-family:Figtree,system-ui,sans-serif}
@@ -8222,8 +8222,14 @@ const GOLD = "#E4A93A";
 // admin's replies (see .chat-bubble.ai/.admin), so there's no visual tell
 // between the two, only the name.
 const SUPPORT_BOT_NAME = "Support";
+// Opens a link outside the app. Falls back to navigating when the installed app blocks pop-ups.
+function openExternalUrl(url) {
+    var w = null;
+    try { w = window.open(url, '_blank'); } catch (e) {}
+    if (!w) { window.location.href = url; }
+}
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
-const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/GwSJGQCaWbL0Hd4hw6Pu8W";
+const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const AI_NAME = "Enzo AI";
 const AI_CREATOR = "Enzo";
@@ -8231,12 +8237,10 @@ const AI_SHARE_URL = "https://myutme.com.ng/enzo-ai";
 const SEND_EMAIL_URL = SUPABASE_URL + "/functions/v1/Send-bulk-email";
 const ADMIN_GET_USERS_URL = SUPABASE_URL + "/functions/v1/admin-get-users";
 const ADMIN_WHATSAPP_NUMBER = "2347072853151";
-const SUPPORT_WHATSAPP_NUMBER = "2348071826114"; // displayed as 08071826114, wa.me needs country code without leading 0
-const SUPPORT_WHATSAPP_DISPLAY = "08071826114";
-// WhatsApp contacts listed on the Activate page (support + admin)
+// One support contact. The number is used only to open the chat and is never displayed.
+const SUPPORT_WHATSAPP_NUMBER = ADMIN_WHATSAPP_NUMBER;
 const PAY_CONTACTS = [
-    { label: "Support", number: SUPPORT_WHATSAPP_NUMBER, display: SUPPORT_WHATSAPP_DISPLAY },
-    { label: "Support", number: ADMIN_WHATSAPP_NUMBER, display: "0" + ADMIN_WHATSAPP_NUMBER.slice(3) },
+    { label: "Support", number: SUPPORT_WHATSAPP_NUMBER },
 ];
 
 const SUBJECT_PALETTE = ["#3B5FA0", "#B5502E", "#6E5296", "#3E7C74", "#A67C2E", "#46527A", "#0F6B3F", "#97527A",
@@ -9252,7 +9256,7 @@ function showUserError(context, err, friendlyMsg) {
     // genuine app errors get the raw message shown to admins.
     const _m = String((err && err.message) || err || '').toLowerCase();
     if (_m.includes('timed out') && isOnline()) {
-        showToast(fallbackMsg, 'error');
+        showToast(friendlyMsg || 'This is taking too long. Please try again.', 'error');
     } else if (isNetworkError(err)) {
         showToast("No internet connection. Please try again.", 'offline');
     } else if (isAdmin()) {
@@ -11018,6 +11022,9 @@ function fillAds() {
         f.src = box.getAttribute('data-src');
         f.width = box.getAttribute('data-w'); f.height = box.getAttribute('data-h');
         f.setAttribute('scrolling', 'no'); f.setAttribute('frameborder', '0'); f.title = 'Advertisement';
+        // Sandboxed: ads can open only on a real tap (new tab) and can never redirect the app page itself
+        f.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox');
+        f.setAttribute('referrerpolicy', 'no-referrer');
         f.style.cssText = 'border:0;width:100%;height:100%;display:block';
         box.appendChild(f);
     });
@@ -11490,6 +11497,9 @@ async function signIn(emailOrUsername, password) {
             if (!isUserActive() && !isAdmin()) {
                 state.showActivationBanner = true;
             }
+            // After logging in, land straight on the Account page (not Home)
+            state.view = 'profile';
+            try { syncUrlForView('profile'); } catch (e) {}
             render();
             cacheAllDataForOffline();
             restoreSessionSnapshot();
@@ -12721,6 +12731,10 @@ async function markClaimActivated(claimId) {
     if (c) c.activated_at = new Date().toISOString();
 }
 
+function scrollActivateStatusIntoView() {
+    setTimeout(function() { const e = document.getElementById('act-status'); if (e && e.scrollIntoView) e.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60);
+}
+
 async function redeemActivationKey(rawKey) {
     if (!state.authUser) { guestNeedsAccount(); return; }
     const keyCode = (rawKey || '').trim().toUpperCase();
@@ -12728,11 +12742,13 @@ async function redeemActivationKey(rawKey) {
         state.activateStatus = 'error';
         state.activateStatusMsg = 'Please enter a license key.';
         render();
+        scrollActivateStatusIntoView();
         return;
     }
 
     state.activateStatus = 'checking';
     render();
+    scrollActivateStatusIntoView();
 
     try {
         // The server checks the key, marks it used and activates the account in ONE step
@@ -12742,8 +12758,9 @@ async function redeemActivationKey(rawKey) {
             state.activateStatus = 'error';
             if (msg.indexOf('INVALID_KEY') !== -1) state.activateStatusMsg = 'Invalid license key. Please check and try again.';
             else if (msg.indexOf('KEY_USED') !== -1) state.activateStatusMsg = 'This license key has already been used.';
-            else { console.warn('Redeem key error:', error); state.activateStatusMsg = 'Error checking key. Please try again.'; }
+            else { console.warn('Redeem key error:', error); state.activateStatusMsg = (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'You are offline. Connect to the internet once to activate your key.' : 'Error checking key. Please try again.'; }
             render();
+            scrollActivateStatusIntoView();
             return;
         }
 
@@ -12763,6 +12780,7 @@ async function redeemActivationKey(rawKey) {
         state.activateStatus = 'error';
         state.activateStatusMsg = 'Something went wrong. Please try again.';
         render();
+        scrollActivateStatusIntoView();
     }
 }
 
@@ -13736,7 +13754,7 @@ function generateAiSupportReply(userText, issueKey) {
 // ============================================================
 const SUPPORT_HUMAN_MARKER = 'human attention';
 function supportEscalationLine() {
-    return '🙋 I\'ve marked this for human attention. An admin will read your message and reply right here in this chat. You can also WhatsApp us on ' + SUPPORT_WHATSAPP_DISPLAY + '.';
+    return '🙋 I\'ve marked this for human attention. An admin will read your message and reply right here in this chat. You can also chat with us on WhatsApp from the Activate page.';
 }
 function finalizeSupportReply(r) {
     if (!r) return null;
@@ -13809,7 +13827,7 @@ const SUPPORT_KB = [
       esc: true,
       a: 'Check your spam/promotions folder and wait a few minutes. Also confirm the email was typed correctly, and request only once (repeats can delay it).' },
     { k: ['whatsapp number', 'phone number', 'call you', 'reach you', 'contact you', 'contact support', 'contact number'],
-      a: 'WhatsApp support: ' + SUPPORT_WHATSAPP_DISPLAY + ' — or keep chatting here and I\'ll help.' },
+      a: 'You can chat with support on WhatsApp from the Activate page (tap Chat) — or keep chatting here and I\'ll help.' },
 ];
 
 const SUPPORT_HUMAN_REQUEST = /\b(human|real person|live agent|an agent|talk to (a |an |the )?(person|someone|admin|agent|somebody)|speak (to|with) (a |an |the )?(person|someone|admin|agent|somebody)|chat with (a |an |the )?(person|admin|agent)|contact (the )?admin|customer (care|service)|need (an |the )?admin|want (an |the )?admin)\b/i;
@@ -16339,7 +16357,7 @@ const FAQ_FEATURES = [
 const FAQ_QA = [
     { q: 'Is MyUTME free to use?', a: 'You can create a free account and explore the app right away. Some features require account activation to unlock full access. MyUTME does not use wallet funding — you simply pay to activate, either manually or straight to our dedicated account, as explained below.' },
     { q: 'How do I activate my account?', a: 'Go to the Activate menu and get a license key by paying either manually (chat with our team on WhatsApp to pay and get activated) or via Paystack, which can pay straight into our dedicated account by card, bank transfer or USSD. Once payment is confirmed, enter your activation key to unlock full access to practice questions, mock exams and more.' },
-    { q: 'Can I use the app without internet?', a: 'Yes. Once questions and materials have loaded at least once, you can keep practicing offline. You\u2019ll need a connection again to sync new content, submit exams, or update your results.' },
+    { q: 'Can I use the app without internet?', a: 'Yes. Once questions have loaded at least once, you can keep practicing offline. You\u2019ll need a connection again to sync new content, submit exams, or update your results.' },
     { q: 'How accurate are the practice questions?', a: 'Our question bank is built from real past JAMB questions and carefully reviewed CBT-style questions, kept as close as possible to what you\u2019ll actually face on exam day.' },
     { q: 'What subjects are covered?', a: 'All core JAMB subjects are covered. You can practice any subject individually, by topic, or combine them into a full mock exam just like the real UTME.' },
     { q: 'How does the Enzo AI work?', a: 'The Enzo AI answers questions in plain language, explains concepts you\u2019re stuck on, and can walk you through why an answer is correct — available any time from the Enzo AI tab.' },
@@ -16950,9 +16968,7 @@ const atMax = mySubjectIds.length === 4;
         '<section class="practice-hub-intro"><div class="practice-hub-kicker"><span class="study-eyebrow">PRACTICE</span></div>' +
         '<h1>Choose how you want to practise</h1>' +
         '<p>Pick a mode, then choose your subjects. For full-exam modes, English is compulsory and you pick the rest.</p></section>' +
-        modeGrid +
-        '<p class="section-label" style="margin:20px 0 8px">All subjects</p><div class="subject-grid">' +
-        SUBJECTS.filter(function(x) { return x.id !== 'lhm'; }).map(function(x) { return '<button class="subject-chip" data-action="open-subject-modes" data-subjectid="' + x.id + '">' + subjectBadge(x) + '<span class="sname">' + esc(x.name) + '</span></button>'; }).join('') + '</div>'
+        modeGrid
     );
 }
 
@@ -17014,7 +17030,7 @@ function renderLearningHubCore() {
     });
     return (
         '<h2 class="title" style="margin-bottom:2px;font-size:18px">My Learning</h2>' +
-        '<p class="sub" style="font-size:11px;margin-bottom:12px">Practice tools, study material, and your results</p>' +
+        '<p class="sub" style="font-size:11px;margin-bottom:12px">Practice tools and your results</p>' +
         '<div class="acct-menu-grid">' + cards + '</div>'
     );
 }
@@ -19385,7 +19401,7 @@ function renderSupportChat() {
 
     let bubbles = '';
     if (state.supportMessages.length === 0) {
-        bubbles = '<div class="chat-empty">👋 Hi, I\'m ' + SUPPORT_BOT_NAME + '. Tell me what is not working in the app — activation, payments, login, questions not loading, mocks, offline, updates — and I\'ll walk you through the fix. If I can\'t solve it, I\'ll mark it for human attention and an admin will reply here. WhatsApp: ' + SUPPORT_WHATSAPP_DISPLAY + '.</div>';
+        bubbles = '<div class="chat-empty">👋 Hi, I\'m ' + SUPPORT_BOT_NAME + '. Tell me what is not working in the app — activation, payments, login, questions not loading, mocks, offline, updates — and I\'ll walk you through the fix. If I can\'t solve it, I\'ll mark it for human attention and an admin will reply here. You can also chat with us on WhatsApp from the Activate page.</div>';
     } else {
         let lastSender = '';
         let lastTime = 0;
@@ -20763,8 +20779,10 @@ function renderActivateCore() {
 
     let statusBox = '';
     if (state.activateStatus === 'success') statusBox = '<div class="explanation-box" style="border-left-color:var(--green)"><p style="margin:0;color:var(--green);font-weight:600;font-size:13px">' + esc(state.activateStatusMsg) + '</p></div>';
-    else if (state.activateStatus === 'error') statusBox = '<div class="explanation-box" style="border-left-color:var(--danger);background:#fce4ec"><p style="margin:0;color:#B23420;font-weight:600;font-size:13px">' + esc(state.activateStatusMsg) + '</p></div>';
-    else if (state.activateStatus === 'checking') statusBox = '<p style="font-size:11px;color:var(--muted);margin-top:6px">Checking…</p>';
+    // Errors / "checking" show right above the key box, so nobody has to scroll up to see them
+    let keyStatusBox = '';
+    if (state.activateStatus === 'error') keyStatusBox = '<div id="act-status" class="explanation-box" style="border-left-color:var(--danger);background:#fce4ec;margin:0 0 8px"><p style="margin:0;color:#B23420;font-weight:600;font-size:13px">' + esc(state.activateStatusMsg) + '</p></div>';
+    else if (state.activateStatus === 'checking') keyStatusBox = '<p id="act-status" style="font-size:12px;color:var(--muted);margin:0 0 8px">Checking…</p>';
 
     let planCards = '';
     plans.forEach(function(p) {
@@ -20832,6 +20850,7 @@ function renderActivateCore() {
             renderPaidCard(plan)
             : '<div class="card"><p style="text-align:center;color:var(--muted);padding:12px 0;font-size:13px">No plans available right now. Please check back soon.</p></div>') +
         '<p class="lp-section" style="margin-top:16px">Have a key already?</p>' +
+        keyStatusBox +
         '<div class="act-input-wrap"><input id="activate-code-input" class="act-input" placeholder="e.g. XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" value="' + esc(state.activateCode) + '" />' +
         '<button class="act-paste" data-action="paste-activation-code">Paste</button></div>' +
         '<button class="act-primary" data-action="activate-submit">Activate with key</button>' +
@@ -20867,7 +20886,7 @@ function renderPaidCard(plan) {
     const contacts = PAY_CONTACTS.map(function(c) {
         return (
             '<div class="pc-contact"><span class="pc-wa">' + svg('whatsapp', 18) + '</span>' +
-            '<div class="pc-ct"><p class="pc-cl">' + esc(c.label) + ' WhatsApp</p><p class="pc-cn copyable">' + esc(c.display) + '</p></div>' +
+            '<div class="pc-ct"><p class="pc-cl">' + esc(c.label) + ' on WhatsApp</p><p class="pc-cn">Tap Chat to message us</p></div>' +
             '<button class="pc-chat" data-action="paid-whatsapp" data-num="' + esc(c.number) + '">Chat</button></div>'
         );
     }).join('');
@@ -20940,7 +20959,7 @@ function planDuration(plan) {
 //  HELP CENTER (built-in FAQs + WhatsApp support)
 // ============================================================
 const HELP_FAQS = [
-    { cat: 'Activation', q: 'What is an activation license?', a: 'A license unlocks full access — every past question, all subject materials and all flashcards — for the period of the plan you choose (for example 3, 6 or 12 months). Free accounts only get a limited number of questions per paper.' },
+    { cat: 'Activation', q: 'What is an activation license?', a: 'A license unlocks full access — every past question, all flashcards and all mock exams — for the period of the plan you choose (for example 3, 6 or 12 months). Free accounts only get a limited number of questions per paper.' },
     { cat: 'Activation', q: 'How do I get a license key?', a: 'Go to Activate → Get License Key, choose a plan and pay with Paystack or Manual Payment. Your license key is shown right after payment — copy it and paste it in the "Enter your activation license" box, then tap Activate Now.' },
     { cat: 'Activation', q: 'I paid but my account is not activated', a: 'Open Activate and check "My Activation Key" — your key is saved there. Tap Copy and paste it in the key box. If you cannot see any key after paying, chat with our support on WhatsApp and send your order code and payment proof.' },
     { cat: 'Activation', q: 'What is my Order Code?', a: 'It is a unique reference tied to your account. Support uses it to find your payment quickly, so quote it whenever you message us about a purchase.' },
@@ -22504,6 +22523,15 @@ function renderAdminNotifications() {
     }
 
     return (
+        '<div class="card" style="margin-bottom:10px">' +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 4px">📢 Message all users</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:0 0 10px">Write it once and every user gets it as an in-app notification and phone push. No need to message each person separately.</p>' +
+        '<label class="field-label">Title</label>' +
+        '<input class="field" id="admin-notif-title" maxlength="80" placeholder="e.g. Friday Mock starts at 4pm" style="margin-bottom:10px;font-size:13px" />' +
+        '<label class="field-label">Message</label>' +
+        '<textarea class="field" id="admin-notif-body" rows="4" placeholder="Write your message here..." style="margin-bottom:10px;font-size:13px"></textarea>' +
+        '<button class="btn btn-green" data-action="admin-send-notification" style="padding:10px">Send to all users</button>' +
+        '</div>' +
         '<div class="card" style="margin-bottom:10px">' +
         '<p style="font-size:13px;font-weight:600;margin:0 0 10px">📧 Send Broadcast Email</p>' +
         '<p style="font-size:10px;color:var(--muted);margin:-2px 0 10px">Sends an actual email to every registered user\'s address on file. Separate from the in-app/push notification above.</p>' +
@@ -25827,6 +25855,7 @@ document.addEventListener('click', function(e) {
             showToast('Fill in both title and body.', 'error');
             return;
         }
+        if (!window.confirm('Send this message to ALL users now? This can\'t be undone.')) return;
 
         const insertData = { 
             title: title, 
@@ -26117,7 +26146,7 @@ if (action === 'browse-filter') {
     }
 
     if (action === 'open-social-whatsapp') {
-        window.open(WHATSAPP_CHANNEL_URL, '_blank');
+        openExternalUrl(WHATSAPP_CHANNEL_URL);
         return;
     }
     if (action === 'open-social-coming-soon') {
@@ -26128,11 +26157,11 @@ if (action === 'browse-filter') {
     }
 
     if (action === 'open-study-circle-whatsapp') {
-        window.open(WHATSAPP_GROUP_URL, '_blank');
+        openExternalUrl(WHATSAPP_GROUP_URL);
         return;
     }
     if (action === 'open-help-community') {
-        window.open(WHATSAPP_CHANNEL_URL, '_blank');
+        openExternalUrl(WHATSAPP_CHANNEL_URL);
         return;
     }
     if (action === 'toggle-faq') {
@@ -27075,12 +27104,11 @@ function lpInstallBtn() {
 function renderLanding() {
     var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !lpInstalled();
     var feats = [
-        ['bookopen', 'Practice by subject or topic', 'Real past-question style CBT, one subject or one topic at a time, until the weak spots close.'],
-        ['target', 'Mock Arena', 'Four subjects, a live clock and a UTME-style score the second you submit.'],
-        ['sparkles', 'Enzo AI', 'Tap Better explanation on any question and Enzo breaks it down step by step.'],
-        ['rotate', 'Missed Questions', 'Every wrong answer is saved so you can retry only what cost you marks.'],
-        ['chart', 'Analytics', 'See your strongest and weakest subjects and topics after every exam.'],
-        ['wifioff', 'Study offline', 'Load once, then keep practising with low or no data.']
+        ['bookopen', 'Practice real JAMB CBT-style questions', 'One subject or one topic at a time, until the weak spots close.'],
+        ['target', 'Sit timed mock exams that feel like the real thing', 'Four subjects, a live clock and a UTME-style score the second you submit.'],
+        ['sparkles', 'Better explanations for any question', 'Tap Better explanation on any question and Enzo AI breaks it down step by step.'],
+        ['chart', 'Track your progress subject by subject', 'See your strongest and weakest subjects and topics after every exam.'],
+        ['wifioff', 'Keep studying even with low or no data', 'Load once, then keep practising with low or no data.']
     ];
     var rows = feats.map(function (f) { return '<div class="mw-row"><div class="mw-ic">' + svg(f[0], 22) + '</div><div><h3>' + f[1] + '</h3><p>' + f[2] + '</p></div></div>'; }).join('');
     var faq = (typeof FAQ_QA !== 'undefined' ? FAQ_QA : []).map(function (x) { return '<details><summary>' + esc(x.q) + '</summary><p>' + esc(x.a) + '</p></details>'; }).join('');
@@ -27096,7 +27124,7 @@ function renderLanding() {
       '<div class="mw-ac"><div class="mw-act">' + lpInstallBtn() + '<button class="mw-btn mw-ghost" data-lp="web">Use on the web</button></div>' +
       (ios ? '<p class="mw-hint">On iPhone: tap Share, then Add to Home Screen.</p>' : '<p class="mw-hint">Free to start. Works offline once installed.</p>') + '</div>' +
       '</div></div></header>' +
-      '<main class="mw-w"><section class="mw-sec"><h2>Everything a candidate needs</h2><p class="mw-lead">Six tools, one app, no switching between notes, past papers and tutors.</p><div class="mw-rows">' + rows + '</div></section>' +
+      '<main class="mw-w"><section class="mw-sec"><h2>Everything a candidate needs</h2><p class="mw-lead">Five tools, one app, no switching between notes, past papers and tutors.</p><div class="mw-rows">' + rows + '</div></section>' +
       '<section class="mw-sec" style="padding-top:0"><div class="mw-belief"><p>There are no dull students. Give every candidate the right practice and the score follows.</p></div></section>' +
       '<section class="mw-sec" style="padding-top:0"><h2>Start in three steps</h2><p class="mw-lead">You can look around before you pay anything.</p><ol class="mw-steps">' +
       '<li><div><b>Create a free account</b><span>Takes under a minute.</span></div></li>' +
@@ -27237,7 +27265,6 @@ function renderAdminDeptCard() {
 var AI_STYLE_HINT = '\n\n[Reply format: explain like clear study notes. Use short headed sections, simple steps, one worked example, and short paragraphs with a blank line between them. Be thorough but get to the point fast.]';
 function renderHomeFeatures() {
     var f = [
-        ['support', 'chat', 'Help & support', 'Chat with us anytime', '#6E5296'],
         ['analytics', 'chart', 'My insights', 'Spot your weak topics early', '#35618C'],
         ['history', 'clock', 'My results', 'Review every exam you took', '#A65640'],
 
@@ -27680,7 +27707,7 @@ async function init() {
         render();
     });
     window.addEventListener('offline', function() {
-        showToast("No internet connection. Please try again.", 'offline');
+        showToast("You're offline. Practice, CBT and mocks still work.", 'offline');
         render();
     });
 
