@@ -7704,6 +7704,53 @@ input,select,textarea{border-radius:14px!important}
 [data-theme="dark"] .chat-bubble.ai .chat-heading{color:#5fd49a}
 .chat-bubble.me{width:fit-content!important;min-width:min(max-content,82vw)!important;overflow-wrap:break-word!important;word-break:normal!important}
 </style>
+<style id="exam-compact">
+/* Compact exam screens: question + options fit on one screen */
+.exam-shell { padding: 2px 12px 0 !important; }
+.exam-shell-scroll { padding-bottom: 58px !important; }
+.exam-q-card-v2 { padding: 10px 12px !important; margin-bottom: 8px !important; border-radius: 14px !important; }
+.exam-q-card-v2 .q-headrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 6px; }
+.exam-q-card-v2 .q-num { margin: 0 !important; min-width: 0; font-size: 12px !important; letter-spacing: .02em !important; line-height: 1.3; }
+.exam-q-card-v2 .q-topic { text-transform: none; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.exam-q-card-v2 .q-body { font-size: 15px !important; line-height: 1.5 !important; }
+.eq-tools { display: flex; gap: 6px; flex-shrink: 0; }
+.eq-btn { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--bg); border: 1px solid var(--line); color: var(--muted); padding: 0; }
+.eq-btn svg { width: 17px; height: 17px; stroke: currentColor; }
+.eq-btn.marked { background: var(--green-light); color: var(--green); border-color: var(--green); }
+.eq-btn.flagged { background: #fdecea; color: #c0392b; border-color: #e6a39b; }
+.exam-options-wrap { gap: 6px !important; }
+.qa-option { min-height: 44px !important; padding: 8px 12px !important; border-radius: 12px !important; line-height: 1.4 !important; }
+.qa-option .qa-letter { width: 28px; height: 28px; min-width: 28px; font-size: 13px; }
+/* Slim single-row bottom bar */
+.exam-footer-v2 { padding: 6px 12px max(4px, env(safe-area-inset-bottom)) !important; left: 0; right: 0; transition: transform .22s ease; }
+.exam-footer-v2.ef-hidden { transform: translateY(105%); }
+.exam-footer-v2 .ef-row { display: flex; gap: 5px; margin: 0 !important; }
+.exam-footer-v2 .ef-row button { flex: 1; min-height: 38px !important; padding: 4px 2px !important; font-size: 11.5px !important; font-weight: 700; border-radius: 10px !important; gap: 2px; white-space: nowrap; }
+.exam-footer-v2 .ef-row button svg { width: 13px; height: 13px; }
+.exam-footer-v2 .ef-exit { background: transparent !important; border: 1.5px solid var(--line) !important; color: var(--muted) !important; }
+.exam-footer-v2 .ef-submit { flex: 1.35 !important; width: auto !important; background: var(--green-dark) !important; color: #fff !important; font-size: 12px !important; }
+/* Time in the top bar */
+.topbar-time { display: inline-flex; align-items: center; gap: 5px; font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--ink); background: var(--green-light); border-radius: 999px; padding: 5px 11px; }
+.topbar-time svg { stroke: currentColor; }
+.topbar-time.warning { color: #fff; background: var(--danger); }
+.topbar-time .tl-time.warning { color: inherit; }
+</style>
+<script>
+/* Bottom bar slides away while reading down the page and returns when scrolling up (or at the end) */
+(function () {
+    var last = 0;
+    document.addEventListener('scroll', function (e) {
+        var t = e.target;
+        if (!t || !t.classList || !t.classList.contains('exam-shell-scroll')) return;
+        var bar = document.querySelector('.exam-footer-v2');
+        if (!bar) return;
+        var y = t.scrollTop, atEnd = y + t.clientHeight >= t.scrollHeight - 8;
+        if (atEnd || y < last - 4 || y < 10) bar.classList.remove('ef-hidden');
+        else if (y > last + 8) bar.classList.add('ef-hidden');
+        last = y;
+    }, true);
+})();
+</script>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -8846,48 +8893,45 @@ function isLocalIndexLocked(localIndex) {
     return localIndex >= FREE_QUESTION_LIMIT;
 }
 
-function renderExamTimeLeftCard(timeLeft) {
-    const warn = timeLeft < 300;
-    return (
-        '<div class="exam-timeleft-card">' +
-        '<span class="tl-label">' + svg('clock', 15) + 'Time Left</span>' +
-        '<span class="tl-time' + (warn ? ' warning' : '') + '">' + formatTime(timeLeft) + '</span>' +
-        '</div>'
-    );
+// The time now lives in the top bar (see examTopbarTime), so no card is drawn in the page.
+function renderExamTimeLeftCard(timeLeft) { return ''; }
+
+function examTopbarTime() {
+    var map = { 'cbt-exam': 'cbtTimeLeft', 'topic-exam': 'topicTimeLeft', 'lit-exam': 'litTimeLeft', 'mock-exam': 'mockTimeLeft' };
+    var k = map[state.view];
+    if (!k || typeof state[k] !== 'number') return '';
+    var t = state[k];
+    return '<span class="topbar-time' + (t < 300 ? ' warning' : '') + '">' + svg('clock', 14) + '<span class="tl-time">' + formatTime(t) + '</span></span>';
 }
 
 // cfg: { calcEnabled, hasPassage, qid, subjectId, mode, marked, markAction, item }
 function renderExamIconRow(cfg) {
     const isFlagged = cfg.qid && state.myFlaggedIds.indexOf(cfg.qid) !== -1;
     if (cfg.item) cacheFlaggableQuestion(cfg.item, cfg.subjectId);
-    // Only show passage icon for CBT and Mock modes (not Exam)
     const showPassageIcon = cfg.hasPassage && cfg.mode !== 'exam';
-    return (
-        '<div class="exam-icon-row">' +
-        '<div class="exam-square-group">' +
+    // Drawn inside the question box by renderExamQCardHeader (same call, right after this one)
+    window.__examToolsHtml = (
+        '<div class="eq-tools">' +
         (cfg.calcEnabled
-            ? '<button class="exam-square-btn enabled" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg('calcsigns', 20) + '</button>'
-            : '<button class="exam-square-btn" data-action="toggle-calculator" aria-label="Calculator" style="opacity:0.35;cursor:not-allowed" title="Calculator disabled">' + svg('calcsigns', 20) + '</button>'
-        ) +
-        (showPassageIcon ? '<button class="exam-square-btn with-label" data-action="show-passage" title="View Passage" aria-label="View Passage" style="flex-direction:column;gap:1px;line-height:1"><span style="font-size:16px">📖</span><span style="font-size:8px;font-weight:700;letter-spacing:0.2px">Passage</span></button>' : '') +
-        '</div>' +
-        '<div class="exam-pill-group">' +
-        '<button class="exam-pill-btn' + (cfg.marked ? ' marked' : '') + '" data-action="toggle-mark-review" data-mode="' + (cfg.mode || '') + '" title="Mark for Review">' +
-        svg('bookmark', 16) + '<span>' + (cfg.marked ? 'Marked' : 'Bookmark') + '</span></button>' +
-        '<button class="exam-pill-btn' + (isFlagged ? ' flagged' : '') + '" data-action="flag-review-question" data-qid="' + (cfg.qid || '') + '" data-subject="' + (cfg.subjectId || '') + '" data-mode="' + (cfg.mode || '') + '" title="Flag Question">' +
-        svg('flag', 16) + '<span>' + (isFlagged ? 'Flagged' : 'Flag') + '</span></button>' +
-        '</div>' +
+            ? '<button class="eq-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg('calcsigns', 17) + '</button>'
+            : '<button class="eq-btn" data-action="toggle-calculator" aria-label="Calculator" style="opacity:0.35" title="Calculator disabled">' + svg('calcsigns', 17) + '</button>') +
+        (showPassageIcon ? '<button class="eq-btn" data-action="show-passage" title="View Passage" aria-label="View Passage"><span style="font-size:15px;line-height:1">📖</span></button>' : '') +
+        '<button class="eq-btn' + (cfg.marked ? ' marked' : '') + '" data-action="toggle-mark-review" data-mode="' + (cfg.mode || '') + '" title="Bookmark" aria-label="Bookmark">' + svg('bookmark', 17) + '</button>' +
+        '<button class="eq-btn' + (isFlagged ? ' flagged' : '') + '" data-action="flag-review-question" data-qid="' + (cfg.qid || '') + '" data-subject="' + (cfg.subjectId || '') + '" data-mode="' + (cfg.mode || '') + '" title="Flag Question" aria-label="Flag Question">' + svg('flag', 17) + '</button>' +
         '</div>'
     );
+    return '';
 }
-function renderExamQCardHeader(number, text, image) {
+function renderExamQCardHeader(number, text, image, topic) {
     // Optional diagram: only inline data:image/ URIs (e.g. SVG) are accepted.
     const diagram = (typeof image === 'string' && image.indexOf('data:image/') === 0)
         ? '<img class="q-diagram" alt="Question diagram" src="' + image.replace(/"/g, '&quot;') + '">'
         : '';
+    const tools = window.__examToolsHtml || '';
+    window.__examToolsHtml = '';
     return (
         '<div class="exam-q-card-v2">' +
-        '<p class="q-num">Question ' + number + '</p>' +
+        '<div class="q-headrow"><p class="q-num">Question ' + number + (topic ? ' <span class="q-topic">(' + esc(topic) + ')</span>' : '') + '</p>' + tools + '</div>' +
         '<p class="q-body">' + escM(text || '') + '</p>' +
         diagram +
         '</div>'
@@ -8906,19 +8950,17 @@ function renderExamLockCard() {
 
 // cfg: { hasPrev, prevAction, prevIdx, hasNext, nextAction, nextIdx, nextLocked, gotoAction, submitAction, exitMode }
 function renderExamFooterNav(cfg) {
+    const next = cfg.nextLocked
+        ? '<button class="ef-next" data-action="set-view" data-view="activate">' + svg('lock', 13) + ' Next</button>'
+        : '<button class="ef-next" data-action="' + cfg.nextAction + '" data-idx="' + (cfg.nextIdx != null ? cfg.nextIdx : '') + '"' + (cfg.hasNext ? '' : ' disabled') + '>Next ' + svg('chevleft', 13).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + '</button>';
     return (
         '<div class="exam-footer-v2">' +
         '<div class="ef-row">' +
-        '<button class="ef-back" data-action="' + cfg.prevAction + '" data-idx="' + (cfg.prevIdx != null ? cfg.prevIdx : '') + '"' + (cfg.hasPrev ? '' : ' disabled') + '>' + svg('chevleft', 14) + ' Back</button>' +
-        '<button class="ef-goto" data-action="' + cfg.gotoAction + '">' + svg('list', 14) + ' Goto</button>' +
-        (cfg.nextLocked
-            ? '<button class="ef-next" data-action="set-view" data-view="activate">' + svg('lock', 14) + ' Next</button>'
-            : '<button class="ef-next" data-action="' + cfg.nextAction + '" data-idx="' + (cfg.nextIdx != null ? cfg.nextIdx : '') + '"' + (cfg.hasNext ? '' : ' disabled') + '>Next ' + svg('chevleft', 14).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + '</button>'
-        ) +
-        '</div>' +
-        '<div class="ef-row" style="margin-top:8px">' +
-        '<button class="ef-exit" data-action="exam-manual-exit" data-exitmode="' + (cfg.exitMode || '') + '" style="flex:1;background:transparent;border:1.5px solid var(--line);color:var(--muted);border-radius:10px;padding:10px;font-size:12px;font-weight:600">' + svg('x', 14) + ' Exit Exam</button>' +
-        '<button class="ef-submit" data-action="' + cfg.submitAction + '" style="flex:2;width:auto">' + svg('filetext', 16) + ' Submit Exam</button>' +
+        '<button class="ef-back" data-action="' + cfg.prevAction + '" data-idx="' + (cfg.prevIdx != null ? cfg.prevIdx : '') + '"' + (cfg.hasPrev ? '' : ' disabled') + '>' + svg('chevleft', 13) + ' Back</button>' +
+        '<button class="ef-goto" data-action="' + cfg.gotoAction + '">' + svg('list', 13) + ' Goto</button>' +
+        next +
+        '<button class="ef-exit" data-action="exam-manual-exit" data-exitmode="' + (cfg.exitMode || '') + '">Exit</button>' +
+        '<button class="ef-submit" data-action="' + cfg.submitAction + '">Submit</button>' +
         '</div>' +
         '</div>'
     );
@@ -8955,10 +8997,11 @@ function tickTimerDisplay(seconds) {
     // running. Matching the real markup here means normal ticks now only
     // touch the timer text node, and the rest of the DOM (including
     // scroll position) is left alone.
-    const timeEl = document.querySelector('.exam-timeleft-card .tl-time');
+    const timeEl = document.querySelector('.topbar-time .tl-time') || document.querySelector('.exam-timeleft-card .tl-time');
     if (!timeEl) return false;
     timeEl.textContent = formatTime(seconds);
     timeEl.classList.toggle('warning', seconds < 300);
+    if (timeEl.parentNode && timeEl.parentNode.classList && timeEl.parentNode.classList.contains('topbar-time')) timeEl.parentNode.classList.toggle('warning', seconds < 300);
     return true;
 }
 
@@ -16649,7 +16692,7 @@ function renderApp() {
         '<div class="topbar' + (isHome ? '' : ' topbar-plain') + '">' +
         (isExamTaking
             ? '<div class="topbar-left"><span class="page-name">MyUTME</span></div>' +
-              '<div class="topbar-center"></div><div class="topbar-right"></div>'
+              '<div class="topbar-center"></div><div class="topbar-right">' + examTopbarTime() + '</div>'
             : isAiAssistant
             ? '<div class="topbar-left">' +
               navPairHtml() +
@@ -18328,8 +18371,7 @@ function renderTopicExam() {
     return (
         '<div class="exam-shell">' +
         '<div class="exam-shell-scroll">' +
-        '<div class="exam-topic-tag"><span class="et-sub">Topic</span><span class="et-name">' + esc(state.topicName || ((state.topicsList || []).find(function(t) { return t.id === state.topicId; }) || {}).name || 'Topic Practice') + '</span></div>' +
-        renderExamTimeLeftCard(state.topicTimeLeft) +
+                renderExamTimeLeftCard(state.topicTimeLeft) +
         renderExamIconRow({
             calcEnabled: calcEnabled,
             hasPassage: false,
@@ -18341,7 +18383,7 @@ function renderTopicExam() {
         }) +
         (qLocked
             ? renderExamLockCard()
-            : (renderExamQCardHeader(state.topicIndex + 1, item?.text, item?.image) +
+            : (renderExamQCardHeader(state.topicIndex + 1, item?.text, item?.image, state.topicName || ((state.topicsList || []).find(function(t) { return t.id === state.topicId; }) || {}).name || 'Topic Practice') +
                '<div class="exam-options-wrap">' + opts + '</div>')
         ) +
         '</div>' +
