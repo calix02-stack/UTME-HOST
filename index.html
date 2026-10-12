@@ -8193,10 +8193,13 @@ async function subscribeToPush() {
             });
         }
 
-        await supabase.from("push_subscriptions").upsert({
+        const _pk = 'pushEndpoint_' + state.authUser.id;
+        if (storage.get(_pk) === sub.endpoint) return; // already saved for this device: no request
+        const _pr = await supabase.from("push_subscriptions").upsert({
             user_id: state.authUser.id,
             subscription: sub.toJSON(),
         }, { onConflict: "user_id" });
+        if (!_pr.error) storage.set(_pk, sub.endpoint);
     } catch (e) {
         console.warn("Push subscribe error:", e);
     }
@@ -8358,8 +8361,8 @@ const HOME_TILES = [
         colorDark: "#4A3B66" },
     { key: "literature", label: "Novel (CBT)", blurb: "Set texts & comprehension", icon: "book", color: "#3E7C74",
         colorDark: "#2C5850" },
-    { key: "documents", label: "Study Materials", blurb: "Past questions & study files", icon: "folder",
-        color: "#46527A", colorDark: "#323C5C" },
+
+
     { key: "revise", label: "Missed Questions", blurb: "Retry missed questions", icon: "rotate",
         color: "#0F6B3F", colorDark: "#0A4A2B" },
     { key: "history", label: "Result Analysis", blurb: "View all your results", icon: "clock",
@@ -9999,6 +10002,8 @@ async function loadAllUsers() {
 }
 
 async function loadFlaggedCount() {
+    if (Date.now() - Number(storage.get('flagAt') || 0) < 24 * 3600 * 1000) { state.flaggedCount = Number(storage.get('flagCount') || 0); return; }
+    storage.set('flagAt', String(Date.now()));
     try {
         const { count, error } = await supabase
             .from('flagged_questions')
@@ -10009,6 +10014,7 @@ async function loadFlaggedCount() {
             return;
         }
         state.flaggedCount = count || 0;
+        storage.set('flagCount', String(state.flaggedCount));
         render();
     } catch (e) {
         state.flaggedCount = 0;
@@ -10426,8 +10432,11 @@ async function loadSettings() {
 
 let _docsAt = 0;
 async function loadDocuments(filterSubject) {
+    state.docsList = []; state.docsLoaded = true; return; // study materials removed
     try {
-        if (state.docsLoaded && Date.now() - _docsAt < 15 * 60 * 1000) { return; }
+        if (state.docsLoaded && Date.now() - _docsAt < 6 * 3600 * 1000) { return; }
+        const _dc = loadOfflineCache('docs_list');
+        if (_dc && _dc.length && Date.now() - Number(storage.get('docsAt') || 0) < 6 * 3600 * 1000) { state.docsList = _dc; state.docsLoaded = true; _docsAt = Date.now(); render(); return; }
         _docsAt = Date.now();
         let query = supabase.from('materials').select('id, name, file_name, file_type, created_at, subject_id, subject_name');
         const { data, error } = await query.order('created_at', { ascending: false });
@@ -10440,6 +10449,7 @@ async function loadDocuments(filterSubject) {
         }
         state.docsList = data || [];
         state.docsLoaded = true;
+        try { saveOfflineCache('docs_list', state.docsList); storage.set('docsAt', String(Date.now())); } catch (e) {}
         render();
     } catch (e) {
         _docsAt = 0;
@@ -10484,6 +10494,7 @@ async function _removeMaterialFileByUrl(fileUrl) {
     } catch (e) { console.warn('Storage remove ignored:', e); }
 }
 async function loadSingleDocumentFile(docId) {
+    return null; // study materials removed
     try {
         const _saved = await _docGet(docId);
         if (_saved) { if (!state.docFileUrls) state.docFileUrls = {}; state.docFileUrls[docId] = _saved; render(); return; }
@@ -10778,6 +10789,7 @@ async function saveHistoryEntry(entry) {
 
 
 async function checkAndDeactivateExpiredUsers() {
+    return; // disabled: caused 401 errors; scheduled in Supabase instead
     try {
         const { data, error } = await supabase.rpc('deactivate_expired_users');
         if (error) {
@@ -11094,6 +11106,8 @@ function pushNotifReads(ids) {
 async function loadNotifications() {
     const key = notifCacheKey();
     const cached = loadOfflineCache(key) || [];
+    if (cached.length && state.view !== 'notifications' && Date.now() - Number(storage.get('notifAt_' + key) || 0) < 24 * 3600 * 1000) { applyNotifRows(cached); return; }
+    storage.set('notifAt_' + key, String(Date.now()));
     const lastFull = Number(storage.get('notifsFullAt_' + key) || 0);
     const needFull = !cached.length || (Date.now() - lastFull > 24 * 3600 * 1000);
     try {
@@ -11215,6 +11229,7 @@ function newsSaveDraft() { const t = document.getElementById('news-comment-input
 let newsLastLoad = 0, newsLastAttempt = 0, newsRetries = 0, newsRetryTimer = null;
 function newsAutoLoad() { if (!state.newsLoading && Date.now() - newsLastAttempt > 5000) loadNews(); }
 async function loadNews() {
+    state.news = []; state.newsLoaded = true; state.newsLoading = false; return; // news removed
     if (state.newsLoading) return;
     state.newsLoading = true; newsLastAttempt = Date.now();
     let ok = false;
@@ -11258,9 +11273,10 @@ async function loadNews() {
     render();
 }
 // refresh news when the app comes back to the screen or the internet returns
-document.addEventListener('visibilitychange', function() { if (!document.hidden && Date.now() - newsLastLoad > 300000) loadNews(); });
+document.addEventListener('visibilitychange', function() { if (!document.hidden && Date.now() - newsLastLoad > 1800000) loadNews(); });
 window.addEventListener('online', function() { newsRetries = 0; loadNews(); });
 async function loadNewsComments(id) {
+    return; // news removed
     state.newsCommentsFor = id;
     try {
         const { data } = await supabase.from('news_post_comments').select('*').eq('news_id', id).order('created_at', { ascending: true }).limit(200);
@@ -11293,6 +11309,7 @@ function isNewsLikedNow(id) {
     return (state.newsLikeRows || []).some(function(l) { return l.news_id === id && ((uid && l.user_id === uid) || (gid && l.guest_id === gid)); });
 }
 async function toggleNewsLike(id) {
+    return; // news removed
     const uid = state.authUser && state.authUser.id, was = isNewsLikedNow(id);
     state.newsMyLikes[id] = !was; state.newsLikes[id] = Math.max(0, (state.newsLikes[id] || 0) + (was ? -1 : 1)); render();
     const who = uid ? { user_id: uid } : { guest_id: newsGuestId() };
@@ -11312,6 +11329,7 @@ async function toggleNewsLike(id) {
     if (!was) state.newsLikeRows.push(Object.assign({ news_id: id, user_id: null, guest_id: null }, who));
 }
 async function postNewsComment(id) {
+    return; // news removed
     if (newsNeedLogin()) return;
     const t = document.getElementById('news-comment-input'); const body = (t ? t.value : state.newsDraft).trim();
     if (!body) { showToast('Write a comment first.', 'error'); return; }
@@ -11323,6 +11341,7 @@ async function postNewsComment(id) {
     state.newsCommentCounts[id] = (state.newsCommentCounts[id] || 0) + 1; render();
 }
 async function deleteNewsComment(cid) {
+    return; // news removed
     if (!window.confirm('Delete this comment?')) return;
     const { error } = await supabase.from('news_post_comments').delete().eq('id', cid);
     if (error) { showNetworkAwareError('Could not delete the comment.', error); return; }
@@ -11376,6 +11395,7 @@ if ('serviceWorker' in navigator) {
 }
 // ----- admin -----
 async function adminPostNews() {
+    return; // news removed
     if (!isAdmin()) return;
     const title = (document.getElementById('admin-notif-title') || {}).value || '';
     const body = (document.getElementById('admin-notif-body') || {}).value || '';
@@ -11404,6 +11424,7 @@ async function adminPostNews() {
     showToast('✅ News posted!', 'success');
 }
 async function adminDeleteNews(id) {
+    return; // news removed
     if (!window.confirm('Delete this news post (and its likes and comments)?')) return;
     const { error } = await supabase.from('news_posts').delete().eq('id', id);
     if (error) { showNetworkAwareError('Could not delete.', error); return; }
@@ -11425,6 +11446,7 @@ function renderAdminNewsList() {
 }
 // ----- screens -----
 function renderNewsStrip() {
+    return ''; // news removed
     if (!state.news.length) { const c = loadOfflineCache('news'); if (c && c.length) state.news = c; }   // show saved news instantly
     if (!state.newsLoaded) newsAutoLoad();
     const n = state.news[0];
@@ -11616,7 +11638,8 @@ function startLastSeenHeartbeat() {
     const userId = state.authUser.id;
     function ping() {
         if (!state.authUser || state.authUser.id !== userId) return;
-        supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', userId).then(function() {}, function() {});
+        try { var _ls = Number(storage.get('lastSeenAt_' + userId) || 0); if (Date.now() - _ls < 30 * 60 * 1000) return; storage.set('lastSeenAt_' + userId, String(Date.now())); } catch (e) {}
+        // last_seen removed: no more writes
     }
     ping(); // update immediately, don't wait up to 2 minutes for the first write
     // (removed) the repeating 2-minute timer; one write per app open is enough
@@ -11752,7 +11775,7 @@ async function checkAuthSession(retriesLeft) {
             loadMyElectivesLocal();
             const cachedProfile = loadOfflineCache('profile_' + user.id);
             const { data: prof, error: pErr } = await withNetworkTimeout(
-                supabase.from('profiles').select('id,username,email,updated_at,is_active,activation_expiry,last_seen,full_name,wallet_balance,created_at').eq('id', user.id).maybeSingle(),
+                supabase.from('profiles').select('id,username,email,updated_at,is_active,activation_expiry,full_name,created_at').eq('id', user.id).maybeSingle(),
                 8000, 'Profile load'
             ).catch(function(e) {
                 console.warn('Profile load timed out, using cache if available:', e);
@@ -11927,7 +11950,6 @@ async function signUp(fullName, username, email, password, department) {
                     email: email, 
                     is_active: false,
                     full_name: fullName,
-                    wallet_balance: 0,
                 }]);
 
             if (department) { try { await supabase.from('profiles').update({ department: department }).eq('id', data.user.id); } catch (e) {} }
@@ -12031,7 +12053,7 @@ async function signIn(emailOrUsername, password) {
             loadMyElectivesLocal();
             const { data: prof, error: pErr } = await supabase
                 .from('profiles')
-                .select('id,username,email,updated_at,is_active,activation_expiry,last_seen,full_name,wallet_balance,created_at')
+                .select('id,username,email,updated_at,is_active,activation_expiry,full_name,created_at')
                 .eq('id', data.user.id)
                 .maybeSingle();
             if (!pErr && prof) {
@@ -12107,7 +12129,7 @@ async function signOut() {
         // whichever moment the heartbeat happened to last fire.
         if (state.authUser) {
             try {
-                await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', state.authUser.id);
+                // last_seen removed
             } catch (e) { console.warn("Ignored error:", e); }
             
             await endDeviceSession();
@@ -16511,7 +16533,7 @@ function setView(v, navOpts) {
         loadAdminClaims();
         loadFlaggedCount();
         
-        checkAndDeactivateExpiredUsers();
+        // checkAndDeactivateExpiredUsers() removed: it returned 401 every time. Run it with pg_cron instead.
     }
     if (v === "notifications") loadNotifications();
     
@@ -17340,7 +17362,7 @@ function renderApp() {
     let rightContent = '';
     const badgeLabel = unread > 9 ? '9+' : unread;
     const bellStroke = isHome ? 'white' : 'currentColor';
-    rightContent += '<button class="icon-btn" data-action="set-view" data-view="news" aria-label="News" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:40px;padding:0 4px;font-size:17px;line-height:1">📰<span style="font-size:9px;font-weight:800;letter-spacing:.04em">News</span></button>';
+
     rightContent += '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
         svg('bell', 18).replace('stroke="currentColor"', 'stroke="' + bellStroke + '"') +
         (unread > 0 ? '<span style="position:absolute;top:-4px;right:-4px;background:#e2543a;color:#fff;border-radius:999px;font-size:9px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--topbar-bg)">' + badgeLabel + '</span>' : '') +
@@ -17393,7 +17415,7 @@ function renderApp() {
               (state.swVersion ? '<span class="app-version-badge">' + esc(formatVersionBadge(state.swVersion)) + '</span>' : '') +
               '</span></div>' +
               '<div class="topbar-right">' +
-              '<button class="icon-btn" data-action="set-view" data-view="news" aria-label="News" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:40px;padding:0 4px;font-size:17px;line-height:1">📰<span style="font-size:9px;font-weight:800;letter-spacing:.04em">News</span></button>' +
+
               '<button class="icon-btn" data-action="set-view" data-view="notifications" aria-label="Notifications" style="position:relative">' +
               svg('bell', 17).replace('stroke="currentColor"', 'stroke="white"') +
               (unread > 0 ? '<span style="position:absolute;top:-4px;right:-4px;background:#e2543a;color:#fff;border-radius:999px;font-size:9px;font-weight:700;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--topbar-bg)">' + badgeLabel + '</span>' : '') +
@@ -17655,7 +17677,7 @@ const atMax = mySubjectIds.length === 4;
         { view: 'exam', label: 'Past Questions', sub: '2021 – 2026', icon: 'clipboard', tint: '#A65640' },
         { view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
         { view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#3E7C74' },
-        { view: 'documents', label: 'Study Materials', sub: 'Past Q & files', icon: 'folder', tint: '#46527A' },
+
     ];
     let modeGrid = '<div class="ph-mode-list">';
     modes.forEach(function(m) {
@@ -17733,7 +17755,7 @@ function renderLearningHubCore() {
         { key: 'literature', label: 'Novel (CBT)', blurb: 'Set texts & comprehension', icon: 'book', color: '#3E7C74' },
         { key: 'revise', label: 'Missed Questions', blurb: 'Retry questions you missed', icon: 'rotate', color: '#0F6B3F' },
         { key: 'topic', label: 'Topic Practice', blurb: 'Read topic notes or take a topic CBT', icon: 'list', color: '#6B4F82' },
-        { key: 'documents', label: 'Study Materials', blurb: 'Past questions & study files', icon: 'folder', color: '#46527A' },
+
         { key: 'history', label: 'Result Analysis', blurb: 'Your exam results & performance', icon: 'clock', color: '#6E5296' },
     ];
     let cards = '';
@@ -21657,7 +21679,7 @@ function renderNotifications() {
         );
     }
 
-    let tabHtml = '<button class="nw-strip" style="width:100%;text-align:left;font-family:inherit" data-action="set-view" data-view="news"><span style="font-size:22px">📰</span><div><p class="l">News</p><p class="t">Read the latest MyUTME news →</p></div></button>';
+    let tabHtml = '';
     let filtered = state.notifsList.filter(function(n) { return n.target_user_id === state.authUser?.id || n.news_id; });
 
     let items = "";
@@ -21985,7 +22007,7 @@ const ADMIN_TABS = [
     { key: "overview", label: "📊 Overview" },
     { key: "questions", label: "📝 Questions" },
     { key: "settings", label: "⚙️ Settings" },
-    { key: "documents", label: "📄 Documents" },                
+
     { key: "users", label: "👥 Users" },
     { key: "activated", label: "✅ Activated" },
     { key: "notifications", label: "🔔 Notify" },
@@ -22020,7 +22042,7 @@ function renderAdmin() {
     else if (state.adminTab === "overview") body = renderAdminOverview();
     else if (state.adminTab === "questions") body = renderAdminQuestions();
     else if (state.adminTab === "settings") body = renderAdminSettings();
-    else if (state.adminTab === "documents") body = renderAdminDocuments();
+
     else if (state.adminTab === "users") body = renderAdminUsers();
     else if (state.adminTab === "activated") body = renderAdminActivated();
     else if (state.adminTab === "notifications") body = renderAdminNotifications();
@@ -22143,10 +22165,10 @@ async function loadAnalyticsData() {
         const rs = await Promise.all([
             supabase.from('payment_claims').select('id, plan_name, status, amount, created_at'),
             supabase.from('activation_keys').select('id, plan_name, price, is_used, used_at'),
-            supabase.from('news_posts').select('id'),
+            Promise.resolve({ data: [] }),
             supabase.from('support_messages').select('id, sender, read_by_admin'),
             supabase.from('flagged_questions').select('id'),
-            supabase.from('materials').select('id'),
+            Promise.resolve({ data: [] }),
         ]);
         const rows = function(i) { return (rs[i] && rs[i].data) || []; };
         const claims = rows(0), keys = rows(1);
@@ -22171,8 +22193,8 @@ async function loadAnalyticsData() {
             rangeDays: rangeDays, days: days, signups: signups, sales: sales, byPlan: byPlan,
             totalUsers: profiles.length,
             activated: profiles.filter(function(p) { return p.is_active && (!p.activation_expiry || new Date(p.activation_expiry).getTime() > now); }).length,
-            online: profiles.filter(function(p) { return p.last_seen && now - new Date(p.last_seen).getTime() < 5 * 60 * 1000; }).length,
-            activeToday: profiles.filter(function(p) { return p.last_seen && now - new Date(p.last_seen).getTime() < 24 * 60 * 60 * 1000; }).length,
+            online: 0,
+            activeToday: 0,
             newUsers: profiles.filter(function(p) { return p.created_at && new Date(p.created_at).getTime() >= sinceMs; }).length,
             revenueRange: revenueRange, revenueAll: revenueAll,
             keysUsed: used.length, keysUnused: keys.length - used.length,
@@ -22202,7 +22224,7 @@ function renderAdminAnalytics() {
         return '<button class="btn btn-sm ' + (state.analyticsRange === n ? 'btn-green' : 'btn-outline') + '" data-action="analytics-range" data-range="' + n + '" style="flex:1">' + n + 'd</button>';
     }).join('') + '<button class="btn btn-outline btn-sm" data-action="analytics-refresh" style="flex:0 0 auto;padding:6px 10px">' + svg('refresh', 15) + '</button></div>';
     html += adashKpis([
-        ['Total users', d.totalUsers], ['Activated', d.activated], ['Online now', d.online], ['Active today', d.activeToday],
+        ['Total users', d.totalUsers], ['Activated', d.activated],
         ['New users (' + d.rangeDays + 'd)', d.newUsers], ['Revenue (' + d.rangeDays + 'd)', adashNaira(d.revenueRange)],
         ['Total revenue', adashNaira(d.revenueAll)], ['Keys used / unused', d.keysUsed + ' / ' + d.keysUnused],
     ]);
@@ -23533,7 +23555,7 @@ function renderAdminUsers() {
         const avatarHtml = null 
             ? '<img src="' + esc(null) + '" style="width:32px;height:32px;border-radius:999px;object-fit:cover" />' 
             : '<div style="width:32px;height:32px;border-radius:999px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + esc(avatarLetter) + '</div>';
-        const isOnlineNow = user.last_seen && (Date.now() - new Date(user.last_seen).getTime()) < 5 * 60 * 1000;
+        const isOnlineNow = false;
         const joinedLabel = user.created_at ? new Date(user.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
         
         const isSelected = (state.admin.selectedUserIds || []).indexOf(user.id) !== -1;
@@ -23550,7 +23572,7 @@ function renderAdminUsers() {
             '<div class="user-info">' +
             '<span class="user-name">' + esc(displayName) + '</span>' +
             '<span class="user-email">@' + esc(user.username) + ' · ' + esc(user.email || '') + '</span>' +
-            '<span style="font-size:9px;color:' + (isOnlineNow ? '#22c55e' : 'var(--faint)') + '">' + (isOnlineNow ? '🟢 Online now' : '⚪ Last seen ' + (user.last_seen ? formatTimeAgo(user.last_seen) : 'never')) + '</span>' +
+            '' +
             (joinedLabel ? '<span style="font-size:9px;color:var(--faint)">📅 Joined ' + joinedLabel + '</span>' : '') +
             '</div>' +
             '</div>' +
@@ -23619,8 +23641,8 @@ function renderAdminUserDetail() {
     const registeredDate = user.created_at ? new Date(user.created_at) : null;
     const registeredStr = registeredDate ? registeredDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : null;
 
-    const isOnlineNow = user.last_seen && (Date.now() - new Date(user.last_seen).getTime()) < 5 * 60 * 1000;
-    const lastSeenStr = user.last_seen ? formatTimeAgo(user.last_seen) : 'Never';
+    const isOnlineNow = false;
+    const lastSeenStr = '';
 
     let body = '';
 
@@ -23635,7 +23657,7 @@ function renderAdminUserDetail() {
         '<p style="font-weight:800;font-size:16px;margin:0">' + esc(displayName) + '</p>' +
         '<p style="font-size:12px;color:var(--muted);margin:2px 0 0">@' + esc(user.username || '') + '</p>' +
         '<p style="font-size:11px;color:var(--faint);margin:2px 0 0">' + esc(user.email || 'No email') + '</p>' +
-        '<p style="font-size:11px;font-weight:700;margin:4px 0 0;color:' + (isOnlineNow ? '#22c55e' : 'var(--faint)') + '">' + (isOnlineNow ? '🟢 Online now' : '⚪ Last seen ' + lastSeenStr) + '</p>' +
+        '' +
         '</div>' +
         '</div>'
     );
@@ -23646,7 +23668,7 @@ function renderAdminUserDetail() {
         '<p style="font-weight:700;font-size:13px;margin:0 0 8px">Account</p>' +
         '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span style="color:var(--muted)">Activation status</span><span style="font-weight:600">' + statusLabel + '</span></div>' +
         (registeredStr ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span style="color:var(--muted)">Registered</span><span style="font-weight:600">' + registeredStr + '</span></div>' : '') +
-        '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span style="color:var(--muted)">Last seen</span><span style="font-weight:600">' + (isOnlineNow ? 'Online now' : lastSeenStr) + '</span></div>' +
+        '' +
         '<div style="display:flex;gap:6px;margin-top:10px">' +
         (isActive ?
             '<button class="btn btn-outline" style="flex:1;font-size:12px" data-action="admin-deactivate-user" data-userid="' + user.id + '">Deactivate</button>' :
@@ -28666,7 +28688,7 @@ function renderHomeFeatures() {
         ['support', 'chat', 'Help & support', 'Chat with us anytime', '#6E5296'],
         ['analytics', 'chart', 'My insights', 'Spot your weak topics early', '#35618C'],
         ['history', 'clock', 'My results', 'Review every exam you took', '#A65640'],
-        ['news', 'list', 'Exam news', 'JAMB updates in one place', '#3E7C74']
+
     ];
     return '<div class="section-hdr"><div><h2>Study tools</h2><p>Everything that helps you score higher</p></div></div><div class="mw-hf">' +
         '<button class="mw-hf-cta" data-action="set-view" data-view="mysubjects"><span class="mw-hf-ic" style="background:#0F6B3F;color:#fff">' + svg('target', 24) + '</span><span class="mw-hf-t"><b>Start practising</b><i>CBT, past questions, topics, flashcards and more</i></span><span class="mw-hf-go">\u2192</span></button>' +
