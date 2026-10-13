@@ -7792,6 +7792,22 @@ input,select,textarea{border-radius:14px!important}
 /* Calculator drag */
 .calc-modal { touch-action: none; }
 .calc-header { touch-action: none; user-select: none; -webkit-user-select: none; }
+
+/* v3.1 — fit picture questions on one screen */
+.q-headrow { align-items: flex-start !important; margin-bottom: 4px !important; }
+.q-headleft { min-width: 0; flex: 1; }
+.q-topic-line { margin: 4px 0 0 !important; font-size: 11.5px !important; padding: 2px 9px !important; }
+.eq-btn { min-width: 48px !important; padding: 4px 4px 3px !important; }
+.eq-lbl { font-size: 8.5px !important; }
+.eq-btn svg { width: 15px !important; height: 15px !important; }
+.q-diagram { width: 100%; height: auto; max-height: 26vh; object-fit: contain; margin-top: 6px !important; }
+.exam-shell-scroll { padding-bottom: 100px !important; }
+.exam-shell-scroll .qa-option { min-height: 42px !important; }
+.exam-shell-scroll .exam-options-wrap { gap: 5px !important; }
+.exam-footer-v2 { padding-top: 6px !important; }
+.exam-footer-v2 .ef-row { gap: 6px !important; }
+.exam-footer-v2 .ef-row button { min-height: 40px !important; }
+.exam-footer-v2 .ef-submit { min-height: 40px !important; margin-top: 5px !important; font-size: 13.5px !important; }
 </style>
 <script>
 /* Calculator: drag by its header with finger or mouse. Starts on pointerdown
@@ -9002,8 +9018,8 @@ function renderExamQCardHeader(number, text, image, topic) {
     window.__examToolsHtml = '';
     return (
         '<div class="exam-q-card-v2">' +
-        '<div class="q-headrow"><p class="q-num">Question ' + number + '</p>' + tools + '</div>' +
-        (topic ? '<p class="q-topic-line">' + esc(topic) + '</p>' : '') +
+        '<div class="q-headrow"><div class="q-headleft"><p class="q-num">Question ' + number + '</p>' +
+        (topic ? '<p class="q-topic-line">' + esc(topic) + '</p>' : '') + '</div>' + tools + '</div>' +
         '<p class="q-body">' + escM(text || '') + '</p>' +
         diagram +
         '</div>'
