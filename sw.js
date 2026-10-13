@@ -17,7 +17,7 @@
 //    but the background refresh now also bypasses the HTTP cache.
 // v27: question files (questions-*.json) are now NETWORK-FIRST, so newly uploaded questions show
 // up straight away — you never need to edit this file just to publish questions again.
-const CACHE_NAME = "myutme-cache-v62";
+const CACHE_NAME = "myutme-cache-v65";
 
 const APP_SHELL = [
   "./",
@@ -192,10 +192,22 @@ async function refreshShell() {
     fetched.push([u, res]);
   }
   const cache = await caches.open(CACHE_NAME);
+  // Did the app page or its script actually change? (so the page can reload itself once)
+  let changed = false;
+  for (const [u, res] of fetched) {
+    if (u === "./manifest.json") continue;
+    try {
+      const old = await cache.match(u);
+      if (!old) { changed = true; continue; }
+      const [a, b] = await Promise.all([old.clone().text(), res.clone().text()]);
+      if (a !== b) changed = true;
+    } catch (e) { /* treat as unchanged */ }
+  }
   for (const [u, res] of fetched) {
     await cache.put(u, res.clone());
     if (u === "./index.html") await cache.put("./", res.clone());
   }
+  return changed;
 }
 
 self.addEventListener("message", (event) => {
@@ -203,7 +215,7 @@ self.addEventListener("message", (event) => {
   const port = event.ports && event.ports[0];
   event.waitUntil(
     refreshShell().then(
-      () => port && port.postMessage({ ok: true }),
+      (changed) => port && port.postMessage({ ok: true, changed: !!changed }),
       () => port && port.postMessage({ ok: false })
     )
   );

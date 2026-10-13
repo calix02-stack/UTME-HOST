@@ -188,7 +188,7 @@
 <meta name="apple-mobile-web-app-title" content="MyUTME" />
 <meta property="og:site_name" content="MyUTME" />
 <meta name="author" content="Enzo" />
-<meta name="application-name" content="MyUTME · Enzo AI" />
+<meta name="application-name" content="MyUTME" />
 <meta name="copyright" content="© 2026 Enzo. All rights reserved." />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="https://myutme.com.ng/" />
@@ -197,18 +197,18 @@
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "MyUTME",
-  "alternateName": "JAMB CBT App",
-  "url": "https://myutme.com.ng"
+  "alternateName": "MyUTME JAMB CBT App",
+  "url": "https://myutme.com.ng/"
 }
 </script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "MobileApplication",
-  "name": "MyUTME - JAMB CBT Practice App",
+  "name": "MyUTME",
   "applicationCategory": "EducationalApplication",
   "operatingSystem": "Web, Android, iOS",
-  "description": "Free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions, and get help from an Enzo AI.",
+  "description": "MyUTME is a free JAMB CBT practice app. Practice UTME past questions, topic drills and mock exams.",
   "offers": {
     "@type": "Offer",
     "price": "0",
@@ -226,7 +226,7 @@
 <link rel="apple-touch-icon" href="https://myutme.com.ng/icon-192.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="https://myutme.com.ng/icon-192.png" />
 <link rel="shortcut icon" href="https://myutme.com.ng/icon-192.png" />
-<title>MyUTME – JAMB CBT Practice App for UTME Mock Exams & Past Questions</title>
+<title>MyUTME – JAMB CBT Practice App</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
@@ -339,16 +339,16 @@
 #mw-ptr{position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);left:50%;width:40px;height:40px;margin-left:-20px;border-radius:12px;background:#fff;color:#0F6B3F;box-shadow:0 4px 14px rgba(0,0,0,.25);display:grid;place-items:center;z-index:2147481000;opacity:0;transform:translateY(-60px);pointer-events:none}
 #mw-ptr.s svg{animation:mwspin .7s linear infinite}@keyframes mwspin{to{transform:rotate(360deg)}}
 </style>
-<meta name="description" content="Free JAMB CBT app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions, and drill topics subject by subject. The easiest JAMB CBT practice app to prepare for UTME on your phone." />
-<meta property="og:title" content="MyUTME - JAMB CBT Practice App" />
-<meta property="og:description" content="Practice real JAMB CBT-style questions, take timed mock exams, and drill topics subject by subject." />
-<meta property="og:image" content="https://myutme.com.ng/icon-192.png" />
+<meta name="description" content="MyUTME is a free JAMB CBT practice app. Practice UTME past questions and topic drills, and take mock exams on your phone, with simple explanations for every answer." />
+<meta property="og:title" content="MyUTME – JAMB CBT Practice App" />
+<meta property="og:description" content="MyUTME is a free JAMB CBT practice app. Practice past questions, topic drills and mock exams." />
+<meta property="og:image" content="https://myutme.com.ng/icon-512.png" />
 <meta property="og:url" content="https://myutme.com.ng" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="MyUTME - JAMB CBT Practice App" />
-<meta name="twitter:description" content="Practice real JAMB CBT-style questions, take timed mock exams, and drill topics subject by subject." />
-<meta name="twitter:image" content="https://myutme.com.ng/icon-192.png" />
+<meta name="twitter:title" content="MyUTME – JAMB CBT Practice App" />
+<meta name="twitter:description" content="MyUTME is a free JAMB CBT practice app. Practice past questions, topic drills and mock exams." />
+<meta name="twitter:image" content="https://myutme.com.ng/icon-512.png" />
 <style>
     /* ============================================================
        CSS VARIABLES & RESET
@@ -7783,6 +7783,8 @@ input,select,textarea{border-radius:14px!important}
 /* Questions without a picture: same text size, weight and option height as picture
    questions. The card fits its text and the options sit right under it (no empty gap). */
 .exam-shell-scroll > .exam-options-wrap { flex: 0 0 auto; }
+/* a little extra height so short questions don't look cramped; sizes and gaps stay the same */
+.exam-shell-scroll:not(:has(.q-diagram)) > .exam-q-card-v2 { min-height: 20vh; }
 
 /* Footer: Back | Goto | Next, then Submit */
 .exam-footer-v2 { padding-top: 8px !important; }
@@ -9038,7 +9040,20 @@ function subjectBadge(s) {
 // Free (non-activated) users can only progress through the first
 // FREE_QUESTION_LIMIT questions of any given subject/paper before being
 // asked to activate their account.
-const FREE_QUESTION_LIMIT = 6;
+const FREE_QUESTION_LIMIT = 10;
+
+// Direct APK install (instant, no waiting for Chrome to "mint" the app).
+// Upload your signed APK to the site, then put its address here, e.g. 'https://myutme.com.ng/MyUTME.apk'.
+// Leave it empty to keep the normal browser install.
+const MYUTME_APK_URL = '';
+function tryApkInstall() {
+    if (!MYUTME_APK_URL || !/android/i.test(navigator.userAgent)) return false;
+    var a = document.createElement('a');
+    a.href = MYUTME_APK_URL; a.download = 'MyUTME.apk';
+    document.body.appendChild(a); a.click(); a.remove();
+    showToast('Downloading MyUTME… when it finishes, tap the file to install.', '');
+    return true;
+}
 
 // localIndex is the 0-based position of a question *within its own
 // subject/paper* (not the global array index) — this is what the goto
@@ -13634,6 +13649,9 @@ function renderReviewPage() {
     var subjName = subj ? subj.name : (item.subject_name || '');
     var answered = userAns !== null && userAns !== undefined && userAns >= 0;
     var isCorrect = answered && userAns === item.correct_answer;
+    var rvLocal = 0;
+    for (var rj = 0; rj < i; rj++) { if (rs.items[rj] && rs.items[rj].subject_id === item.subject_id) rvLocal++; }
+    var rvLocked = isLocalIndexLocked(rvLocal);
 
     var opts = '';
     (item.options || []).forEach(function(o, k) {
@@ -13643,7 +13661,7 @@ function renderReviewPage() {
         opts += '<button class="' + cls + '"><span class="qa-letter">' + String.fromCharCode(65 + k) + '</span><span>' + escM(o) + '</span></button>';
     });
 
-    var chip = !answered
+    var chip = rvLocked ? '<span class="rv-chip rv-skip">🔒 Locked</span>' : !answered
         ? '<span class="rv-chip rv-skip">Not answered</span>'
         : (isCorrect ? '<span class="rv-chip">✅ You got it right</span>'
                      : '<span class="rv-chip rv-bad">❌ You chose ' + String.fromCharCode(65 + userAns) + '</span>');
@@ -13658,12 +13676,13 @@ function renderReviewPage() {
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
         '<span style="font-size:13px;font-weight:600">Question ' + (i + 1) + ' of ' + total + '</span>' + chip +
         '</div>' +
+        (rvLocked ? renderExamLockCard() : (
         '<div class="card exam-question-card"><p style="font-weight:600;margin:0;font-size:16px">' + escQ(item.text) + '</p>' + ((typeof item.image === 'string' && item.image.indexOf('data:image/') === 0) ? '<img class="q-diagram" alt="Question diagram" src="' + item.image.replace(/"/g, '&quot;') + '">' : '') + '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
         explanation +
         '<div class="rv-actions">' + inlineAiButtonHtml(item, subjName) +
         renderFlagButton(item.id, item.subject_id || '', rs.kind, item) + '</div>' +
-        inlineAiBoxHtml(item) +
+        inlineAiBoxHtml(item) + '')) +
         '<div style="display:flex;gap:6px;margin-top:14px">' +
         (i > 0 ? '<button class="btn btn-outline" style="flex:1" data-action="review-prev">Previous</button>' : '') +
         (i < total - 1
@@ -14052,8 +14071,8 @@ const SUPPORT_KB = [
       a: 'Under "Connect With Us" on Account, WhatsApp is live now. Telegram, Facebook, Instagram and TikTok links are coming soon.' },
     { k: ['change name', 'edit profile', 'profile picture', 'profile photo', 'change photo', 'avatar', 'update profile', 'change my name'],
       a: 'Account → Profile lets you edit your name and photo. Tap Profile, make your change and save.' },
-    { k: ['free trial', 'only 8', '8 questions', 'why only', 'question limit', 'limited questions', 'locked mode', 'unlock full', 'need to activate'],
-      a: 'Accounts that are not activated get every feature, but each attempt is capped at 8 questions. Activate on Account (the Activate card) with a license key or by paying, and you get the full sets.' },
+    { k: ['free trial', 'only 10', '10 questions', 'why only', 'question limit', 'limited questions', 'locked mode', 'unlock full', 'need to activate'],
+      a: 'Accounts that are not activated get every feature, but the first 10 questions of every subject are free and the rest are locked. Activate on Account (the Activate card) with a license key or by paying, and you get the full sets.' },
     { k: ['how to activate', 'how do i activate', 'how can i activate', 'how to subscribe', 'buy key', 'get a key', 'where to buy', 'how much', 'subscription price', 'payment method', 'how to pay'],
       not: ['paid', 'not activated', 'after payment', 'charged', 'failed', 'declined', 'deducted', 'debited'],
       a: 'Go to Account → the Activate card.\n1. Enter your license key (12 characters like A1B2-C3D4-E5F6), or\n2. Pay online with Paystack, or pay manually via WhatsApp and you\'ll receive a key\nOnce active, the card shows your expiry date. The current price is shown on the Activate card. Already paid but still locked? Go to Account → Activate → Already paid? card, write your name and email and send it. We approve within 2 hours or when admin is online, and your key appears under My Activation Key.' },
@@ -14204,7 +14223,7 @@ async function generateSmartSupportReply(userText) {
     const recent = (state.supportMessages || []).filter(function(m) { return !m.isTyping && !m.isSystem; }).slice(-7, -1)
         .map(function(m) { return (m.sender === 'user' ? 'User: ' : 'Support: ') + String(m.message || '').slice(0, 300); }).join('\n');
     const expiry = state.profile.activation_expiry ? new Date(state.profile.activation_expiry).toLocaleDateString() : null;
-    const ctx = 'Account: ' + (isUserActive() ? 'ACTIVE' + (expiry ? ' until ' + expiry : '') : 'NOT active (free trial, 8 questions per attempt)') +
+    const ctx = 'Account: ' + (isUserActive() ? 'ACTIVE' + (expiry ? ' until ' + expiry : '') : 'NOT active (free access, first 10 questions per subject, rest locked)') +
         '. Device: ' + (isOnline() ? 'online' : 'offline') + ', ' + (isStandaloneApp() ? 'installed app' : 'website') +
         ', app version ' + (formatVersionBadge(state.swVersion) || 'unknown') + '.';
     const prompt =
@@ -14477,11 +14496,12 @@ async function sendAdminSupportReply(userId, username, text) {
 //  capped to a small number of questions, and they're told to activate
 //  once they hit the cap instead of being blocked outright.
 // ============================================================
-const TRIAL_QUESTION_CAP = 8;
+const TRIAL_QUESTION_CAP = 10;
 
 function applyTrialQuestionCap(questions) {
-    if (isAdmin() || isUserActive()) return questions;
-    return (questions || []).slice(0, TRIAL_QUESTION_CAP);
+    // Free users now get the WHOLE set loaded: the first FREE_QUESTION_LIMIT questions of each
+    // subject are open and the rest show a padlock (see isLocalIndexLocked).
+    return questions;
 }
 
 // Call right after questions are capped and the quiz view is shown, so the
@@ -14489,7 +14509,7 @@ function applyTrialQuestionCap(questions) {
 function notifyTrialCapIfNeeded(totalAvailable) {
     if (isAdmin() || isUserActive()) return;
     if (totalAvailable > TRIAL_QUESTION_CAP) {
-        showToast('Free trial: ' + TRIAL_QUESTION_CAP + ' questions per attempt. Activate your account for full sets.', '');
+        showToast('Free access: first ' + TRIAL_QUESTION_CAP + ' questions are open, the rest are locked 🔒. Activate to unlock all.', '');
     }
 }
 
@@ -17318,8 +17338,7 @@ function renderFreePlanLimitsCard(compact) {
         '<div class="card free-limits-card" style="margin-bottom:12px;border-left:3px solid var(--gold);padding:12px 14px">' +
         '<p style="font-size:12.5px;font-weight:800;margin:0 0 6px">Free plan limits</p>' +
         '<ul class="admin-list" style="font-size:11.5px;margin:0;padding-left:16px">' +
-        '<li><b>Practice / CBT:</b> up to ' + TRIAL_QUESTION_CAP + ' questions per attempt</li>' +
-        '<li><b>Past Questions:</b> first ' + FREE_QUESTION_LIMIT + ' questions of each paper</li>' +
+        '<li><b>Every practice mode:</b> first ' + TRIAL_QUESTION_CAP + ' questions of each subject open, the rest locked</li>' +
         '<li><b>Enzo AI:</b> limited number of questions per day</li>' +
         '<li><b>Mock Arena:</b> requires activation</li>' +
         '</ul>' +
@@ -17334,7 +17353,7 @@ function renderHomeActivationCard() {
         '<div class="card" style="margin-bottom:12px;padding:12px 14px;border:1.5px solid var(--gold)">' +
         '<div style="display:flex;align-items:center;gap:10px">' +
         '<div style="flex:1;min-width:0"><p style="font-size:13px;font-weight:800;margin:0 0 2px">Account not activated</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0">' + TRIAL_QUESTION_CAP + ' questions per attempt · limited Enzo AI · Mock Arena locked</p></div>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0">' + TRIAL_QUESTION_CAP + ' free questions per subject · limited Enzo AI · Mock Arena locked</p></div>' +
         '<button class="btn btn-gold btn-sm" data-action="set-view" data-view="activate" style="flex-shrink:0;padding:8px 14px">Activate</button>' +
         '</div></div>'
     );
@@ -27456,7 +27475,7 @@ document.addEventListener('click', function (e) {
     if (a === 'hint') return showToast('MyUTME is installed. Open it from your home screen or app list.', '');
     if (a === 'web') { state.lpEntered = true; try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} if (lpInstalled() && !isStandaloneApp()) showToast('Open MyUTME from your home screen for the full app experience.', ''); return render(); }
     if (a === 'login') { try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} state.showLogin = true; state.showSignup = false; syncUrlForAuth('login'); return render(); }
-    if (a === 'install') { if (mwPrompt) mwInstallFlow(); else if (window.triggerPWAInstall) window.triggerPWAInstall(); return; }
+    if (a === 'install') { if (tryApkInstall()) return; if (mwPrompt) mwInstallFlow(); else if (window.triggerPWAInstall) window.triggerPWAInstall(); return; }
     if (a === 'opt') {
         var i = +t.getAttribute('data-i'), box = t.parentNode, fb = document.getElementById('mw-fb');
         [].forEach.call(box.children, function (b, n) { b.className = n === 2 ? 'ok' : (n === i ? 'bad' : ''); if (n !== 2 && n !== i) b.className = ''; });
@@ -28199,7 +28218,7 @@ function swCheckUpdate(timeoutMs) {
             if (!navigator.onLine || !navigator.serviceWorker || !navigator.serviceWorker.controller) return resolve(false);
             var ch = new MessageChannel();
             var t = setTimeout(function () { resolve(false); }, timeoutMs || 15000);
-            ch.port1.onmessage = function (e) { clearTimeout(t); resolve(!!(e.data && e.data.ok)); };
+            ch.port1.onmessage = function (e) { clearTimeout(t); window.__swChanged = !!(e.data && e.data.changed); resolve(!!(e.data && e.data.ok)); };
             navigator.serviceWorker.controller.postMessage({ type: 'CHECK_UPDATE' }, [ch.port2]);
         } catch (e) { resolve(false); }
     });
@@ -28208,20 +28227,36 @@ function swCheckUpdate(timeoutMs) {
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
         navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (reg) {
-            // Automatic update: at most once every 24 hours, only when online,
-            // quietly in the background. Nothing is shown and nothing is logged
-            // if there is no network — it simply tries again on a later open.
-            // The downloaded update is used the next time the app is opened.
-            setTimeout(function () {
+            // Automatic update, like the question files: every time the app is opened (and when it
+            // comes back to the front, or the internet returns) it asks the server if there is a newer
+            // version. A tiny "not modified" reply if nothing changed. With no internet it does nothing
+            // and shows no error; it simply tries again when the network is back.
+            var lastCheck = 0, checking = false;
+            var autoUpdate = function (force) {
                 try {
-                    var last = Number(localStorage.getItem('myutme_last_update_check') || 0);
-                    if (!navigator.onLine || Date.now() - last < 24 * 60 * 60 * 1000) return;
+                    if (checking || !navigator.onLine) return;
+                    if (!force && Date.now() - lastCheck < 3 * 60 * 1000) return;   // at most once every 3 minutes
+                    checking = true; lastCheck = Date.now();
                     reg.update().catch(function () {});
                     swCheckUpdate(20000).then(function (ok) {
-                        if (ok) { try { localStorage.setItem('myutme_last_update_check', String(Date.now())); } catch (e) {} }
-                    });
-                } catch (e) {}
-            }, 8000);
+                        checking = false;
+                        if (!ok) { lastCheck = 0; return; }       // failed (slow/offline): try again next time
+                        try { localStorage.setItem('myutme_last_update_check', String(Date.now())); } catch (e) {}
+                        if (window.__swChanged) {
+                            window.__swChanged = false;
+                            var tryReload = function () {      // never interrupt an exam or an AI reply
+                                var busy = ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'].indexOf(state.view) !== -1 || state.aiSending;
+                                if (busy) return setTimeout(tryReload, 5000);
+                                location.reload();
+                            };
+                            tryReload();
+                        }
+                    }, function () { checking = false; });
+                } catch (e) { checking = false; }
+            };
+            setTimeout(function () { autoUpdate(true); }, 1500);
+            window.addEventListener('online', function () { autoUpdate(true); });
+            document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') autoUpdate(false); });
         }).catch(function (err) {
             console.warn("SW registration failed:", err);
         });
@@ -28274,6 +28309,7 @@ if ("serviceWorker" in navigator) {
     });
 
     window.triggerPWAInstall = async function () {
+        if (tryApkInstall()) return;
         if (window.mwHasPrompt && window.mwHasPrompt()) return window.mwInstallFlow();
         if (deferredPrompt) {
             deferredPrompt.prompt();
