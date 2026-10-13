@@ -7770,7 +7770,6 @@ input,select,textarea{border-radius:14px!important}
 /* Room for the 2-row footer */
 .exam-shell-scroll { padding-bottom: 112px !important; display: flex; flex-direction: column; }
 .exam-shell-scroll > * { flex-shrink: 0; }
-.exam-shell-scroll > .exam-options-wrap { flex: 1 1 auto; min-height: 0; }
 
 /* Topic on its own line so it is never cut off */
 .q-topic-line { margin: 0 0 8px; display: inline-block; max-width: 100%; font-size: 12.5px; font-weight: 700; color: var(--green); background: var(--green-light); border-radius: 999px; padding: 3px 10px; line-height: 1.35; }
@@ -7781,15 +7780,10 @@ input,select,textarea{border-radius:14px!important}
 .eq-btn svg { width: 16px !important; height: 16px !important; }
 .eq-lbl { font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: .01em; }
 
-/* Questions without a picture fill the screen */
-.exam-shell-scroll:not(:has(.q-diagram)) .exam-q-card-v2 .q-body { font-size: clamp(17px, 2.6vh, 21px) !important; line-height: 1.55 !important; }
-.exam-shell-scroll:not(:has(.q-diagram)) .exam-q-card-v2 { padding: 14px !important; }
-.exam-shell-scroll:not(:has(.q-diagram)) .exam-options-wrap { gap: 10px !important; padding-top: 2px; }
-.exam-shell-scroll:not(:has(.q-diagram)) .qa-option {
-    flex: 1 1 0; min-height: 56px !important; max-height: min(130px, 15vh);
-    display: flex; align-items: center; font-size: clamp(17px, 2.5vh, 20px) !important;
-}
-.exam-shell-scroll:not(:has(.q-diagram)) .qa-option .qa-letter { width: 34px; height: 34px; min-width: 34px; font-size: 15px; }
+/* Questions without a picture: same text size, weight and option height as picture
+   questions. The question card simply grows into the space a picture would use. */
+.exam-shell-scroll > .exam-options-wrap { flex: 0 0 auto; }
+.exam-shell-scroll:not(:has(.q-diagram)) > .exam-q-card-v2 { flex: 1 1 auto; }
 
 /* Footer: Back | Goto | Next, then Submit */
 .exam-footer-v2 { padding-top: 8px !important; }
