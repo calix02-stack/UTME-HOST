@@ -13536,7 +13536,7 @@ function renderReviewPage() {
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
         '<span style="font-size:13px;font-weight:600">Question ' + (i + 1) + ' of ' + total + '</span>' + chip +
         '</div>' +
-        '<div class="card exam-question-card"><p style="font-weight:600;margin:0;font-size:16px">' + escM(item.text) + '</p></div>' +
+        '<div class="card exam-question-card"><p style="font-weight:600;margin:0;font-size:16px">' + escM(item.text) + '</p>' + ((typeof item.image === 'string' && item.image.indexOf('data:image/') === 0) ? '<img class="q-diagram" alt="Question diagram" src="' + item.image.replace(/"/g, '&quot;') + '">' : '') + '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
         explanation +
         '<div class="rv-actions">' + inlineAiButtonHtml(item, subjName) +
@@ -17922,7 +17922,7 @@ function renderCbtExam() {
         (state.cbtSubjectOrder.length > 1 ? '<div class="subject-tabs">' + subjectTabs + '</div>' : '') +
         (qLocked
             ? renderExamLockCard()
-            : (renderExamQCardHeader(currentSubjectIndex + 1, item?.text) +
+            : (renderExamQCardHeader(currentSubjectIndex + 1, item?.text, item?.image) +
                '<div class="exam-options-wrap">' + opts + '</div>')
         ) +
         '</div>' +
@@ -18134,7 +18134,7 @@ function renderExamExam() {
         }) +
         (qLocked
             ? renderExamLockCard()
-            : (renderExamQCardHeader(state.examIndex + 1, item?.text) +
+            : (renderExamQCardHeader(state.examIndex + 1, item?.text, item?.image, (item && item.subject_id === 'math') ? 'UTME-style practice' : undefined) +
                '<div class="exam-options-wrap">' + opts + '</div>' +
                (isInstant && instantResult !== undefined && item ?
                    '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><p>' + escM(item.explanation || 'No explanation provided.') + '</p>' +
