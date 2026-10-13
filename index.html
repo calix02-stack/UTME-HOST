@@ -7751,6 +7751,77 @@ input,select,textarea{border-radius:14px!important}
     }, true);
 })();
 </script>
+
+<style id="exam-v3">
+/* Room for the 2-row footer */
+.exam-shell-scroll { padding-bottom: 112px !important; display: flex; flex-direction: column; }
+.exam-shell-scroll > * { flex-shrink: 0; }
+.exam-shell-scroll > .exam-options-wrap { flex: 1 1 auto; min-height: 0; }
+
+/* Topic on its own line so it is never cut off */
+.q-topic-line { margin: 0 0 8px; display: inline-block; max-width: 100%; font-size: 12.5px; font-weight: 700; color: var(--green); background: var(--green-light); border-radius: 999px; padding: 3px 10px; line-height: 1.35; }
+
+/* Labelled tools: Calculator / Mark / Flag */
+.eq-tools { gap: 5px !important; }
+.eq-btn { width: auto !important; min-width: 46px; height: auto !important; padding: 5px 6px 4px !important; display: flex !important; flex-direction: column; align-items: center; gap: 2px; border-radius: 10px !important; }
+.eq-btn svg { width: 16px !important; height: 16px !important; }
+.eq-lbl { font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: .01em; }
+
+/* Questions without a picture fill the screen */
+.exam-shell-scroll:not(:has(.q-diagram)) .exam-q-card-v2 .q-body { font-size: clamp(17px, 2.6vh, 21px) !important; line-height: 1.55 !important; }
+.exam-shell-scroll:not(:has(.q-diagram)) .exam-q-card-v2 { padding: 14px !important; }
+.exam-shell-scroll:not(:has(.q-diagram)) .exam-options-wrap { gap: 10px !important; padding-top: 2px; }
+.exam-shell-scroll:not(:has(.q-diagram)) .qa-option {
+    flex: 1 1 0; min-height: 56px !important; max-height: min(130px, 15vh);
+    display: flex; align-items: center; font-size: clamp(17px, 2.5vh, 20px) !important;
+}
+.exam-shell-scroll:not(:has(.q-diagram)) .qa-option .qa-letter { width: 34px; height: 34px; min-width: 34px; font-size: 15px; }
+
+/* Footer: Back | Goto | Next, then Submit */
+.exam-footer-v2 { padding-top: 8px !important; }
+.exam-footer-v2 .ef-row { gap: 8px !important; }
+.exam-footer-v2 .ef-row button { min-height: 44px !important; font-size: 13px !important; }
+.exam-footer-v2 .ef-row .ef-next { background: var(--green) !important; color: #fff !important; }
+.exam-footer-v2 .ef-row .ef-next:disabled { background: var(--green-light) !important; color: var(--green) !important; }
+.exam-footer-v2 .ef-submit { display: flex; width: 100% !important; flex: none !important; margin-top: 6px; min-height: 44px; font-size: 14px !important; border-radius: 12px !important; align-items: center; justify-content: center; }
+
+/* Exit now lives in the top bar */
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.topbar-exit { border: 1.5px solid var(--danger); color: var(--danger); background: transparent; border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 800; }
+
+/* Calculator drag */
+.calc-modal { touch-action: none; }
+.calc-header { touch-action: none; user-select: none; -webkit-user-select: none; }
+</style>
+<script>
+/* Calculator: drag by its header with finger or mouse. Starts on pointerdown
+   (the old code started on click, which only fires after the finger lifts, so it never moved). */
+(function () {
+    var drag = null;
+    document.addEventListener('pointerdown', function (e) {
+        var h = e.target.closest && e.target.closest('.calc-header');
+        if (!h) return;
+        var modal = h.closest('.calc-modal');
+        if (!modal) return;
+        var r = modal.getBoundingClientRect();
+        drag = { modal: modal, dx: e.clientX - r.left, dy: e.clientY - r.top, w: r.width, h: r.height, id: e.pointerId };
+        modal.style.right = 'auto'; modal.style.bottom = 'auto';
+        modal.style.left = r.left + 'px'; modal.style.top = r.top + 'px';
+        try { h.setPointerCapture(e.pointerId); } catch (_) {}
+        e.preventDefault();
+    }, true);
+    document.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        var x = Math.max(0, Math.min(window.innerWidth - drag.w, e.clientX - drag.dx));
+        var y = Math.max(0, Math.min(window.innerHeight - drag.h, e.clientY - drag.dy));
+        drag.modal.style.left = x + 'px'; drag.modal.style.top = y + 'px';
+        try { state.calcPosition = { x: x, y: y }; } catch (_) {}
+    }, true);
+    function end() { drag = null; }
+    document.addEventListener('pointerup', end, true);
+    document.addEventListener('pointercancel', end, true);
+})();
+</script>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -8913,11 +8984,11 @@ function renderExamIconRow(cfg) {
     window.__examToolsHtml = (
         '<div class="eq-tools">' +
         (cfg.calcEnabled
-            ? '<button class="eq-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg('calcsigns', 17) + '</button>'
-            : '<button class="eq-btn" data-action="toggle-calculator" aria-label="Calculator" style="opacity:0.35" title="Calculator disabled">' + svg('calcsigns', 17) + '</button>') +
+            ? '<button class="eq-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg('calcsigns', 17) + '<span class="eq-lbl">Calculator</span></button>'
+            : '<button class="eq-btn" data-action="toggle-calculator" aria-label="Calculator" style="opacity:0.35" title="Calculator disabled">' + svg('calcsigns', 17) + '<span class="eq-lbl">Calculator</span></button>') +
         (showPassageIcon ? '<button class="eq-btn" data-action="show-passage" title="View Passage" aria-label="View Passage"><span style="font-size:15px;line-height:1">📖</span></button>' : '') +
-        '<button class="eq-btn' + (cfg.marked ? ' marked' : '') + '" data-action="toggle-mark-review" data-mode="' + (cfg.mode || '') + '" title="Bookmark" aria-label="Bookmark">' + svg('bookmark', 17) + '</button>' +
-        '<button class="eq-btn' + (isFlagged ? ' flagged' : '') + '" data-action="flag-review-question" data-qid="' + (cfg.qid || '') + '" data-subject="' + (cfg.subjectId || '') + '" data-mode="' + (cfg.mode || '') + '" title="Flag Question" aria-label="Flag Question">' + svg('flag', 17) + '</button>' +
+        '<button class="eq-btn' + (cfg.marked ? ' marked' : '') + '" data-action="toggle-mark-review" data-mode="' + (cfg.mode || '') + '" title="Mark this question to come back to it later" aria-label="Mark for review">' + svg('bookmark', 17) + '<span class="eq-lbl">' + (cfg.marked ? 'Marked' : 'Mark') + '</span></button>' +
+        '<button class="eq-btn' + (isFlagged ? ' flagged' : '') + '" data-action="flag-review-question" data-qid="' + (cfg.qid || '') + '" data-subject="' + (cfg.subjectId || '') + '" data-mode="' + (cfg.mode || '') + '" title="Report a problem with this question" aria-label="Flag Question">' + svg('flag', 17) + '<span class="eq-lbl">' + (isFlagged ? 'Flagged' : 'Flag') + '</span></button>' +
         '</div>'
     );
     return '';
@@ -8931,7 +9002,8 @@ function renderExamQCardHeader(number, text, image, topic) {
     window.__examToolsHtml = '';
     return (
         '<div class="exam-q-card-v2">' +
-        '<div class="q-headrow"><p class="q-num">Question ' + number + (topic ? ' <span class="q-topic">(' + esc(topic) + ')</span>' : '') + '</p>' + tools + '</div>' +
+        '<div class="q-headrow"><p class="q-num">Question ' + number + '</p>' + tools + '</div>' +
+        (topic ? '<p class="q-topic-line">' + esc(topic) + '</p>' : '') +
         '<p class="q-body">' + escM(text || '') + '</p>' +
         diagram +
         '</div>'
@@ -8959,9 +9031,8 @@ function renderExamFooterNav(cfg) {
         '<button class="ef-back" data-action="' + cfg.prevAction + '" data-idx="' + (cfg.prevIdx != null ? cfg.prevIdx : '') + '"' + (cfg.hasPrev ? '' : ' disabled') + '>' + svg('chevleft', 13) + ' Back</button>' +
         '<button class="ef-goto" data-action="' + cfg.gotoAction + '">' + svg('list', 13) + ' Goto</button>' +
         next +
-        '<button class="ef-exit" data-action="exam-manual-exit" data-exitmode="' + (cfg.exitMode || '') + '">Exit</button>' +
-        '<button class="ef-submit" data-action="' + cfg.submitAction + '">Submit</button>' +
         '</div>' +
+        '<button class="ef-submit" data-action="' + cfg.submitAction + '">Submit exam</button>' +
         '</div>'
     );
 }
@@ -15595,7 +15666,7 @@ function renderGotoModal() {
 function renderCalculator() {
     if (!state.showCalculator) return '';
     const pos = state.calcPosition;
-    const style = (pos.x !== null && pos.y !== null) ? 'left:' + pos.x + 'px;top:' + pos.y + 'px;' : '';
+    const style = (pos.x !== null && pos.y !== null) ? 'left:' + pos.x + 'px;top:' + pos.y + 'px;right:auto;bottom:auto;' : '';
     
     return (
         '<div class="calc-overlay">' +
@@ -16692,7 +16763,7 @@ function renderApp() {
         '<div class="topbar' + (isHome ? '' : ' topbar-plain') + '">' +
         (isExamTaking
             ? '<div class="topbar-left"><span class="page-name">MyUTME</span></div>' +
-              '<div class="topbar-center"></div><div class="topbar-right">' + examTopbarTime() + '</div>'
+              '<div class="topbar-center"></div><div class="topbar-right"><button class="topbar-exit" data-action="exam-manual-exit" data-exitmode="' + state.view + '">Exit</button>' + examTopbarTime() + '</div>'
             : isAiAssistant
             ? '<div class="topbar-left">' +
               navPairHtml() +
@@ -23614,7 +23685,7 @@ document.addEventListener('click', function(e) {
     }
     
     // Calculator drag
-    if (action === 'calc-drag-start') {
+    if (action === 'calc-drag-start') { return;
         const modal = el.closest('.calc-modal');
         if (!modal) return;
         const rect = modal.getBoundingClientRect();
