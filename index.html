@@ -7781,9 +7781,8 @@ input,select,textarea{border-radius:14px!important}
 .eq-lbl { font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: .01em; }
 
 /* Questions without a picture: same text size, weight and option height as picture
-   questions. The question card simply grows into the space a picture would use. */
+   questions. The card fits its text and the options sit right under it (no empty gap). */
 .exam-shell-scroll > .exam-options-wrap { flex: 0 0 auto; }
-.exam-shell-scroll:not(:has(.q-diagram)) > .exam-q-card-v2 { flex: 1 1 auto; }
 
 /* Footer: Back | Goto | Next, then Submit */
 .exam-footer-v2 { padding-top: 8px !important; }
@@ -7816,6 +7815,11 @@ input,select,textarea{border-radius:14px!important}
 .exam-footer-v2 .ef-row { gap: 6px !important; }
 .exam-footer-v2 .ef-row button { min-height: 40px !important; }
 .exam-footer-v2 .ef-submit { min-height: 40px !important; margin-top: 5px !important; font-size: 13.5px !important; }
+
+/* English: underlined words/letters and the thin instruction line above a question */
+u.q-u { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.q-instr { display: block; margin: 0 0 7px; padding: 1px 0 1px 8px; border-left: 3px solid var(--green); font-size: 12px !important; font-weight: 600 !important; line-height: 1.35 !important; color: var(--muted) !important; letter-spacing: .01em; }
+.exam-question-card p .q-instr, .exam-q-card-v2 .q-body .q-instr { padding-right: 0; }
 </style>
 <script>
 /* Calculator: drag by its header with finger or mouse. Starts on pointerdown
@@ -8967,7 +8971,25 @@ function escM(raw) {
     if (store.length) {
         s = s.replace(/\u0001(\d+)\u0002/g, function(_, n) { return mathMatrixHtml(store[+n]); });
     }
+    // English: *word*, *phrase* or p*a*rt  ->  a real underline (never shows asterisks).
+    if (s.indexOf('*') !== -1 && s.indexOf('=') === -1 && !/\d\s*\*|\*\s*\d/.test(s)) {   // not maths
+        s = s.replace(/([A-Za-z]*)\*([A-Za-z][A-Za-z'’&#;\- ]*?)\*([A-Za-z]*)/g, function(m, pre, mid, post) {
+            if (mid.replace(/[^A-Za-z]/g, '').length < 2 && (pre.length + post.length) < 2) return m;  // e.g. x*y*z in maths
+            return pre + '<u class="q-u">' + mid + '</u>' + post;
+        });
+    }
     return s;
+}
+
+// Question text: if the question carries an instruction (stored as "instruction\u2028question"),
+// show the instruction as a small, thin line above the question so the two never mix.
+function escQ(raw) {
+    var t = String(raw == null ? '' : raw);
+    var k = t.indexOf('\u2028');
+    if (k === -1) return escM(t);
+    var ins = t.slice(0, k).trim(), body = t.slice(k + 1).trim();
+    if (!ins || !body) return escM(t.replace(/\u2028/g, ' '));
+    return '<span class="q-instr">' + escM(ins) + '</span>' + escM(body);
 }
 
 // Practice questions (CBT/Topic/Novel/Past-Questions/Revise) live only in
@@ -9066,7 +9088,7 @@ function renderExamQCardHeader(number, text, image, topic) {
         '<div class="exam-q-card-v2">' +
         '<div class="q-headrow"><div class="q-headleft"><p class="q-num">Question ' + number + '</p>' +
         (topic ? '<p class="q-topic-line">' + esc(topic) + '</p>' : '') + '</div>' + tools + '</div>' +
-        '<p class="q-body">' + escM(text || '') + '</p>' +
+        '<p class="q-body">' + escQ(text || '') + '</p>' +
         diagram +
         '</div>'
     );
@@ -13636,7 +13658,7 @@ function renderReviewPage() {
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
         '<span style="font-size:13px;font-weight:600">Question ' + (i + 1) + ' of ' + total + '</span>' + chip +
         '</div>' +
-        '<div class="card exam-question-card"><p style="font-weight:600;margin:0;font-size:16px">' + escM(item.text) + '</p>' + ((typeof item.image === 'string' && item.image.indexOf('data:image/') === 0) ? '<img class="q-diagram" alt="Question diagram" src="' + item.image.replace(/"/g, '&quot;') + '">' : '') + '</div>' +
+        '<div class="card exam-question-card"><p style="font-weight:600;margin:0;font-size:16px">' + escQ(item.text) + '</p>' + ((typeof item.image === 'string' && item.image.indexOf('data:image/') === 0) ? '<img class="q-diagram" alt="Question diagram" src="' + item.image.replace(/"/g, '&quot;') + '">' : '') + '</div>' +
         '<div class="exam-options-wrap">' + opts + '</div>' +
         explanation +
         '<div class="rv-actions">' + inlineAiButtonHtml(item, subjName) +
@@ -19121,7 +19143,7 @@ function renderReviseModeQuestions() {
         '</div>' +
 
         '<div class="card exam-question-card">' +
-        '<p style="font-weight:600;margin:0;font-size:16px">' + escM(q.text) + '</p>' +
+        '<p style="font-weight:600;margin:0;font-size:16px">' + escQ(q.text) + '</p>' +
         '</div>' +
         '<div class="exam-options-wrap">' + optsHtml + '</div>' +
         explanationHtml +
@@ -19211,7 +19233,7 @@ function renderFlashcards() {
         '<div class="flashcard-inner">' +
         '<div class="flashcard-face fc-front">' +
         '<span class="fc-label">Question</span>' +
-        '<p class="fc-text">' + escM(q.text) + '</p>' +
+        '<p class="fc-text">' + escQ(q.text) + '</p>' +
         optionsListHtml +
         '<span class="fc-tap-badge">👆 Tap to view answer</span>' +
         '</div>' +
@@ -22096,7 +22118,7 @@ function renderEnglishBatchAdmin(type, year) {
             optsList += '</ul>';
             html += (
                 '<div class="saved-question-item">' +
-                '<div class="q-header"><p class="q-text">Q' + (i + 1) + '. ' + escM(q.text) + '</p>' +
+                '<div class="q-header"><p class="q-text">Q' + (i + 1) + '. ' + escQ(q.text) + '</p>' +
                 '<div class="q-actions"><button class="mini-btn danger" data-action="delete-question-immediate" data-qid="' + q.id + '">🗑️</button></div></div>' +
                 '<div class="q-options">' + optsList + '</div>' +
                 '</div>'
@@ -22137,7 +22159,7 @@ function renderEnglishExamQuestions(type, year) {
             rows += (
                 '<div class="saved-question-item">' +
                 '<div class="q-header">' +
-                '<p class="q-text">Q' + (i + 1) + '. ' + escM(q.text) + '</p>' +
+                '<p class="q-text">Q' + (i + 1) + '. ' + escQ(q.text) + '</p>' +
                 '<div class="q-actions">' +
                 '<button class="mini-btn edit" data-action="edit-question" data-qid="' + q.id + '">✏️</button>' +
                 '<button class="mini-btn danger" data-action="delete-question-immediate" data-qid="' + q.id + '">🗑️</button>' +
@@ -22293,7 +22315,7 @@ function renderAdminSubjectQuestions(type, subject, year) {
                 rows += (
                     '<div class="saved-question-item">' +
                     '<div class="q-header">' +
-                    '<p class="q-text">Q' + (i + 1) + '. ' + escM(q.text) + '</p>' +
+                    '<p class="q-text">Q' + (i + 1) + '. ' + escQ(q.text) + '</p>' +
                     '<div class="q-actions">' +
                     '<button class="mini-btn edit" data-action="edit-question" data-qid="' + q.id + '">✏️</button>' +
                     '<button class="mini-btn danger" data-action="delete-question-immediate" data-qid="' + q.id + '">🗑️</button>' +
@@ -22449,7 +22471,7 @@ function renderAdminTopicManagement() {
                 body += (
                     '<div class="saved-question-item">' +
                     '<div class="q-header">' +
-                    '<p class="q-text">' + escM(q.text) + '</p>' +
+                    '<p class="q-text">' + escQ(q.text) + '</p>' +
                     '<div class="q-actions">' +
                     '<button class="mini-btn edit" data-action="edit-question" data-qid="' + q.id + '">✏️</button>' +
                     '<button class="mini-btn danger" data-action="admin-delete-topic-question" data-qid="' + q.id + '">×</button>' +
@@ -22921,7 +22943,7 @@ function renderAdminFlagged() {
         
         html += '<div class="saved-question-item">';
         html += '<div class="q-header">';
-        html += '<p class="q-text">' + escM(q?.text || 'Question not found') + '</p>';
+        html += '<p class="q-text">' + escQ(q?.text || 'Question not found') + '</p>';
         html += '<div class="q-actions">';
         if (isEditing) {
             html += '<button class="mini-btn" data-action="cancel-edit" style="font-size:9px">Cancel</button>';
