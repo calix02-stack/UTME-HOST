@@ -9122,6 +9122,60 @@ function shuffleArray(arr) {
     return a;
 }
 
+// ------------------------------------------------------------
+//  DIAGRAM ("image") QUESTION LIMITER
+// ------------------------------------------------------------
+// Diagram questions used to be picked at random from the whole pool, so
+// a subject with lots of them (Maths CBT: over half the bank) could put
+// 15-20 diagram questions in a single sitting. Now every sitting gets only
+// 3-5 of them, and they rotate batch by batch: the ids already served are
+// remembered on the device (per user + scope), so after you submit and
+// restart you get a DIFFERENT 3-5 until all have been seen, then the cycle
+// starts over. Plain questions fill the rest of the sitting.
+const IMAGE_Q_MIN = 3;
+const IMAGE_Q_MAX = 5;
+function isImageQuestion(q) {
+    return !!(q && typeof q.image === 'string' && q.image.length > 0);
+}
+function pickQuestionsWithImageCap(pool, count, scopeKey) {
+    pool = pool || [];
+    const imgs = pool.filter(isImageQuestion);
+    const plain = pool.filter(function(q) { return !isImageQuestion(q); });
+    if (imgs.length === 0) return shuffleArray(pool).slice(0, count);
+
+    const uid = (state.authUser && state.authUser.id) || 'guest';
+    const key = 'imgServed_' + uid + '_' + scopeKey;
+    let served = [];
+    try { served = JSON.parse(storage.get(key) || '[]'); } catch (e) { served = []; }
+    if (!Array.isArray(served)) served = [];
+
+    let want = IMAGE_Q_MIN + Math.floor(Math.random() * (IMAGE_Q_MAX - IMAGE_Q_MIN + 1));
+    want = Math.min(want, imgs.length, count);
+    // If there are not enough plain questions to fill the sitting, the
+    // shortfall has to be made up with diagram questions.
+    want = Math.max(want, Math.min(imgs.length, count - plain.length));
+
+    const servedSet = {};
+    served.forEach(function(id) { servedSet[id] = 1; });
+    let fresh = shuffleArray(imgs.filter(function(q) { return !servedSet[q.id]; }));
+    let chosen = fresh.slice(0, want);
+    if (chosen.length < want) {
+        // Whole image bank has been cycled through: start a new cycle.
+        const have = {};
+        chosen.forEach(function(q) { have[q.id] = 1; });
+        const top = shuffleArray(imgs.filter(function(q) { return !have[q.id]; })).slice(0, want - chosen.length);
+        served = chosen.map(function(q) { return q.id; });
+        chosen = chosen.concat(top);
+        top.forEach(function(q) { served.push(q.id); });
+    } else {
+        chosen.forEach(function(q) { served.push(q.id); });
+    }
+    try { storage.set(key, JSON.stringify(served.slice(-2000))); } catch (e) {}
+
+    const rest = shuffleArray(plain).slice(0, Math.max(0, count - chosen.length));
+    return shuffleArray(chosen.concat(rest));
+}
+
 function formatTimeAgo(dateStr) {
     if (!dateStr) return "Just now";
     try {
@@ -14539,7 +14593,7 @@ async function startCbt() {
                     window.OfflineDB.loadQuestionsOffline('cbt', subject.id),
                     12000, subject.name + ' questions load'
                 );
-                qs = shuffleArray(qs).slice(0, perSubject);
+                qs = pickQuestionsWithImageCap(qs, perSubject, 'cbt_' + subject.id);
             }
 
             const qsWithSubject = (qs || []).map(function(q) {
@@ -14699,6 +14753,15 @@ async function startLiteratureCbt() {
     saveSessionSnapshot();
 }
 
+async function loadExamQuestionsFromFile(subjectId, yearStr) {
+    const res = await fetch('questions-' + subjectId + '.json?v=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return ((data && data.questions) || []).filter(function(q) {
+        return q.type === 'exam' && q.subject_id === subjectId && String(q.year) === yearStr;
+    });
+}
+
 async function startExam() {
     if (!state.authUser) { guestNeedsAccount(); return; }
 
@@ -14716,12 +14779,31 @@ async function startExam() {
     // stuck true forever with the overlay frozen on screen. Wrapped with
     // withNetworkTimeout + try/catch so it always resolves one way or
     // another and the overlay always clears.
+    // Years are stored as strings ("2026") in the question files but
+    // state.examYear is a number, so a strict match found nothing for ANY
+    // year. Always compare as strings, and if the on-device DB returns
+    // nothing (or throws "No questions available") read the paper straight
+    // from questions-<subject>.json, the same fallback Topic Practice uses.
     let questions = [];
+    const yearStr = String(state.examYear);
+    const sameYear = function(q) { return q.year == null || String(q.year) === yearStr; };
     try {
-        questions = await withNetworkTimeout(
-            window.OfflineDB.loadQuestionsOffline('exam', state.examSubject, state.examYear),
-            12000, 'Exam questions load'
-        );
+        try {
+            questions = await withNetworkTimeout(
+                window.OfflineDB.loadQuestionsOffline('exam', state.examSubject, yearStr),
+                12000, 'Exam questions load'
+            );
+            questions = (questions || []).filter(sameYear);
+        } catch (dbErr) {
+            console.warn('IndexedDB exam load failed, using subject file:', dbErr);
+            questions = [];
+        }
+        if (!questions || questions.length === 0) {
+            questions = await withNetworkTimeout(
+                loadExamQuestionsFromFile(state.examSubject, yearStr),
+                15000, 'Exam questions file load'
+            );
+        }
     } catch (e) {
         console.warn('Exam question load failed:', e);
         state.isLoading = false;
@@ -14745,7 +14827,7 @@ async function startExam() {
 
     // Exam mode: simply shuffle and select questions, no passage grouping
     const examQCount = state.examQuestionCount || 25;
-    const qsAll = shuffleArray(questions).slice(0, examQCount).map(function(q) {
+    const qsAll = pickQuestionsWithImageCap(questions, examQCount, 'exam_' + state.examSubject + '_' + yearStr).map(function(q) {
         return Object.assign({}, q, { subject_name: s.name });
     });
     
