@@ -1758,6 +1758,20 @@
         font-size: 12px;
         line-height: 1.4;
     }
+
+    /* Explanation rendered as spaced, written-out notes */
+    .exp-body { font-size: 14px; line-height: 1.6; white-space: normal; }
+    .q-explanation { white-space: pre-line; }
+    .exp-body .exp-step { margin: 0 0 10px; }
+    .exp-body .exp-step:last-child { margin-bottom: 0; }
+    .exp-body .exp-lbl { font-weight: 700; color: var(--green); }
+    .exp-body .exp-sub { display: block; margin: 3px 0 0 12px; }
+    .exp-body .exp-lbl + .exp-sub { margin-top: 4px; }
+    .exp-body .exp-concept { padding-bottom: 10px; border-bottom: 1px dashed rgba(0,0,0,0.15); }
+    .exp-body .exp-step[class*="exp-step"] { word-break: break-word; }
+    .exp-body .exp-answer { font-weight: 600; background: rgba(0,0,0,0.05); border-radius: 8px; padding: 8px 10px; margin-top: 12px; }
+    .exp-body .exp-similar-example, .exp-body .exp-tip, .exp-body .exp-note { font-size: 13px; opacity: 0.9; }
+    .exp-body .exp-similar-example { margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(0,0,0,0.15); }
     .explanation-box .label {
         font-weight: 600;
         font-size: 10px;
@@ -8885,6 +8899,44 @@ function mathMatrixHtml(rows) {
         '</span><span class="mx-b mx-r"></span></span>';
 }
 
+// Explanations arrive as one text blob ("Concept: ... Step 1: ... Answer: ...").
+// HTML collapses the line breaks, so everything used to render as one packed
+// paragraph. This splits it into clearly spaced, labelled lines like neat
+// written notes: Concept, each Step, Answer, Similar example, Tip.
+function fmtExp(raw) {
+    var LABELS = 'Concept|Step\\s*\\d+|Answer|Similar example|Tip|Note|Check|Common mistake|Mistake to avoid|Remember|Formula|Place values[^:\\n]*';
+    var t = String(raw == null ? '' : raw).replace(/\r/g, '');
+    if (!t.trim()) return '';
+    // Put every label (Concept, Step 1, Answer, Tip...) on its own line.
+    t = t.replace(new RegExp('\\s*(' + LABELS + ')\\s*:', 'g'), function(m, lab, off) {
+        return (off === 0 ? '' : '\n') + lab + ':';
+    });
+    var lines = t.split(/\n+/).map(function(x) { return x.trim(); }).filter(Boolean);
+    var labRe = new RegExp('^(' + LABELS + ')\\s*:\\s*(.*)$');
+    // Break a long step into short, readable sub-lines (working shown one
+    // calculation per line, like neat written notes).
+    function sub(body) {
+        var parts = body
+            .replace(/,\s+(?=\d+\s*[÷×x\/]\s*\d+\s*=)/g, '\n')                 // 18 ÷ 2 = 9 r 0, 9 ÷ 2 = ...
+            .replace(/\.\s+(?=(Reading|Hence|Therefore|So|Thus|Now|Then|Next|Finally)\b)/g, '.\n')
+            .split('\n').map(function(x) { return x.trim(); }).filter(Boolean);
+        if (parts.length <= 1) return escM(body);
+        return parts.map(function(p) { return '<span class="exp-sub">' + escM(p) + '</span>'; }).join('');
+    }
+    return lines.map(function(line) {
+        var m = line.match(labRe);
+        var cls = 'exp-step';
+        var body;
+        if (m) {
+            var key = m[1].toLowerCase().replace(/\s*\d+/, '').replace(/\s+/g, '-').replace(/[^a-z-]/g, '');
+            cls += ' exp-' + key;
+            body = '<span class="exp-lbl">' + m[1] + ':</span> ' + sub(m[2]);
+        } else {
+            body = sub(line);
+        }
+        return '<div class="' + cls + '">' + body + '</div>';
+    }).join('');
+}
 function escM(raw) {
     let s = String(raw == null ? '' : raw);
     if (!s) return '';
@@ -9128,12 +9180,12 @@ function shuffleArray(arr) {
 // Diagram questions used to be picked at random from the whole pool, so
 // a subject with lots of them (Maths CBT: over half the bank) could put
 // 15-20 diagram questions in a single sitting. Now every sitting gets only
-// 3-5 of them, and they rotate batch by batch: the ids already served are
+// 3 of them (never more), and they rotate batch by batch: the ids already served are
 // remembered on the device (per user + scope), so after you submit and
 // restart you get a DIFFERENT 3-5 until all have been seen, then the cycle
 // starts over. Plain questions fill the rest of the sitting.
 const IMAGE_Q_MIN = 3;
-const IMAGE_Q_MAX = 5;
+const IMAGE_Q_MAX = 3;
 function isImageQuestion(q) {
     return !!(q && typeof q.image === 'string' && q.image.length > 0);
 }
@@ -13580,8 +13632,8 @@ function renderReviewPage() {
         : (isCorrect ? '<span class="rv-chip">✅ You got it right</span>'
                      : '<span class="rv-chip rv-bad">❌ You chose ' + String.fromCharCode(65 + userAns) + '</span>');
 
-    var explanation = '<div class="explanation-box" style="margin-top:6px"><span class="label">💡 Explanation</span><p>' +
-        (item.explanation ? escM(item.explanation) : 'No explanation provided.') + '</p></div>';
+    var explanation = '<div class="explanation-box" style="margin-top:6px"><span class="label">💡 Explanation</span><div class="exp-body">' +
+        (item.explanation ? fmtExp(item.explanation) : 'No explanation provided.') + '</div></div>';
 
     return (
         backBtn +
@@ -18219,7 +18271,7 @@ function renderExamExam() {
             : (renderExamQCardHeader(state.examIndex + 1, item?.text, item?.image, (item && item.subject_id === 'math') ? 'UTME-style practice' : undefined) +
                '<div class="exam-options-wrap">' + opts + '</div>' +
                (isInstant && instantResult !== undefined && item ?
-                   '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><p>' + escM(item.explanation || 'No explanation provided.') + '</p>' +
+                   '<div class="explanation-box"><span class="label">' + (instantResult ? '✅ Correct!' : '❌ Wrong') + '</span><div class="exp-body">' + (item.explanation ? fmtExp(item.explanation) : 'No explanation provided.') + '</div>' +
                    '<div class="ask-ai-row">' + askAiButtonHtml(item, (subj ? subj.name : ''), state.examAnswers[state.examIndex]) + '</div>' +
                    inlineAiBoxHtml(item) +
                    '</div>' : '')
@@ -19036,7 +19088,7 @@ function renderReviseModeQuestions() {
         explanationHtml = (
             '<div class="explanation-box" style="margin-top:6px">' +
             '<span class="label">' + (resultCorrect ? '✅ Correct!' : '❌ Wrong') + '</span>' +
-            (q.explanation ? '<p>' + escM(q.explanation) + '</p>' : '<p>No explanation provided.</p>') +
+            (q.explanation ? '<div class="exp-body">' + fmtExp(q.explanation) + '</div>' : '<p>No explanation provided.</p>') +
             '</div>' +
             renderInlineAiSection(q, subjName)
         );
@@ -19172,7 +19224,7 @@ function renderFlashcards() {
         '<div class="flashcard-face fc-back">' +
         '<span class="fc-label">Answer</span>' +
         backAnswerHtml +
-        (q.explanation ? '<p class="fc-explain">' + escM(q.explanation) + '</p>' : '') +
+        (q.explanation ? '<div class="fc-explain exp-body">' + fmtExp(q.explanation) + '</div>' : '') +
         (state.flashcardFlipped ? '<div class="ask-ai-row" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + askAiButtonHtml(q, (subj ? subj.name : q.subject_name), null, { label: '✨ Further Explanation', inline: true }) + '</div>' + inlineAiBoxHtml(q) : '') +
         '</div>' +
         '</div>' +
