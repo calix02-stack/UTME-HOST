@@ -7869,6 +7869,25 @@ u.q-u { text-decoration: underline; text-decoration-thickness: 2px; text-underli
 .passage-text{font-size:15px;line-height:1.8;white-space:pre-wrap}
 .passage-full-foot{padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1.5px solid var(--line)}
 .passage-full-foot .btn{width:100%}
+.mk-wrap{padding:6px 2px 24px}.mk-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 12px}
+.mk-head h2{margin:0;font-family:var(--font-serif);font-size:24px;color:var(--ink)}.mk-head p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+.mk-clear{border:1.5px solid var(--line);background:var(--card-bg);color:#c0392b;font-weight:700;font-size:12px;padding:7px 12px;border-radius:10px;cursor:pointer}
+.mk-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px}
+.mk-chip{flex:0 0 auto;border:1.5px solid var(--line);background:var(--card-bg);color:var(--ink);font-weight:700;font-size:12px;padding:7px 12px;border-radius:999px;cursor:pointer}
+.mk-chip.on{background:#C2791C;border-color:#C2791C;color:#fff}
+.mk-card{background:var(--card-bg);border:1.5px solid var(--line);border-left:6px solid #C2791C;border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow-sm)}
+.mk-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.mk-subj{color:#C2791C}.mk-mode{color:var(--muted)}
+.mk-q{margin:0 0 10px;font-size:15px;line-height:1.55;color:var(--ink)}
+.mk-opts{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:6px}
+.mk-opts li{display:flex;gap:8px;align-items:baseline;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;color:var(--ink)}
+.mk-opts li.ok{border-color:var(--green);background:var(--green-light)}.mk-opts li span{flex:1}.mk-opts li em{font-style:normal;font-weight:800;font-size:11px;color:var(--green)}
+.mk-pass,.mk-exp{margin:0 0 10px;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px}
+.mk-pass summary,.mk-exp summary{cursor:pointer;font-weight:700;color:var(--green)}
+.mk-pass-text{margin-top:8px;line-height:1.7;white-space:pre-wrap}.mk-exp div{margin-top:8px;line-height:1.6;color:var(--ink)}
+.mk-remove{border:none;background:transparent;color:#c0392b;font-weight:700;font-size:12px;padding:4px 0;cursor:pointer}
+.mk-empty{text-align:center;padding:40px 18px;color:var(--muted)}.mk-empty-ico{font-size:40px}.mk-empty h3{margin:8px 0 6px;color:var(--ink)}.mk-empty p{font-size:13.5px;line-height:1.6;margin:0}
+.exam-q-card-v2.q-tall{min-height:clamp(200px,32vh,300px)}
 .ex-steps{display:flex;gap:6px;margin:4px 0 12px}.ex-steps span{flex:1;height:5px;border-radius:5px;background:var(--line)}.ex-steps span.on{background:linear-gradient(90deg,#E2543A,#F2994A)}
 .ex-kicker{margin:0;font-size:11px;font-weight:800;letter-spacing:.1em;color:#E2543A}
 .ex-title{margin:2px 0 4px;font-family:var(--font-serif);font-size:24px;line-height:1.2;color:var(--ink)}
@@ -9115,6 +9134,81 @@ function examTopbarTime() {
 }
 
 // cfg: { calcEnabled, hasPassage, qid, subjectId, mode, marked, markAction, item }
+// ---------- Marked questions: saved on this device, reviewed any time from "Marked Questions" ----------
+function __markedKey() { return 'markedQ_' + ((state.authUser && state.authUser.id) || 'guest'); }
+function __getMarked() {
+    try { const a = JSON.parse(storage.get(__markedKey()) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
+function __setMarked(list) { try { storage.set(__markedKey(), JSON.stringify(list.slice(-300))); } catch (e) {} }
+function __syncMarked(q, mode, on) {
+    if (!q) return;
+    const h = __qh(q);
+    const list = __getMarked().filter(function(x) { return x.h !== h; });
+    if (on) {
+        let passage = q.passage_text || '';
+        if (!passage && q.uses_passage) {
+            if (mode === 'cbt' && state.currentEnglishPassage) passage = state.currentEnglishPassage.passage_text || '';
+            else if (mode === 'mock' && state.engMockPassage) passage = state.engMockPassage.passage_text || '';
+        }
+        list.push({
+            h: h, subject_id: q.subject_id || '', subject_name: q.subject_name || '', mode: mode, year: q.year || null,
+            text: q.text || q.question || '', options: q.options || [], correct_answer: q.correct_answer,
+            explanation: q.explanation || '',
+            image: (typeof q.image === 'string' && q.image.indexOf('data:image/') === 0 && q.image.length < 60000) ? q.image : '',
+            passage_text: String(passage).slice(0, 6000), saved_at: Date.now()
+        });
+    }
+    __setMarked(list);
+}
+function __markedModeLabel(m, year) {
+    const L = { cbt: 'JAMB CBT', exam: 'Past Questions', mock: 'Mock', topic: 'Topic Practice', lit: 'Novel (CBT)' };
+    return (L[m] || 'Practice') + (m === 'exam' && year ? ' \u00B7 ' + year : '');
+}
+function __markedCorrectIndex(it) {
+    const c = it.correct_answer;
+    if (typeof c === 'number') return c;
+    if (typeof c === 'string' && c.trim().length === 1) return 'abcde'.indexOf(c.trim().toLowerCase());
+    return -1;
+}
+function renderMarkedQuestions() {
+    const all = __getMarked().slice().reverse();
+    const sids = [], names = {};
+    all.forEach(function(it) { if (it.subject_id && sids.indexOf(it.subject_id) === -1) { sids.push(it.subject_id); names[it.subject_id] = it.subject_name || it.subject_id; } });
+    const f = (state.markedFilter && sids.indexOf(state.markedFilter) !== -1) ? state.markedFilter : '';
+    const list = f ? all.filter(function(it) { return it.subject_id === f; }) : all;
+    let chips = '';
+    if (sids.length > 1) {
+        chips = '<div class="mk-chips"><button type="button" class="mk-chip' + (f ? '' : ' on') + '" data-action="marked-filter" data-sid="">All (' + all.length + ')</button>' +
+            sids.map(function(id) {
+                const n = all.filter(function(it) { return it.subject_id === id; }).length;
+                return '<button type="button" class="mk-chip' + (f === id ? ' on' : '') + '" data-action="marked-filter" data-sid="' + esc(id) + '">' + esc(names[id]) + ' (' + n + ')</button>';
+            }).join('') + '</div>';
+    }
+    let body = '';
+    if (!list.length) {
+        body = '<div class="mk-empty"><div class="mk-empty-ico">🔖</div><h3>No marked questions yet</h3>' +
+            '<p>During any exam, tap <b>Mark</b> on a question you want to come back to. It will be saved here so you can review it with the answer and explanation, even after the exam.</p></div>';
+    } else {
+        list.forEach(function(it) {
+            const ci = __markedCorrectIndex(it);
+            const opts = (it.options || []).map(function(o, i) {
+                return '<li class="' + (i === ci ? 'ok' : '') + '"><b>' + 'ABCDE'.charAt(i) + '.</b><span>' + esc(String(o)) + '</span>' + (i === ci ? '<em>\u2713 Correct</em>' : '') + '</li>';
+            }).join('');
+            body += '<div class="mk-card">' +
+                '<div class="mk-top"><span class="mk-subj">' + esc(it.subject_name || '') + '</span><span class="mk-mode">' + esc(__markedModeLabel(it.mode, it.year)) + '</span></div>' +
+                (it.passage_text ? '<details class="mk-pass"><summary>📖 This question is based on a passage. Tap to read it</summary><div class="mk-pass-text">' + escM(it.passage_text) + '</div></details>' : '') +
+                '<p class="mk-q">' + escQ(it.text || '') + '</p>' +
+                (it.image ? '<img class="q-diagram" alt="Question diagram" src="' + it.image.replace(/"/g, '&quot;') + '">' : '') +
+                '<ul class="mk-opts">' + opts + '</ul>' +
+                (it.explanation ? '<details class="mk-exp"><summary>See explanation</summary><div>' + esc(it.explanation).replace(/\n/g, '<br>') + '</div></details>' : '') +
+                '<button type="button" class="mk-remove" data-action="marked-remove" data-h="' + esc(it.h) + '">Remove from marked</button>' +
+                '</div>';
+        });
+    }
+    return '<div class="mk-wrap"><div class="mk-head"><div><h2>Marked Questions</h2><p>' + all.length + ' saved on this device</p></div>' +
+        (all.length ? '<button type="button" class="mk-clear" data-action="marked-clear">Clear all</button>' : '') + '</div>' + chips + body + '</div>';
+}
+
 function renderExamIconRow(cfg) {
     const isFlagged = cfg.qid && state.myFlaggedIds.indexOf(cfg.qid) !== -1;
     if (cfg.item) cacheFlaggableQuestion(cfg.item, cfg.subjectId);
@@ -9148,7 +9242,7 @@ function renderExamQCardHeader(number, text, image, topic) {
     const pbanner = window.__passageBannerHtml || '';
     window.__passageBannerHtml = '';
     return (
-        '<div class="exam-q-card-v2">' +
+        '<div class="exam-q-card-v2' + (diagram ? '' : ' q-tall') + '">' +
         '<div class="q-headrow"><div class="q-headleft"><p class="q-num">Question ' + number + '</p>' +
         (topic ? '<p class="q-topic-line">' + esc(topic) + '</p>' : '') + '</div>' + tools + '</div>' +
         pbanner +
@@ -12332,7 +12426,7 @@ function renderMockExamPicker() {
     const electives = SUBJECTS.filter(function(x) { return x.id !== 'eng' && x.id !== 'lhm'; });
     const sel = (state.mockSelectedSubjects || []).filter(function(id) { return electives.some(function(x) { return x.id === id; }); }).slice(0, 3);
     state.mockSelectedSubjects = sel;
-    let html = back + '<h2 class="title">Mock Arena</h2><p class="sub">Friday Mock · every Friday · 2 hours · English + 3 subjects · 40 questions each</p>';
+    let html = back + '<h2 class="title">Mock Arena</h2><p class="sub">Friday Mock · every Friday · 2 hours · English + 3 subjects</p>';
 
     if (done && fridayReleased(done)) {
         html += '<div class="card" style="text-align:center;padding:20px"><p style="font-size:34px;margin:0">✅</p>' +
@@ -12398,31 +12492,20 @@ async function startMockExam(subjects) {
 for (const subjectId of subjects) {
             const allSubjectQuestions = await window.OfflineDB.getQuestionsOffline('mock', subjectId);
             if (subjectId === 'eng') {
-                let engLoaded = false;
-                const batches = await window.OfflineDB.getPassageBatchesOffline('eng', 'mock');
-                if (batches && batches.length > 0) {
-                    const selectedBatch = shuffleArray(batches.slice())[0];
-                    const qData = allSubjectQuestions
-                        .filter(function(q) { return q.batch_number === selectedBatch; })
-                        .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
-                        .slice(0, perSubject);
-                    if (qData.length > 0) {
-                        const passage = await window.OfflineDB.getPassageOffline(selectedBatch, 'mock');
-                        if (passage) {
-                            state.engMockPassage = passage;
-                            state.engMockHasPassage = true;
-                            state.engMockPassageRead = false;
-                            state.engMockPassageId = passage.id;
-                        }
-                        allQuestions = allQuestions.concat(qData);
-                        engLoaded = true;
+                const engSet = __pickEnglishPaper(allSubjectQuestions, perSubject, true);
+                const pq = engSet.filter(function(q) { return q.uses_passage && q.batch_number > 0; })[0];
+                if (pq) {
+                    const passage = await window.OfflineDB.getPassageOffline(pq.batch_number, 'mock');
+                    if (passage) {
+                        state.engMockPassage = passage;
+                        state.engMockHasPassage = true;
+                        state.engMockPassageRead = false;
+                        state.engMockPassageId = passage.id;
                     }
                 }
-                if (!engLoaded) {
-                    allQuestions = allQuestions.concat(shuffleArray(allSubjectQuestions.slice()).slice(0, perSubject));
-                }
+                allQuestions = allQuestions.concat(engSet);
             } else {
-                allQuestions = allQuestions.concat(shuffleArray(allSubjectQuestions.slice()).slice(0, perSubject));
+                allQuestions = allQuestions.concat(__pickFresh(allSubjectQuestions, perSubject, subjectId));
             }
         }
         if (!allQuestions.length) throw new Error('Questions are not on this device yet. Open the app online once to download them.');
@@ -14105,7 +14188,7 @@ const SUPPORT_KB = [
     { k: ['add subject', 'change subject', 'swap subject', 'my subjects', 'choose subject', 'remove subject', 'four subjects', '4 subjects', 'my courses', 'select subject'],
       a: 'English is always included and you can have up to 4 subjects in total (English + 3).\n• To add: Practice Hub → Add Subject → pick one\n• To change: use the swap option on that subject\'s card and pick the replacement (the old one is removed once you choose)' },
     { k: ['mock exam', 'mock arena', 'friday mock', 'when is mock', 'mock start', 'mock schedule', 'mock result', 'mock score', 'weekly progress'],
-      a: 'The Friday Mock opens every Friday, all day, and works offline.\n1. Open Mock Arena on a Friday\n2. English is included, so pick 3 other subjects\n3. Start — it runs for 2 hours with 40 questions per subject\nYour score is saved on this phone, and Mock Arena shows your progress for each Friday. It is also in Account → Result Analysis.' },
+      a: 'The Friday Mock opens every Friday, all day, and works offline.\n1. Open Mock Arena on a Friday\n2. English is included, so pick 3 other subjects\n3. Start — it runs for 2 hours\nYour score is saved on this phone, and Mock Arena shows your progress for each Friday. It is also in Account → Result Analysis.' },
     { k: ['result analysis', 'my results', 'past results', 'see my score', 'where is my result', 'exam history', 'my history', 'review my answer'],
       a: 'Every finished CBT, Past Questions, Mock, Novel or Topic attempt is saved in Account → Result Analysis. Use the filter tabs (CBT Full, CBT Single, Exam, Mock, Novel CBT, Topic) to find it.' },
     { k: ['offline', 'no internet', 'without internet', 'no network', 'data off', 'work offline', 'no data', 'without data', 'without network', 'without wifi', 'use offline'],
@@ -14632,99 +14715,43 @@ async function startCbt() {
             let qs = [];
 
             if (subject.id === 'eng') {
-                // ====== FIX: pick ONE batch and use that SAME batch's passage
-                // + that SAME batch's questions together, so they can never
-                // mismatch. This pool/tracker is CBT-specific (mode: 'cbt'),
-                // kept separate from the Mock Arena's own 'mock' pool/tracker
-                // so running CBT and Mock never steal each other's batches. ======
-                let cbtBatches = [];
+                // A fresh 40-question set is built from the whole English bank every time:
+                // one passage + question types in order, new questions first (shared with
+                // Past Questions and Mock, so sets do not collide until everything has been seen).
+                let bank = [];
                 try {
-                    cbtBatches = await withNetworkTimeout(
-                        window.OfflineDB.getPassageBatchesOffline('eng', 'cbt'),
-                        12000, 'English passage batches load'
+                    bank = await withNetworkTimeout(
+                        window.OfflineDB.loadQuestionsOffline('cbt', 'eng'),
+                        12000, 'English questions load'
                     );
                 } catch (e) {
-                    console.warn('CBT English batch load timed out or failed:', e);
-                    cbtBatches = [];
+                    console.warn('CBT English question load timed out or failed:', e);
+                    bank = [];
                 }
-                let engQuestionsLoaded = false;
-
-                if (cbtBatches && cbtBatches.length > 0) {
-                    const completedKey = 'eng_cbt_completed_' + state.authUser.id;
-                    let completedBatches = JSON.parse(storage.get(completedKey) || '[]');
-
-                    let availableBatches = cbtBatches.filter(function(bn) { return completedBatches.indexOf(bn) === -1; });
-                    if (availableBatches.length === 0) {
-                        storage.set(completedKey, JSON.stringify([]));
-                        availableBatches = cbtBatches.slice();
-                    }
-
-                    // Shuffle which batch we try first, so it's not always
-                    // the same one — but questions ALWAYS come from whichever
-                    // batch we end up selecting, never a different one.
-                    const batchTryOrder = shuffleArray(availableBatches);
-                    let allEngQuestions = [];
-                    try {
-                        allEngQuestions = await withNetworkTimeout(
-                            window.OfflineDB.loadQuestionsOffline('cbt', 'eng'),
-                            12000, 'English questions load'
-                        );
-                    } catch (e) {
-                        console.warn('CBT English question load timed out or failed:', e);
-                        allEngQuestions = [];
-                    }
-
-                    for (const selectedBatch of batchTryOrder) {
-                        const qData = allEngQuestions
-                            .filter(function(q) { return q.batch_number === selectedBatch; })
-                            .sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
-                            .slice(0, perSubject);
-
-                        if (qData.length > 0) {
-                            const passage = await withNetworkTimeout(
-                                window.OfflineDB.getPassageOffline(selectedBatch, 'cbt'),
+                state.currentEnglishPassage = null;
+                state.hasPassage = false;
+                state.passageRead = true;
+                state.passageQuestionIds = [];
+                state.cbtEngBatch = null;
+                if (bank && bank.length) {
+                    qs = __pickEnglishPaper(bank, perSubject, true);
+                    const pq = qs.filter(function(q) { return q.uses_passage && q.batch_number > 0; })[0];
+                    if (pq) {
+                        let passage = null;
+                        try {
+                            passage = await withNetworkTimeout(
+                                window.OfflineDB.getPassageOffline(pq.batch_number, 'cbt'),
                                 12000, 'English passage load'
                             );
-
-                            state.cbtEngBatch = selectedBatch;
-                            storage.set('eng_cbt_tracker_' + state.authUser.id, String(selectedBatch));
-
-                            if (passage) {
-                                state.currentEnglishPassage = passage;
-                                state.hasPassage = true;
-                                state.passageRead = false;
-                                state.passageQuestionIds = qData.map(function(q) { return q.id; });
-                            } else {
-                                state.currentEnglishPassage = null;
-                                state.hasPassage = false;
-                                state.passageRead = true;
-                                state.passageQuestionIds = [];
-                            }
-
-                            qs = qData;
-                            engQuestionsLoaded = true;
-                            break;
+                        } catch (e) { passage = null; }
+                        state.cbtEngBatch = pq.batch_number;
+                        if (passage) {
+                            state.currentEnglishPassage = passage;
+                            state.hasPassage = true;
+                            state.passageRead = false;
+                            state.passageQuestionIds = qs.map(function(q) { return q.id; });
                         }
                     }
-                }
-
-                if (!engQuestionsLoaded) {
-                    state.currentEnglishPassage = null;
-                    state.hasPassage = false;
-                    state.passageRead = true;
-                    state.passageQuestionIds = [];
-                    state.cbtEngBatch = null;
-
-                    try {
-                        qs = await withNetworkTimeout(
-                            window.OfflineDB.loadQuestionsOffline('cbt', 'eng'),
-                            12000, 'English questions load'
-                        );
-                    } catch (e) {
-                        console.warn('CBT English fallback question load timed out or failed:', e);
-                        qs = [];
-                    }
-                    qs = shuffleArray(qs).slice(0, perSubject);
                 }
                 // ====== END FIX ======
             } else {
@@ -14732,7 +14759,7 @@ async function startCbt() {
                     window.OfflineDB.loadQuestionsOffline('cbt', subject.id),
                     12000, subject.name + ' questions load'
                 );
-                qs = pickQuestionsWithImageCap(qs, perSubject, 'cbt_' + subject.id);
+                qs = qs.some(isImageQuestion) ? pickQuestionsWithImageCap(qs, perSubject, 'cbt_' + subject.id) : __pickFresh(qs, perSubject, subject.id);
             }
 
             const qsWithSubject = (qs || []).map(function(q) {
@@ -14901,31 +14928,79 @@ async function loadExamQuestionsFromFile(subjectId, yearStr) {
     });
 }
 
+function __qh(q) {
+    const t = (q.text || q.question || '') + '|' + (q.options || []).join('|');
+    let h = 5381;
+    for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(36);
+}
+function __servedKey(subjectId) { return 'servedQ_' + ((state.authUser && state.authUser.id) || 'guest') + '_' + subjectId; }
+function __getServed(subjectId) {
+    try { const a = JSON.parse(storage.get(__servedKey(subjectId)) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
+// Remember what was just shown. When the whole pool has been seen, start a new round
+// (forget the pool, keep only what was just shown).
+function __markServed(subjectId, picked, pool) {
+    try {
+        const set = {};
+        __getServed(subjectId).forEach(function(h) { set[h] = 1; });
+        picked.forEach(function(q) { set[__qh(q)] = 1; });
+        if (pool && pool.length && pool.every(function(q) { return set[__qh(q)]; })) {
+            pool.forEach(function(q) { delete set[__qh(q)]; });
+            picked.forEach(function(q) { set[__qh(q)] = 1; });
+        }
+        storage.set(__servedKey(subjectId), JSON.stringify(Object.keys(set)));
+    } catch (e) {}
+}
+function __freshFirst(list, served) {
+    const seen = {};
+    served.forEach(function(h) { seen[h] = 1; });
+    return shuffleArray(list.filter(function(q) { return !seen[__qh(q)]; })).concat(shuffleArray(list.filter(function(q) { return seen[__qh(q)]; })));
+}
+// Any subject, any mode: new questions first, nothing repeats until the whole pool has been used.
+function __pickFresh(pool, count, subjectId) {
+    const picked = __freshFirst(pool, __getServed(subjectId)).slice(0, count);
+    __markServed(subjectId, picked, pool);
+    return picked;
+}
+function __pickExamFresh(pool, count, scope) {
+    if (pool.some(isImageQuestion)) return pickQuestionsWithImageCap(pool, count, scope);
+    return __pickFresh(pool, count, state.examSubject);
+}
 const __ENG_ORDER = ['gap', 'synonym', 'antonym', 'interpretation', 'structure', 'vowel', 'consonant', 'stress'];
-const __ENG_W = { gap: 7, synonym: 6, antonym: 6, interpretation: 4, structure: 2, vowel: 3, consonant: 3, stress: 4 };
-function __pickEnglishPaper(questions, n) {
-    // Paper = passage block first (kept together), then each question TYPE in one run:
-    // gaps, synonyms, antonyms, interpretation, structure, vowels, consonants, stress.
+const __ENG_W = { gap: 9, synonym: 7, antonym: 7, interpretation: 4, structure: 2, vowel: 2, consonant: 2, stress: 3 };
+function __pickEnglishPaper(questions, n, onePassage) {
+    // Passage block first, then every question TYPE in one run (gaps, synonyms, antonyms, ...).
+    // Unseen questions come first; shared memory with the other modes means a set done in
+    // Past Questions will not come back in CBT or Mock until the whole bank has been used.
+    const pool = (questions || []).slice();
     const byOrder = function(x, y) { return (x.display_order || 0) - (y.display_order || 0); };
-    const sorted = (questions || []).slice().sort(byOrder);
+    const served = __getServed('eng'), sv = {};
+    served.forEach(function(h) { sv[h] = 1; });
     const groups = [], idx = {}, pools = {};
     __ENG_ORDER.forEach(function(t) { pools[t] = []; });
-    sorted.forEach(function(q) {
-        if (q.passage_text) {
-            const k = q.passage_text;
+    pool.sort(byOrder).forEach(function(q) {
+        const k = q.passage_text ? 'p:' + q.passage_text.slice(0, 80) : ((q.uses_passage && q.batch_number > 0) ? 'b:' + q.batch_number : null);
+        if (k) {
             if (idx[k] === undefined) { idx[k] = groups.length; groups.push([]); }
             groups[idx[k]].push(q);
         } else {
-            const t = pools[q.qtype] ? q.qtype : 'structure';
-            pools[t].push(q);
+            pools[pools[q.qtype] ? q.qtype : 'structure'].push(q);
         }
     });
-    // passage block: whole passages in paper order, at most ~25% of the paper
     const cap = Math.min(10, Math.max(1, Math.ceil(n * 0.25)));
+    const ranked = shuffleArray(groups.map(function(g, i) { return { g: g, i: i, seen: g.every(function(q) { return sv[__qh(q)]; }) ? 1 : 0, small: g.length < 3 ? 1 : 0 }; }))
+        .sort(function(a, b) { return (a.seen - b.seen) || (a.small - b.small); });
+    let gPick = [], used = 0;
+    if (onePassage) {
+        if (ranked.length) { gPick = [{ g: ranked[0].g.slice(0, cap), i: ranked[0].i }]; }
+    } else {
+        ranked.forEach(function(o) { if (used + o.g.length <= cap) { gPick.push(o); used += o.g.length; } });
+        if (!gPick.length && ranked.length) gPick = [{ g: ranked[0].g.slice(0, cap), i: ranked[0].i }];
+    }
+    gPick.sort(function(a, b) { return a.i - b.i; });
     let block = [];
-    groups.forEach(function(g) { if (block.length + g.length <= cap) block = block.concat(g); });
-    if (!block.length && groups.length) block = groups[0].slice(0, cap);
-    // how many of each type: fixed blueprint, shifted to other types when one runs short
+    gPick.forEach(function(o) { block = block.concat(o.g.slice().sort(byOrder)); });
     const R = Math.max(0, n - block.length), tot = __ENG_ORDER.reduce(function(a, t) { return a + __ENG_W[t]; }, 0);
     const want = {}, raw = {};
     __ENG_ORDER.forEach(function(t) { raw[t] = __ENG_W[t] * R / tot; want[t] = Math.floor(raw[t]); });
@@ -14940,8 +15015,9 @@ function __pickEnglishPaper(questions, n) {
     }
     let out = block.slice();
     __ENG_ORDER.forEach(function(t) {
-        out = out.concat(shuffleArray(pools[t]).slice(0, want[t]).sort(byOrder));
+        out = out.concat(__freshFirst(pools[t], served).slice(0, want[t]).sort(byOrder));
     });
+    __markServed('eng', out, pool);
     return out;
 }
 function __examPassages() {
@@ -15032,7 +15108,7 @@ async function startExam() {
 
     // Exam mode: simply shuffle and select questions, no passage grouping
     const examQCount = 40;
-    const qsAll = (state.examSubject === 'eng' ? __pickEnglishPaper(questions, examQCount) : pickQuestionsWithImageCap(questions, examQCount, 'exam_' + state.examSubject + '_' + yearStr)).map(function(q) {
+    const qsAll = (state.examSubject === 'eng' ? __pickEnglishPaper(questions, examQCount) : __pickExamFresh(questions, examQCount, 'exam_' + state.examSubject + '_' + yearStr)).map(function(q) {
         return Object.assign({}, q, { subject_name: s.name });
     });
     
@@ -16953,6 +17029,7 @@ const PAGE_TITLES = {
     'learning': 'My Learning',
     'literature': 'Novel (CBT)',
     'revise': 'Missed Questions',
+    'marked': 'Marked Questions',
     'review': 'Review Questions',
     'flashcards': 'Flashcards',
     'history': 'Result Analysis',
@@ -17017,7 +17094,7 @@ function renderApp() {
     const isFullPageChat = isAiAssistant || isSupportChat;
     // Topic Practice (subject list + topic list): clean full screen — no
     // bottom nav, no bell/refresh/avatar; just a back icon and a title.
-    const isTopicFlow = state.view === 'topic' || state.view === 'topic-list';
+    const isTopicFlow = state.view === 'topic' || state.view === 'topic-list' || state.view === 'exam';
 
     let leftContent = '';
 
@@ -17176,6 +17253,7 @@ if (v === "subject-modes") return renderSubjectModes();
     if (v === "topic") return renderTopicsPicker();
     if (v === "topic-list") return renderTopicsListPage();
     if (v === "topic-exam") return renderTopicExam();
+    if (v === "marked") return renderMarkedQuestions();
     if (v === "history") return renderHistory();
     if (v === "analytics") return renderAnalyticsDashboard();
     if (v === "privacy") return renderPrivacyPolicy();
@@ -17346,6 +17424,7 @@ const atMax = mySubjectIds.length === 4;
     const modes = [
         { view: 'topic', label: 'Topic Practice', sub: 'Read notes or take a CBT', icon: 'list', tint: '#6B4F82' },
         { view: 'revise', label: 'Missed Questions', sub: 'Retry questions you missed', icon: 'rotate', tint: '#0F6B3F' },
+        { view: 'marked', label: 'Marked Questions', sub: 'Questions you marked to revisit', icon: 'bookmark', tint: '#C2791C' },
         { view: 'cbt', label: 'JAMB CBT', sub: 'Full timed practice', icon: 'monitor', tint: '#35618C' },
         { view: 'exam', label: 'Past Questions', sub: '2000 – 2026', icon: 'clipboard', tint: '#A65640' },
         { view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
@@ -17391,7 +17470,7 @@ function renderSubjectModes() {
     if (!s) return renderMyCourses();
 
     const modes = [
-        { action: 'subj-start-cbt', label: 'CBT Practice', sub: 'Timed, ' + (state.cbtQuestionCount || 40) + ' questions', icon: 'monitor', tint: '#35618C' },
+        { action: 'subj-start-cbt', label: 'CBT Practice', sub: 'Timed practice', icon: 'monitor', tint: '#35618C' },
         { action: 'subj-start-exam', label: 'Past Questions', sub: 'Pick a year, 2000–2026', icon: 'clipboard', tint: '#A65640' },
         { action: 'subj-start-flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
     ];
@@ -17425,6 +17504,7 @@ function renderLearningHubCore() {
         { key: 'flashcards', label: 'Flashcards', blurb: 'Flip through Q&A fast', icon: 'cards', color: '#97527A' },
         { key: 'literature', label: 'Novel (CBT)', blurb: 'Set texts & comprehension', icon: 'book', color: '#3E7C74' },
         { key: 'revise', label: 'Missed Questions', blurb: 'Retry questions you missed', icon: 'rotate', color: '#0F6B3F' },
+        { key: 'marked', label: 'Marked Questions', blurb: 'Questions you marked to revisit', icon: 'bookmark', color: '#C2791C' },
         { key: 'topic', label: 'Topic Practice', blurb: 'Read topic notes or take a topic CBT', icon: 'list', color: '#6B4F82' },
 
         { key: 'history', label: 'Result Analysis', blurb: 'Your exam results & performance', icon: 'clock', color: '#6E5296' },
@@ -17947,7 +18027,6 @@ function renderCbtMode() {
         mwModeHeader('mysubjects', '#3B6EA5', 'monitor', 'JAMB CBT', 'Real JAMB-style practice screen') +
         '<div class="picker-scroll cbt-wide">' +
         modeHtml +
-        '<div class="mode-note">Every subject has <b>40 questions</b>, timed like the real JAMB.</div>' +
         body +
         '</div>' +
         '<div class="picker-footer">' +
@@ -18285,12 +18364,12 @@ function renderExamMode() {
             const sel = state.examSubject === x.id;
             list += '<button type="button" class="ex-card ex-subj' + (sel ? ' sel' : '') + '" style="--c:' + x.color + '" data-action="select-exam-subject" data-subject="' + x.id + '">' +
                 '<span class="ex-badge">' + esc(x.code) + '</span>' +
-                '<span class="ex-name">' + esc(x.name) + (x.compulsory ? '<small>Compulsory for everyone</small>' : '<small>Past questions &middot; 40 questions</small>') + '</span>' +
+                '<span class="ex-name">' + esc(x.name) + (x.compulsory ? '<small>Compulsory for everyone</small>' : '<small>Past questions</small>') + '</span>' +
                 '<span class="ex-check">' + (sel ? '✓' : '') + '</span></button>';
         });
         body = dots + '<p class="ex-kicker">STEP 1 OF 2</p><h2 class="ex-title">Choose your subject</h2><p class="ex-sub">Tap a subject, then press Next.</p><div class="ex-list">' + list + '</div>';
         footer = '<p class="picker-count">' + (selectedSubject ? esc(selectedSubject.name) : 'No subject selected yet') + '</p>' +
-            '<button class="btn ' + (selectedSubject ? 'btn-green' : 'btn-outline') + '" data-action="exam-next"' + (selectedSubject ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Next &rarr;</button>';
+            '<button class="btn ' + (selectedSubject ? 'btn-green' : 'btn-outline') + '" data-action="exam-wiz-next"' + (selectedSubject ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Next &rarr;</button>';
     } else {
         let list = '';
         for (let y = 2026; y >= 2000; y--) {
@@ -18298,18 +18377,18 @@ function renderExamMode() {
             const c = SUBJECT_PALETTE[(2026 - y) % SUBJECT_PALETTE.length];
             list += '<button type="button" class="ex-card ex-year' + (sel ? ' sel' : '') + '" style="--c:' + c + '" data-action="select-exam-year" data-year="' + y + '">' +
                 '<span class="ex-yr">' + y + '</span>' +
-                '<span class="ex-name">JAMB ' + y + '<small>40 questions &middot; timed</small></span>' +
+                '<span class="ex-name">JAMB ' + y + '<small>Timed paper</small></span>' +
                 '<span class="ex-check">' + (sel ? '✓' : '') + '</span></button>';
         }
         body = dots + '<p class="ex-kicker">STEP 2 OF 2</p><h2 class="ex-title">Choose the year</h2>' +
-            '<div class="ex-chosen" style="--c:' + (selectedSubject ? selectedSubject.color : '#0F6B3F') + '"><span class="ex-badge">' + esc(selectedSubject ? selectedSubject.code : '') + '</span><span class="ex-name">' + esc(selectedSubject ? selectedSubject.name : '') + '</span><button type="button" class="ex-change" data-action="exam-back-step">Change</button></div>' +
+            '<div class="ex-chosen" style="--c:' + (selectedSubject ? selectedSubject.color : '#0F6B3F') + '"><span class="ex-badge">' + esc(selectedSubject ? selectedSubject.code : '') + '</span><span class="ex-name">' + esc(selectedSubject ? selectedSubject.name : '') + '</span><button type="button" class="ex-change" data-action="exam-wiz-back">Change</button></div>' +
             modeHtml + '<div class="ex-list">' + list + '</div>';
         const ok = !!state.examYearPicked;
         footer = '<p class="picker-count">' + (selectedSubject ? esc(selectedSubject.name) : '') + (ok ? ' &middot; ' + state.examYear : ' &middot; pick a year') + '</p>' +
             '<button class="btn ' + (ok ? 'btn-green' : 'btn-outline') + '" data-action="start-exam"' + (ok ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Start Exam</button>';
     }
     return (
-        mwModeHeader('mysubjects', '#E2543A', 'clipboard', 'JAMB Past Questions', '2000\u20132026 \u00B7 40 questions per paper') +
+        mwModeHeader('mysubjects', '#E2543A', 'clipboard', 'JAMB Past Questions', '2000\u20132026 \u00B7 JAMB past papers') +
         '<div class="picker-scroll">' + body + '</div>' +
         '<div class="picker-footer">' + footer + '</div>'
     );
@@ -24501,7 +24580,23 @@ document.addEventListener('click', function(e) {
         const markedKey = mk[0], idxKey = mk[1], qKey = mk[2];
         if (!Array.isArray(state[markedKey])) state[markedKey] = new Array((state[qKey] || []).length).fill(false);
         state[markedKey][state[idxKey]] = !state[markedKey][state[idxKey]];
+        try { __syncMarked((state[qKey] || [])[state[idxKey]], markMode, !!state[markedKey][state[idxKey]]); } catch (e) {}
         saveSessionSnapshot();
+        render();
+        return;
+    }
+    if (action === 'marked-remove') {
+        const hh = el.getAttribute('data-h');
+        __setMarked(__getMarked().filter(function(x) { return x.h !== hh; }));
+        render();
+        return;
+    }
+    if (action === 'marked-clear') {
+        if (window.confirm('Remove all marked questions?')) { __setMarked([]); render(); }
+        return;
+    }
+    if (action === 'marked-filter') {
+        state.markedFilter = el.getAttribute('data-sid') || '';
         render();
         return;
     }
@@ -24708,14 +24803,14 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
-    if (action === 'exam-next') {
+    if (action === 'exam-wiz-next') {
         if (!state.examSubject) return;
         state.examStep = 2; state.examYearPicked = false;
         render();
         try { window.scrollTo(0, 0); var __ps = document.querySelector('.picker-scroll'); if (__ps) __ps.scrollTop = 0; } catch (e) {}
         return;
     }
-    if (action === 'exam-back-step') {
+    if (action === 'exam-wiz-back') {
         state.examStep = 1; state.examYearPicked = false;
         render();
         return;
