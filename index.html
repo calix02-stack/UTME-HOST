@@ -12505,7 +12505,7 @@ for (const subjectId of subjects) {
                 }
                 allQuestions = allQuestions.concat(engSet);
             } else {
-                allQuestions = allQuestions.concat(__pickFresh(allSubjectQuestions, perSubject, subjectId));
+                allQuestions = allQuestions.concat(__pickBySubject(allSubjectQuestions, perSubject, subjectId, 'mock_' + subjectId));
             }
         }
         if (!allQuestions.length) throw new Error('Questions are not on this device yet. Open the app online once to download them.');
@@ -14759,7 +14759,7 @@ async function startCbt() {
                     window.OfflineDB.loadQuestionsOffline('cbt', subject.id),
                     12000, subject.name + ' questions load'
                 );
-                qs = qs.some(isImageQuestion) ? pickQuestionsWithImageCap(qs, perSubject, 'cbt_' + subject.id) : __pickFresh(qs, perSubject, subject.id);
+                qs = __pickBySubject(qs, perSubject, subject.id, 'cbt_' + subject.id);
             }
 
             const qsWithSubject = (qs || []).map(function(q) {
@@ -14964,8 +14964,41 @@ function __pickFresh(pool, count, subjectId) {
     return picked;
 }
 function __pickExamFresh(pool, count, scope) {
+    return __pickBySubject(pool, count, state.examSubject, scope);
+}
+// Any subject whose questions carry a "qtype" (topic group): one run per group, in order,
+// with a share of the paper proportional to how many questions the group has (at least one each).
+function __pickGrouped(pool, n, subjectId) {
+    const byOrder = function(x, y) { return (x.display_order || 0) - (y.display_order || 0); };
+    const served = __getServed(subjectId), pools = {}, types = [];
+    pool.slice().sort(byOrder).forEach(function(q) {
+        const t = q.qtype || 'General';
+        if (!pools[t]) { pools[t] = []; types.push(t); }
+        pools[t].push(q);
+    });
+    let chosen = types.length > n ? shuffleArray(types).slice(0, n) : types;
+    chosen = chosen.slice().sort(function(a, b) { return (pools[a][0].qtype_order || 0) - (pools[b][0].qtype_order || 0); });
+    const total = chosen.reduce(function(a, t) { return a + pools[t].length; }, 0);
+    const want = {}, raw = {};
+    chosen.forEach(function(t) { want[t] = 1; raw[t] = pools[t].length * (n - chosen.length) / total; want[t] += Math.floor(raw[t]); });
+    let rem = n - chosen.reduce(function(a, t) { return a + want[t]; }, 0);
+    chosen.slice().sort(function(x, y) { return (raw[y] - Math.floor(raw[y])) - (raw[x] - Math.floor(raw[x])); }).forEach(function(t) { if (rem > 0) { want[t]++; rem--; } });
+    let spill = 0;
+    chosen.forEach(function(t) { if (want[t] > pools[t].length) { spill += want[t] - pools[t].length; want[t] = pools[t].length; } });
+    while (spill > 0) {
+        let moved = false;
+        chosen.forEach(function(t) { if (spill > 0 && want[t] < pools[t].length) { want[t]++; spill--; moved = true; } });
+        if (!moved) break;
+    }
+    let out = [];
+    chosen.forEach(function(t) { out = out.concat(__freshFirst(pools[t], served).slice(0, want[t]).sort(byOrder)); });
+    __markServed(subjectId, out, pool);
+    return out;
+}
+function __pickBySubject(pool, count, subjectId, scope) {
+    if (pool.some(function(q) { return q.qtype; })) return __pickGrouped(pool, count, subjectId);
     if (pool.some(isImageQuestion)) return pickQuestionsWithImageCap(pool, count, scope);
-    return __pickFresh(pool, count, state.examSubject);
+    return __pickFresh(pool, count, subjectId);
 }
 const __ENG_ORDER = ['gap', 'synonym', 'antonym', 'interpretation', 'structure', 'vowel', 'consonant', 'stress'];
 const __ENG_W = { gap: 9, synonym: 7, antonym: 7, interpretation: 4, structure: 2, vowel: 2, consonant: 2, stress: 3 };
