@@ -8442,7 +8442,7 @@ const DEFAULT_COURSES = COURSE_EXAM_TYPES.reduce(function(list, examType) {
 const HOME_TILES = [
     { key: "cbt", label: "JAMB CBT", blurb: "Real JAMB-style practice", icon: "monitor", color: "#3B6EA5",
         colorDark: "#274A6E" },
-    { key: "exam", label: "JAMB Past Questions", blurb: "2021–2026, one subject at a time", icon: "clipboard", color: "#E2543A",
+    { key: "exam", label: "JAMB Past Questions", blurb: "2000–2026, one subject at a time", icon: "clipboard", color: "#E2543A",
         colorDark: "#B23420" },
     { key: "mockexam", label: "Mock Arena", blurb: "Create or join a mock arena exam", icon: "target", color: "#6E5296",
         colorDark: "#4A3B66" },
@@ -14042,7 +14042,7 @@ const SUPPORT_KB = [
       a: 'JAMB CBT is in Practice Hub → JAMB CBT. It is a full timed practice with English plus your other chosen subjects, like the real UTME.\n1. Open Practice Hub → JAMB CBT\n2. Confirm your subjects and tap Start\n3. Answer and Submit before time runs out\nYour result is saved in Account → Result Analysis. The time limit and questions per subject are set by the admin.' },
     { k: ['past question', 'past paper', 'exam mode', 'previous year', 'jamb year'],
       not: ['not loading', 'not showing', 'no question', 'missing'],
-      a: 'Past Questions (Practice Hub → Past Questions) has real questions from 2021 to 2026.\n1. Pick a subject\n2. Pick a year\n3. Start\nIf a year has no questions, it has not been uploaded yet — tell me the subject and year and I\'ll flag it.' },
+      a: 'Past Questions (Practice Hub → Past Questions) has real questions from 2000 to 2026.\n1. Pick a subject\n2. Pick a year\n3. Start\nIf a year has no questions, it has not been uploaded yet — tell me the subject and year and I\'ll flag it.' },
     { k: ['+flashcard', 'flash card', 'flip card'],
       a: 'Flashcards (Practice Hub → Flashcards) lets you flip through questions and answers quickly for revision. Pick a subject, then tap a card to flip it.' },
     { k: ['novel', 'literature', 'set text', 'lekki headmaster', 'life changer'],
@@ -17230,7 +17230,7 @@ const atMax = mySubjectIds.length === 4;
         { view: 'topic', label: 'Topic Practice', sub: 'Read notes or take a CBT', icon: 'list', tint: '#6B4F82' },
         { view: 'revise', label: 'Missed Questions', sub: 'Retry questions you missed', icon: 'rotate', tint: '#0F6B3F' },
         { view: 'cbt', label: 'JAMB CBT', sub: 'Full timed practice', icon: 'monitor', tint: '#35618C' },
-        { view: 'exam', label: 'Past Questions', sub: '2021 – 2026', icon: 'clipboard', tint: '#A65640' },
+        { view: 'exam', label: 'Past Questions', sub: '2000 – 2026', icon: 'clipboard', tint: '#A65640' },
         { view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
         { view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#3E7C74' },
 
@@ -17275,7 +17275,7 @@ function renderSubjectModes() {
 
     const modes = [
         { action: 'subj-start-cbt', label: 'CBT Practice', sub: 'Timed, ' + (state.cbtQuestionCount || 40) + ' questions', icon: 'monitor', tint: '#35618C' },
-        { action: 'subj-start-exam', label: 'Past Questions', sub: 'Pick a year, 2021–2026', icon: 'clipboard', tint: '#A65640' },
+        { action: 'subj-start-exam', label: 'Past Questions', sub: 'Pick a year, 2000–2026', icon: 'clipboard', tint: '#A65640' },
         { action: 'subj-start-flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
     ];
     let grid = '<div class="mode-grid-v2">';
@@ -17303,7 +17303,7 @@ function renderLearningHub() { return renderLearningHubCore() + adBox(); }
 function renderLearningHubCore() {
     const tools = [
         { key: 'cbt', label: 'JAMB CBT', blurb: 'Real JAMB-style practice', icon: 'monitor', color: '#3B6EA5' },
-        { key: 'exam', label: 'JAMB Past Questions', blurb: '2021–2026, one subject at a time', icon: 'clipboard', color: '#E2543A' },
+        { key: 'exam', label: 'JAMB Past Questions', blurb: '2000–2026, one subject at a time', icon: 'clipboard', color: '#E2543A' },
         { key: 'mockexam', label: 'Mock Arena', blurb: 'Create or join a mock arena exam', icon: 'target', color: '#6E5296' },
         { key: 'flashcards', label: 'Flashcards', blurb: 'Flip through Q&A fast', icon: 'cards', color: '#97527A' },
         { key: 'literature', label: 'Novel (CBT)', blurb: 'Set texts & comprehension', icon: 'book', color: '#3E7C74' },
@@ -18130,7 +18130,7 @@ function renderExamMode() {
     // hands off to the OS's own picker wheel/dropdown, which looks out of
     // place next to the rest of this screen's custom-styled controls.
     let yearChips = "";
-    for (let y = 2026; y >= 2021; y--) {
+    for (let y = 2026; y >= 2000; y--) {
         const sel = state.examYear === y;
         yearChips += '<button type="button" class="year-chip' + (sel ? ' selected' : '') + '" data-action="select-exam-year" data-year="' + y + '">' + y + '</button>';
     }
@@ -18157,11 +18157,11 @@ function renderExamMode() {
     );
 
     return (
-        mwModeHeader('mysubjects', '#E2543A', 'clipboard', 'JAMB Past Questions', '2021\u20132026 \u00B7 one subject at a time') +
+        mwModeHeader('mysubjects', '#E2543A', 'clipboard', 'JAMB Past Questions', '2000\u20132026 \u00B7 one subject at a time') +
         '<div class="picker-scroll">' +
         modeHtml +
         renderUserQuestionCountPicker('examQuestionCount', state.examQuestionCount) +
-        '<div class="mode-note">Pick <b>one subject</b> and a <b>past year</b> (2021–2026) to sit an exam.' + 
+        '<div class="mode-note">Pick <b>one subject</b> and a <b>past year</b> (2000–2026) to sit an exam.' + 
         (isInstant ? ' <b>Instant Check</b> shows feedback right after each answer.' : '') +
         '</div>' +
         '<div class="year-select-wrap">' +
@@ -20504,7 +20504,7 @@ function renderActivationBanner() {
     const from = prices.length ? Math.min.apply(null, prices) : 0;
     const feats = [
         ['📚', 'Unlimited JAMB CBT', 'Every subject, no limits'],
-        ['📝', 'Past Questions', '2021 – 2026, by subject'],
+        ['📝', 'Past Questions', '2000 – 2026, by subject'],
         ['✨', 'Enzo AI', 'Instant answers, any time'],
         ['🎯', 'Mock Arena', 'Live timed exams &amp; ranking'],
         ['📖', 'Novel CBT', 'Set texts &amp; comprehension'],
@@ -22041,7 +22041,7 @@ function renderAdminYearPicker(type, subject) {
     });
 
     let cards = '';
-    for (let y = 2026; y >= 2021; y--) {
+    for (let y = 2026; y >= 2000; y--) {
         const count = counts[y] || 0;
         cards += (
             '<div class="admin-mode-card" data-action="admin-select-view-year" data-year="' + y + '">' +
