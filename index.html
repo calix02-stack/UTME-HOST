@@ -7869,6 +7869,12 @@ u.q-u { text-decoration: underline; text-decoration-thickness: 2px; text-underli
 .passage-text{font-size:15px;line-height:1.8;white-space:pre-wrap}
 .passage-full-foot{padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1.5px solid var(--line)}
 .passage-full-foot .btn{width:100%}
+.passage-sec{margin:0 0 22px;padding:14px;border:1.5px solid var(--line);border-radius:12px}
+.passage-sec.here{border-color:var(--green);box-shadow:0 0 0 3px rgba(15,107,63,.12)}
+.passage-sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px}
+.passage-no{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--green)}
+.passage-here{font-size:10px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--green);padding:3px 8px;border-radius:99px}
+.passage-qs{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -9098,8 +9104,10 @@ function renderExamIconRow(cfg) {
     if (cfg.item) cacheFlaggableQuestion(cfg.item, cfg.subjectId);
     const showPassageIcon = !!(cfg.hasPassage || (cfg.item && cfg.item.passage_text));
     const __pq = cfg.item;
+    const __pinfo = (cfg.mode === 'exam') ? __examPassageFor(__pq) : null;
+    const __pLabel = __pinfo ? ('Passage ' + __pinfo.p.no + ' of ' + __pinfo.total) : 'a passage';
     window.__passageBannerHtml = (__pq && (__pq.uses_passage || __pq.passage_text) && (cfg.hasPassage || __pq.passage_text))
-        ? '<button type="button" class="passage-banner" data-action="show-passage"><span class="pb-ico">📖</span><span class="pb-txt"><b>This question is based on a passage</b><small>Tap here to read the passage (full screen), then come back</small></span></button>'
+        ? '<button type="button" class="passage-banner" data-action="show-passage"><span class="pb-ico">📖</span><span class="pb-txt"><b>This question is based on ' + __pLabel + '</b><small>' + (__pinfo ? (esc(__qRangeLabel(__pinfo.p.qnums)) + ' use this passage. ') : '') + 'Tap to read it full screen, then come back.</small></span></button>'
         : '';
     // Drawn inside the question box by renderExamQCardHeader (same call, right after this one)
     window.__examToolsHtml = (
@@ -9107,7 +9115,7 @@ function renderExamIconRow(cfg) {
         (cfg.calcEnabled
             ? '<button class="eq-btn" data-action="toggle-calculator" aria-label="Calculator" title="Calculator">' + svg('calcsigns', 17) + '<span class="eq-lbl">Calculator</span></button>'
             : '<button class="eq-btn" data-action="toggle-calculator" aria-label="Calculator" style="opacity:0.35" title="Calculator disabled">' + svg('calcsigns', 17) + '<span class="eq-lbl">Calculator</span></button>') +
-        (showPassageIcon ? '<button class="eq-btn" data-action="show-passage" title="View Passage" aria-label="View Passage"><span style="font-size:15px;line-height:1">📖</span></button>' : '') +
+        (showPassageIcon ? '<button class="eq-btn" data-action="show-passage" title="View Passage" aria-label="View Passage"><span style="font-size:15px;line-height:1">📖</span><span class="eq-lbl">Passage</span></button>' : '') +
         '<button class="eq-btn' + (cfg.marked ? ' marked' : '') + '" data-action="toggle-mark-review" data-mode="' + (cfg.mode || '') + '" title="Mark this question to come back to it later" aria-label="Mark for review">' + svg('bookmark', 17) + '<span class="eq-lbl">' + (cfg.marked ? 'Marked' : 'Mark') + '</span></button>' +
         '<button class="eq-btn' + (isFlagged ? ' flagged' : '') + '" data-action="flag-review-question" data-qid="' + (cfg.qid || '') + '" data-subject="' + (cfg.subjectId || '') + '" data-mode="' + (cfg.mode || '') + '" title="Report a problem with this question" aria-label="Flag Question">' + svg('flag', 17) + '<span class="eq-lbl">' + (isFlagged ? 'Flagged' : 'Flag') + '</span></button>' +
         '</div>'
@@ -14875,6 +14883,52 @@ async function loadExamQuestionsFromFile(subjectId, yearStr) {
     });
 }
 
+function __pickEnglishPaper(questions, n) {
+    // Keeps paper order. Passages (with all their questions) are always included first,
+    // up to ~45% of the sitting, then the rest is filled with a random pick of the other questions.
+    const byOrder = function(x, y) { return (x.display_order || 0) - (y.display_order || 0); };
+    const sorted = (questions || []).slice().sort(byOrder);
+    if (n >= sorted.length) return sorted;
+    const groups = [], idx = {}, plain = [];
+    sorted.forEach(function(q) {
+        if (q.passage_text) {
+            const k = q.passage_text;
+            if (idx[k] === undefined) { idx[k] = groups.length; groups.push([]); }
+            groups[idx[k]].push(q);
+        } else plain.push(q);
+    });
+    const cap = Math.max(1, Math.ceil(n * 0.45));
+    let chosen = [];
+    groups.forEach(function(g) { if (chosen.length + g.length <= cap) chosen = chosen.concat(g); });
+    if (!chosen.length && groups.length) {
+        chosen = groups.slice().sort(function(x, y) { return x.length - y.length; })[0].slice(0, n);
+    }
+    const fill = shuffleArray(plain).slice(0, Math.max(0, n - chosen.length));
+    return chosen.concat(fill).sort(byOrder);
+}
+function __examPassages() {
+    const list = [], pos = {};
+    (state.examQuestions || []).forEach(function(q, i) {
+        if (!q || !q.passage_text) return;
+        const k = q.passage_text;
+        if (pos[k] === undefined) { pos[k] = list.length; list.push({ no: list.length + 1, title: q.passage_title, text: q.passage_text, qnums: [] }); }
+        list[pos[k]].qnums.push(i + 1);
+    });
+    return list;
+}
+function __qRangeLabel(nums) {
+    if (!nums || !nums.length) return '';
+    if (nums.length === 1) return 'Question ' + nums[0];
+    const contiguous = nums.every(function(v, i) { return i === 0 || v === nums[i - 1] + 1; });
+    return contiguous ? ('Questions ' + nums[0] + '\u2013' + nums[nums.length - 1]) : ('Questions ' + nums.join(', '));
+}
+function __examPassageFor(item) {
+    if (!item || !item.passage_text) return null;
+    const list = __examPassages();
+    for (let i = 0; i < list.length; i++) { if (list[i].text === item.passage_text) return { p: list[i], total: list.length }; }
+    return null;
+}
+
 async function startExam() {
     if (!state.authUser) { guestNeedsAccount(); return; }
 
@@ -14940,7 +14994,7 @@ async function startExam() {
 
     // Exam mode: simply shuffle and select questions, no passage grouping
     const examQCount = state.examQuestionCount || 25;
-    const qsAll = pickQuestionsWithImageCap(questions, examQCount, 'exam_' + state.examSubject + '_' + yearStr).map(function(q) {
+    const qsAll = (state.examSubject === 'eng' ? __pickEnglishPaper(questions, examQCount) : pickQuestionsWithImageCap(questions, examQCount, 'exam_' + state.examSubject + '_' + yearStr)).map(function(q) {
         return Object.assign({}, q, { subject_name: s.name });
     });
     
@@ -17904,12 +17958,33 @@ function __passageFullHtml(passage) {
     );
 }
 
+function __passageListHtml(list, hereNo) {
+    let body = '';
+    list.forEach(function(p) {
+        const here = p.no === hereNo;
+        body += '<section class="passage-sec' + (here ? ' here' : '') + '"' + (here ? ' id="passage-target"' : '') + '>' +
+            '<div class="passage-sec-head"><span class="passage-no">PASSAGE ' + p.no + ' OF ' + list.length + '</span>' + (here ? '<span class="passage-here">YOUR QUESTION IS HERE</span>' : '') + '</div>' +
+            '<p class="passage-qs">' + esc(__qRangeLabel(p.qnums)) + (p.qnums.length > 1 ? ' are' : ' is') + ' based on this passage</p>' +
+            '<h2 class="passage-title">' + esc(p.title || 'Reading Passage') + '</h2>' +
+            '<div class="passage-text">' + escM(p.text || '') + '</div></section>';
+    });
+    return (
+        '<div class="passage-full" role="dialog" aria-label="Passages">' +
+        '<div class="passage-full-bar"><button type="button" class="passage-back" data-action="close-passage">&larr; Back to question</button><span class="passage-tag">📖 PASSAGES</span></div>' +
+        '<div class="passage-full-body"><p class="passage-kicker">THIS PAPER HAS ' + list.length + ' PASSAGE' + (list.length === 1 ? '' : 'S') + '. SCROLL TO THE ONE YOUR QUESTION USES, READ IT, THEN GO BACK.</p>' + body + '</div>' +
+        '<div class="passage-full-foot"><button type="button" class="btn btn-green" data-action="close-passage">Back to question</button></div>' +
+        '</div>'
+    );
+}
+
 function renderPassageModal() {
     if (!state.showPassageModal) return '';
     let passage = null;
     if (state.view === 'exam-exam') {
-        const it = state.examQuestions && state.examQuestions[state.examIndex];
-        if (it && it.passage_text) passage = { title: it.passage_title, passage_text: it.passage_text };
+        const list = __examPassages();
+        if (!list.length) return '';
+        const cur = __examPassageFor(state.examQuestions && state.examQuestions[state.examIndex]);
+        return __passageListHtml(list, cur ? cur.p.no : 0);
     } else if (state.engMockHasPassage && state.engMockPassage) {
         passage = state.engMockPassage;
     } else if (state.currentEnglishPassage && (state.view === 'cbt-exam' || state.view === 'mock-exam')) {
@@ -18313,7 +18388,7 @@ function renderExamExam() {
         '<div class="exam-shell-scroll">' +
         renderExamIconRow({
             calcEnabled: calcEnabled,
-            hasPassage: !!(item && item.passage_text),
+            hasPassage: (state.examQuestions || []).some(function(x) { return x && x.passage_text; }),
             qid: item ? item.id : '',
             subjectId: subj ? subj.id : '',
             item: item,
@@ -24559,6 +24634,10 @@ document.addEventListener('click', function(e) {
     if (action === 'show-passage') {
         state.showPassageModal = true;
         render();
+        setTimeout(function() {
+            const t = document.getElementById('passage-target');
+            if (t && t.scrollIntoView) t.scrollIntoView({ block: 'start' });
+        }, 40);
         return;
     }
 
