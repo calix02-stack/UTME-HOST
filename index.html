@@ -7852,6 +7852,24 @@ u.q-u { text-decoration: underline; text-decoration-thickness: 2px; text-underli
     document.addEventListener('pointercancel', end, true);
 })();
 </script>
+<style>
+/* year list: vertical */
+.year-chip-row{flex-direction:column !important;flex-wrap:nowrap !important;gap:8px !important}
+.year-chip-row .year-chip{width:100%;text-align:left;padding:12px 14px}
+/* passage banner + full screen passage */
+.passage-banner{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:0 0 10px;padding:10px 12px;border:1.5px solid var(--green);border-radius:10px;background:var(--card-bg);color:var(--ink);font:inherit;cursor:pointer}
+.passage-banner .pb-ico{font-size:20px}.passage-banner b{display:block;font-size:13px}.passage-banner small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.passage-full{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;background:var(--card-bg,#fff);color:var(--ink)}
+.passage-full-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1.5px solid var(--line);background:var(--card-bg,#fff)}
+.passage-back{border:1.5px solid var(--green);background:transparent;color:var(--green);font-weight:700;font-size:13px;padding:8px 12px;border-radius:10px;cursor:pointer}
+.passage-tag{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--green)}
+.passage-full-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 28px}
+.passage-kicker{margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--green)}
+.passage-title{margin:0 0 12px;font-family:var(--font-serif);font-size:20px;line-height:1.3}
+.passage-text{font-size:15px;line-height:1.8;white-space:pre-wrap}
+.passage-full-foot{padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1.5px solid var(--line)}
+.passage-full-foot .btn{width:100%}
+</style>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -9078,7 +9096,11 @@ function examTopbarTime() {
 function renderExamIconRow(cfg) {
     const isFlagged = cfg.qid && state.myFlaggedIds.indexOf(cfg.qid) !== -1;
     if (cfg.item) cacheFlaggableQuestion(cfg.item, cfg.subjectId);
-    const showPassageIcon = cfg.hasPassage && cfg.mode !== 'exam';
+    const showPassageIcon = !!(cfg.hasPassage || (cfg.item && cfg.item.passage_text));
+    const __pq = cfg.item;
+    window.__passageBannerHtml = (__pq && (__pq.uses_passage || __pq.passage_text) && (cfg.hasPassage || __pq.passage_text))
+        ? '<button type="button" class="passage-banner" data-action="show-passage"><span class="pb-ico">📖</span><span class="pb-txt"><b>This question is based on a passage</b><small>Tap here to read the passage (full screen), then come back</small></span></button>'
+        : '';
     // Drawn inside the question box by renderExamQCardHeader (same call, right after this one)
     window.__examToolsHtml = (
         '<div class="eq-tools">' +
@@ -9099,10 +9121,13 @@ function renderExamQCardHeader(number, text, image, topic) {
         : '';
     const tools = window.__examToolsHtml || '';
     window.__examToolsHtml = '';
+    const pbanner = window.__passageBannerHtml || '';
+    window.__passageBannerHtml = '';
     return (
         '<div class="exam-q-card-v2">' +
         '<div class="q-headrow"><div class="q-headleft"><p class="q-num">Question ' + number + '</p>' +
         (topic ? '<p class="q-topic-line">' + esc(topic) + '</p>' : '') + '</div>' + tools + '</div>' +
+        pbanner +
         '<p class="q-body">' + escQ(text || '') + '</p>' +
         diagram +
         '</div>'
@@ -17865,38 +17890,32 @@ function renderPassagePage() {
     );
 }
 
-function renderPassageModal() {
-    // Exam mode does not use passages - never show passage modal in exam
-    if (state.view === 'exam-exam') return '';
-    
-    if (state.engMockHasPassage && state.engMockPassage && state.showPassageModal) {
-        const passage = state.engMockPassage;
-        return (
-            '<div class="flag-overlay" data-action="close-passage">' +
-            '<div class="flag-modal" data-action="prevent-close">' +
-            '<h3 style="font-family:var(--font-serif);margin:0 0 10px;font-size:17px">📖 ' + esc(passage.title || 'Reading Passage') + '</h3>' +
-            '<div style="font-size:13px;line-height:1.7;color:var(--ink);white-space:pre-wrap;max-height:350px;overflow-y:auto">' + esc(passage.passage_text) + '</div>' +
-            '<button class="btn btn-green" style="margin-top:10px" data-action="close-passage">Close</button>' +
-            '</div>' +
-            '</div>'
-        );
-    }
-    
-    const passage = state.currentEnglishPassage;
-    if (!passage || !state.showPassageModal) return '';
-    
-    // Only show passage modal for CBT and Mock modes (not Exam)
-    if (state.view !== 'cbt-exam' && state.view !== 'mock-exam') return '';
-    
+function __passageFullHtml(passage) {
     return (
-        '<div class="flag-overlay" data-action="close-passage">' +
-        '<div class="flag-modal" data-action="prevent-close">' +
-        '<h3 style="font-family:var(--font-serif);margin:0 0 10px;font-size:17px">📖 ' + esc(passage.title || 'Reading Passage') + '</h3>' +
-        '<div style="font-size:13px;line-height:1.7;color:var(--ink);white-space:pre-wrap;max-height:350px;overflow-y:auto">' + esc(passage.passage_text) + '</div>' +
-        '<button class="btn btn-green" style="margin-top:10px" data-action="close-passage">Close</button>' +
+        '<div class="passage-full" role="dialog" aria-label="Passage">' +
+        '<div class="passage-full-bar"><button type="button" class="passage-back" data-action="close-passage">&larr; Back to question</button><span class="passage-tag">📖 PASSAGE</span></div>' +
+        '<div class="passage-full-body">' +
+        '<p class="passage-kicker">THIS IS THE PASSAGE &mdash; READ IT, THEN GO BACK AND ANSWER</p>' +
+        '<h2 class="passage-title">' + esc(passage.title || 'Reading Passage') + '</h2>' +
+        '<div class="passage-text">' + escM(passage.passage_text || '') + '</div>' +
         '</div>' +
+        '<div class="passage-full-foot"><button type="button" class="btn btn-green" data-action="close-passage">Back to question</button></div>' +
         '</div>'
     );
+}
+
+function renderPassageModal() {
+    if (!state.showPassageModal) return '';
+    let passage = null;
+    if (state.view === 'exam-exam') {
+        const it = state.examQuestions && state.examQuestions[state.examIndex];
+        if (it && it.passage_text) passage = { title: it.passage_title, passage_text: it.passage_text };
+    } else if (state.engMockHasPassage && state.engMockPassage) {
+        passage = state.engMockPassage;
+    } else if (state.currentEnglishPassage && (state.view === 'cbt-exam' || state.view === 'mock-exam')) {
+        passage = state.currentEnglishPassage;
+    }
+    return passage ? __passageFullHtml(passage) : '';
 }
 function renderCbtExam() {
     if (state.hasPassage && state.currentEnglishPassage && !state.passageRead) {
@@ -18294,7 +18313,7 @@ function renderExamExam() {
         '<div class="exam-shell-scroll">' +
         renderExamIconRow({
             calcEnabled: calcEnabled,
-            hasPassage: false,
+            hasPassage: !!(item && item.passage_text),
             qid: item ? item.id : '',
             subjectId: subj ? subj.id : '',
             item: item,
