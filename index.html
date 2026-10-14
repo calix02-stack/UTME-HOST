@@ -7869,6 +7869,22 @@ u.q-u { text-decoration: underline; text-decoration-thickness: 2px; text-underli
 .passage-text{font-size:15px;line-height:1.8;white-space:pre-wrap}
 .passage-full-foot{padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1.5px solid var(--line)}
 .passage-full-foot .btn{width:100%}
+.ex-steps{display:flex;gap:6px;margin:4px 0 12px}.ex-steps span{flex:1;height:5px;border-radius:5px;background:var(--line)}.ex-steps span.on{background:linear-gradient(90deg,#E2543A,#F2994A)}
+.ex-kicker{margin:0;font-size:11px;font-weight:800;letter-spacing:.1em;color:#E2543A}
+.ex-title{margin:2px 0 4px;font-family:var(--font-serif);font-size:24px;line-height:1.2;color:var(--ink)}
+.ex-sub{margin:0 0 14px;font-size:13px;color:var(--muted)}
+.ex-list{display:flex;flex-direction:column;gap:10px;margin:12px 0 18px}
+.ex-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border:1.5px solid var(--line);border-left:6px solid var(--c);border-radius:14px;background:var(--card-bg);color:var(--ink);font:inherit;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .12s,box-shadow .15s}
+.ex-card:active{transform:scale(.985)}
+.ex-card.sel{background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 62%,#000));border-color:var(--c);color:#fff;box-shadow:0 6px 18px color-mix(in srgb,var(--c) 40%,transparent)}
+.ex-badge{flex:0 0 auto;min-width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;letter-spacing:.04em;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c)}
+.ex-card.sel .ex-badge,.ex-chosen .ex-badge{background:rgba(255,255,255,.22);color:#fff}
+.ex-yr{flex:0 0 auto;min-width:74px;font-family:var(--font-serif);font-weight:800;font-size:26px;color:var(--c)}.ex-card.sel .ex-yr{color:#fff}
+.ex-name{flex:1;font-weight:700;font-size:15px}.ex-name small{display:block;font-weight:500;font-size:11.5px;opacity:.7;margin-top:2px}
+.ex-check{flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800}
+.ex-card.sel .ex-check{border-color:#fff;background:#fff;color:var(--c)}
+.ex-chosen{display:flex;align-items:center;gap:12px;margin:8px 0 12px;padding:10px 12px;border-radius:14px;color:#fff;background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 62%,#000))}
+.ex-change{border:1.5px solid rgba(255,255,255,.7);background:transparent;color:#fff;font-weight:700;font-size:12px;padding:6px 12px;border-radius:10px;cursor:pointer}
 .passage-sec{margin:0 0 22px;padding:14px;border:1.5px solid var(--line);border-radius:12px}
 .passage-sec.here{border-color:var(--green);box-shadow:0 0 0 3px rgba(15,107,63,.12)}
 .passage-sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px}
@@ -9654,8 +9670,10 @@ let state = {
 
     // User-selectable question counts (25/30/35/40) for every mode except
     // Mock Exam, which stays admin-controlled.
-    cbtQuestionCount: null,
-    examQuestionCount: null,
+    cbtQuestionCount: 40,
+    examQuestionCount: 40,
+    examStep: 1,
+    examYearPicked: false,
     litQuestionCount: null,
 
     // CBT
@@ -14883,28 +14901,48 @@ async function loadExamQuestionsFromFile(subjectId, yearStr) {
     });
 }
 
+const __ENG_ORDER = ['gap', 'synonym', 'antonym', 'interpretation', 'structure', 'vowel', 'consonant', 'stress'];
+const __ENG_W = { gap: 7, synonym: 6, antonym: 6, interpretation: 4, structure: 2, vowel: 3, consonant: 3, stress: 4 };
 function __pickEnglishPaper(questions, n) {
-    // Keeps paper order. Passages (with all their questions) are always included first,
-    // up to ~45% of the sitting, then the rest is filled with a random pick of the other questions.
+    // Paper = passage block first (kept together), then each question TYPE in one run:
+    // gaps, synonyms, antonyms, interpretation, structure, vowels, consonants, stress.
     const byOrder = function(x, y) { return (x.display_order || 0) - (y.display_order || 0); };
     const sorted = (questions || []).slice().sort(byOrder);
-    if (n >= sorted.length) return sorted;
-    const groups = [], idx = {}, plain = [];
+    const groups = [], idx = {}, pools = {};
+    __ENG_ORDER.forEach(function(t) { pools[t] = []; });
     sorted.forEach(function(q) {
         if (q.passage_text) {
             const k = q.passage_text;
             if (idx[k] === undefined) { idx[k] = groups.length; groups.push([]); }
             groups[idx[k]].push(q);
-        } else plain.push(q);
+        } else {
+            const t = pools[q.qtype] ? q.qtype : 'structure';
+            pools[t].push(q);
+        }
     });
-    const cap = Math.max(1, Math.ceil(n * 0.45));
-    let chosen = [];
-    groups.forEach(function(g) { if (chosen.length + g.length <= cap) chosen = chosen.concat(g); });
-    if (!chosen.length && groups.length) {
-        chosen = groups.slice().sort(function(x, y) { return x.length - y.length; })[0].slice(0, n);
+    // passage block: whole passages in paper order, at most ~25% of the paper
+    const cap = Math.min(10, Math.max(1, Math.ceil(n * 0.25)));
+    let block = [];
+    groups.forEach(function(g) { if (block.length + g.length <= cap) block = block.concat(g); });
+    if (!block.length && groups.length) block = groups[0].slice(0, cap);
+    // how many of each type: fixed blueprint, shifted to other types when one runs short
+    const R = Math.max(0, n - block.length), tot = __ENG_ORDER.reduce(function(a, t) { return a + __ENG_W[t]; }, 0);
+    const want = {}, raw = {};
+    __ENG_ORDER.forEach(function(t) { raw[t] = __ENG_W[t] * R / tot; want[t] = Math.floor(raw[t]); });
+    let left = R - __ENG_ORDER.reduce(function(a, t) { return a + want[t]; }, 0);
+    __ENG_ORDER.slice().sort(function(x, y) { return (raw[y] - want[y]) - (raw[x] - want[x]); }).forEach(function(t) { if (left > 0) { want[t]++; left--; } });
+    let spill = 0;
+    __ENG_ORDER.forEach(function(t) { if (want[t] > pools[t].length) { spill += want[t] - pools[t].length; want[t] = pools[t].length; } });
+    while (spill > 0) {
+        let moved = false;
+        __ENG_ORDER.forEach(function(t) { if (spill > 0 && want[t] < pools[t].length) { want[t]++; spill--; moved = true; } });
+        if (!moved) break;
     }
-    const fill = shuffleArray(plain).slice(0, Math.max(0, n - chosen.length));
-    return chosen.concat(fill).sort(byOrder);
+    let out = block.slice();
+    __ENG_ORDER.forEach(function(t) {
+        out = out.concat(shuffleArray(pools[t]).slice(0, want[t]).sort(byOrder));
+    });
+    return out;
 }
 function __examPassages() {
     const list = [], pos = {};
@@ -14993,7 +15031,7 @@ async function startExam() {
     state.passageQuestionIds = [];
 
     // Exam mode: simply shuffle and select questions, no passage grouping
-    const examQCount = state.examQuestionCount || 25;
+    const examQCount = 40;
     const qsAll = (state.examSubject === 'eng' ? __pickEnglishPaper(questions, examQCount) : pickQuestionsWithImageCap(questions, examQCount, 'exam_' + state.examSubject + '_' + yearStr)).map(function(q) {
         return Object.assign({}, q, { subject_name: s.name });
     });
@@ -16208,7 +16246,7 @@ function setView(v, navOpts) {
     if (state.view === 'revise' && v !== 'revise') flushReviseReloadIfNeeded();
     // Fresh visit to Mock Arena — let the entrance animations play once.
     if (v === 'mockexam' && state.view !== 'mockexam') state.mockAnimatedTabs = {};
-    if (v !== state.view && ['cbt', 'exam', 'literature', 'topic'].indexOf(v) !== -1) { state.cbtQuestionCount = null; state.examQuestionCount = null; state.litQuestionCount = null; state.topicCount = null; } // students always pick the number themselves
+    if (v !== state.view && ['cbt', 'exam', 'literature', 'topic'].indexOf(v) !== -1) { state.cbtQuestionCount = 40; state.examQuestionCount = 40; state.examStep = 1; state.examYearPicked = false; state.litQuestionCount = null; state.topicCount = null; } // students always pick the number themselves
     state.view = v;
     if (v !== "activate") state.activateRedirectReason = null;
     state.drawerOpen = false;
@@ -17909,7 +17947,7 @@ function renderCbtMode() {
         mwModeHeader('mysubjects', '#3B6EA5', 'monitor', 'JAMB CBT', 'Real JAMB-style practice screen') +
         '<div class="picker-scroll cbt-wide">' +
         modeHtml +
-        renderUserQuestionCountPicker('cbtQuestionCount', state.cbtQuestionCount) +
+        '<div class="mode-note">Every subject has <b>40 questions</b>, timed like the real JAMB.</div>' +
         body +
         '</div>' +
         '<div class="picker-footer">' +
@@ -18229,48 +18267,51 @@ function renderExamMode() {
         yearChips += '<button type="button" class="year-chip' + (sel ? ' selected' : '') + '" data-action="select-exam-year" data-year="' + y + '">' + y + '</button>';
     }
 
-    const ready = !!state.examSubject;
-    const selectedSubject = SUBJECTS.find(function(s) { return s.id === state.examSubject; });
-    
-    // Mode toggle
+    const step = (state.examStep === 2 && state.examSubject) ? 2 : 1;
+    const selectedSubject = SUBJECTS.find(function(x) { return x.id === state.examSubject; });
     const isStandard = state.examVariant === 'standard';
     const isInstant = state.examVariant === 'instant';
-    let modeHtml = (
+    const modeHtml = (
         '<div class="cbt-mode-select">' +
-        '<button class="cbt-mode-btn' + (isStandard ? ' active' : '') + '" data-action="exam-variant" data-variant="standard">' +
-        '<span class="icon">📝</span>' +
-        '<span class="label">Standard</span>' +
-        '<span class="desc">Answer all, submit at end</span>' +
-        '</button>' +
-        '<button class="cbt-mode-btn' + (isInstant ? ' active' : '') + '" data-action="exam-variant" data-variant="instant">' +
-        '<span class="icon">⚡</span>' +
-        '<span class="label">Instant Check</span>' +
-        '<span class="desc">See right/wrong immediately</span>' +
-        '</button>' +
+        '<button class="cbt-mode-btn' + (isStandard ? ' active' : '') + '" data-action="exam-variant" data-variant="standard"><span class="icon">📝</span><span class="label">Standard</span><span class="desc">Answer all, submit at end</span></button>' +
+        '<button class="cbt-mode-btn' + (isInstant ? ' active' : '') + '" data-action="exam-variant" data-variant="instant"><span class="icon">⚡</span><span class="label">Instant Check</span><span class="desc">See right/wrong immediately</span></button>' +
         '</div>'
     );
-
+    const dots = '<div class="ex-steps"><span class="on"></span><span class="' + (step === 2 ? 'on' : '') + '"></span></div>';
+    let body = '', footer = '';
+    if (step === 1) {
+        let list = '';
+        SUBJECTS.filter(function(x) { return x.type !== 'literature'; }).forEach(function(x) {
+            const sel = state.examSubject === x.id;
+            list += '<button type="button" class="ex-card ex-subj' + (sel ? ' sel' : '') + '" style="--c:' + x.color + '" data-action="select-exam-subject" data-subject="' + x.id + '">' +
+                '<span class="ex-badge">' + esc(x.code) + '</span>' +
+                '<span class="ex-name">' + esc(x.name) + (x.compulsory ? '<small>Compulsory for everyone</small>' : '<small>Past questions &middot; 40 questions</small>') + '</span>' +
+                '<span class="ex-check">' + (sel ? '✓' : '') + '</span></button>';
+        });
+        body = dots + '<p class="ex-kicker">STEP 1 OF 2</p><h2 class="ex-title">Choose your subject</h2><p class="ex-sub">Tap a subject, then press Next.</p><div class="ex-list">' + list + '</div>';
+        footer = '<p class="picker-count">' + (selectedSubject ? esc(selectedSubject.name) : 'No subject selected yet') + '</p>' +
+            '<button class="btn ' + (selectedSubject ? 'btn-green' : 'btn-outline') + '" data-action="exam-next"' + (selectedSubject ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Next &rarr;</button>';
+    } else {
+        let list = '';
+        for (let y = 2026; y >= 2000; y--) {
+            const sel = state.examYearPicked && state.examYear === y;
+            const c = SUBJECT_PALETTE[(2026 - y) % SUBJECT_PALETTE.length];
+            list += '<button type="button" class="ex-card ex-year' + (sel ? ' sel' : '') + '" style="--c:' + c + '" data-action="select-exam-year" data-year="' + y + '">' +
+                '<span class="ex-yr">' + y + '</span>' +
+                '<span class="ex-name">JAMB ' + y + '<small>40 questions &middot; timed</small></span>' +
+                '<span class="ex-check">' + (sel ? '✓' : '') + '</span></button>';
+        }
+        body = dots + '<p class="ex-kicker">STEP 2 OF 2</p><h2 class="ex-title">Choose the year</h2>' +
+            '<div class="ex-chosen" style="--c:' + (selectedSubject ? selectedSubject.color : '#0F6B3F') + '"><span class="ex-badge">' + esc(selectedSubject ? selectedSubject.code : '') + '</span><span class="ex-name">' + esc(selectedSubject ? selectedSubject.name : '') + '</span><button type="button" class="ex-change" data-action="exam-back-step">Change</button></div>' +
+            modeHtml + '<div class="ex-list">' + list + '</div>';
+        const ok = !!state.examYearPicked;
+        footer = '<p class="picker-count">' + (selectedSubject ? esc(selectedSubject.name) : '') + (ok ? ' &middot; ' + state.examYear : ' &middot; pick a year') + '</p>' +
+            '<button class="btn ' + (ok ? 'btn-green' : 'btn-outline') + '" data-action="start-exam"' + (ok ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Start Exam</button>';
+    }
     return (
-        mwModeHeader('mysubjects', '#E2543A', 'clipboard', 'JAMB Past Questions', '2000\u20132026 \u00B7 one subject at a time') +
-        '<div class="picker-scroll">' +
-        modeHtml +
-        renderUserQuestionCountPicker('examQuestionCount', state.examQuestionCount) +
-        '<div class="mode-note">Pick <b>one subject</b> and a <b>past year</b> (2000–2026) to sit an exam.' + 
-        (isInstant ? ' <b>Instant Check</b> shows feedback right after each answer.' : '') +
-        '</div>' +
-        '<div class="year-select-wrap">' +
-        '<label class="field-label">Exam year</label>' +
-        '<div class="year-chip-row">' + yearChips + '</div>' +
-        '</div>' +
-        '<p class="section-label">Choose 1 subject</p>' +
-        '<div class="subject-grid">' + chips + '</div>' +
-        '</div>' +
-        '<div class="picker-footer">' +
-        '<p class="picker-count">' + (selectedSubject ? esc(selectedSubject.name) + ' · ' + state.examYear :
-            'No subject selected yet') + '</p>' +
-        '<button class="btn ' + (ready && state.examQuestionCount ? "btn-green" : "btn-outline") + '" data-action="start-exam"' + (ready && state.examQuestionCount ? '' :
-            ' disabled style="opacity:0.5;pointer-events:none"') + '>' + (ready && !state.examQuestionCount ? 'Choose number of questions' : 'Start Exam') + '</button>' +
-        '</div>'
+        mwModeHeader('mysubjects', '#E2543A', 'clipboard', 'JAMB Past Questions', '2000\u20132026 \u00B7 40 questions per paper') +
+        '<div class="picker-scroll">' + body + '</div>' +
+        '<div class="picker-footer">' + footer + '</div>'
     );
 }
 
@@ -24663,6 +24704,19 @@ document.addEventListener('click', function(e) {
 
     if (action === 'select-exam-year') {
         state.examYear = parseInt(el.getAttribute('data-year'), 10);
+        state.examYearPicked = true;
+        render();
+        return;
+    }
+    if (action === 'exam-next') {
+        if (!state.examSubject) return;
+        state.examStep = 2; state.examYearPicked = false;
+        render();
+        try { window.scrollTo(0, 0); var __ps = document.querySelector('.picker-scroll'); if (__ps) __ps.scrollTop = 0; } catch (e) {}
+        return;
+    }
+    if (action === 'exam-back-step') {
+        state.examStep = 1; state.examYearPicked = false;
         render();
         return;
     }
