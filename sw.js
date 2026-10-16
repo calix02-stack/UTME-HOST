@@ -3,7 +3,7 @@
 * Installation timeout optimization
   */
 
-const CACHE_NAME = "myutme-cache-v73";
+const CACHE_NAME = "myutme-cache-v82";
 
 const APP_SHELL = [
 "./",
@@ -68,33 +68,34 @@ fetch(request, {
 });
 }
 
-// Install quickly: attempt all shell downloads in parallel,
-// with a single overall deadline.
+// Install fast: only the small files are awaited. The big files
+// (index.html, offline-db.js) are fetched with no abort timer, using the
+// normal HTTP cache so a page that was just downloaded is not downloaded
+// twice. Install never waits more than a few seconds for them; anything not
+// finished is cached by the fetch handler on first use.
+const SMALL_SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
+const BIG_SHELL = ["./", "./index.html", "./offline-db.js"];
+
+async function cacheOne(cache, url, mode) {
+try {
+const response = await fetch(url, { cache: mode });
+if (response && response.ok) await cache.put(url, response);
+} catch (error) {
+// Continue when a file is unavailable.
+}
+}
+
 self.addEventListener("install", (event) => {
+self.skipWaiting();
 event.waitUntil(
 (async () => {
 const cache = await caches.open(CACHE_NAME);
-
-  await Promise.race([
-    Promise.all(
-      APP_SHELL.map(async (url) => {
-        try {
-          const response = await freshFetch(url, FETCH_TIMEOUT_MS);
-          if (response && response.ok) {
-            await cache.put(url, response);
-          }
-        } catch (error) {
-          // Continue when a file is unavailable.
-        }
-      })
-    ),
-    new Promise((resolve) => setTimeout(resolve, 9000)),
-  ]);
+const small = Promise.all(SMALL_SHELL.map((u) => cacheOne(cache, u, "reload")));
+const big = Promise.all(BIG_SHELL.map((u) => cacheOne(cache, u, "default")));
+await small;
+await Promise.race([big, new Promise((r) => setTimeout(r, 4000))]);
 })()
-
 );
-
-self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -124,7 +125,7 @@ url.pathname === "/" ||
 url.pathname.endsWith("/");
 
 const isQuestionDataFile =
-/^/?(questions|notes)-[^/]+.json$/.test(url.pathname) ||
+/^\/?(questions|notes)-[^/]+\.json$/.test(url.pathname) ||
 url.pathname.endsWith("questions-seed.json");
 
 const isAppScript =
@@ -133,7 +134,7 @@ url.pathname.endsWith(".js") &&
 
 const isShellNav =
 (event.request.mode === "navigate" &&
-!/.[a-z0-9]+$/i.test(url.pathname)) ||
+!/\.[a-z0-9]+$/i.test(url.pathname)) ||
 url.pathname === "/" ||
 url.pathname.endsWith("/index.html");
 
