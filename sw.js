@@ -1,320 +1,352 @@
-/* MyUTME Service Worker */
+/*! MyUTME service worker · enzo-ai
 
-const CACHE_NAME = "myutme-cache-v83";
+* Installation timeout optimization
+  */
 
-// CRITICAL SPEED FIX: Cache only what's required for installation instantly
+const CACHE_NAME = "myutme-cache-v85";
+
 const APP_SHELL = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./offline-db.js"
-];
-
-// Split to isolate tiny files vs big assets
-const SMALL_SHELL = [
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png"
-];
-
-const BIG_SHELL = [
-  "./",
-  "./index.html",
-  "./offline-db.js"
+"./",
+"./index.html",
+"./manifest.json",
+"./icon-192.png",
+"./icon-512.png",
+"./offline-db.js",
 ];
 
 const FETCH_TIMEOUT_MS = 8000;
 const PAGE_TIMEOUT_MS = 12000;
 const QUESTION_TIMEOUT_MS = 15000;
 
-/* Network request with timeout */
-function timedFetch(request, timeoutMs = FETCH_TIMEOUT_MS, cacheMode = "no-store") {
-  return new Promise((resolve, reject) => {
-    const controller = new AbortController();
+function freshFetch(request, timeoutMs = FETCH_TIMEOUT_MS) {
+return new Promise((resolve, reject) => {
+const controller = new AbortController();
+const timer = setTimeout(() => {
+controller.abort();
+reject(new Error("Network request timed out"));
+}, timeoutMs);
 
-    const timer = setTimeout(() => {
-      controller.abort();
-      reject(new Error("Network request timed out"));
-    }, timeoutMs);
-
-    fetch(request, {
-      cache: cacheMode,
-      signal: controller.signal
-    }).then(
-      response => {
-        clearTimeout(timer);
-        resolve(response);
-      },
-      error => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
-}
-
-/* Fetch and cache a single file */
-async function cacheOne(cache, url, mode = "default") {
-  try {
-    const response = await fetch(url, { cache: mode });
-    if (response && response.ok) {
-      await cache.put(url, response);
-    }
-  } catch (error) {
-    // Continue if a file cannot be downloaded.
+fetch(request, {
+  cache: "no-store",
+  signal: controller.signal,
+}).then(
+  (response) => {
+    clearTimeout(timer);
+    resolve(response);
+  },
+  (error) => {
+    clearTimeout(timer);
+    reject(error);
   }
+);
+
+});
 }
 
-/* Check whether the new cache contains essential files */
-async function newShellIsReady() {
-  try {
-    const cache = await caches.open(CACHE_NAME);
-    const index = await cache.match("./index.html");
-    const database = await cache.match("./offline-db.js");
-    return !!(index && database);
-  } catch (error) {
-    return false;
+function revalidateFetch(request, timeoutMs = FETCH_TIMEOUT_MS) {
+return new Promise((resolve, reject) => {
+const controller = new AbortController();
+const timer = setTimeout(() => {
+controller.abort();
+reject(new Error("Network request timed out"));
+}, timeoutMs);
+
+fetch(request, {
+  cache: "no-cache",
+  signal: controller.signal,
+}).then(
+  (response) => {
+    clearTimeout(timer);
+    resolve(response);
+  },
+  (error) => {
+    clearTimeout(timer);
+    reject(error);
   }
+);
+
+});
 }
 
-/* Remove old caches only after the new shell is ready */
-async function cleanOldCaches() {
-  if (!(await newShellIsReady())) return;
+// Install quickly: attempt all shell downloads in parallel,
+// with a single overall deadline.
+self.addEventListener("install", (event) => {
+event.waitUntil(
+(async () => {
+const cache = await caches.open(CACHE_NAME);
 
-  const keys = await caches.keys();
-  await Promise.all(
-    keys
-      .filter(key => key.startsWith("myutme-cache-") && key !== CACHE_NAME)
-      .map(key => caches.delete(key))
-  );
-}
+  await Promise.race([
+    Promise.all(
+      APP_SHELL.map(async (url) => {
+        try {
+          const response = await freshFetch(url, FETCH_TIMEOUT_MS);
+          if (response && response.ok) {
+            await cache.put(url, response);
+          }
+        } catch (error) {
+          // Continue when a file is unavailable.
+        }
+      })
+    ),
+    new Promise((resolve) => setTimeout(resolve, 9000)),
+  ]);
+})()
 
-/* Search current cache first, then retained older caches */
-async function getCachedFile(request, options = {}) {
-  const currentCache = await caches.open(CACHE_NAME);
-  let response = await currentCache.match(request, options);
-  if (response) return response;
+);
 
-  const keys = await caches.keys();
-  for (const key of keys) {
-    if (key === CACHE_NAME) continue;
-    const oldCache = await caches.open(key);
-    response = await oldCache.match(request, options);
-    if (response) return response;
-  }
-  return undefined;
-}
-
-/* ==========================================
-   ⚡️ OPTIMIZED SPEED TRICKS FOR QUICK INSTALL
-   ========================================== */
-
-self.addEventListener("install", event => {
-  // 1. Instantly skip waiting so it controls the page right away
-  self.skipWaiting();
-
-  event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
-
-      // 2. ONLY download tiny structural files before resolving installation
-      await Promise.all(
-        SMALL_SHELL.map(url => cacheOne(cache, url, "reload"))
-      );
-
-      // 3. Kick off big file caching in background. Do NOT await it here!
-      // This tricks the browser into marking the app as immediately "Installed".
-      BIG_SHELL.map(url => cacheOne(cache, url, "default"));
-    })()
-  );
+self.skipWaiting();
 });
 
-/* ACTIVATE */
-self.addEventListener("activate", event => {
-  event.waitUntil(
-    (async () => {
-      // 4. Forces all open tabs to fall under this service worker immediately
-      await self.clients.claim();
-      await cleanOldCaches();
-    })()
-  );
+self.addEventListener("activate", (event) => {
+event.waitUntil(
+caches.keys()
+.then((keys) =>
+Promise.all(
+keys.map((key) =>
+key !== CACHE_NAME ? caches.delete(key) : null
+)
+)
+)
+.then(() => self.clients.claim())
+);
 });
 
-/* FETCH INTERCEPTION */
-self.addEventListener("fetch", event => {
-  const request = event.request;
-  if (request.method !== "GET") return;
+self.addEventListener("fetch", (event) => {
+if (event.request.method !== "GET") return;
 
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
+const url = new URL(event.request.url);
+if (url.origin !== self.location.origin) return;
 
-  const isQuestionDataFile =
-    /^\/?(questions|notes)-[^/]+\.json$/.test(url.pathname) ||
-    url.pathname.endsWith("questions-seed.json");
+const isAppShell =
+event.request.mode === "navigate" ||
+url.pathname.endsWith(".html") ||
+url.pathname === "/" ||
+url.pathname.endsWith("/");
 
-  const isAppScript =
-    url.pathname.endsWith(".js") &&
-    /offline-db/.test(url.pathname);
+const isQuestionDataFile =
+/^/?(questions|notes)-[^/]+.json$/.test(url.pathname) ||
+url.pathname.endsWith("questions-seed.json");
 
-  const isShellNav =
-    (
-      request.mode === "navigate" &&
-      !/\.[a-z0-9]+$/i.test(url.pathname)
-    ) ||
-    url.pathname === "/" ||
-    url.pathname.endsWith("/index.html");
+const isAppScript =
+url.pathname.endsWith(".js") &&
+/offline-db/.test(url.pathname);
 
-  /* Main app page and offline database */
-  if (isShellNav || isAppScript) {
-    event.respondWith(
-      (async () => {
-        const key = isShellNav ? "./index.html" : "./offline-db.js";
-        const cached = await getCachedFile(key);
+const isShellNav =
+(event.request.mode === "navigate" &&
+!/.[a-z0-9]+$/i.test(url.pathname)) ||
+url.pathname === "/" ||
+url.pathname.endsWith("/index.html");
 
-        if (cached) {
-          event.waitUntil(
-            timedFetch(request, PAGE_TIMEOUT_MS)
-              .then(async response => {
-                if (response && response.status === 200) {
-                  const cache = await caches.open(CACHE_NAME);
-                  await cache.put(key, response.clone());
-                  await cleanOldCaches();
-                }
-              })
-              .catch(() => {})
-          );
-          return cached;
-        }
+if (isShellNav || isAppScript) {
+const key = isShellNav ? "./index.html" : "./offline-db.js";
 
-        try {
-          const response = await timedFetch(request, PAGE_TIMEOUT_MS);
-          if (response && response.status === 200) {
-            const cache = await caches.open(CACHE_NAME);
-            await cache.put(key, response.clone());
-            if (isShellNav) {
-              await cache.put("./", response.clone());
-            }
-            event.waitUntil(cleanOldCaches());
-          }
-          return response;
-        } catch (error) {
-          const offlinePage = await getCachedFile("./index.html");
-          return offlinePage || Response.error();
-        }
-      })()
-    );
-    return;
-  }
+event.respondWith(
+  caches.match(key, { ignoreSearch: true }).then((cached) => {
+    if (cached) return cached;
 
-  /* Question and notes JSON files */
-  if (isQuestionDataFile) {
-    const cacheKey = new Request(url.origin + url.pathname);
-    event.respondWith(
-      (async () => {
-        const cached = await getCachedFile(cacheKey);
-        try {
-          const response = await timedFetch(cacheKey, QUESTION_TIMEOUT_MS, "no-cache");
-          if (response && response.status === 200) {
-            const cache = await caches.open(CACHE_NAME);
-            event.waitUntil(cache.put(cacheKey, response.clone()));
-            return response;
-          }
-          return cached || response;
-        } catch (error) {
-          return cached || Response.error();
-        }
-      })()
-    );
-    return;
-  }
-
-  /* Other same-origin resources */
-  event.respondWith(
-    (async () => {
-      const cached = await getCachedFile(request);
-      if (cached) {
-        event.waitUntil(
-          timedFetch(request)
-            .then(async response => {
-              if (response && response.status === 200) {
-                const cache = await caches.open(CACHE_NAME);
-                await cache.put(request, response.clone());
-              }
-            })
-            .catch(() => {})
-        );
-        return cached;
-      }
-
-      try {
-        const response = await timedFetch(request);
+    return freshFetch(event.request, PAGE_TIMEOUT_MS)
+      .then((response) => {
         if (response && response.status === 200) {
-          const cache = await caches.open(CACHE_NAME);
-          event.waitUntil(cache.put(request, response.clone()));
+          const clone = response.clone();
+          event.waitUntil(
+            caches.open(CACHE_NAME).then((c) => c.put(key, clone))
+          );
         }
         return response;
-      } catch (error) {
-        return Response.error();
-      }
-    })()
-  );
-});
+      })
+      .catch(() =>
+        caches.match("./index.html").then(
+          (cachedPage) => cachedPage || Response.error()
+        )
+      );
+  })
+);
+return;
 
-/* Manual check update handler */
-async function refreshShell() {
-  const urls = ["./index.html", "./offline-db.js", "./manifest.json"];
-  const fetched = [];
-
-  for (const url of urls) {
-    const response = await timedFetch(new Request(url), 20000, "no-cache");
-    if (!response || !response.ok) throw new Error("Update check failed for " + url);
-    fetched.push([url, response]);
-  }
-
-  const cache = await caches.open(CACHE_NAME);
-  let changed = false;
-
-  for (const [url, response] of fetched) {
-    if (url === "./manifest.json") continue;
-    try {
-      const old = await getCachedFile(url);
-      if (!old) {
-        changed = true;
-        continue;
-      }
-      const oldText = await old.text();
-      const newText = await response.clone().text();
-      if (oldText !== newText) changed = true;
-    } catch (e) {
-      changed = true;
-    }
-  }
-
-  if (changed) {
-    for (const [url, response] of fetched) {
-      await cache.put(url, response);
-    }
-    await cleanOldCaches();
-  }
-  return changed;
 }
 
-self.addEventListener("message", event => {
-  if (event.data && event.data.action === "check-update") {
-    event.waitUntil(
-      refreshShell()
-        .then(changed => {
-          if (event.ports && event.ports[0]) {
-            event.ports[0].postMessage({ updated: changed });
-          }
-        })
-        .catch(err => {
-          if (event.ports && event.ports[0]) {
-            event.ports[0].postMessage({ error: err.message });
-          }
-        })
-    );
+if (isAppShell || isAppScript) {
+event.respondWith(
+freshFetch(event.request, PAGE_TIMEOUT_MS)
+.then((response) => {
+if (response && response.status === 200) {
+const clone = response.clone();
+event.waitUntil(
+caches.open(CACHE_NAME).then((c) =>
+c.put(event.request, clone)
+)
+);
+}
+return response;
+})
+.catch(() =>
+caches.match(event.request, {
+ignoreSearch: isAppScript,
+}).then((cached) => cached || Response.error())
+)
+);
+return;
+}
+
+if (isQuestionDataFile) {
+const cacheKey = new Request(url.origin + url.pathname);
+
+event.respondWith(
+  revalidateFetch(cacheKey, QUESTION_TIMEOUT_MS)
+    .then((response) => {
+      if (response && response.status === 200) {
+        const clone = response.clone();
+        event.waitUntil(
+          caches.open(CACHE_NAME).then((c) =>
+            c.put(cacheKey, clone)
+          )
+        );
+        return response;
+      }
+
+      return caches.match(cacheKey).then(
+        (cached) => cached || response
+      );
+    })
+    .catch(() =>
+      caches.match(cacheKey).then(
+        (cached) => cached || Response.error()
+      )
+    )
+);
+return;
+
+}
+
+event.respondWith(
+caches.match(event.request).then((cached) => {
+const fetchPromise = freshFetch(event.request)
+.then((response) => {
+if (response && response.status === 200) {
+const clone = response.clone();
+event.waitUntil(
+caches.open(CACHE_NAME).then((c) =>
+c.put(event.request, clone)
+)
+);
+}
+return response;
+})
+.catch(() => cached || Response.error());
+
+  return cached || fetchPromise;
+})
+
+);
+});
+
+async function refreshShell() {
+const urls = ["./index.html", "./offline-db.js", "./manifest.json"];
+const fetched = [];
+
+for (const url of urls) {
+const response = await revalidateFetch(new Request(url), 20000);
+if (!response || !response.ok) {
+throw new Error("Update check failed for " + url);
+}
+fetched.push([url, response]);
+}
+
+const cache = await caches.open(CACHE_NAME);
+let changed = false;
+
+for (const [url, response] of fetched) {
+if (url === "./manifest.json") continue;
+
+try {
+  const old = await cache.match(url);
+  if (!old) {
+    changed = true;
+    continue;
   }
+
+  const [a, b] = await Promise.all([
+    old.clone().text(),
+    response.clone().text(),
+  ]);
+
+  if (a !== b) changed = true;
+} catch (error) {}
+
+}
+
+for (const [url, response] of fetched) {
+await cache.put(url, response.clone());
+if (url === "./index.html") {
+await cache.put("./", response.clone());
+}
+}
+
+return changed;
+}
+
+self.addEventListener("message", (event) => {
+if (!event.data || event.data.type !== "CHECK_UPDATE") return;
+
+const port = event.ports && event.ports[0];
+
+event.waitUntil(
+refreshShell().then(
+(changed) => port && port.postMessage({ ok: true, changed: !!changed }),
+() => port && port.postMessage({ ok: false })
+)
+);
+});
+
+self.addEventListener("push", (event) => {
+let data = {};
+
+try {
+data = event.data ? event.data.json() : {};
+} catch (error) {
+data = {
+title: "MyUTME",
+body: event.data ? event.data.text() : "",
+};
+}
+
+let openUrl = data.url || "/";
+if (!data.url && data.news_id) {
+openUrl = "/?news=" + data.news_id;
+} else if (
+!data.url &&
+String(data.title || "").indexOf("\uD83D\uDCF0") === 0
+) {
+openUrl = "/?news=latest";
+}
+
+event.waitUntil(
+self.registration.showNotification(data.title || "MyUTME", {
+body: data.body || "",
+icon: "./icon-192.png",
+badge: "./icon-badge-96.png",
+tag: data.tag || "myutme-notification",
+data: openUrl,
+})
+);
+});
+
+self.addEventListener("notificationclick", (event) => {
+event.notification.close();
+const targetUrl = event.notification.data || "/";
+
+event.waitUntil(
+clients.matchAll({ type: "window", includeUncontrolled: true })
+.then((clientList) => {
+for (const client of clientList) {
+if ("focus" in client) {
+client.postMessage({ type: "open-url", url: targetUrl });
+return client.focus();
+}
+}
+
+    if (clients.openWindow) return clients.openWindow(targetUrl);
+  })
+
+);
 });
