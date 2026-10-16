@@ -18226,14 +18226,14 @@ function renderCbtMode() {
     const modeHtml = (
         '<div class="cbt-mode-select">' +
         '<button class="cbt-mode-btn' + (isFull ? ' active' : '') + '" data-action="cbt-mode" data-mode="full">' +
-        '<span class="icon">📚</span>' +
-        '<span class="label">Full CBT</span>' +
-        '<span class="desc">' + (requiredSubjects + 1) + ' subjects</span>' +
+        '<span class="icon">' + svg('monitor', 24) + '</span>' +
+        '<span class="label">CBT Mode</span>' +
+        '<span class="desc">' + (requiredSubjects + 1) + ' subjects, timed</span>' +
         '</button>' +
         '<button class="cbt-mode-btn' + (isSingle ? ' active' : '') + '" data-action="cbt-mode" data-mode="single">' +
-        '<span class="icon">📝</span>' +
-        '<span class="label">Single Subject</span>' +
-        '<span class="desc">Practice one at a time</span>' +
+        '<span class="icon">' + svg('clipboard', 24) + '</span>' +
+        '<span class="label">Exam Mode</span>' +
+        '<span class="desc">1 subject, instant answers</span>' +
         '</button>' +
         '</div>'
     );
@@ -18283,7 +18283,7 @@ function renderCbtMode() {
             '<p class="section-label">Select your subjects</p><div class="ex-list">' + chips + '</div>'
         );
         ready = picked === requiredSubjects;
-        label = 'Start CBT Practice';
+        label = 'Start CBT';
     } else {
         // Single Subject: choose one from all subjects.
         const myAll = getBrowsableSubjectIds();
@@ -18298,26 +18298,26 @@ function renderCbtMode() {
             chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in Practice Hub first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to Practice Hub</button></div>';
         }
         body = (
-            '<div class="mode-note">Choose <b>1 subject</b> from your combo to practice.</div>' +
+            '<div class="mode-note">Choose <b>1 subject</b>. Each answer is marked right after you pick it.</div>' +
             '<p class="section-label">Select a subject</p>' +
             '<div class="ex-list">' + chips + '</div>'
         );
         ready = state.cbtSelected.length === 1;
-        label = 'Start Subject Practice';
+        label = 'Start Exam Mode';
     }
 
     const countChosen = !!state.cbtQuestionCount;
     const canStart = ready && countChosen;
     return (
-        mwModeHeader('mysubjects', '#3B6EA5', 'monitor', 'JAMB CBT', 'Real JAMB-style practice screen') +
+        plainModeHead('data-action="set-view" data-view="home"', 'Home', 'JAMB CBT') +
         '<div class="picker-scroll cbt-wide">' +
         modeHtml +
         body +
         '</div>' +
-        '<div class="picker-footer">' +
-        '<button class="btn ' + (canStart ? "btn-green" : "btn-outline") + '" data-action="start-cbt"' + (canStart ? '' :
-            ' disabled style="opacity:0.5;pointer-events:none"') + '>' + (ready && !countChosen ? 'Choose number of questions' : label) + '</button>' +
-        '</div>'
+        // Start only appears (slim) once the minimum number of subjects is picked
+        (canStart ? '<div class="picker-footer" style="padding-top:6px">' +
+            '<button class="btn btn-green" style="min-height:44px;padding:10px 16px" data-action="start-cbt">' + label + '</button>' +
+        '</div>' : '')
     );
 }
 
@@ -18556,18 +18556,32 @@ function renderCbtExam() {
     const item = state.cbtQuestions[state.cbtIndex];
     const subj = item ? SUBJECTS.find(function(s) { return s.id === item.subject_id; }) : null;
 
+    // Exam Mode (single subject): the answer is marked straight after you pick it.
+    const instantCbt = state.cbtMode === 'single';
+    const curAns = state.cbtAnswers[state.cbtIndex];
+    const instantShown = instantCbt && curAns !== null && curAns !== undefined && !!item;
     let opts = "";
     if (item && item.options) {
         item.options.forEach(function(o, i) {
-            const chosen = state.cbtAnswers[state.cbtIndex] === i;
+            const chosen = curAns === i;
+            let cls = 'qa-option' + (chosen ? ' selected' : '');
+            let dis = '';
+            if (instantShown) {
+                cls = 'qa-option';
+                if (i === item.correct_answer) cls += ' correct';
+                else if (chosen) cls += ' wrong';
+                dis = ' disabled style="cursor:default"';
+            }
             opts += (
-                '<button class="qa-option' + (chosen ? ' selected' : '') + '" data-action="cbt-answer" data-idx="' +
-                i + '">' +
+                '<button class="' + cls + '" data-action="cbt-answer" data-idx="' + i + '"' + dis + '>' +
                 '<span class="qa-letter">' + String.fromCharCode(65 + i) + '</span><span>' + escM(o) + '</span>' +
                 '</button>'
             );
         });
     }
+    const instantBox = instantShown ?
+        '<div class="explanation-box"><span class="label">' + (curAns === item.correct_answer ? '✅ Correct!' : '❌ Wrong') + '</span><div class="exp-body">' + (item.explanation ? fmtExp(item.explanation) : 'No explanation provided.') + '</div>' +
+        '<div class="ask-ai-row">' + askAiButtonHtml(item, (subj ? subj.name : ''), curAns) + '</div>' + inlineAiBoxHtml(item) + '</div>' : '';
 
     const hasPrev = currentSubjectIndex > 0;
     const hasNext = currentSubjectIndex < totalInCurrentSubject - 1;
@@ -18595,7 +18609,7 @@ function renderCbtExam() {
         (qLocked
             ? renderExamLockCard()
             : (renderExamQCardHeader(currentSubjectIndex + 1, item?.text, item?.image) +
-               '<div class="exam-options-wrap">' + opts + '</div>')
+               '<div class="exam-options-wrap">' + opts + '</div>' + instantBox)
         ) +
         '</div>' +
         renderExamFooterNav({
@@ -18659,9 +18673,8 @@ function renderExamMode() {
                 '<span class="ex-name">' + esc(x.name) + (x.compulsory ? '<small>Compulsory for everyone</small>' : '<small>Past questions</small>') + '</span>' +
                 '<span class="ex-check">' + (sel ? '✓' : '') + '</span></button>';
         });
-        body = dots + '<p class="ex-kicker">STEP 1 OF 2</p><h2 class="ex-title">Choose your subject</h2><p class="ex-sub">Tap a subject, then press Next.</p><div class="ex-list">' + list + '</div>';
-        footer = '<p class="picker-count">' + (selectedSubject ? esc(selectedSubject.name) : 'No subject selected yet') + '</p>' +
-            '<button class="btn ' + (selectedSubject ? 'btn-green' : 'btn-outline') + '" data-action="exam-wiz-next"' + (selectedSubject ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Next &rarr;</button>';
+        body = '<div class="ex-list">' + list + '</div>';
+        footer = '';
     } else {
         let list = '';
         for (let y = 2026; y >= 2000; y--) {
@@ -18672,17 +18685,17 @@ function renderExamMode() {
                 '<span class="ex-name">JAMB ' + y + '<small>Timed paper</small></span>' +
                 '<span class="ex-check">' + (sel ? '✓' : '') + '</span></button>';
         }
-        body = dots + '<p class="ex-kicker">STEP 2 OF 2</p><h2 class="ex-title">Choose the year</h2>' +
-            '<div class="ex-chosen" style="--c:' + (selectedSubject ? selectedSubject.color : '#0F6B3F') + '"><span class="ex-badge">' + esc(selectedSubject ? selectedSubject.code : '') + '</span><span class="ex-name">' + esc(selectedSubject ? selectedSubject.name : '') + '</span><button type="button" class="ex-change" data-action="exam-wiz-back">Change</button></div>' +
-            modeHtml + '<div class="ex-list">' + list + '</div>';
+        body = modeHtml + '<div class="ex-list">' + list + '</div>';
         const ok = !!state.examYearPicked;
         footer = '<p class="picker-count">' + (selectedSubject ? esc(selectedSubject.name) : '') + (ok ? ' &middot; ' + state.examYear : ' &middot; pick a year') + '</p>' +
             '<button class="btn ' + (ok ? 'btn-green' : 'btn-outline') + '" data-action="start-exam"' + (ok ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Start Exam</button>';
     }
     return (
-        mwModeHeader('mysubjects', '#E2543A', 'clipboard', 'JAMB Past Questions', '2000\u20132026 \u00B7 JAMB past papers') +
+        (step === 1
+            ? plainModeHead('data-action="set-view" data-view="home"', 'Home', 'Past Questions')
+            : plainModeHead('data-action="exam-wiz-back"', 'Change subject', esc(selectedSubject ? selectedSubject.name : 'Past Questions') + ' \u00B7 Choose year')) +
         '<div class="picker-scroll">' + body + '</div>' +
-        '<div class="picker-footer ex-foot">' + footer + '</div>'
+        (footer ? '<div class="picker-footer ex-foot">' + footer + '</div>' : '')
     );
 }
 
@@ -24286,6 +24299,7 @@ document.addEventListener('click', function(e) {
         const sid = el.getAttribute('data-subjectid');
         state.examSubject = sid;
         setView('exam');
+        state.examStep = 2; state.examYearPicked = false; render();
         return;
     }
     if (action === 'subj-start-flashcards') {
@@ -25125,6 +25139,7 @@ document.addEventListener('click', function(e) {
     // CBT EXAM ACTIONS
     if (action === 'cbt-answer') {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
+        if (state.cbtMode === 'single' && state.cbtAnswers[state.cbtIndex] !== null && state.cbtAnswers[state.cbtIndex] !== undefined) return; // Exam Mode: answer is final
         state.cbtAnswers[state.cbtIndex] = idx;
         saveSessionSnapshot();
         render();
@@ -25356,8 +25371,10 @@ document.addEventListener('click', function(e) {
 
     if (action === 'select-exam-subject') {
         const id = el.getAttribute('data-subject');
-        state.examSubject = state.examSubject === id ? null : id;
+        state.examSubject = id;
+        state.examStep = 2; state.examYearPicked = false;
         render();
+        try { window.scrollTo(0, 0); var __ps2 = document.querySelector('.picker-scroll'); if (__ps2) __ps2.scrollTop = 0; } catch (e) {}
         return;
     }
 
@@ -28336,6 +28353,10 @@ document.addEventListener('click', function (e) {
 
 
 // ---------- Page header with a Back icon (JAMB CBT, Past Questions) ----------
+function plainModeHead(backAttrs, backLabel, title) {
+    return '<div style="flex-shrink:0"><button class="back-link" ' + backAttrs + '>' + svg('chevleft', 14) + ' ' + backLabel + '</button>' +
+        '<h2 class="title" style="margin:0 0 10px">' + title + '</h2></div>';
+}
 function mwModeHeader(back, color, icon, title, sub) {
     return '<div class="mw-mh"><button class="mw-mh-b" data-action="set-view" data-view="' + back + '" aria-label="Back">' + svg('chevleft', 20) + '</button>' +
         '<div class="mw-mh-t"><h2>' + title + '</h2><p>' + sub + '</p></div><span class="mw-mh-i" style="background:' + color + '1F;color:' + color + '">' + svg(icon, 22) + '</span></div>';
