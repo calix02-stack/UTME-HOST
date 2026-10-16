@@ -9476,10 +9476,19 @@ function renderExamQCardHeader(number, text, image, topic) {
 }
 
 function renderExamLockCard() {
+    if (!state.authUser) {
+        return (
+            '<div class="exam-lock-card">' +
+            '<p><b>Create an account to continue.</b><br>Guests can only see the first ' + FREE_QUESTION_LIMIT + ' questions.</p>' +
+            '<button class="btn btn-green" style="margin-bottom:8px" data-action="show-signup">Create account</button>' +
+            '<button class="btn btn-outline" data-action="show-login">Log in to continue</button>' +
+            '</div>'
+        );
+    }
     return (
         '<div class="exam-lock-card">' +
-        '<p>Free access covers the first ' + FREE_QUESTION_LIMIT + ' questions. Activate your account to unlock the rest of this paper.</p>' +
-        '<button class="btn btn-gold" data-action="show-activate-popup" data-reason="You have reached the end of the free questions.">Unlock all questions</button>' +
+        '<p><b>Activate your account to continue.</b><br>The first ' + FREE_QUESTION_LIMIT + ' questions are free. Activate to unlock the rest of this paper.</p>' +
+        '<button class="btn btn-gold" data-action="show-activate-popup" data-reason="Activate your account to continue.">Activate my account</button>' +
         '</div>'
     );
 }
@@ -9487,7 +9496,7 @@ function renderExamLockCard() {
 // cfg: { hasPrev, prevAction, prevIdx, hasNext, nextAction, nextIdx, nextLocked, gotoAction, submitAction, exitMode }
 function renderExamFooterNav(cfg) {
     const next = cfg.nextLocked
-        ? '<button class="ef-next" data-action="show-activate-popup" data-reason="You have reached the end of the free questions.">Next</button>'
+        ? '<button class="ef-next" data-action="show-activate-popup" data-reason="' + (state.authUser ? 'Activate your account to continue.' : 'Create an account or log in to continue.') + '">Next</button>'
         : '<button class="ef-next" data-action="' + cfg.nextAction + '" data-idx="' + (cfg.nextIdx != null ? cfg.nextIdx : '') + '"' + (cfg.hasNext ? '' : ' disabled') + '>Next ' + svg('chevleft', 13).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + '</button>';
     return (
         '<div class="exam-footer-v2">' +
@@ -14912,7 +14921,7 @@ function applyTrialQuestionCap(questions) {
 function notifyTrialCapIfNeeded(totalAvailable) {
     if (isAdmin() || isUserActive() || trialActive()) return;
     if (totalAvailable > TRIAL_QUESTION_CAP) {
-        showToast('Free access: first ' + TRIAL_QUESTION_CAP + ' questions are open, the rest are locked 🔒. Activate to unlock all.', '');
+        showToast('Free access: first ' + TRIAL_QUESTION_CAP + ' questions are open, the rest are locked 🔒. ' + (state.authUser ? 'Activate to unlock all.' : 'Create an account to continue.'), '');
     }
 }
 
@@ -24677,9 +24686,8 @@ document.addEventListener('click', function(e) {
     if (action === 'goto-locked') {
         state.showGotoModal = false;
         state.gotoModalData = null;
-        showToast('🔒 Activate your account to unlock this question.', '');
-        state.view = 'activate';
-        render();
+        if (!state.authUser) { showActivatePopup('Create an account or log in to continue.'); return; }
+        showActivatePopup('Activate your account to continue.');
         return;
     }
     if (action === 'goto-q-select') {
@@ -25260,7 +25268,7 @@ document.addEventListener('click', function(e) {
                 const localPos = qs.indexOf(idx);
                 if (localPos === FREE_QUESTION_LIMIT - 1 && !state.cbtFreeWarnShown) {
                     state.cbtFreeWarnShown = true;
-                    showToast('🔓 This is your last free question here — activate your account for full access.', '');
+                    showToast(state.authUser ? '🔓 This is your last free question here — activate your account for full access.' : '🔓 This is your last free question here — create an account to continue.', '');
                 }
             }
             saveSessionSnapshot();
