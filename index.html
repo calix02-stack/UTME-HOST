@@ -8023,6 +8023,12 @@ body { position: fixed; inset: 0; width: 100%; }
 .iai-box .iai-head b { display: block; font-size: 13.5px; font-weight: 800; line-height: 1.2; }
 .iai-box .iai-head small { display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
 </style>
+<style id="myutme-trial-banner">
+.trial-banner{display:flex;align-items:center;gap:10px;flex:none;padding:8px 14px;font-size:12.5px;line-height:1.35;color:var(--ink);background:color-mix(in srgb,var(--green) 12%,var(--card-bg));border-bottom:1px solid var(--line)}
+.trial-banner b{font-weight:800}
+.trial-banner button{margin-left:auto;flex:none;border:0;border-radius:999px;background:var(--green);color:#fff;font-weight:700;font-size:12px;padding:6px 12px;cursor:pointer}
+.trial-banner.ended{background:color-mix(in srgb,#E8A33D 16%,var(--card-bg))}
+</style>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -9275,6 +9281,48 @@ function exSubjCard(s, action, attr, sel, sub) {
 // FREE_QUESTION_LIMIT questions of any given subject/paper before being
 // asked to activate their account.
 const FREE_QUESTION_LIMIT = 10;
+// 3-day FREE PLAN. It is a real, server-side activation: every new account is created with
+// is_active = true and activation_expiry = created_at + 3 days (see free-plan.sql). Everything
+// is open for those days, the admin sees it in Users and can Deactivate it, and afterwards the
+// normal FREE_QUESTION_LIMIT limit applies. Guests (not logged in) never get it.
+const FREE_TRIAL_DAYS = 3;
+// p = { is_active, activation_expiry, created_at }. Returns { msLeft } for a free-plan
+// activation (expiry no later than created_at + 3 days), or null (not activated / paid plan).
+function freePlanOf(p) {
+    if (!p || !p.is_active || !p.activation_expiry || !p.created_at) return null;
+    var exp = Date.parse(p.activation_expiry), cr = Date.parse(p.created_at);
+    if (isNaN(exp) || isNaN(cr)) return null;
+    if (exp - cr > FREE_TRIAL_DAYS * 86400000 + 3600000) return null;   // longer than 3 days = a paid plan
+    return { msLeft: exp - Date.now() };
+}
+function myFreePlan() {
+    return freePlanOf({
+        is_active: state.profile.is_active,
+        activation_expiry: state.profile.activation_expiry,
+        created_at: state.authProfile && state.authProfile.created_at
+    });
+}
+function trialActive() {
+    if (!state.authUser || isAdmin()) return false;
+    var f = myFreePlan();
+    return !!(f && f.msLeft > 0);
+}
+function freeAttemptAllowed() { return true; }   // old per-mode attempts removed: the free plan replaces them
+function renderTrialBanner(hide) {
+    if (hide || isAdmin() || state.view === 'activate') return '';
+    if (!state.authUser) return '';   // guests never see anything about the free plan
+    var f = myFreePlan();
+    if (f && f.msLeft > 0 && isUserActive()) {
+        var d = Math.ceil(f.msLeft / 86400000);
+        return '<div class="trial-banner"><span><b>Free plan</b> &middot; ' + (d > 1 ? d + ' days left' : 'last day') + '. Explore all the modes, everything is open.</span></div>';
+    }
+    if (isUserActive()) return '';
+    var cr = state.authProfile && state.authProfile.created_at ? Date.parse(state.authProfile.created_at) : NaN;
+    var hadPlan = !!state.profile.activation_expiry || (!isNaN(cr) && Date.now() - cr > FREE_TRIAL_DAYS * 86400000);
+    if (!hadPlan) return '';
+    return '<div class="trial-banner ended"><span><b>Your free plan has ended.</b> Activate to unlock everything.</span>' +
+        '<button data-action="show-activate-popup" data-reason="Your free plan has ended.">Activate</button></div>';
+}
 
 // Direct APK install (instant, no waiting for Chrome to "mint" the app).
 // Upload your signed APK to the site, then put its address here, e.g. 'https://myutme.com.ng/MyUTME.apk'.
@@ -9293,7 +9341,7 @@ function tryApkInstall() {
 // subject/paper* (not the global array index) — this is what the goto
 // grid and the exam screens both key off already.
 function isLocalIndexLocked(localIndex) {
-    if (isUserActive()) return false;
+    if (isUserActive() || trialActive()) return false;
     return localIndex >= FREE_QUESTION_LIMIT;
 }
 
@@ -11585,7 +11633,7 @@ function renderActivatePopup() {
         '<div class="nw-sheet" style="display:block;text-align:center">' +
         '<div style="font-size:34px;margin-bottom:4px">🔒</div>' +
         '<h4 style="margin-bottom:6px;font-size:17px">' + (guest ? 'Create an account to continue' : 'Activate your account to continue') + '</h4>' +
-        '<p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5">' + esc(state.activatePopup || '') + ' Free access covers ' + FREE_QUESTION_LIMIT + ' questions per subject. ' + (guest ? 'Create an account, then activate it to unlock every question in every subject.' : 'Activate to unlock every question in every subject.') + '</p>' +
+        '<p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5">' + esc(state.activatePopup || '') + ' Free access covers ' + FREE_QUESTION_LIMIT + ' questions per subject. ' + (guest ? 'Create a free account to continue.' : 'Activate to unlock every question in every subject.') + '</p>' +
         (guest
             ? '<button class="btn btn-green" style="padding:11px;margin-bottom:8px" data-action="guest-prompt-signup">Create account</button>' +
               '<button class="btn btn-outline" style="padding:11px;margin-bottom:6px" data-action="guest-prompt-login">Log in</button>'
@@ -11981,6 +12029,14 @@ async function signUp(fullName, username, email, password, department) {
             state.profile.id = data.user.id;
             state.profile.is_active = false;
             state.profile.activation_expiry = null;
+            try {
+                const __fp = await supabase.from('profiles').select('is_active,activation_expiry,created_at').eq('id', data.user.id).maybeSingle();
+                if (__fp && __fp.data) {
+                    state.profile.is_active = !!__fp.data.is_active;
+                    state.profile.activation_expiry = __fp.data.activation_expiry || null;
+                    state.authProfile = Object.assign({}, state.authProfile || {}, { created_at: __fp.data.created_at });
+                }
+            } catch (e) {}
             state.profile.fullName = fullName;
             state.profile.avatarUrl = null;
 
@@ -14854,7 +14910,7 @@ function applyTrialQuestionCap(questions) {
 // Call right after questions are capped and the quiz view is shown, so the
 // person understands why they're only seeing a handful of questions.
 function notifyTrialCapIfNeeded(totalAvailable) {
-    if (isAdmin() || isUserActive()) return;
+    if (isAdmin() || isUserActive() || trialActive()) return;
     if (totalAvailable > TRIAL_QUESTION_CAP) {
         showToast('Free access: first ' + TRIAL_QUESTION_CAP + ' questions are open, the rest are locked 🔒. Activate to unlock all.', '');
     }
@@ -14877,6 +14933,7 @@ function trialAiRateLimitCheck() {
 //  CBT FUNCTIONS
 // ============================================================
 async function startCbt() {
+    if (!freeAttemptAllowed('cbt', 'CBT')) return;
 
     const isFull = state.cbtMode === 'full';
     const selected = state.cbtSelected;
@@ -15041,6 +15098,7 @@ async function startCbt() {
     saveSessionSnapshot();
 }
 async function startLiteratureCbt() {
+    if (!freeAttemptAllowed('lit', 'Novel (CBT)')) return;
 
     state.isLoading = true;
     render();
@@ -15333,6 +15391,7 @@ async function startExam() {
         showToast("Please select a subject.", "error");
         return;
     }
+    if (!freeAttemptAllowed('exam', 'Past Questions')) return;
     
     state.isLoading = true;
     render();
@@ -15563,6 +15622,7 @@ async function startTopicPractice() {
         showToast("Please select a subject and topic.", "error");
         return;
     }
+    if (!freeAttemptAllowed('topic', 'Topic Practice')) return;
     
     state.isLoading = true;
     render();
@@ -15670,6 +15730,7 @@ async function startTopicPractice() {
 // We reuse the same offline-first question loader as CBT Single mode.
 async function startFlashcards(subjectId) {
     if (!subjectId) { showToast('Please select a subject.', 'error'); return; }
+    if (!freeAttemptAllowed('flash', 'Flashcards')) return;
 
     state.flashcardSubject = subjectId;
     state.flashcardLoading = true;
@@ -15689,7 +15750,7 @@ async function startFlashcards(subjectId) {
         const qs = shuffleArray((questions || []).slice()).map(function(q) {
             return Object.assign({}, q, { subject_id: subjectId, subject_name: s ? s.name : subjectId });
         });
-        state.flashcardQuestions = isUserActive() ? qs : qs.slice(0, FREE_QUESTION_LIMIT);
+        state.flashcardQuestions = (isUserActive() || trialActive()) ? qs : qs.slice(0, FREE_QUESTION_LIMIT);
     } catch (e) {
         console.warn('Flashcards load error:', e);
         showToast('Could not load flashcards. Please try again.', 'error');
@@ -17329,6 +17390,8 @@ const PAGE_TITLES = {
     'marked': 'Marked Questions',
     'review': 'Review Questions',
     'flashcards': 'Flashcards',
+    'topic': 'Topic Practice',
+    'topic-list': 'Topic Practice',
     'history': 'Result Analysis',
     'analytics': 'Analytics',
     'privacy': 'Privacy Policy',
@@ -17391,7 +17454,7 @@ function renderApp() {
     const isFullPageChat = isAiAssistant || isSupportChat;
     // Topic Practice (subject list + topic list): clean full screen — no
     // bottom nav, no bell/refresh/avatar; just a back icon and a title.
-    const isTopicFlow = state.view === 'topic' || state.view === 'topic-list' || state.view === 'exam';
+    const isTopicFlow = false; // Topic Practice / Past Questions use the same plain top bar as Flashcards
 
     let leftContent = '';
 
@@ -17404,8 +17467,9 @@ function renderApp() {
         // the user actually came from (see goBack()/__viewHistory above),
         // instead of leaving people with no way back except the bottom
         // nav/page icons.
-        if (canGoBack()) {
-            leftContent += '<button class="icon-btn topbar-back-btn" data-action="nav-back" aria-label="Back">' + svg('chevleft', 18) + '</button>';
+        if (canGoBack() || state.view === 'topic-list' || state.view === 'exam' || state.view === 'topic' || state.view === 'cbt') {
+            const __backAct = state.view === 'topic-list' ? 'topic-list-back' : (state.view === 'exam' && state.examStep === 2 ? 'exam-wiz-back' : 'nav-back');
+            leftContent += '<button class="icon-btn topbar-back-btn" data-action="' + __backAct + '" aria-label="Back">' + svg('chevleft', 18) + '</button>';
         }
         // Natural, plain page title instead of the old colored brand bar —
         // shown on every page except Home.
@@ -17480,6 +17544,7 @@ function renderApp() {
               rightContent + '</div>'
         ) +
         '</div>' +
+        renderTrialBanner(isExamTaking || isFullPageChat) +
         '<div class="view' + ((state.view === 'ai-assistant' || state.view === 'support') ? ' view-chat' : '') + (isExamTaking ? ' view-exam' : '') + ((isFullPageChat || isTopicFlow || !showNav) ? ' view-nonav' : '') + (PICKER_SCREEN_VIEWS.indexOf(state.view) !== -1 ? ' view-picker' : '') + '"><div class="view-content' + (__consumeViewChangeFlag() ? ' view-enter' : '') + '">' + renderView() + '</div></div>' +
         ((isExamTaking || isFullPageChat || isTopicFlow || !showNav) ? '' : renderBottomNav()) +
         (state.drawerOpen ? renderDrawer(unread, isLoggedIn) : '') +
@@ -18309,8 +18374,8 @@ function renderCbtMode() {
     const countChosen = !!state.cbtQuestionCount;
     const canStart = ready && countChosen;
     return (
-        plainModeHead('data-action="set-view" data-view="home"', 'Home', 'JAMB CBT') +
         '<div class="picker-scroll cbt-wide">' +
+        plainModeHead('data-action="set-view" data-view="home"', 'Home', 'JAMB CBT') +
         modeHtml +
         body +
         '</div>' +
@@ -18691,10 +18756,11 @@ function renderExamMode() {
             '<button class="btn ' + (ok ? 'btn-green' : 'btn-outline') + '" data-action="start-exam"' + (ok ? '' : ' disabled style="opacity:0.5;pointer-events:none"') + '>Start Exam</button>';
     }
     return (
+        '<div class="picker-scroll">' +
         (step === 1
             ? plainModeHead('data-action="set-view" data-view="home"', 'Home', 'Past Questions')
             : plainModeHead('data-action="exam-wiz-back"', 'Change subject', esc(selectedSubject ? selectedSubject.name : 'Past Questions') + ' \u00B7 Choose year')) +
-        '<div class="picker-scroll">' + body + '</div>' +
+        body + '</div>' +
         (footer ? '<div class="picker-footer ex-foot">' + footer + '</div>' : '')
     );
 }
@@ -18876,8 +18942,8 @@ function renderTopicsPicker() {
     return (
         '<div class="tp-page">' +
         '<div class="picker-scroll tp-scroll">' +
+        '<button class="back-link" data-action="set-view" data-view="home">' + svg('chevleft', 14) + ' Home</button>' +
         '<h2 class="tp-h1">Topic Practice</h2>' +
-        '<p class="tp-sub">Pick a subject, then tap a topic to start.</p>' +
         '<div class="tp-list">' + rows + '</div>' +
         '</div>' +
         '</div>'
@@ -19928,7 +19994,7 @@ function fcTimerTick() {
 }
 // Runs after every render: starts/stops the per-card countdown as needed.
 function fcAfterRender() {
-    if (state.view === 'flashcards' && state.flashcardQuestions && state.flashcardQuestions.length && state.flashcardIndex >= state.flashcardQuestions.length && !isUserActive() && !state.fcPopupShown) {
+    if (state.view === 'flashcards' && state.flashcardQuestions && state.flashcardQuestions.length && state.flashcardIndex >= state.flashcardQuestions.length && !isUserActive() && !trialActive() && !state.fcPopupShown) {
         state.fcPopupShown = true;
         showActivatePopup('You have finished your ' + FREE_QUESTION_LIMIT + ' free flashcards.');
         return;
@@ -20028,7 +20094,7 @@ function renderFlashcardsDone() {
         '<div><b>' + fmtT(avg) + '</b><span>Per card</span></div>' +
         '</div>' +
         missedHtml +
-        (!isUserActive() ? '<div class="card" style="text-align:center;padding:14px;margin-bottom:12px"><p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Free access covers ' + FREE_QUESTION_LIMIT + ' flashcards per subject.</p><button class="btn btn-gold" data-action="show-activate-popup" data-reason="You have finished your free flashcards.">Unlock all flashcards</button></div>' : '') +
+        ((!isUserActive() && !trialActive()) ? '<div class="card" style="text-align:center;padding:14px;margin-bottom:12px"><p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Free access covers ' + FREE_QUESTION_LIMIT + ' flashcards per subject.</p><button class="btn btn-gold" data-action="show-activate-popup" data-reason="You have finished your free flashcards.">Unlock all flashcards</button></div>' : '') +
         (missed.length ? '<button class="btn btn-green" style="margin-bottom:8px" data-action="flashcard-retry-missed">🔁 Retry the ' + missed.length + ' I missed</button>' : '') +
         '<button class="btn ' + (missed.length ? 'btn-outline' : 'btn-green') + '" style="margin-bottom:8px" data-action="flashcard-restart">Go Through Again</button>' +
         '<button class="btn btn-outline" data-action="flashcards-back-to-subjects">Choose Another Subject</button>'
@@ -23326,6 +23392,9 @@ function renderAdminUsers() {
         const daysLeft = expiry ? Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24)) : null;
         let statusLabel = isActive ? '✅ Active' : '⛔ Inactive';
         if (isActive && daysLeft !== null && daysLeft < 3) statusLabel = '⚠️ ' + daysLeft + 'd left';
+        const __fpAdmin = freePlanOf(user);
+        if (isActive && __fpAdmin && __fpAdmin.msLeft > 0) statusLabel = '🎁 Free plan · ' + Math.ceil(__fpAdmin.msLeft / 86400000) + 'd left';
+        else if (isActive && __fpAdmin && __fpAdmin.msLeft <= 0) statusLabel = '⌛ Free plan ended';
         
         const displayName = user.full_name || user.username || 'User';
         const avatarLetter = displayName.trim().charAt(0).toUpperCase();
@@ -25186,7 +25255,7 @@ document.addEventListener('click', function(e) {
             state.cbtIndex = idx;
             const q = state.cbtQuestions[idx];
             if (q) state.cbtCurrentSubject = q.subject_id;
-            if (!isUserActive()) {
+            if (!isUserActive() && !trialActive()) {
                 const qs = getQuestionsForSubject(state.cbtCurrentSubject, state.cbtSubjectQuestions);
                 const localPos = qs.indexOf(idx);
                 if (localPos === FREE_QUESTION_LIMIT - 1 && !state.cbtFreeWarnShown) {
@@ -28469,29 +28538,17 @@ function mwVerify() {
 }
 mwVerify();
 document.addEventListener('visibilitychange', function () { if (!document.hidden) mwVerify(); });
-function mwSheet(txt, done) {
-    var d = document.getElementById('mw-inst');
-    if (!d) { d = document.createElement('div'); d.id = 'mw-inst'; d.innerHTML = '<div class="mw-inst-r"><div style="display:flex">' + logoSvg(38) + '</div><div class="mw-inst-m"><b>MyUTME</b><span id="mw-inst-t"></span><div class="mw-inst-bar mw-ind" id="mw-inst-b"><i></i></div></div></div>'; document.body.appendChild(d); }
-    document.getElementById('mw-inst-t').textContent = txt;
-    var bar = document.getElementById('mw-inst-b'); bar.className = 'mw-inst-bar' + (done ? '' : ' mw-ind'); bar.firstChild.style.width = done ? '100%' : '';
-}
+function mwSheet() {}      // install progress sheet removed
 function mwSheetOff() { var d = document.getElementById('mw-inst'); if (d) d.remove(); }
 window.mwInstallFlow = async function () {
     if (!mwPrompt || mwBusy) return;
     var p = mwPrompt; mwPrompt = null; mwBusy = true;
-    mwSheet('Waiting for your confirmation\u2026');
     var c; try { p.prompt(); c = await p.userChoice; } catch (e) { c = { outcome: 'dismissed' }; }
-    if (c.outcome !== 'accepted') { mwBusy = false; mwSheetOff(); showToast('Install cancelled.', ''); return render(); }
-    mwSheet('Installing\u2026 on a slow network this can take a few minutes. You can keep using your phone.');
-    var t0 = Date.now(), can = !!navigator.getInstalledRelatedApps;
-    var iv = setInterval(async function () {
-        var v = can ? await mwVerify() : null;
-        if (v) { clearInterval(iv); mwSheet('Installed. Open MyUTME from your home screen.', true); setTimeout(function () { mwBusy = false; mwSheetOff(); render(); }, 3500); return; }
-        if (Date.now() - t0 > 10 * 60 * 1000 || (!can && Date.now() - t0 > 20000)) {
-            clearInterval(iv); mwBusy = false; mwSheetOff();
-            showToast(can ? 'Still installing. Check your home screen in a minute.' : 'Look for MyUTME on your home screen or app list.', ''); render();
-        }
-    }, 3000);
+    mwBusy = false;
+    if (c.outcome !== 'accepted') { showToast('Install cancelled.', ''); return render(); }
+    showToast('Installing MyUTME. Look for it on your home screen.', 'success');
+    try { mwVerify(); } catch (e) {}
+    render();
 };
 
 // ---------- Drag down to refresh (website + app) ----------
