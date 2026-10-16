@@ -8062,6 +8062,49 @@ body { position: fixed; inset: 0; width: 100%; }
 .mw-chips{display:flex;flex-wrap:wrap;gap:8px}.mw-chips span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:99px;padding:6px 12px;font-size:13.5px;color:#fff}.mw-chips b{color:#FFD98A}
 </style>
 
+<style id="myutme-web-css">
+/* install card: slim */
+.install-promo-card.ipc-slim{align-items:center;gap:10px;padding:9px 10px 9px 12px;margin:0 0 10px;border-radius:14px;box-shadow:0 4px 12px rgba(15,107,63,.18)}
+.install-promo-card.ipc-slim .ipc-icon{width:32px;height:32px;border-radius:10px}
+.install-promo-card.ipc-slim .ipc-icon svg{width:16px;height:16px}
+.install-promo-card.ipc-slim h4{font-size:13px;margin:0;line-height:1.2}
+.install-promo-card.ipc-slim p{font-size:11px;margin:1px 0 0;line-height:1.3;opacity:.85}
+.install-promo-card.ipc-slim button{padding:7px 14px;font-size:12px;flex:none}
+.install-promo-card.ipc-slim .ipc-x{background:transparent;color:#fff;padding:4px 6px;font-size:18px;line-height:1;opacity:.7}
+/* website bar (only rendered in the browser, never in the installed app) */
+.web-nav{flex:none;display:flex;align-items:center;gap:10px;padding:8px 14px;background:#0A4A2B;color:#fff;font-family:Figtree,system-ui,sans-serif}
+.web-nav button{font-family:inherit;cursor:pointer}
+.web-nav .wn-brand{display:none;align-items:center;gap:8px;background:none;border:0;color:#fff;font:800 18px 'Bricolage Grotesque',system-ui;padding:0}
+.web-nav .wn-brand em{font-style:normal;color:#E4A93A}
+.web-nav .wn-links{display:none;gap:4px;margin-left:18px}
+.web-nav .wn-links button{background:none;border:0;color:#CFE6D8;font:600 14px Figtree,system-ui;padding:8px 14px;border-radius:10px}
+.web-nav .wn-links button.on{background:rgba(255,255,255,.14);color:#fff}
+.web-nav .wn-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+.web-nav .wn-site{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:99px;padding:6px 12px;font:600 12.5px Figtree,system-ui}
+.web-nav .wn-btn{background:none;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:99px;padding:6px 14px;font:600 12.5px Figtree,system-ui}
+.web-nav .wn-btn.pri{background:#E4A93A;border-color:#E4A93A;color:#1B1405}
+.web-nav ~ .view{max-height:none!important;flex:1 1 0;min-height:0}
+@media (max-width:899px){.web-nav .wn-btn{display:none}.web-nav{padding:6px 12px}}
+@media (min-width:900px){
+  .web-nav{padding:10px clamp(20px,4vw,56px)}
+  .web-nav .wn-brand,.web-nav .wn-links{display:flex}
+  .web-nav .wn-site,.web-nav .wn-btn{font-size:13.5px;padding:8px 16px}
+  .web-nav ~ .bottom-nav{display:none!important}
+  .web-nav ~ .topbar:not(.topbar-plain){display:none!important}
+  .web-nav ~ .view{padding-top:26px}
+  #app-inner{background:var(--bg)}
+  #app-shell:has(.web-nav){padding:0!important;align-items:stretch}
+  #app-inner:has(.web-nav){height:100dvh;max-height:100dvh!important;width:100%;max-width:100%!important;border-radius:0;border:0;box-shadow:none}
+}
+#mwt.free .mwt-catch{display:none}
+#mwt.free{pointer-events:none}
+#mwt.free .mwt-card{pointer-events:auto;width:min(92vw,340px)}
+#mwt .mwt-bar{height:5px;border-radius:99px;background:#E3EBE5;margin:0 0 12px;overflow:hidden}
+#mwt .mwt-bar i{display:block;height:100%;background:#0F6B3F;border-radius:99px;transition:width .25s}
+#mwt .mwt-try{background:#FFF3D6;color:#7A5200}
+#mwt .mwt-act{flex-wrap:wrap}
+#mwt .mwt-try + .mwt-next,#mwt .mwt-back + .mwt-next{margin-left:0}
+</style>
 <style id="myutme-tour-css">
 #mwt{position:fixed;inset:0;z-index:100000;font-family:Figtree,system-ui,sans-serif}
 #mwt .mwt-catch{position:absolute;inset:0}
@@ -12324,6 +12367,10 @@ async function signOut() {
         storage.set("profile", JSON.stringify(state.profile));
         state.view = "home";
         state.drawerOpen = false;
+        // Logging out returns to the public website, not a guest screen.
+        try { sessionStorage.removeItem('mw_entered'); } catch (e2) {}
+        state.lpEntered = false;
+        try { history.replaceState({}, '', '/'); } catch (e2) {}
         clearSessionSnapshot();
         showToast("Signed out.", "");
         render();
@@ -17246,19 +17293,36 @@ function renderSplash() {
 function renderInstallPromoCard() {
     if (isStandaloneApp()) return '';
     // Only show once the browser has actually signaled it's installable
-    // (or on iOS Safari, where "install" means Add to Home Screen) — no
-    // point showing a big obvious button that can't do anything yet.
+    // (or on iOS Safari, where "install" means Add to Home Screen).
     if (!state.pwaInstallAvailable) return '';
+    try { if (sessionStorage.getItem('mw_ipc') === '1') return ''; } catch (e) {}
     return (
-        '<div class="install-promo-card">' +
-        '<div class="ipc-icon">' + svg('rocket', 22).replace('stroke="currentColor"', 'stroke="#fff"') + '</div>' +
-        '<div class="ipc-body">' +
-        '<h4>Install MyUTME</h4>' +
-        '<p>Add MyUTME to your home screen for one-tap access, offline CBT practice, and a faster full-screen experience — no browser bars in the way.</p>' +
-        '<button data-action="trigger-pwa-install">Install App</button>' +
-        '</div>' +
+        '<div class="install-promo-card ipc-slim">' +
+        '<div class="ipc-icon">' + svg('rocket', 16).replace('stroke="currentColor"', 'stroke="#fff"') + '</div>' +
+        '<div class="ipc-body"><h4>Install MyUTME</h4><p>Faster, full-screen, works offline</p></div>' +
+        '<button data-action="trigger-pwa-install">Install</button>' +
+        '<button class="ipc-x" data-lp="ipcx" aria-label="Dismiss">\u00D7</button>' +
         '</div>'
     );
+}
+
+// ============================================================
+//  WEBSITE BAR (browser only): lets people get back to the website,
+//  and gives desktop a proper website-style navigation.
+// ============================================================
+function renderWebNav(hide) {
+    if (isStandaloneApp() || hide) return '';
+    var logged = !!state.authUser;
+    var links = [['home', 'Home'], ['mysubjects', 'Practice Hub'], ['mockexam', 'Mock Arena'], ['profile', 'Account']].map(function (l) {
+        return '<button data-action="set-view" data-view="' + l[0] + '" class="' + (state.view === l[0] ? 'on' : '') + '">' + l[1] + '</button>';
+    }).join('');
+    return '<div class="web-nav">' +
+        '<button class="wn-brand" data-lp="website">' + logoSvg(24) + '<span>My<em>UTME</em></span></button>' +
+        '<nav class="wn-links">' + links + '</nav>' +
+        '<div class="wn-right"><button class="wn-site" data-lp="website">\u2190 Back to website</button>' +
+        (logged ? '<button class="wn-btn" data-action="sign-out">Log out</button>'
+                : '<button class="wn-btn" data-action="show-login">Log in</button><button class="wn-btn pri" data-action="show-signup">Sign up</button>') +
+        '</div></div>';
 }
 
 function renderAuthGate() {
@@ -17615,6 +17679,7 @@ function renderApp() {
     return (
         '<div id="app-shell"><div id="app-inner">' +
         loadingOverlay +
+        renderWebNav(isExamTaking) +
         '<div class="topbar' + (isHome ? '' : ' topbar-plain') + '">' +
         (isExamTaking
             ? '<div class="topbar-left"><span class="page-name">MyUTME</span></div>' +
@@ -28426,12 +28491,12 @@ document.addEventListener('input', function(e) {
 // ============================================================
 var LP_LEGAL = {"privacy": {"t": "Privacy Policy", "s": [["Introduction", "This Privacy Policy explains how MyUTME (\"we\", \"us\", \"our\") collects, uses, and protects information when you use our mobile application and website (the \"Service\"). By using the Service, you agree to the practices described here."], ["Information we collect", "we collect your username, email address, and exam performance data (scores, answers submitted, and weak subject areas) when you create an account and use the app. We may also collect basic technical data such as device type and app usage statistics to help us maintain and improve the Service."], ["Analytics", "we may use standard analytics tools (such as Google Analytics or Firebase) to understand how the app is used, in order to improve performance and features. These tools may collect anonymized usage data such as screens viewed and session length."], ["Payments", "card and payment details are handled entirely by Paystack, a licensed third-party payment processor. We never see or store your card number - we only receive a payment reference and status."], ["How we use your data", "to create and run your account, track your exam progress, display you on leaderboards (using your username only), send notifications about your activation status, and improve the Service through aggregated, anonymized insights."], ["Sharing", "we do not sell or rent your personal data to third parties. We only share data with service providers who help us run the Service, currently limited to Paystack (payment processing), Supabase (database hosting), and analytics providers as described above. These providers are only permitted to use your data to provide services to us."], ["Data retention", "we retain your account and performance data for as long as your account remains active. If you delete your account, we will delete or anonymize your personal data within a reasonable period, except where we are required to retain certain records by law (e.g. payment records)."], ["Account deletion", "you can request full deletion of your account and associated data at any time from your Profile page, or by contacting us via the Support Chat in the app or on WhatsApp. We will process deletion requests within a reasonable timeframe."], ["Children's privacy", "MyUTME is an educational exam-preparation app intended for students preparing for UTME, which may include users under 18. We do not knowingly collect more personal information than necessary from any user, and we encourage parents/guardians to supervise use of the app by younger students. We do not knowingly permit account creation by children under 13 without appropriate parental involvement. If you believe a child has provided us with personal data inappropriately, please contact us so we can remove it."], ["Data security", "we take reasonable technical and organizational measures to protect your data against unauthorized access, alteration, or loss. However, no method of transmission or storage is 100% secure, and we cannot guarantee absolute security."], ["Your rights", "depending on your location, you may have rights to access, correct, export, or delete your personal data. You can exercise these rights at any time from your Profile page, or by contacting support."], ["Device storage and updates", "To let you practise offline, the app stores questions, materials and your progress on your own device. The app also refreshes itself every 24 hours when you are online so you always have the latest fixes and content. A refresh does not delete your saved questions or progress."], ["Changes to this policy", "we may update this Privacy Policy from time to time. Material changes will be reflected by updating the \"Last updated\" date at the top of this page."], ["Contact", "for privacy questions or data requests, use the Support Chat in the app or reach us on WhatsApp."]]}, "terms": {"t": "Terms of Service", "s": [["Acceptance", "by using MyUTME, you agree to these Terms of Service. If you don't agree, please stop using the app."], ["Account", "you are responsible for keeping your login credentials secure. Your account is for personal use only and may not be shared."], ["Activation", "a valid license key is required for full access to the app. One key is valid for one account only and may not be resold or transferred."], ["Payments", "all payments are processed through Paystack, a licensed third-party payment provider. Payments are final and non-refundable, except where required by applicable law."], ["Content", "all questions and study materials are provided strictly for educational purposes. MyUTME is an independent app and is not affiliated with, endorsed by, or officially connected to JAMB (Joint Admissions and Matriculation Board)."], ["Fair use", "you may not copy, redistribute, scrape, resell, or otherwise reproduce any content from this app without our prior written permission."], ["Acceptable use", "you agree not to misuse the Service, including attempting to disrupt its operation, reverse-engineer the app, or use it for any unlawful purpose."], ["Disclaimer", "MyUTME is provided \"as is\" to help with exam preparation. While we aim for accuracy, we do not guarantee that using the app will result in any specific exam outcome or score, and we are not liable for any results of the actual UTME examination."], ["Limitation of liability", "to the fullest extent permitted by law, MyUTME and its developers shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service."], ["Changes to the Service and Terms", "we may update, modify, or discontinue features of the app, and may revise these Terms from time to time. Continued use of the app after changes means you accept the updated Terms."], ["Termination", "we reserve the right to suspend or terminate accounts that violate these Terms, including misuse of license keys or attempts to redistribute content."], ["Governing law", "these Terms are governed by the laws of the Federal Republic of Nigeria, without regard to conflict of law principles."], ["Contact", "for any questions about these Terms, use the Support Chat in the app or reach us on WhatsApp."]]}};
 state.legal = (location.pathname === '/privacy') ? 'privacy' : (location.pathname === '/terms') ? 'terms' : null;
-try { state.lpEntered = sessionStorage.getItem('mw_entered') === '1' || Object.keys(sessionStorage).some(function (k) { return k.indexOf('sb-') === 0; }); } catch (e) { state.lpEntered = false; }
+try { state.lpEntered = sessionStorage.getItem('mw_entered') === '1'; } catch (e) { state.lpEntered = false; }
 
 var mwVerified = false;
 function lpInstalled() { return isStandaloneApp() || mwVerified; }
 function shouldShowLanding() {
-    return !isStandaloneApp() && !state.authUser && !state.lpEntered && !state.legal && !state.showLogin && !state.showSignup && !state.showFaq &&
+    return !isStandaloneApp() && !state.lpEntered && !state.legal && !state.showLogin && !state.showSignup && !state.showFaq &&
         location.pathname === '/' && !location.search && !location.hash && state.view === 'home';
 }
 function lpInstallBtn() {
@@ -28464,16 +28529,18 @@ function renderLanding() {
     var rows = feats.map(function (f) { return '<div class="mw-row"><div class="mw-ic">' + svg(f[0], 22) + '</div><div><h3>' + f[1] + '</h3><p>' + f[2] + '</p></div></div>'; }).join('');
     var faq = (typeof FAQ_QA !== 'undefined' ? FAQ_QA : []).map(function (x) { return '<details><summary>' + esc(x.q) + '</summary><p>' + esc(x.a) + '</p></details>'; }).join('');
     var nav = ''; for (var i = 0; i < 12; i++) nav += '<span class="' + (i < 6 ? 'd' : i === 6 ? 'c' : '') + '"></span>';
-    var opts = ['5', '6', '7', '8'].map(function (o, i) { return '<button data-lp="opt" data-i="' + i + '"><i>' + 'ABCD'[i] + '</i>' + o + '</button>'; }).join('');
+    var opts = ['was', 'is', 'were', 'has been'].map(function (o, i) { return '<button data-lp="opt" data-i="' + i + '"><i>' + 'ABCD'[i] + '</i>' + o + '</button>'; }).join('');
     return '<div class="mw">' +
-      '<header class="mw-hero"><div class="mw-w"><div class="mw-bar"><div class="mw-brand">' + logoSvg(32) + '<span>My<em>UTME</em></span></div><button class="mw-link" data-lp="login">Log in</button></div>' +
+      '<header class="mw-hero"><div class="mw-w"><div class="mw-bar"><div class="mw-brand">' + logoSvg(32) + '<span>My<em>UTME</em></span></div>' + (state.authUser ? '<button class="mw-link" data-lp="guest">Open my app</button>' : '<button class="mw-link" data-lp="login">Log in</button>') + '</div>' +
       '<div class="mw-g"><div class="mw-hd"><h1>Sit the UTME a hundred times before you sit it once.</h1>' +
       '<p class="mw-sub" style="margin-bottom:14px">Timed CBT practice, Enzo AI explanations and offline study for JAMB.</p>' +
       '<div class="mw-chips"><span><b>' + MW_STATS.questions + '</b> questions</span><span><b>' + SUBJECTS.length + '</b> subjects</span><span><b>Free</b> to start</span></div></div>' +
-      '<div class="mw-dm"><p class="mw-try">Try a real question \u2193</p><div class="mw-cbt" id="mw-cbt"><div class="mw-cbt-top"><span>Mathematics \u00B7 Question 7 of 40</span><b id="mw-clock">01:40:00</b></div>' +
-      '<p class="mw-q">If 3x \u2212 5 = 16, what is the value of x?</p><div class="mw-opts">' + opts + '</div>' +
+      '<div class="mw-dm"><p class="mw-try">Try a real question \u2193</p><div class="mw-cbt" id="mw-cbt"><div class="mw-cbt-top"><span>Use of English \u00B7 Question 7 of 60</span><b id="mw-clock">01:40:00</b></div>' +
+      '<p class="mw-q">Neither the principal nor the teachers ___ aware of the new rule.</p><div class="mw-opts">' + opts + '</div>' +
       '<p class="mw-fb" id="mw-fb" aria-live="polite">Tap your answer.</p><div id="mw-more"></div><div class="mw-ex" id="mw-ex" hidden></div></div></div>' +
-      '<div class="mw-ac"><div class="mw-act"><button class="mw-btn mw-guest" data-lp="guest">' + svg('user', 18) + 'Continue as guest \u00B7 no sign-up</button><button class="mw-btn mw-signup" data-lp="signup">Create free account</button>' + lpInstallBtn() + '</div>' +
+      '<div class="mw-ac"><div class="mw-act">' + (state.authUser
+        ? '<button class="mw-btn mw-guest" data-lp="guest">' + svg('user', 18) + 'Open my app</button>'
+        : '<button class="mw-btn mw-guest" data-lp="guest">' + svg('user', 18) + 'Continue as guest \u00B7 no sign-up</button><button class="mw-btn mw-signup" data-lp="signup">Create free account</button>') + lpInstallBtn() + '</div>' +
       (ios ? '<p class="mw-hint">On iPhone: tap Share, then Add to Home Screen.</p>' : '<p class="mw-hint">Free to start. Works offline once installed.</p>') + '</div>' +
       '</div></div></header>' +
       '<main class="mw-w"><div class="mw-stats">' +
@@ -28493,7 +28560,7 @@ function renderLanding() {
       '<section class="mw-cta"><div><h2>Need an activation key?</h2><p>Join our WhatsApp channel for keys, updates and exam-season tips.</p></div><a class="mw-btn mw-gold" href="' + WHATSAPP_CHANNEL_URL + '" target="_blank" rel="noopener noreferrer">Join WhatsApp channel</a></section></main>' +
       '<footer class="mw-foot"><div class="mw-w"><div class="mw-brand">' + logoSvg(28) + '<span>My<em>UTME</em></span></div><p style="margin:0 0 14px;max-width:44ch">JAMB CBT practice for Nigerian students. Independent, and not affiliated with JAMB.</p>' +
       '<a href="/privacy" data-lp="legal">Privacy Policy</a><a href="/terms" data-lp="legal">Terms of Service</a><a href="' + WHATSAPP_CHANNEL_URL + '" target="_blank" rel="noopener noreferrer">WhatsApp</a><p style="margin:18px 0 0">\u00A9 2026 MyUTME. All rights reserved.</p></div></footer>' +
-      '<div class="mw-sticky"><button class="mw-btn mw-guest2" data-lp="guest">Continue as guest</button><button class="mw-btn mw-signup2" data-lp="signup">Create account</button></div></div>';
+      '<div class="mw-sticky">' + (state.authUser ? '<button class="mw-btn mw-signup2" data-lp="guest">Open my app</button>' : '<button class="mw-btn mw-guest2" data-lp="guest">Continue as guest</button><button class="mw-btn mw-signup2" data-lp="signup">Create account</button>') + '</div></div>';
 }
 function legalBody(kind) {
     return LP_LEGAL[kind].s.map(function (x) { return '<section><h2>' + esc(x[0]) + '</h2><p>' + esc(x[1]) + '</p></section>'; }).join('');
@@ -28523,8 +28590,18 @@ document.addEventListener('click', function (e) {
     if (a === 'legal') return lpOpenLegal(t.getAttribute('href').slice(1));
     if (a === 'legalback') return lpCloseLegal();
     if (a === 'explain') return lpExplain();
-    if (a === 'signup') { try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} state.showSignup = true; state.showLogin = false; syncUrlForAuth('signup'); return render(); }
+    if (a === 'signup') { try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} state.lpEntered = true; state.showSignup = true; state.showLogin = false; syncUrlForAuth('signup'); return render(); }
     if (a === 'hint') return showToast('MyUTME is installed. Open it from your home screen or app list.', '');
+    if (a === 'ipcx') { try { sessionStorage.setItem('mw_ipc', '1'); } catch (e) {} var ic = t.closest('.install-promo-card'); if (ic) ic.remove(); return; }
+    if (a === 'website') {
+        if (MW_EXAMS.indexOf(state.view) !== -1) { showToast('Finish or exit your exam first.', ''); return; }
+        try { sessionStorage.removeItem('mw_entered'); } catch (e) {}
+        state.lpEntered = false; state.view = 'home'; state.drawerOpen = false; state.showLogin = false; state.showSignup = false; state.showReset = false; state.showFaq = false;
+        try { history.pushState({}, '', '/'); } catch (e) {}
+        render();
+        setTimeout(function () { var m = document.querySelector('.mw'); if (m) m.scrollTop = 0; }, 30);
+        return;
+    }
     if (a === 'guest') {
         try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {}
         state.lpEntered = true; state.showLogin = false; state.showSignup = false; state.showReset = false; state.authError = null;
@@ -28533,13 +28610,13 @@ document.addEventListener('click', function (e) {
         return render();
     }
     if (a === 'web') { state.lpEntered = true; try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} if (lpInstalled() && !isStandaloneApp()) showToast('Open MyUTME from your home screen for the full app experience.', ''); return render(); }
-    if (a === 'login') { try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} state.showLogin = true; state.showSignup = false; syncUrlForAuth('login'); return render(); }
+    if (a === 'login') { try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} state.lpEntered = true; state.showLogin = true; state.showSignup = false; syncUrlForAuth('login'); return render(); }
     if (a === 'install') { if (tryApkInstall()) return; if (mwPrompt) mwInstallFlow(); else if (window.triggerPWAInstall) window.triggerPWAInstall(); return; }
     if (a === 'opt') {
         var i = +t.getAttribute('data-i'), box = t.parentNode, fb = document.getElementById('mw-fb');
         [].forEach.call(box.children, function (b, n) { b.className = n === 2 ? 'ok' : (n === i ? 'bad' : ''); if (n !== 2 && n !== i) b.className = ''; });
         if (i === 2) box.children[2].className = 'ok';
-        if (fb) fb.textContent = (i === 2 ? 'Correct! The answer is C (x = 7).' : 'Not quite. The answer is C (x = 7).');
+        if (fb) fb.textContent = (i === 2 ? 'Correct! The answer is C (were).' : 'Tricky one! The answer is C (were).');
         var cb = document.getElementById('mw-cbt'); if (cb) { cb.className = 'mw-cbt ' + (i === 2 ? 'mw-yes' : 'mw-no'); }
         var mo = document.getElementById('mw-more'); if (mo && !document.getElementById('mw-ex').innerHTML) mo.innerHTML = '<div class="mw-pt"><span class="mw-hand">\uD83D\uDC49</span><button class="mw-btn mw-gold" data-lp="explain">\u2728 Better explanation</button></div>';
     }
@@ -28677,11 +28754,11 @@ async function lpExplain() {
     var txt = null, ctl = new AbortController(), tm = setTimeout(function () { ctl.abort(); }, 12000);
     try {
         var r = await fetch(AI_ASSISTANT_URL, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-            body: JSON.stringify({ userId: guestAiId(), message: 'Explain this UTME question simply, step by step, then give one similar practice example. Keep it under 110 words.\n\nMathematics: If 3x - 5 = 16, what is x? A. 5  B. 6  C. 7  D. 8. Correct answer: C.', questionContext: null }) });
+            body: JSON.stringify({ userId: guestAiId(), message: 'Explain this UTME question simply, step by step, then give one similar practice example. Keep it under 110 words.\n\nUse of English (concord): Neither the principal nor the teachers ___ aware of the new rule. A. was  B. is  C. were  D. has been. Correct answer: C. Explain the rule, the trap most students fall into, then give one similar practice example.', questionContext: null }) });
         if (r.ok) { var d = await r.json(); txt = d && d.reply; }
     } catch (e) {}
     clearTimeout(tm);
-    if (!txt) txt = '**Step 1:** Add 5 to both sides: 3x = 21.\n**Step 2:** Divide both sides by 3: x = 7.\n**Check:** 3(7) \u2212 5 = 21 \u2212 5 = 16 \u2713\n\n**Now you try:** If 2x + 3 = 15, what is x?';
+    if (!txt) txt = '**Step 1:** Spot the rule. With \u201Cneither \u2026 nor\u201D, the verb agrees with the subject nearest to it.\n**Step 2:** The nearest subject is \u201Cthe teachers\u201D, which is plural. So we need a plural verb.\n**Step 3:** \u201Cwas\u201D, \u201Cis\u201D and \u201Chas been\u201D are all singular. Only C, \u201Cwere\u201D, fits.\n**Check:** \u201CNeither the principal nor the teachers were aware\u2026\u201D \u2713\n**The trap:** Most students pick \u201Cwas\u201D because \u201Cprincipal\u201D comes first. Always look at the word closest to the verb.\n\n**Now you try:** Neither the teachers nor the principal ___ aware of the rule. (Answer: was)';
     ex.innerHTML = '<p class="mw-exh">\u2728 Enzo AI</p><div class="mw-ext">' + esc(txt).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>') + '</div><button class="mw-btn mw-gold" data-lp="signup" style="margin-top:12px;width:100%">Create a free account for more</button>';
 }
 
@@ -29677,28 +29754,44 @@ function deleteQuestionOffline(questionId) {
 </script>
 <script id="myutme-tour">
 /* ============================================================
-   FIRST-VISIT TOUR  (interactive walkthrough, not a video)
-   Highlights the real buttons on screen and explains each one.
-   Auto-runs once; replay any time from Home -> "Take the tour"
+   FIRST-VISIT TOUR (interactive walkthrough, not a video)
+   Points at the real buttons, walks through every Practice Hub
+   feature, then lets the person explore on their own.
+   Auto-runs once; replay from Home -> "Take the app tour"
    or by opening the site with ?tour=1
    ============================================================ */
 (function () {
-    var KEY = 'myutme_tour_v1';
+    var KEY = 'myutme_tour_v2';
+    var NAV = function (v) { return '.bottom-nav-item[data-view="' + v + '"], .wn-links [data-view="' + v + '"]'; };
+    var CARD = function (v) { return '.ph-mode-card[data-view="' + v + '"]'; };
     var STEPS = [
-        { t: 'Welcome to MyUTME \uD83D\uDC4B', b: 'Quick 30-second tour. We\u2019ll point at the real buttons so you know exactly where everything is. You can skip any time.' },
-        { sel: '.home-hero', t: 'Your JAMB countdown', b: 'This is your home screen. It shows how many days are left to JAMB, plus a suggested next practice session below it.' },
-        { sel: '.bottom-nav-item[data-view="mysubjects"]', t: 'Practice Hub', b: 'Your study centre. Pick a subject, then choose JAMB CBT, Past Questions, Topic Practice (read notes, then take a topic quiz), Novel (CBT) or Flashcards.' },
-        { sel: '.bottom-nav-item[data-view="mockexam"]', t: 'Mock Arena', b: 'Sit scheduled, timed mock exams with other candidates and get a UTME-style score when you finish.' },
-        { sel: '[data-view="ai-assistant"]', t: 'Enzo AI explanations', b: 'Stuck on a question? Tap \u201CBetter explanation\u201D while practising, or open Enzo AI to ask anything, step by step.', soft: true },
-        { sel: '.bottom-nav-item[data-view="profile"]', t: 'Account & progress', b: 'See your progress, change your subjects, activate your account with a key, and switch dark mode.' },
-        { t: 'You\u2019re all set \u2705', b: 'Tip: guests get 10 free questions per subject. Create a free account to save your progress. Replay this tour any time from the Home screen.' }
+        { t: 'Welcome to MyUTME \uD83D\uDC4B', b: 'A quick tour of everything you can do. We point at the real buttons, so you will know exactly where to tap. Skip any time.' },
+        { view: 'home', sel: '.home-hero', t: 'Your JAMB countdown', b: 'Your home screen shows the days left to JAMB and a suggested next practice session.' },
+        { view: 'home', sel: NAV('mysubjects'), t: 'Practice Hub', b: 'This is your study centre. Everything you practise lives here. Let\u2019s open it and look at each part.' },
+        { view: 'mysubjects', sel: '.myc-subject-card, [data-action="myc-add-subject"]', t: 'Your subjects', b: 'Pick the subjects you are writing. English is compulsory and you choose the rest. You can add, swap or remove them any time.' },
+        { view: 'mysubjects', sel: CARD('topic'), t: 'Topic Practice', b: 'Pick a subject, then a topic. Read the short notes first, then take a quick quiz on just that topic. Your progress on each topic is tracked.', tryIt: true },
+        { view: 'mysubjects', sel: CARD('revise'), t: 'Missed Questions', b: 'Every question you get wrong is saved here. Retry them until they stick. This is the fastest way to fix weak spots.', tryIt: true },
+        { view: 'mysubjects', sel: CARD('marked'), t: 'Marked Questions', b: 'Tap the bookmark on any question while practising. Everything you marked is collected here to revisit before the exam.', tryIt: true },
+        { view: 'mysubjects', sel: CARD('cbt'), t: 'JAMB CBT', b: 'The real exam feel. Choose Full CBT (English plus your subjects, timed) or Single Subject (one subject, each answer marked straight away).', tryIt: true },
+        { view: 'mysubjects', sel: CARD('exam'), t: 'Past Questions', b: 'Real questions from previous JAMB years, 2000 to 2026. Choose a subject and a year, and tap Better explanation on anything you don\u2019t understand.', tryIt: true },
+        { view: 'mysubjects', sel: CARD('flashcards'), t: 'Flashcards', b: 'Flip through short question-and-answer cards. Great for quick revision when you only have a few minutes.', tryIt: true },
+        { view: 'mysubjects', sel: CARD('literature'), t: 'Novel (CBT)', b: 'Practice questions on the JAMB set novel, in the same CBT format.', tryIt: true },
+        { view: 'mysubjects', sel: NAV('mockexam'), t: 'Mock Arena', b: 'Scheduled, timed mock exams. Finish and get a UTME-style score, so you know where you stand.' },
+        { view: 'mysubjects', sel: NAV('profile'), t: 'Account', b: 'See your progress, activate your account with a key, switch dark mode, and get help from support.' },
+        { view: 'mysubjects', free: true, t: 'Now explore \uD83D\uDE80', b: 'The Practice Hub is yours. Tap any card to try it. Guests get 10 free questions per subject; create a free account to save progress. Replay this tour from Home any time.' }
     ];
     var idx = 0, root = null, active = false;
 
     function done() { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } }
     function mark() { try { localStorage.setItem(KEY, '1'); } catch (e) {} }
-    function el(sel) { if (!sel) return null; try { var n = document.querySelector(sel); if (n && n.getBoundingClientRect().width > 0) return n; } catch (e) {} return null; }
-
+    function el(sel) {
+        if (!sel) return null;
+        try {
+            var all = document.querySelectorAll(sel);
+            for (var i = 0; i < all.length; i++) { var r = all[i].getBoundingClientRect(); if (r.width > 0 && r.height > 0) return all[i]; }
+        } catch (e) {}
+        return null;
+    }
     function close(finish) {
         active = false;
         if (root && root.parentNode) root.parentNode.removeChild(root);
@@ -29708,88 +29801,95 @@ function deleteQuestionOffline(questionId) {
         if (finish) mark();
     }
     function onKey(e) { if (e.key === 'Escape') close(true); if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); }
-
     function go(d) {
         var n = idx + d;
         if (n >= STEPS.length) return close(true);
         if (n < 0) return;
         idx = n; build(d);
     }
-
+    function switchView(v, cb) {
+        try {
+            if (v && state.view !== v) { state.view = v; state.drawerOpen = false; render(); setTimeout(cb, 350); return; }
+        } catch (e) {}
+        cb();
+    }
     function build(dir) {
         var st = STEPS[idx];
-        var target = el(st.sel);
-        // skip steps whose element isn't on screen (e.g. optional buttons)
-        if (st.sel && !target) {
-            var n2 = idx + (dir === -1 ? -1 : 1);
-            if (n2 < 0) n2 = 0;
-            if (n2 >= STEPS.length) return close(true);
-            idx = n2; return build(dir);
-        }
+        switchView(st.view, function () {
+            var target = el(st.sel);
+            if (st.sel && !target) {
+                var n2 = idx + (dir === -1 ? -1 : 1);
+                if (n2 < 0) n2 = 0;
+                if (n2 >= STEPS.length) return close(true);
+                idx = n2; return build(dir);
+            }
+            draw(st, target);
+        });
+    }
+    function draw(st, target) {
         if (!root) {
             root = document.createElement('div');
             root.id = 'mwt';
             root.setAttribute('role', 'dialog');
-            root.setAttribute('aria-modal', 'true');
             document.body.appendChild(root);
             document.addEventListener('keydown', onKey, true);
             window.addEventListener('resize', place);
         }
-        var dots = STEPS.map(function (_, i) { return '<i class="' + (i === idx ? 'on' : '') + '"></i>'; }).join('');
+        root.className = st.free ? 'free' : '';
+        var last = idx === STEPS.length - 1;
+        var dots = '<div class="mwt-bar"><i style="width:' + Math.round((idx + 1) / STEPS.length * 100) + '%"></i></div>';
         root.innerHTML =
             '<div class="mwt-catch"></div><div class="mwt-spot" id="mwt-spot"></div>' +
             '<div class="mwt-card" id="mwt-card"><div class="mwt-step">Step ' + (idx + 1) + ' of ' + STEPS.length + '</div>' +
-            '<h3>' + st.t + '</h3><p>' + st.b + '</p><div class="mwt-dots">' + dots + '</div>' +
-            '<div class="mwt-act"><button class="mwt-skip" data-t="skip">' + (idx === STEPS.length - 1 ? '' : 'Skip') + '</button>' +
-            (idx > 0 ? '<button class="mwt-back" data-t="back">Back</button>' : '') +
-            '<button class="mwt-next" data-t="next">' + (idx === STEPS.length - 1 ? 'Start practising' : 'Next') + '</button></div></div>';
+            '<h3>' + st.t + '</h3><p>' + st.b + '</p>' + dots +
+            '<div class="mwt-act"><button class="mwt-skip" data-t="skip">' + (last ? '' : 'Skip') + '</button>' +
+            (idx > 0 && !last ? '<button class="mwt-back" data-t="back">Back</button>' : '') +
+            (st.tryIt ? '<button class="mwt-try" data-t="try">Open it</button>' : '') +
+            '<button class="mwt-next" data-t="next">' + (last ? 'Let me explore' : 'Next') + '</button></div></div>';
         if (target && target.scrollIntoView) { try { target.scrollIntoView({ block: 'center', behavior: 'instant' }); } catch (e) { target.scrollIntoView(); } }
         setTimeout(place, 60);
     }
-
     function place() {
         if (!root) return;
         var st = STEPS[idx], target = el(st.sel), spot = document.getElementById('mwt-spot'), card = document.getElementById('mwt-card');
         if (!spot || !card) return;
-        var vw = window.innerWidth, vh = window.innerHeight;
-        if (!target) {
-            spot.style.cssText = 'left:50%;top:50%;width:0;height:0';
-            card.style.cssText = 'left:50%;top:50%;transform:translate(-50%,-50%)';
-            return;
-        }
+        var vh = window.innerHeight;
+        if (st.free) { spot.style.cssText = 'display:none'; card.style.cssText = 'left:50%;transform:translateX(-50%);top:' + (8 + (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0)) + 'px'; return; }
+        if (!target) { spot.style.cssText = 'left:50%;top:50%;width:0;height:0'; card.style.cssText = 'left:50%;top:50%;transform:translate(-50%,-50%)'; return; }
         var r = target.getBoundingClientRect(), pad = 6;
         spot.style.cssText = 'left:' + (r.left - pad) + 'px;top:' + (r.top - pad) + 'px;width:' + (r.width + pad * 2) + 'px;height:' + (r.height + pad * 2) + 'px';
         var ch = card.offsetHeight, below = r.bottom + 14, top;
-        if (below + ch < vh - 10) top = below;
-        else top = Math.max(10, r.top - ch - 14);
+        if (below + ch < vh - 10) top = below; else top = Math.max(10, r.top - ch - 14);
         card.style.cssText = 'left:50%;transform:translateX(-50%);top:' + top + 'px';
     }
-
     document.addEventListener('click', function (e) {
         var t = e.target.closest && e.target.closest('[data-t]');
         if (t && root && root.contains(t)) {
             e.preventDefault(); e.stopPropagation();
             var a = t.getAttribute('data-t');
-            if (a === 'next') go(1); else if (a === 'back') go(-1); else close(true);
+            if (a === 'next') go(1);
+            else if (a === 'back') go(-1);
+            else if (a === 'try') { var tg = el(STEPS[idx].sel); close(true); if (tg) tg.click(); }
+            else close(true);
             return;
         }
         var s = e.target.closest && e.target.closest('[data-tour="start"]');
         if (s) { e.preventDefault(); e.stopPropagation(); start(true); }
     }, true);
-
     function start(force) {
         if (active) return;
         if (!force && done()) return;
-        active = true; idx = 0; build();
+        active = true; idx = 0;
+        try { if (state.view !== 'home') { state.view = 'home'; render(); } } catch (e) {}
+        setTimeout(function () { build(1); }, 200);
     }
     window.startMyUtmeTour = function () { start(true); };
-
     function ready() {
         try {
             if (typeof state === 'undefined' || state.view !== 'home') return false;
             if (state.legal || state.showFaq || state.showLogin || state.showSignup) return false;
             if (typeof isAdmin === 'function' && isAdmin()) return false;
-            if (!document.querySelector('.bottom-nav') || !document.querySelector('.home-hero')) return false;
+            if (!document.querySelector('.home-hero') || document.querySelector('.mw')) return false;
             if (document.getElementById('mw-refresh') || document.getElementById('mw-dept')) return false;
             return true;
         } catch (e) { return false; }
