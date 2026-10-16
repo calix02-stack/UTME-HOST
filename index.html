@@ -7986,6 +7986,43 @@ u.q-u { text-decoration: underline; text-decoration-thickness: 2px; text-underli
 .passage-here{font-size:10px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--green);padding:3px 8px;border-radius:99px}
 .passage-qs{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--muted)}
 </style>
+<style id="myutme-v4-fixes">
+/* page never scrolls itself — keeps the top icons in place */
+html, body { overflow: hidden !important; overscroll-behavior: none; }
+body { position: fixed; inset: 0; width: 100%; }
+#app-shell { height: 100%; overflow: hidden; }
+
+/* year cards = same size as subject cards */
+.ex-badge.ex-yrbadge { min-width: 62px; font-family: var(--font-serif); font-size: 15px; letter-spacing: 0; }
+.ex-card.ex-year .ex-name small, .ex-card.ex-subj .ex-name small { min-height: 14px; }
+
+/* Topic Practice subject rows = Past Questions card look */
+.tp-row { min-height: 73px; padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--line); border-left: 6px solid var(--tc, var(--green)); box-shadow: var(--shadow-sm); }
+.tp-row .tp-badge { background: color-mix(in srgb, var(--tc, var(--green)) 14%, transparent); color: var(--tc, var(--green)); font-size: 12px; }
+
+/* Better explanation button */
+.ai-explain-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 11px 12px; margin: 4px 0;
+  border: 1.5px solid var(--line); border-left: 5px solid var(--green); border-radius: 14px; background: var(--card-bg); color: var(--ink);
+  box-shadow: var(--shadow-sm); cursor: pointer; transition: transform .12s, box-shadow .15s; }
+.ai-explain-card:active { transform: scale(.985); }
+.ai-explain-card .aec-ic { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); }
+.ai-explain-card .aec-ic svg { stroke: currentColor; fill: none; }
+.ai-explain-card .aec-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ai-explain-card .aec-tx b { font-size: 14px; font-weight: 800; line-height: 1.25; }
+.ai-explain-card .aec-tx small { font-size: 11.5px; font-weight: 600; color: var(--muted); margin-top: 1px; }
+.ai-explain-card .aec-go { flex: 0 0 auto; color: var(--faint); display: flex; }
+.ai-explain-card.is-loading { opacity: .75; pointer-events: none; }
+.ai-explain-card.is-loading .aec-ic { animation: aecPulse 1.2s ease-in-out infinite; }
+.ai-explain-card.is-error { border-left-color: #B3261E; }
+.ai-explain-card.is-error .aec-ic { color: #B3261E; background: rgba(179,38,30,.12); }
+@keyframes aecPulse { 50% { transform: scale(.88); opacity: .6; } }
+.iai-box .iai-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding-bottom: 9px; border-bottom: 1px dashed var(--line); }
+.iai-box .iai-ic { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: var(--green); color: #fff; flex: 0 0 auto; }
+.iai-box .iai-ic svg { stroke: currentColor; fill: none; }
+.iai-box .iai-head b { display: block; font-size: 13.5px; font-weight: 800; line-height: 1.2; }
+.iai-box .iai-head small { display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
+</style>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -8103,6 +8140,29 @@ if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', setAppVh);
     window.visualViewport.addEventListener('scroll', setAppVh);
 }
+// Header-flies-off-screen guard: the page itself must never scroll. Focusing an
+// input, scrollIntoView or an elastic overscroll can shift html/body even with
+// overflow:hidden; snap it straight back to 0.
+(function pinPageTop() {
+    function snap() {
+        var se = document.scrollingElement || document.documentElement;
+        if (se && se.scrollTop) se.scrollTop = 0;
+        if (document.body && document.body.scrollTop) document.body.scrollTop = 0;
+        if (window.scrollY) window.scrollTo(0, 0);
+        ['app-shell', 'app-inner'].forEach(function (id) {
+            var e = document.getElementById(id);
+            if (e && e.scrollTop) e.scrollTop = 0;
+        });
+    }
+    window.addEventListener('scroll', snap, { passive: true });
+    document.addEventListener('scroll', function (e) {
+        var t = e.target;
+        if (t === document || t === document.documentElement || t === document.body || (t && (t.id === 'app-shell' || t.id === 'app-inner'))) snap();
+    }, { capture: true, passive: true });
+    if (window.visualViewport) window.visualViewport.addEventListener('scroll', snap);
+    window.addEventListener('focusout', function () { setTimeout(snap, 50); setTimeout(snap, 300); });
+    window.addEventListener('resize', snap);
+})();
 </script>
 <script>
 // ============================================================
@@ -9197,6 +9257,14 @@ function subjectBadge(s) {
     return '<div class="subject-badge">' + esc(s.code) + '</div>';
 }
 
+// Shared subject-selection card (same design + size as Past Questions).
+function exSubjCard(s, action, attr, sel, sub) {
+    return '<button type="button" class="ex-card ex-subj' + (sel ? ' sel' : '') + '" style="--c:' + (s.color || '#0F6B3F') + '" data-action="' + action + '" ' + attr + '="' + s.id + '">' +
+        '<span class="ex-badge">' + esc(s.code) + '</span>' +
+        '<span class="ex-name">' + esc(s.name) + '<small>' + esc(sub || '') + '</small></span>' +
+        '<span class="ex-check">' + (sel ? '\u2713' : '') + '</span></button>';
+}
+
 // ============================================================
 //  EXAM CHROME V2 — shared header/toolbar/footer builders used by
 //  every exam-taking screen (CBT, Past Questions, Topic, Novel, Mock)
@@ -9362,7 +9430,6 @@ function renderExamQCardHeader(number, text, image, topic) {
 function renderExamLockCard() {
     return (
         '<div class="exam-lock-card">' +
-        svg('lock', 30) +
         '<p>Free access covers the first ' + FREE_QUESTION_LIMIT + ' questions. Activate your account to unlock the rest of this paper.</p>' +
         '<button class="btn btn-gold" data-action="show-activate-popup" data-reason="You have reached the end of the free questions.">Unlock all questions</button>' +
         '</div>'
@@ -9372,7 +9439,7 @@ function renderExamLockCard() {
 // cfg: { hasPrev, prevAction, prevIdx, hasNext, nextAction, nextIdx, nextLocked, gotoAction, submitAction, exitMode }
 function renderExamFooterNav(cfg) {
     const next = cfg.nextLocked
-        ? '<button class="ef-next" data-action="show-activate-popup" data-reason="You have reached the end of the free questions.">' + svg('lock', 13) + ' Next</button>'
+        ? '<button class="ef-next" data-action="show-activate-popup" data-reason="You have reached the end of the free questions.">Next</button>'
         : '<button class="ef-next" data-action="' + cfg.nextAction + '" data-idx="' + (cfg.nextIdx != null ? cfg.nextIdx : '') + '"' + (cfg.hasNext ? '' : ' disabled') + '>Next ' + svg('chevleft', 13).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + '</button>';
     return (
         '<div class="exam-footer-v2">' +
@@ -13701,9 +13768,18 @@ function askAiButtonHtml(item, subjectName, userAnswerIdx, opts) {
             .forEach(function(k) { delete aiQuestionCache[k]; });
     }
     const label = (opts && opts.label) || '✨ Get a Better Explanation';
-    const cls = (opts && opts.inline) ? 'ask-ai-inline' : 'mini-btn ask-ai';
-    const style = (opts && opts.style) ? ' style="' + opts.style + '"' : '';
-    return '<button class="' + cls + '" data-action="ask-ai-question" data-aikey="' + key + '"' + style + '>' + label + '</button>';
+    let title = label.replace(/^(✨|⏳|↻)\s*/, '');
+    let sub = 'Enzo AI explains it step by step';
+    let state_ = '';
+    if (/Thinking/.test(label)) { title = 'Better explanation'; sub = 'Preparing your explanation\u2026'; state_ = ' is-loading'; }
+    else if (/^Hide/.test(label)) { sub = 'Tap to collapse'; state_ = ' is-open'; }
+    else if (/Try again/.test(label)) { title = 'Try again'; sub = 'Could not load. Tap to retry'; state_ = ' is-error'; }
+    else if (/Show better/.test(label)) { title = 'Better explanation'; sub = 'Tap to view'; }
+    else if (/Get a Better/.test(label)) { title = 'Better explanation'; }
+    return '<button class="ai-explain-card' + state_ + '" data-action="ask-ai-question" data-aikey="' + key + '">' +
+        '<span class="aec-ic">' + svg('sparkles', 20) + '</span>' +
+        '<span class="aec-tx"><b>' + esc(title) + '</b><small>' + esc(sub) + '</small></span>' +
+        '<span class="aec-go">' + svg('chevleft', 16).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + '</span></button>';
 }
 
 function askAiAboutQuestion(item, subjectName, userAnswerIdx) {
@@ -13869,7 +13945,7 @@ function inlineAiBoxHtml(item) {
     var warn = st.possibleError
         ? '<div class="iai-warn">⚠️ Enzo AI thinks this question or its saved answer may be wrong. Please tap <b>Flag</b> so our admin can review it.</div>'
         : '';
-    return '<div class="iai-box"><span class="label">✨ ENZO AI EXPLAINS</span>' + warn +
+    return '<div class="iai-box"><div class="iai-head"><span class="iai-ic">' + svg('sparkles', 16) + '</span><div><b>Better explanation</b><small>by Enzo AI</small></div></div>' + warn +
         '<div class="iai-text">' + formatAiChatText(st.text) + '</div></div>';
 }
 
@@ -16139,7 +16215,7 @@ function renderGotoModal() {
                 (isCurrent ? ' current' : '') +
                 (isMarked ? ' marked' : '');
             g += isLocked
-                ? '<button class="' + cls + '" data-action="goto-locked" title="Activate to unlock this question">' + svg('lock', 12) + '</button>'
+                ? '<button class="' + cls + '" data-action="goto-locked" title="Activate to unlock this question">' + (localIdx + 1) + '</button>'
                 : '<button class="' + cls + '" data-action="goto-q-select" data-idx="' + globalIdx + '" data-mode="' + mode + '">' + (localIdx + 1) + '</button>';
         });
         g += '</div>';
@@ -17459,9 +17535,7 @@ function renderBrowseSubjects() {
         '<span class="ccr-name">' + esc(eng.name) + '</span><span class="ccr-tag">Compulsory</span></div>';
     SUBJECTS.filter(function(x) { return x.id !== 'eng' && x.id !== 'lhm'; }).forEach(function(x) {
         const on = picks.indexOf(x.id) !== -1;
-        rows += '<button class="subject-chip' + (on ? ' selected' : '') + '" style="width:100%;margin-bottom:8px;display:flex;align-items:center;gap:10px;text-align:left" data-action="browse-toggle-subject" data-subjectid="' + x.id + '">' +
-            subjectBadge(x) + '<span class="sname" style="flex:1">' + esc(x.name) + '</span>' +
-            '<span style="font-weight:800;color:var(--green)">' + (on ? '✓' : '') + '</span></button>';
+        rows += exSubjCard(x, 'browse-toggle-subject', 'data-subjectid', on, 'Tap to select');
     });
     return '<button class="back-link" data-action="set-view" data-view="mysubjects">' + svg('chevleft', 14) + ' Practice Hub</button>' +
         '<h2 class="title" style="font-size:15px">Browse all subjects</h2>' +
@@ -18048,12 +18122,7 @@ function renderLiteratureCbt() {
 
     let chips = "";
     const sel = state.cbtSelected.indexOf("lhm") !== -1;
-    chips += (
-        '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-cbt-subject" data-subject="lhm">' +
-        subjectBadge(litSubject) +
-        '<span class="sname">' + esc(litSubject.name) + '</span>' +
-        '</button>'
-    );
+    chips += exSubjCard(litSubject, 'toggle-cbt-subject', 'data-subject', sel, 'Novel questions');
 
     const ready = state.cbtSelected.indexOf("lhm") !== -1;
     return (
@@ -18067,7 +18136,7 @@ function renderLiteratureCbt() {
         renderUserQuestionCountPicker('litQuestionCount', state.litQuestionCount) +
         '<div class="mode-note">Select <b>Novel (CBT)</b> to practice questions from the set texts and comprehension passages.</div>' +
         '<p class="section-label">Select Literature</p>' +
-        '<div class="subject-grid">' + chips + '</div>' +
+        '<div class="ex-list">' + chips + '</div>' +
         '</div>' +
         '<div class="picker-footer">' +
         '<button class="btn ' + (ready && state.litQuestionCount ? "btn-green" : "btn-outline") + '" data-action="start-literature-cbt"' + (ready && state.litQuestionCount ?
@@ -18150,13 +18219,13 @@ function renderCbtMode() {
         let chips = '';
         others.forEach(function(x) {
             const sel = state.cbtSelected.indexOf(x.id) !== -1;
-            chips += '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-cbt-subject" data-subject="' + x.id + '">' + subjectBadge(x) + '<span class="sname">' + esc(x.name) + '</span></button>';
+            chips += exSubjCard(x, 'toggle-cbt-subject', 'data-subject', sel, 'Tap to select');
         });
         const picked = state.cbtSelected.filter(function(x) { return x !== 'eng' && x !== 'lhm'; }).length;
         body = (
             '<div class="mode-note">English is compulsory. Choose <b>' + requiredSubjects + ' more subjects</b> (' + picked + '/' + requiredSubjects + ' chosen).</div>' +
             '<div class="cbt-combo-list"><div class="cbt-combo-row">' + subjectBadge(eng) + '<span class="ccr-name">' + esc(eng.name) + '</span><span class="ccr-tag">Compulsory</span></div></div>' +
-            '<p class="section-label">Select your subjects</p><div class="subject-grid">' + chips + '</div>'
+            '<p class="section-label">Select your subjects</p><div class="ex-list">' + chips + '</div>'
         );
         ready = picked === requiredSubjects;
         label = 'Start CBT Practice';
@@ -18168,12 +18237,7 @@ function renderCbtMode() {
             const s = SUBJECTS.find(function(x) { return x.id === sid; });
             if (!s) return;
             const sel = state.cbtSelected.indexOf(s.id) !== -1;
-            chips += (
-                '<button class="subject-chip' + (sel ? ' selected' : '') + '" data-action="toggle-cbt-subject" data-subject="' + s.id + '">' +
-                subjectBadge(s) +
-                '<span class="sname">' + esc(s.name) + '</span>' +
-                '</button>'
-            );
+            chips += exSubjCard(s, 'toggle-cbt-subject', 'data-subject', sel, 'Tap to select');
         });
         if (!anyCourseAccess() && !isAdmin()) {
             chips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in Practice Hub first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to Practice Hub</button></div>';
@@ -18181,7 +18245,7 @@ function renderCbtMode() {
         body = (
             '<div class="mode-note">Choose <b>1 subject</b> from your combo to practice.</div>' +
             '<p class="section-label">Select a subject</p>' +
-            '<div class="subject-grid">' + chips + '</div>'
+            '<div class="ex-list">' + chips + '</div>'
         );
         ready = state.cbtSelected.length === 1;
         label = 'Start Subject Practice';
@@ -18542,7 +18606,7 @@ function renderExamMode() {
             const sel = state.examYearPicked && state.examYear === y;
             const c = SUBJECT_PALETTE[(2026 - y) % SUBJECT_PALETTE.length];
             list += '<button type="button" class="ex-card ex-year' + (sel ? ' sel' : '') + '" style="--c:' + c + '" data-action="select-exam-year" data-year="' + y + '">' +
-                '<span class="ex-yr">' + y + '</span>' +
+                '<span class="ex-badge ex-yrbadge">' + y + '</span>' +
                 '<span class="ex-name">JAMB ' + y + '<small>Timed paper</small></span>' +
                 '<span class="ex-check">' + (sel ? '✓' : '') + '</span></button>';
         }
@@ -19738,11 +19802,7 @@ function fcTone(ctx, o) {
     out.connect(ctx.destination);
     osc.start(t0); osc.stop(t0 + o.d + 0.05);
 }
-function fcVibrate(kind) {
-    try { if (navigator.vibrate) navigator.vibrate(kind === 'correct' ? [70] : [260]); } catch (e) {}
-}
 function fcPlay(kind) {
-    if (kind === 'correct' || kind === 'wrong') fcVibrate(kind);
     if (!state.fcSoundOn || state.fcVolume <= 0) return;
     const ctx = fcAudioCtx();
     if (!ctx) return;
@@ -19839,12 +19899,7 @@ function renderFlashcardSubjectPicker() {
     const mySubjectIds = getBrowsableSubjectIds();
     let subjChips = "";
     SUBJECTS.filter(function(s) { return mySubjectIds.indexOf(s.id) !== -1; }).forEach(function(s) {
-        subjChips += (
-            '<button class="subject-chip" data-action="start-flashcards" data-subject="' + s.id + '">' +
-            subjectBadge(s) +
-            '<span class="sname">' + esc(s.name) + '</span>' +
-            '</button>'
-        );
+        subjChips += exSubjCard(s, 'start-flashcards', 'data-subject', false, 'Flashcards');
     });
     if (!anyCourseAccess()) {
         subjChips = '<div class="card" style="text-align:center;padding:16px"><p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick your subjects in Practice Hub first.</p><button class="btn btn-gold btn-sm" data-action="set-view" data-view="mysubjects">Go to Practice Hub</button></div>';
@@ -19857,7 +19912,7 @@ function renderFlashcardSubjectPicker() {
         '<p class="sub">Flip through questions fast, subject by subject</p>' +
         '<div class="mode-note">Pick a subject to start a flashcard deck.</div>' +
         '<p class="section-label">Select a subject</p>' +
-        '<div class="subject-grid">' + subjChips + '</div>'
+        '<div class="ex-list">' + subjChips + '</div>'
     );
 }
 
@@ -19898,7 +19953,7 @@ function renderFlashcardsDone() {
         '<div><b>' + fmtT(avg) + '</b><span>Per card</span></div>' +
         '</div>' +
         missedHtml +
-        (!isUserActive() ? '<div class="card" style="text-align:center;padding:14px;margin-bottom:12px"><p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">🔒 Free access covers ' + FREE_QUESTION_LIMIT + ' flashcards per subject.</p><button class="btn btn-gold" data-action="show-activate-popup" data-reason="You have finished your free flashcards.">Unlock all flashcards</button></div>' : '') +
+        (!isUserActive() ? '<div class="card" style="text-align:center;padding:14px;margin-bottom:12px"><p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Free access covers ' + FREE_QUESTION_LIMIT + ' flashcards per subject.</p><button class="btn btn-gold" data-action="show-activate-popup" data-reason="You have finished your free flashcards.">Unlock all flashcards</button></div>' : '') +
         (missed.length ? '<button class="btn btn-green" style="margin-bottom:8px" data-action="flashcard-retry-missed">🔁 Retry the ' + missed.length + ' I missed</button>' : '') +
         '<button class="btn ' + (missed.length ? 'btn-outline' : 'btn-green') + '" style="margin-bottom:8px" data-action="flashcard-restart">Go Through Again</button>' +
         '<button class="btn btn-outline" data-action="flashcards-back-to-subjects">Choose Another Subject</button>'
@@ -28445,6 +28500,10 @@ async function init() {
         const path = window.location.pathname;
         if (path === '/login') { state.showLogin = true; return; }
         if (path === '/signup') { state.showSignup = true; return; }
+        // Subdomains: flashcard.<domain> opens Flashcards, practice.<domain> opens Topic Practice.
+        const HOST_VIEWS = { flashcard: 'flashcards', flashcards: 'flashcards', practice: 'topic', topic: 'topic' };
+        const hostView = HOST_VIEWS[String(window.location.hostname).toLowerCase().split('.')[0]];
+        if (hostView && (path === '/' || path === '')) { state.view = hostView; return; }
         const v = PATH_TO_NAV_VIEW[path] || (path === '/ai-tutor' ? 'ai-assistant' : null);
         if (v) state.view = v;
         if (path === '/ai-tutor') { try { history.replaceState({ myutmeView: 'ai-assistant' }, '', '/enzo-ai'); } catch (e) {} }
