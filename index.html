@@ -9317,8 +9317,11 @@ function renderTrialBanner(hide) {
         return '<div class="trial-banner"><span><b>Free plan</b> &middot; ' + (d > 1 ? d + ' days left' : 'last day') + '. Explore all the modes, everything is open.</span></div>';
     }
     if (isUserActive()) return '';
+    // Only people who really got the 3-day free plan see "ended". Old accounts (no free-plan expiry, or a
+    // paid plan that expired) never see anything about the free plan.
     var cr = state.authProfile && state.authProfile.created_at ? Date.parse(state.authProfile.created_at) : NaN;
-    var hadPlan = !!state.profile.activation_expiry || (!isNaN(cr) && Date.now() - cr > FREE_TRIAL_DAYS * 86400000);
+    var ex = state.profile.activation_expiry ? Date.parse(state.profile.activation_expiry) : NaN;
+    var hadPlan = !isNaN(cr) && !isNaN(ex) && (ex - cr) <= FREE_TRIAL_DAYS * 86400000 + 3600000;
     if (!hadPlan) return '';
     return '<div class="trial-banner ended"><span><b>Your free plan has ended.</b> Activate to unlock everything.</span>' +
         '<button data-action="show-activate-popup" data-reason="Your free plan has ended.">Activate</button></div>';
@@ -17914,7 +17917,7 @@ function renderFreePlanLimitsCard(compact) {
 }
 
 function renderHomeActivationCard() {
-    if (!state.authUser || isAdmin() || isUserActive()) return '';
+    return '';   // removed from Home: activation is already shown on the Account screen
     return (
         '<div class="card" style="margin-bottom:12px;padding:12px 14px;border:1.5px solid var(--gold)">' +
         '<div style="display:flex;align-items:center;gap:10px">' +
