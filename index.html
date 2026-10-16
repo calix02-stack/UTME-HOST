@@ -309,7 +309,7 @@
 .mw-hd{grid-area:h}.mw-dm{grid-area:d}.mw-ac{grid-area:a}
 .mw-hero h1{font-size:clamp(27px,7.2vw,54px)}.mw-hero p.mw-sub{font-size:15px;margin:8px 0 2px}
 .mw-try{margin:0 0 6px;font-weight:600;color:#FFD98A;font-size:14px}
-.mw-opts button{padding:9px 12px}.mw-q{margin:12px 14px 10px;font-size:18px}.mw-opts{padding:0 14px}.mw-fb{margin:8px 14px 10px;min-height:0}
+.mw-opts button{padding:9px 12px}.mw-q{margin:12px 14px 10px;font-size:18px}.mw-opts{padding:0 14px}.mw-fb{margin:8px 14px 10px;min-height:0;line-height:1.5}
 .mw-cbt.mw-yes{animation:mwyes .7s}.mw-cbt.mw-no{animation:mwno .5s}
 @keyframes mwyes{0%,100%{box-shadow:0 18px 40px rgba(0,0,0,.35)}50%{box-shadow:0 0 0 6px rgba(46,170,100,.55)}}
 @keyframes mwno{0%,100%{transform:none}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
@@ -1447,7 +1447,7 @@
     .tp-topic { padding: 13px 14px; }
     .tp-topic:active { border-color: var(--tc, var(--green)); }
     .tp-topic .tp-qs::after { content: " \203A"; font-size: 14px; }
-    /* Back + Home pair for full-page screens (Enzo AI, Support, Topic Practice) */
+    /* Back + Home pair for full-page screens (AI, Support, Topic Practice) */
     .nav-pair { display: flex; align-items: center; gap: 6px; }
     .nav-pair .icon-btn.labeled { height: 36px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--card-bg); padding: 0 12px 0 7px; }
     .nav-pair .icon-btn.labeled:active { background: var(--bg); }
@@ -6728,7 +6728,7 @@
    was leaving the exam-shell shorter than the actual visible area,
    squeezing the scrollable question area more than necessary. */
 .view-exam { max-height: calc(var(--app-vh, 100vh) - 46px) !important; }
-/* Enzo AI and Support both hide the bottom tab bar (see isFullPageChat in
+/* AI and Support both hide the bottom tab bar (see isFullPageChat in
    the render loop) for a fullscreen, immersive chat layout — so, same
    reasoning as .view-exam above, neither must have 58px reserved for a
    bar that isn't there. Without this override the chat page was left
@@ -8084,6 +8084,21 @@ body { position: fixed; inset: 0; width: 100%; }
 .web-nav .wn-btn{background:none;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:99px;padding:6px 14px;font:600 12.5px Figtree,system-ui}
 .web-nav .wn-btn.pri{background:#E4A93A;border-color:#E4A93A;color:#1B1405}
 .web-nav ~ .view{max-height:none!important;flex:1 1 0;min-height:0}
+/* Website look in the browser: light header, brand + links visible on phones too */
+.web-nav{background:#fff!important;color:#10241A!important;border-bottom:1px solid #E3EAE5;box-shadow:0 1px 0 rgba(16,36,26,.04);gap:8px;padding-top:max(8px,env(safe-area-inset-top,0px))!important}
+.web-nav .wn-brand{display:flex!important;color:#0A4A2B!important;font-size:17px!important;flex:none}
+.web-nav .wn-brand em{color:#C98A12!important}
+.web-nav .wn-links{display:flex!important;margin-left:6px!important;overflow-x:auto;white-space:nowrap;scrollbar-width:none;flex:1 1 auto;min-width:0}
+.web-nav .wn-links::-webkit-scrollbar{display:none}
+.web-nav .wn-links button{color:#4A5F53!important;padding:7px 11px!important;font-size:13.5px!important;flex:none}
+.web-nav .wn-links button.on{background:#E8F5E9!important;color:#0A4A2B!important}
+.web-nav .wn-site{background:#fff!important;border:1px solid #BFCDC3!important;color:#0F6B3F!important}
+.web-nav .wn-btn{display:inline-block!important;border-color:#BFCDC3!important;color:#0F6B3F!important}
+.web-nav .wn-btn.pri{background:#0F6B3F!important;border-color:#0F6B3F!important;color:#fff!important}
+/* phones, logged in: use the normal top bar and the bottom icon bar (Home, Practice Hub, Mock Arena...) */
+@media (max-width:899px){.web-nav.wn-in{display:none!important}}
+/* phones: logo + Log in/Sign up on the first row, page links on a second row (like a normal website) */
+@media (max-width:899px){.web-nav{flex-wrap:wrap;row-gap:4px}.web-nav .wn-right{margin-left:auto;order:2}.web-nav .wn-links{order:3;flex:1 1 100%;margin-left:-4px!important}.web-nav .wn-btn{padding:6px 12px!important;font-size:12.5px!important}}
 @media (max-width:899px){.web-nav .wn-btn{display:none}.web-nav{padding:6px 12px}}
 @media (min-width:900px){
   .web-nav{padding:10px clamp(20px,4vw,56px)}
@@ -8125,6 +8140,51 @@ body { position: fixed; inset: 0; width: 100%; }
 .mwt-chip{display:flex;align-items:center;gap:10px;width:100%;border:1.5px dashed #0F6B3F;background:rgba(15,107,63,.07);color:#0F6B3F;border-radius:14px;padding:11px 14px;margin:0 0 12px;font:600 13.5px Figtree,system-ui;cursor:pointer;text-align:left}
 .mwt-chip b{margin-left:auto;font-weight:700}
 </style>
+<style id="myutme-light-look">
+/* ===== Website landing: white, like a normal website (hamburger menu on the right) ===== */
+.mw-hero{background:#fff!important;background-image:none!important;color:#10241A!important;padding-bottom:36px!important}
+.mw-hero .mw-bar{border-bottom:1px solid #E3EAE5;margin:0 -20px;padding:12px 20px;position:relative}
+.mw-hero .mw-brand{color:#0F6B3F!important}
+.mw-hero .mw-brand em{color:#E4A93A!important}
+.mw-burger{background:none;border:0;padding:8px;margin:-8px;color:#10241A;cursor:pointer;display:grid;place-items:center;border-radius:10px}
+.mw-burger svg{width:28px;height:28px}
+.mw-menu{display:none;position:absolute;right:12px;top:calc(100% + 6px);width:min(86vw,300px);background:#fff;border:1px solid #E3EAE5;border-radius:16px;box-shadow:0 16px 40px rgba(16,36,26,.16);padding:8px;z-index:20}
+.mw-menu.open{display:block}
+.mw-menu button,.mw-menu a,.mw-menu .mw-btn{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;background:none!important;border:0;border-radius:10px;padding:13px 12px;font:600 15.5px Figtree,system-ui;color:#10241A!important;cursor:pointer;text-decoration:none;box-shadow:none!important}
+.mw-menu button:hover,.mw-menu a:hover{background:#F1F7F3!important}
+.mw-menu .mw-m-pri{background:#0F6B3F!important;color:#fff!important;justify-content:center;margin:4px 0}
+.mw-menu .mw-m-pri:hover{background:#0A4A2B!important}
+.mw-menu .mw-ok{color:#0F6B3F!important}
+.mw-menu .mw-btn{justify-content:flex-start!important}
+.mw-menu hr{border:0;border-top:1px solid #E3EAE5;margin:6px 4px}
+.mw-hero h1{color:#0B1B14!important;text-align:center}
+.mw-hero p.mw-sub{color:#4A5F53!important;text-align:center;margin-left:auto!important;margin-right:auto!important}
+.mw-hero .mw-g{padding-top:28px!important}
+.mw-chips{justify-content:center}
+.mw-chips span{background:#E8F5E9!important;border:1px solid #CFE3D6!important;color:#0A4A2B!important}
+.mw-chips b{color:#0F6B3F!important}
+.mw-try{color:#0F6B3F!important;text-align:center}
+.mw-cbt{box-shadow:0 10px 30px rgba(16,36,26,.10)!important;border:1px solid #E3EAE5!important}
+.mw-inst-top{display:flex;justify-content:center;margin-top:18px}
+.mw-inst-top .mw-btn{background:#0F6B3F;color:#fff;min-width:200px}
+.mw-inst-top .mw-ok{background:#E8F5E9;color:#0F6B3F}
+.mw-sticky{display:none!important}
+/* ===== Logged-in Home: white card with just a touch of green ===== */
+.home-hero{background:var(--card-bg,#fff)!important;border:1px solid var(--line,#E3EAE5);box-shadow:0 6px 20px rgba(16,36,26,.06)!important}
+.home-hero::after{background:linear-gradient(90deg,#0F6B3F,#E4A93A,transparent)!important;height:3px!important;opacity:.9}
+.home-hero .glow3,.home-hero .glow4,.home-hero .hero-spark{display:none!important}
+.home-hero .hi{color:var(--muted,#5B6B61)!important}
+.home-hero .name{color:var(--text,#10241A)!important}
+.home-hero .cd-row{background:#F1F7F3!important;border:1px solid #D6E7DC!important;backdrop-filter:none!important}
+.home-hero .cd-row .n{color:#0F6B3F!important}
+.home-hero .cd-row .l{color:var(--muted,#5B6B61)!important}
+.home-hero-badge .hhb-icon{background:#E8F5E9!important;border:1px solid #CFE3D6!important;box-shadow:none!important;backdrop-filter:none!important}
+.home-hero-badge .hhb-ring{border-color:rgba(15,107,63,.35)!important}
+[data-theme="dark"] .home-hero .name{color:#fff!important}
+[data-theme="dark"] .home-hero .cd-row{background:rgba(255,255,255,.06)!important;border-color:rgba(255,255,255,.12)!important}
+[data-theme="dark"] .home-hero .cd-row .n{color:#E4A93A!important}
+</style>
+
 
 </head>
 <body>
@@ -8138,7 +8198,7 @@ body { position: fixed; inset: 0; width: 100%; }
 <div id="root"><div class="boot-spinner" aria-label="Loading"></div></div>
 <noscript>
   <h1>MyUTME – JAMB CBT Practice App for UTME</h1>
-  <p>MyUTME is a free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions from previous years, and drill topics subject by subject — with an Enzo AI available anytime you're stuck. Please enable JavaScript in your browser to use MyUTME.</p>
+  <p>MyUTME is a free JAMB CBT practice app for UTME candidates. Practice real JAMB CBT-style questions, take timed mock exams, access past questions from previous years, and drill topics subject by subject — with an AI available anytime you're stuck. Please enable JavaScript in your browser to use MyUTME.</p>
 </noscript>
 
 <div id="pwa-ios-tip">
@@ -8676,7 +8736,7 @@ function openExternalUrl(url) {
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
-const AI_NAME = "Enzo AI";
+const AI_NAME = "AI";
 const AI_CREATOR = "Enzo";
 const AI_SHARE_URL = "https://myutme.com.ng/enzo-ai";
 const SEND_EMAIL_URL = SUPABASE_URL + "/functions/v1/Send-bulk-email";
@@ -10597,7 +10657,7 @@ function __consumeViewChangeFlag() {
 // setView() itself already auto-submits an in-progress exam when leaving
 // it, and calls render() at its end, so goBack() doesn't need to repeat
 // either.
-// Back + Home pair used on full-page screens (Enzo AI, Support, Topic Practice).
+// Back + Home pair used on full-page screens (AI, Support, Topic Practice).
 // "Back" returns to the screen the person really came from; "Home" always goes to Home.
 function navPairHtml(backAction) {
     return '<div class="nav-pair">' +
@@ -11850,12 +11910,12 @@ function adBox() { return adHtml(false); }   // thin 320x50 banner
 // ============================================================
 //  AUTH FUNCTIONS
 // ============================================================
-// Enzo AI and Support Chat cache their data in memory (state.aiMessages,
+// AI and Support Chat cache their data in memory (state.aiMessages,
 // state.aiSessions, state.supportMessages, etc.) and only reload from the
 // server when their "*Loaded" flag is false. That flag was never reset on
 // login/logout, so on a shared device — or any time one account signs out
 // and a different account signs in during the same page session — the new
-// user could still see the previous user's cached Enzo AI / Support Chat
+// user could still see the previous user's cached AI / Support Chat
 // conversation until a hard refresh. This resets all of that per-user chat
 // state so each sign-in/sign-out starts clean and reloads fresh data.
 function resetUserScopedChatState() {
@@ -12328,6 +12388,8 @@ async function signIn(emailOrUsername, password) {
             render();
             cacheAllDataForOffline();
             restoreSessionSnapshot();
+            // A saved screen from before login (e.g. Account) must never override landing on Home.
+            if (EXAM_VIEWS.indexOf(state.view) === -1) { goToPostAuthView(); render(); }
             
         }
     } catch (err) {
@@ -13624,7 +13686,7 @@ async function loadAiSessions() {
         state.aiSessionsLoaded = true;
 
         // Note: deliberately NOT auto-resuming the most recent session here.
-        // Every visit to the Enzo AI starts fresh (state.aiCurrentSessionId
+        // Every visit to the AI starts fresh (state.aiCurrentSessionId
         // is reset to null in setView) — old chats stay one tap away via
         // the history panel (switchAiSession).
         if (state.aiCurrentSessionId) {
@@ -13851,8 +13913,8 @@ async function editAiMessage(msgId) {
 
 function guestAiId() { let g = storage.get('guestAiId'); if (!g) { g = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'guest-' + Date.now() + '-' + Math.random().toString(16).slice(2); storage.set('guestAiId', g); } return g; }
 async function sendAiMessage(text, questionContext) {
-    // Enzo AI is only for question explanations (plus a 'Continue' follow-up). No free chat.
-    if (!questionContext && !/^continue\.?$/i.test(String(text || '').trim())) { showToast('Enzo AI explains questions. Tap "Better explanation" on any question.', ''); return; }
+    // AI is only for question explanations (plus a 'Continue' follow-up). No free chat.
+    if (!questionContext && !/^continue\.?$/i.test(String(text || '').trim())) { showToast('AI explains questions. Tap "Better explanation" on any question.', ''); return; }
     const msg = (text || '').trim();
     const pendingImage = state.aiPendingImage;
     const pendingDocument = state.aiPendingDocument;
@@ -13952,7 +14014,7 @@ async function sendAiMessage(text, questionContext) {
 //  "ASK AI" ON A QUESTION
 //  Lets the student jump straight from a question (once its answer/
 //  explanation is already visible — review screens, instant-result modes,
-//  revise mode) into the Enzo AI with that question pre-loaded and
+//  revise mode) into the AI with that question pre-loaded and
 //  auto-sent, so the AI can explain it in depth right away.
 //  Deliberately not offered on live/timed CBT or Mock/Live Exam questions
 //  while they're still being attempted, to avoid enabling cheating during
@@ -13987,7 +14049,7 @@ function askAiButtonHtml(item, subjectName, userAnswerIdx, opts) {
     }
     const label = (opts && opts.label) || '✨ Get a Better Explanation';
     let title = label.replace(/^(✨|⏳|↻)\s*/, '');
-    let sub = 'Enzo AI explains it step by step';
+    let sub = 'AI explains it step by step';
     let state_ = '';
     if (/Thinking/.test(label)) { title = 'Better explanation'; sub = 'Preparing your explanation\u2026'; state_ = ' is-loading'; }
     else if (/^Hide/.test(label)) { sub = 'Tap to collapse'; state_ = ' is-open'; }
@@ -14002,7 +14064,7 @@ function askAiButtonHtml(item, subjectName, userAnswerIdx, opts) {
 
 function askAiAboutQuestion(item, subjectName, userAnswerIdx) {
     if (!state.authUser) { guestNeedsAccount(); return; }
-    if (!item) { showToast('Could not load this question for the Enzo AI.', 'error'); return; }
+    if (!item) { showToast('Could not load this question for the AI.', 'error'); return; }
 
     const letters = 'ABCDEFGH';
     const options = item.options || [];
@@ -14031,7 +14093,7 @@ function askAiAboutQuestion(item, subjectName, userAnswerIdx) {
     };
 
     // Remember exactly where this question lives so the "Back to question"
-    // button in the Enzo AI can return the student to it — the underlying
+    // button in the AI can return the student to it — the underlying
     // exam/topic/cbt/revise state (index, questions, answers) is untouched
     // by setView('ai-assistant'), so jumping back to state.aiReturnView is
     // safe. 'revise' was missing here, so asking AI about a question while
@@ -14155,15 +14217,15 @@ function inlineAiBoxHtml(item) {
     var st = (inlineAiState || {})[String(item.id)];
     if (!st || !st.open) return '';
     if (st.status === 'loading') {
-        return '<div class="iai-box iai-loading"><div class="spinner"></div><span>Enzo AI is preparing a detailed explanation…</span></div>';
+        return '<div class="iai-box iai-loading"><div class="spinner"></div><span>AI is preparing a detailed explanation…</span></div>';
     }
     if (st.status === 'error') {
         return '<div class="iai-box iai-error">Could not get the explanation right now. Please tap <b>Try again</b>.</div>';
     }
     var warn = st.possibleError
-        ? '<div class="iai-warn">⚠️ Enzo AI thinks this question or its saved answer may be wrong. Please tap <b>Flag</b> so our admin can review it.</div>'
+        ? '<div class="iai-warn">⚠️ AI thinks this question or its saved answer may be wrong. Please tap <b>Flag</b> so our admin can review it.</div>'
         : '';
-    return '<div class="iai-box"><div class="iai-head"><span class="iai-ic">' + svg('sparkles', 16) + '</span><div><b>Better explanation</b><small>by Enzo AI</small></div></div>' + warn +
+    return '<div class="iai-box"><div class="iai-head"><span class="iai-ic">' + svg('sparkles', 16) + '</span><div><b>Better explanation</b><small>by AI</small></div></div>' + warn +
         '<div class="iai-text">' + formatAiChatText(st.text) + '</div></div>';
 }
 
@@ -14622,13 +14684,13 @@ const SUPPORT_KB = [
     { k: ['result analysis', 'my results', 'past results', 'see my score', 'where is my result', 'exam history', 'my history', 'review my answer'],
       a: 'Every finished CBT, Past Questions, Mock, Novel or Topic attempt is saved in Account → Result Analysis. Use the filter tabs (CBT Full, CBT Single, Exam, Mock, Novel CBT, Topic) to find it.' },
     { k: ['offline', 'no internet', 'without internet', 'no network', 'data off', 'work offline', 'no data', 'without data', 'without network', 'without wifi', 'use offline'],
-      a: 'CBT, Past Questions and Novel (CBT) run from questions saved on your phone, so once you have logged in and opened the app online once, they work without internet.\nThese need internet: Mock exams, Leaderboard, Enzo AI, Support chat, payments/activation and new Study Materials.\nIf a mode has no questions offline: connect once, open the app, wait ~5 seconds on Home, then try again.' },
+      a: 'CBT, Past Questions and Novel (CBT) run from questions saved on your phone, so once you have logged in and opened the app online once, they work without internet.\nThese need internet: Mock exams, Leaderboard, AI, Support chat, payments/activation and new Study Materials.\nIf a mode has no questions offline: connect once, open the app, wait ~5 seconds on Home, then try again.' },
     { k: ['refresh', 'reload', '+version', 'update the app', 'new version', 'latest version', 'app version', 'old version', 'pull down'],
       a: 'Tap the ⟳ refresh button at the top of Home to reload the app. On the website you can also drag down from the top; the installed app uses the button only.\nYour version shows next to the logo (like v11). If it looks old, close the app fully and reopen it while online, then tap refresh.\nOffline, refresh just says there is no connection — nothing is broken.' },
     { k: ['install app', 'add to home screen', 'install the app', 'download app', 'app icon', 'home screen', 'install pwa', 'how to install'],
       a: 'Go to Account → Install App (it shows when your browser supports it).\n• iPhone (Safari): Share → Add to Home Screen\n• Android (Chrome): menu ⋮ → Install app / Add to Home screen\nThen open MyUTME from the new icon.' },
     { k: ['ai tutor', 'tutor', 'ask ai', 'study help'],
-      a: 'Enzo AI (bottom menu) is for study questions — explanations, solving problems and topics. It needs internet. I only handle app and account problems, so use Enzo AI for subject questions.' },
+      a: 'AI (bottom menu) is for study questions — explanations, solving problems and topics. It needs internet. I only handle app and account problems, so use AI for subject questions.' },
     { k: ['study circle', 'whatsapp group', 'whatsapp channel', 'join group', 'community'],
       a: 'Account → Study Circle has our WhatsApp group and channel links — tap it and join.' },
     { k: ['telegram', 'facebook', 'instagram', 'tiktok', 'social media', 'connect with us'],
@@ -14743,7 +14805,7 @@ function findSupportMemoryMatch(text) {
     return best;
 }
 
-// Support kept answering real subject questions like Enzo AI would.
+// Support kept answering real subject questions like AI would.
 // Only genuine study-content words are listed here; app words such as
 // "past questions" are handled by the knowledge base above, and a message
 // that describes a problem ("not loading", "error"...) is never a study question.
@@ -14796,7 +14858,7 @@ async function generateSmartSupportReply(userText) {
         'RULES:\n' +
         '- Answer ONLY using the KNOWLEDGE below and the account facts. Never invent features, prices, buttons, or account details.\n' +
         '- Be brief and practical: numbered steps when there are steps. No greetings, no "As an AI", no small talk.\n' +
-        '- Do not answer study/subject questions; say Enzo AI handles those.\n' +
+        '- Do not answer study/subject questions; say AI handles those.\n' +
         '- If the knowledge does not clearly cover the problem, or someone must check the account/payment/data, reply with exactly: [[ESCALATE]]\n\n' +
         'ACCOUNT FACTS: ' + ctx + '\n\nKNOWLEDGE:\n' + buildSupportKnowledge() +
         (recent ? '\n\nRECENT CHAT:\n' + recent : '') +
@@ -14860,7 +14922,7 @@ async function resolveSupportReply(msg, issueKey) {
     if (legacy) return finalizeSupportReply(legacy);
 
     if (looksLikeStudyQuestion(msg)) {
-        return { text: 'That looks like a study question rather than an app issue — Enzo AI (bottom menu) is the place for that. I handle payments, activation, login and app problems. 🙂', escalate: false };
+        return { text: 'That looks like a study question rather than an app issue — AI (bottom menu) is the place for that. I handle payments, activation, login and app problems. 🙂', escalate: false };
     }
 
     if (supportTokens(msg).length < 2) {
@@ -15077,7 +15139,7 @@ function notifyTrialCapIfNeeded(totalAvailable) {
     }
 }
 
-// Non-activated users can message the Enzo AI, but only a handful of
+// Non-activated users can message the AI, but only a handful of
 // Client-side hourly trial cap — removed per product decision. This now
 // always allows, for every user (trial and active alike), regardless of
 // how many AI calls have been made. The AI backend's own server-side cap
@@ -16878,7 +16940,7 @@ function setView(v, navOpts) {
         loadSupportMessages();
     }
     if (v === "ai-assistant") {
-        // Every fresh visit to the Enzo AI starts a brand-new chat (like
+        // Every fresh visit to the AI starts a brand-new chat (like
         // Claude's own app). The old chat isn't lost — it's still in
         // history, reachable via the history icon. No DB write happens
         // here; the session is only created once the user actually sends
@@ -17098,9 +17160,9 @@ function renderNow() {
     // link opened "Create account" instead of the exam.
     //
     // 'home' and 'ai-assistant' are also allowed so a guest can actually
-    // look around the app and try Enzo AI before ever creating an
+    // look around the app and try AI before ever creating an
     // account — Practice Hub, Mock Arena and Account still gate behind
-    // login, and Enzo AI itself still requires an account the moment a
+    // login, and AI itself still requires an account the moment a
     // guest tries to actually send a message (see sendAiMessage()).
     const GUEST_ALLOWED_VIEWS = ['home', 'ai-assistant'];
     // Guests can SEE every page. Only actions that need an account ask them to sign up (see guestNeedsAccount).
@@ -17313,13 +17375,13 @@ function renderInstallPromoCard() {
 function renderWebNav(hide) {
     if (isStandaloneApp() || hide) return '';
     var logged = !!state.authUser;
-    var links = [['home', 'Home'], ['mysubjects', 'Practice Hub'], ['mockexam', 'Mock Arena'], ['profile', 'Account']].map(function (l) {
+    var links = (!logged ? [] : [['home', 'Home'], ['mysubjects', 'Practice Hub'], ['mockexam', 'Mock Arena'], ['profile', 'Account']]).map(function (l) {
         return '<button data-action="set-view" data-view="' + l[0] + '" class="' + (state.view === l[0] ? 'on' : '') + '">' + l[1] + '</button>';
     }).join('');
-    return '<div class="web-nav">' +
-        '<button class="wn-brand" data-lp="website">' + logoSvg(24) + '<span>My<em>UTME</em></span></button>' +
+    return '<div class="web-nav' + (logged ? ' wn-in' : '') + '">' +
+        (logged ? '<button class="wn-brand" data-action="set-view" data-view="home">' : '<button class="wn-brand" data-lp="website">') + logoSvg(24) + '<span>My<em>UTME</em></span></button>' +
         '<nav class="wn-links">' + links + '</nav>' +
-        '<div class="wn-right"><button class="wn-site" data-lp="website">\u2190 Back to website</button>' +
+        '<div class="wn-right">' +
         (logged ? '<button class="wn-btn" data-action="sign-out">Log out</button>'
                 : '<button class="wn-btn" data-action="show-login">Log in</button><button class="wn-btn pri" data-action="show-signup">Sign up</button>') +
         '</div></div>';
@@ -17332,7 +17394,7 @@ function renderAuthGate() {
         '<div class="gate-hero">' +
         '<div class="gate-brand">' + logoSvg(26) + '<span>My<span class="g">UTME</span></span></div>' +
         '<h1>Walk into JAMB fully prepared</h1>' +
-        '<p class="sub">Real past questions, realistic timed mock exams and Enzo AI that\u2019s with you every step — everything you need, in one app.</p>' +
+        '<p class="sub">Real past questions, realistic timed mock exams and AI that\u2019s with you every step — everything you need, in one app.</p>' +
         '</div>' +
         '<div class="gate-sheet">' +
         '<div class="gate-perks">' +
@@ -17369,8 +17431,8 @@ const FAQ_FEATURES = [
     { key: 'mock_exam', icon: 'target', title: 'Full Timed Mock Exams',
       desc: 'Sit a complete 4-subject mock exam under real JAMB time limits and get your UTME-style score the moment you submit, so you always know exactly where you stand before the real thing.',
       defaultImg: 'https://loremflickr.com/800/450/exam,timer,clock' },
-    { key: 'ai_tutor', icon: 'sparkles', title: 'Enzo AI, 24/7',
-      desc: 'Stuck on a question or a topic at 1am with no one to ask? The Enzo AI gives a clear, patient, step-by-step explanation on demand — like a personal teacher who never sleeps.',
+    { key: 'ai_tutor', icon: 'sparkles', title: 'AI, 24/7',
+      desc: 'Stuck on a question or a topic at 1am with no one to ask? The AI gives a clear, patient, step-by-step explanation on demand — like a personal teacher who never sleeps.',
       defaultImg: 'https://loremflickr.com/800/450/chatbot,ai,assistant' },
     { key: 'revise_weak', icon: 'rotate', title: 'Missed Questions',
       desc: 'The app quietly tracks every question you get wrong across every session and lets you retry just those — so revision time goes straight to what actually needs work instead of re-reading things you already know.',
@@ -17386,7 +17448,7 @@ const FAQ_QA = [
     { q: 'Can I use the app without internet?', a: 'Yes. Once questions have loaded at least once, you can keep practicing offline. You\u2019ll need a connection again to sync new content, submit exams, or update your results.' },
     { q: 'How accurate are the practice questions?', a: 'Our question bank is built from real past JAMB questions and carefully reviewed CBT-style questions, kept as close as possible to what you\u2019ll actually face on exam day.' },
     { q: 'What subjects are covered?', a: 'All core JAMB subjects are covered. You can practice any subject individually, by topic, or combine them into a full mock exam just like the real UTME.' },
-    { q: 'How does the Enzo AI work?', a: 'The Enzo AI answers questions in plain language, explains concepts you\u2019re stuck on, and can walk you through why an answer is correct — available any time from the Enzo AI tab.' },
+    { q: 'How does the AI work?', a: 'The AI answers questions in plain language, explains concepts you\u2019re stuck on, and can walk you through why an answer is correct — available any time from the AI tab.' },
     { q: 'I forgot my password — what do I do?', a: 'Tap "Log in", then "Forgot password?" and enter your email. We\u2019ll send you a secure link to set a new password.' },
     { q: 'Is my information safe?', a: 'Yes. We only collect what\u2019s needed to run your account and never sell your data. See our full Privacy Policy for details.' },
     { q: 'How do I contact support?', a: 'Once logged in, open the menu and tap "Support Chat" to reach our team directly, or use the contact button below.' },
@@ -17550,7 +17612,7 @@ function renderFaqImageUploadModal() {
 const PAGE_TITLES = {
     'mysubjects': 'Practice Hub',
     'browse-subjects': 'Browse Subjects',
-    'ai-assistant': 'Enzo AI',
+    'ai-assistant': 'AI',
     'mockexam': 'Mock Arena',
     'profile': 'Account',
     'profile-edit': 'Edit Profile',
@@ -17617,15 +17679,15 @@ function renderApp() {
         'mock-exam': state.mockFinished || state.mockSubmitted,
     };
     const isExamTaking = EXAM_TAKING_VIEWS.indexOf(state.view) !== -1 && !EXAM_RESULT_SHOWING[state.view];
-    // Enzo AI gets its own minimal, "free app" style bar: just a menu
+    // AI gets its own minimal, "free app" style bar: just a menu
     // (3-dash) button that opens chat history (new chat + past chats)
     // and a small title — no notification bell, no refresh button, no
     // profile avatar, and no separate in-page header duplicating this.
     // This, plus hiding the bottom nav below, frees up real space for
-    // the conversation and keeps Enzo AI from feeling oversized.
+    // the conversation and keeps AI from feeling oversized.
     const isAiAssistant = state.view === 'ai-assistant';
     // Support gets the exact same fullscreen, minimal-topbar treatment as
-    // Enzo AI now (back button + small title, bottom nav hidden) instead
+    // AI now (back button + small title, bottom nav hidden) instead
     // of the old half-and-half layout that kept the bottom nav and a big
     // duplicate in-page header.
     const isSupportChat = state.view === 'support';
@@ -18075,7 +18137,7 @@ function renderFreePlanLimitsCard(compact) {
         '<p style="font-size:12.5px;font-weight:800;margin:0 0 6px">Free plan limits</p>' +
         '<ul class="admin-list" style="font-size:11.5px;margin:0;padding-left:16px">' +
         '<li><b>Every practice mode:</b> first ' + TRIAL_QUESTION_CAP + ' questions of each subject open, the rest locked</li>' +
-        '<li><b>Enzo AI:</b> limited number of questions per day</li>' +
+        '<li><b>AI:</b> limited number of questions per day</li>' +
         '<li><b>Mock Arena:</b> requires activation</li>' +
         '</ul>' +
         (compact ? '' : '<p style="font-size:11px;color:var(--muted);margin:8px 0 0">Activate to remove all of these limits.</p>') +
@@ -18089,7 +18151,7 @@ function renderHomeActivationCard() {
         '<div class="card" style="margin-bottom:12px;padding:12px 14px;border:1.5px solid var(--gold)">' +
         '<div style="display:flex;align-items:center;gap:10px">' +
         '<div style="flex:1;min-width:0"><p style="font-size:13px;font-weight:800;margin:0 0 2px">Account not activated</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0">' + TRIAL_QUESTION_CAP + ' free questions per subject · limited Enzo AI · Mock Arena locked</p></div>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0">' + TRIAL_QUESTION_CAP + ' free questions per subject · limited AI · Mock Arena locked</p></div>' +
         '<button class="btn btn-gold btn-sm" data-action="set-view" data-view="activate" style="flex-shrink:0;padding:8px 14px">Activate</button>' +
         '</div></div>'
     );
@@ -20284,7 +20346,7 @@ function renderFlashcardsDone() {
 // ============================================================
 //  SUPPORT CHAT
 // ============================================================
-// Turns Enzo AI text into properly displayed content instead of raw
+// Turns AI text into properly displayed content instead of raw
 // markdown/LaTeX/code-style syntax: "3 * 4" becomes "3 × 4", "x^2" becomes
 // x with a real superscript, \frac{1}{2} becomes a readable fraction,
 // **bold** becomes actual bold text, ```code``` becomes a real code block,
@@ -20481,9 +20543,9 @@ function renderAiAssistant() {
     if (!state.authUser && !state.aiGuestMode) { state.aiGuestMode = true; state.aiSessions = []; state.aiSessionsLoaded = true; state.aiMessages = []; state.aiMessagesLoaded = true; state.aiCurrentSessionId = 'guest-local'; }
     if (false) {
         return (
-            '<h2 class="title" style="font-size:14px">✨ Enzo AI</h2>' +
+            '<h2 class="title" style="font-size:14px">✨ AI</h2>' +
             '<p class="sub" style="font-size:11px">Ask questions, get real explanations</p>' +
-            guestCardHtml('Create a free account to use the Enzo AI.')
+            guestCardHtml('Create a free account to use the AI.')
         );
     }
     if (!state.aiSessionsLoaded) {
@@ -20491,7 +20553,7 @@ function renderAiAssistant() {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading your chats...</p></div>';
     }
 
-    // The topbar now carries the "Enzo AI" title and the menu button
+    // The topbar now carries the "AI" title and the menu button
     // (new chat + past chats live behind it), so this in-page header is
     // no longer duplicated here — that reclaims vertical space for the
     // conversation instead of a second, bigger title block.
@@ -20637,7 +20699,7 @@ function renderAiAssistant() {
         listeningBanner +
         editingBanner +
         attachPreview +
-        '<div class="chat-input-row" style="justify-content:center;text-align:center"><p style="margin:0;font-size:13px;color:var(--muted);line-height:1.5">\u2728 Enzo AI explains questions. Open any question and tap <b>Better explanation</b>.</p></div>' +
+        '<div class="chat-input-row" style="justify-content:center;text-align:center"><p style="margin:0;font-size:13px;color:var(--muted);line-height:1.5">\u2728 AI explains questions. Open any question and tap <b>Better explanation</b>.</p></div>' +
         historyPanel
     );
 }
@@ -21460,7 +21522,7 @@ function renderActivationBanner() {
     const feats = [
         ['📚', 'Unlimited JAMB CBT', 'Every subject, no limits'],
         ['📝', 'Past Questions', '2000 – 2026, by subject'],
-        ['✨', 'Enzo AI', 'Instant answers, any time'],
+        ['✨', 'AI', 'Instant answers, any time'],
         ['🎯', 'Mock Arena', 'Live timed exams &amp; ranking'],
         ['📖', 'Novel CBT', 'Set texts &amp; comprehension'],
         ['🔁', 'Missed Questions', 'Retry what you missed'],
@@ -22841,7 +22903,7 @@ function renderAdminSessions() {
 
 
 // ============================================================
-//  ADMIN: GUEST AI CHATS (people who used the Enzo AI without an account)
+//  ADMIN: GUEST AI CHATS (people who used the AI without an account)
 // ============================================================
 function loadGuestAiChats() {} // removed
 
@@ -22850,7 +22912,7 @@ function renderAdminGuestAi() {
     let html = '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">' +
         '<h3 style="margin:0;font-size:16px">👤 Guest AI chats</h3>' +
         '<button class="btn btn-outline btn-sm" data-action="admin-refresh-guestai">Refresh</button></div>' +
-        '<p style="font-size:11px;color:var(--muted);margin-bottom:10px">What people asked the Enzo AI without logging in. Newest 1000 messages, text only.</p>';
+        '<p style="font-size:11px;color:var(--muted);margin-bottom:10px">What people asked the AI without logging in. Newest 1000 messages, text only.</p>';
     if (!g || !g.loaded) return html + '<div class="loading-spinner" style="padding:14px 0"><div class="spinner"></div></div>';
     if (g.error) return html + '<p style="font-size:12px;color:#dc2626">Could not load: ' + esc(g.error) + '. If this says the table does not exist or permission is denied, run guest_ai_setup.sql in the Supabase SQL editor.</p>';
     if (!g.rows.length) return html + '<p style="font-size:12px;color:var(--faint)">No guest AI chats yet.</p>';
@@ -23726,7 +23788,7 @@ function renderAdminUserDetail() {
     } else if (state.adminUserAiError) {
         chatHtml = '<p style="font-size:12px;color:#dc2626;margin:0">Could not load chats: ' + esc(state.adminUserAiError) + '. This usually means the Supabase admin rules are missing: run admin_setup.sql in the Supabase SQL Editor, then reopen this user.</p>';
     } else if (state.adminUserAiMessages.length === 0) {
-        chatHtml = '<p style="font-size:12px;color:var(--faint);margin:0">No Enzo AI chats yet.</p>';
+        chatHtml = '<p style="font-size:12px;color:var(--faint);margin:0">No AI chats yet.</p>';
     } else {
         chatHtml += '<div style="max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">';
         state.adminUserAiMessages.forEach(function(m) {
@@ -23741,7 +23803,7 @@ function renderAdminUserDetail() {
     }
     body += (
         '<div class="card" style="margin-bottom:12px">' +
-        '<p style="font-weight:700;font-size:13px;margin:0 0 8px">💬 Enzo AI chat history</p>' +
+        '<p style="font-weight:700;font-size:13px;margin:0 0 8px">💬 AI chat history</p>' +
         chatHtml +
         '</div>'
     );
@@ -28491,13 +28553,19 @@ document.addEventListener('input', function(e) {
 // ============================================================
 var LP_LEGAL = {"privacy": {"t": "Privacy Policy", "s": [["Introduction", "This Privacy Policy explains how MyUTME (\"we\", \"us\", \"our\") collects, uses, and protects information when you use our mobile application and website (the \"Service\"). By using the Service, you agree to the practices described here."], ["Information we collect", "we collect your username, email address, and exam performance data (scores, answers submitted, and weak subject areas) when you create an account and use the app. We may also collect basic technical data such as device type and app usage statistics to help us maintain and improve the Service."], ["Analytics", "we may use standard analytics tools (such as Google Analytics or Firebase) to understand how the app is used, in order to improve performance and features. These tools may collect anonymized usage data such as screens viewed and session length."], ["Payments", "card and payment details are handled entirely by Paystack, a licensed third-party payment processor. We never see or store your card number - we only receive a payment reference and status."], ["How we use your data", "to create and run your account, track your exam progress, display you on leaderboards (using your username only), send notifications about your activation status, and improve the Service through aggregated, anonymized insights."], ["Sharing", "we do not sell or rent your personal data to third parties. We only share data with service providers who help us run the Service, currently limited to Paystack (payment processing), Supabase (database hosting), and analytics providers as described above. These providers are only permitted to use your data to provide services to us."], ["Data retention", "we retain your account and performance data for as long as your account remains active. If you delete your account, we will delete or anonymize your personal data within a reasonable period, except where we are required to retain certain records by law (e.g. payment records)."], ["Account deletion", "you can request full deletion of your account and associated data at any time from your Profile page, or by contacting us via the Support Chat in the app or on WhatsApp. We will process deletion requests within a reasonable timeframe."], ["Children's privacy", "MyUTME is an educational exam-preparation app intended for students preparing for UTME, which may include users under 18. We do not knowingly collect more personal information than necessary from any user, and we encourage parents/guardians to supervise use of the app by younger students. We do not knowingly permit account creation by children under 13 without appropriate parental involvement. If you believe a child has provided us with personal data inappropriately, please contact us so we can remove it."], ["Data security", "we take reasonable technical and organizational measures to protect your data against unauthorized access, alteration, or loss. However, no method of transmission or storage is 100% secure, and we cannot guarantee absolute security."], ["Your rights", "depending on your location, you may have rights to access, correct, export, or delete your personal data. You can exercise these rights at any time from your Profile page, or by contacting support."], ["Device storage and updates", "To let you practise offline, the app stores questions, materials and your progress on your own device. The app also refreshes itself every 24 hours when you are online so you always have the latest fixes and content. A refresh does not delete your saved questions or progress."], ["Changes to this policy", "we may update this Privacy Policy from time to time. Material changes will be reflected by updating the \"Last updated\" date at the top of this page."], ["Contact", "for privacy questions or data requests, use the Support Chat in the app or reach us on WhatsApp."]]}, "terms": {"t": "Terms of Service", "s": [["Acceptance", "by using MyUTME, you agree to these Terms of Service. If you don't agree, please stop using the app."], ["Account", "you are responsible for keeping your login credentials secure. Your account is for personal use only and may not be shared."], ["Activation", "a valid license key is required for full access to the app. One key is valid for one account only and may not be resold or transferred."], ["Payments", "all payments are processed through Paystack, a licensed third-party payment provider. Payments are final and non-refundable, except where required by applicable law."], ["Content", "all questions and study materials are provided strictly for educational purposes. MyUTME is an independent app and is not affiliated with, endorsed by, or officially connected to JAMB (Joint Admissions and Matriculation Board)."], ["Fair use", "you may not copy, redistribute, scrape, resell, or otherwise reproduce any content from this app without our prior written permission."], ["Acceptable use", "you agree not to misuse the Service, including attempting to disrupt its operation, reverse-engineer the app, or use it for any unlawful purpose."], ["Disclaimer", "MyUTME is provided \"as is\" to help with exam preparation. While we aim for accuracy, we do not guarantee that using the app will result in any specific exam outcome or score, and we are not liable for any results of the actual UTME examination."], ["Limitation of liability", "to the fullest extent permitted by law, MyUTME and its developers shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service."], ["Changes to the Service and Terms", "we may update, modify, or discontinue features of the app, and may revise these Terms from time to time. Continued use of the app after changes means you accept the updated Terms."], ["Termination", "we reserve the right to suspend or terminate accounts that violate these Terms, including misuse of license keys or attempts to redistribute content."], ["Governing law", "these Terms are governed by the laws of the Federal Republic of Nigeria, without regard to conflict of law principles."], ["Contact", "for any questions about these Terms, use the Support Chat in the app or reach us on WhatsApp."]]}};
 state.legal = (location.pathname === '/privacy') ? 'privacy' : (location.pathname === '/terms') ? 'terms' : null;
-try { state.lpEntered = sessionStorage.getItem('mw_entered') === '1'; } catch (e) { state.lpEntered = false; }
+state.lpEntered = false; // a fresh visit in a browser always opens the website page first (never a leftover login/guest screen)
 
 var mwVerified = false;
 function lpInstalled() { return isStandaloneApp() || mwVerified; }
 function shouldShowLanding() {
-    return !isStandaloneApp() && !state.lpEntered && !state.legal && !state.showLogin && !state.showSignup && !state.showFaq &&
-        location.pathname === '/' && !location.search && !location.hash && state.view === 'home';
+    if (isStandaloneApp() || state.authUser || state.lpEntered || state.legal || state.showLogin || state.showSignup || state.showFaq || state.showReset) return false;
+    if (location.pathname === '/login' || location.pathname === '/signup') return false;
+    if (location.search || location.hash) return false; // deep links (exam links, password reset) keep working
+    if (typeof MW_EXAMS !== 'undefined' && MW_EXAMS.indexOf(state.view) !== -1) return false;
+    if (state.isGuestMock) return false;
+    if (state.view !== 'home') { state.view = 'home'; }
+    if (location.pathname !== '/') { try { history.replaceState({}, '', '/'); } catch (e) {} }
+    return true;
 }
 function lpInstallBtn() {
     if (lpInstalled()) return '<button class="mw-btn mw-ok" data-lp="hint"><span class="mw-tick">' + svg('checkcircle', 18) + '</span>Installed</button>';
@@ -28522,7 +28590,7 @@ function renderLanding() {
     var feats = [
         ['bookopen', 'Practice real JAMB CBT-style questions', 'One subject or one topic at a time, until the weak spots close.'],
         ['target', 'Sit timed mock exams that feel like the real thing', 'Four subjects, a live clock and a UTME-style score the second you submit.'],
-        ['sparkles', 'Better explanations for any question', 'Tap Better explanation on any question and Enzo AI breaks it down step by step.'],
+        ['sparkles', 'Better explanations for any question', 'Tap Better explanation on any question and AI breaks it down step by step.'],
         ['chart', 'Track your progress subject by subject', 'See your strongest and weakest subjects and topics after every exam.'],
         ['wifioff', 'Keep studying even with low or no data', 'Load once, then keep practising with low or no data.']
     ];
@@ -28531,24 +28599,24 @@ function renderLanding() {
     var nav = ''; for (var i = 0; i < 12; i++) nav += '<span class="' + (i < 6 ? 'd' : i === 6 ? 'c' : '') + '"></span>';
     var opts = ['was', 'is', 'were', 'has been'].map(function (o, i) { return '<button data-lp="opt" data-i="' + i + '"><i>' + 'ABCD'[i] + '</i>' + o + '</button>'; }).join('');
     return '<div class="mw">' +
-      '<header class="mw-hero"><div class="mw-w"><div class="mw-bar"><div class="mw-brand">' + logoSvg(32) + '<span>My<em>UTME</em></span></div>' + (state.authUser ? '<button class="mw-link" data-lp="guest">Open my app</button>' : '<button class="mw-link" data-lp="login">Log in</button>') + '</div>' +
+      '<header class="mw-hero"><div class="mw-w"><div class="mw-bar"><div class="mw-brand">' + logoSvg(32) + '<span>My<em>UTME</em></span></div>' + '<button class="mw-burger" data-lp="menu" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>' +
+        '<div class="mw-menu" id="mw-menu">' + (state.authUser
+          ? '<button class="mw-m-pri" data-lp="guest">Open my app</button>'
+          : '<button class="mw-m-pri" data-lp="signup">Create free account</button><button data-lp="login">Log in</button><button data-lp="guest">Continue as guest</button>') +
+        '<hr>' + lpInstallBtn() + '<button data-action="open-faq">FAQs</button><a href="/privacy" data-lp="legal">Privacy Policy</a><a href="/terms" data-lp="legal">Terms of Service</a></div></div>' +
       '<div class="mw-g"><div class="mw-hd"><h1>Sit the UTME a hundred times before you sit it once.</h1>' +
-      '<p class="mw-sub" style="margin-bottom:14px">Timed CBT practice, Enzo AI explanations and offline study for JAMB.</p>' +
-      '<div class="mw-chips"><span><b>' + MW_STATS.questions + '</b> questions</span><span><b>' + SUBJECTS.length + '</b> subjects</span><span><b>Free</b> to start</span></div></div>' +
+      '<p class="mw-sub" style="margin-bottom:14px">Timed CBT practice, AI explanations and offline study for JAMB.</p>' +
+      '<div class="mw-chips"><span><b>' + MW_STATS.questions + '</b> questions</span><span><b>' + SUBJECTS.length + '</b> subjects</span><span><b>Free</b> to start</span></div><div class="mw-inst-top">' + lpInstallBtn() + '</div></div>' +
       '<div class="mw-dm"><p class="mw-try">Try a real question \u2193</p><div class="mw-cbt" id="mw-cbt"><div class="mw-cbt-top"><span>Use of English \u00B7 Question 7 of 60</span><b id="mw-clock">01:40:00</b></div>' +
       '<p class="mw-q">Neither the principal nor the teachers ___ aware of the new rule.</p><div class="mw-opts">' + opts + '</div>' +
       '<p class="mw-fb" id="mw-fb" aria-live="polite">Tap your answer.</p><div id="mw-more"></div><div class="mw-ex" id="mw-ex" hidden></div></div></div>' +
-      '<div class="mw-ac"><div class="mw-act">' + (state.authUser
-        ? '<button class="mw-btn mw-guest" data-lp="guest">' + svg('user', 18) + 'Open my app</button>'
-        : '<button class="mw-btn mw-guest" data-lp="guest">' + svg('user', 18) + 'Continue as guest \u00B7 no sign-up</button><button class="mw-btn mw-signup" data-lp="signup">Create free account</button>') + lpInstallBtn() + '</div>' +
-      (ios ? '<p class="mw-hint">On iPhone: tap Share, then Add to Home Screen.</p>' : '<p class="mw-hint">Free to start. Works offline once installed.</p>') + '</div>' +
       '</div></div></header>' +
       '<main class="mw-w"><div class="mw-stats">' +
       '<div class="mw-stat"><b>' + MW_STATS.questions + '</b><span>Practice questions</span></div>' +
       '<div class="mw-stat"><b>' + SUBJECTS.length + '</b><span>Subjects covered</span></div>' +
       '<div class="mw-stat"><b>5</b><span>Ways to practise</span></div>' +
       '<div class="mw-stat"><b>Free</b><span>To start, works offline</span></div></div>' +
-      '<p class="mw-trust">' + (MW_TRUSTED_BY ? '<i>Trusted by ' + MW_TRUSTED_BY + ' students</i>' : '<i>Built for JAMB candidates in Nigeria</i>') + '<span>Real past questions \u00B7 Enzo AI explanations \u00B7 Timed mock exams</span></p>' +
+      '<p class="mw-trust">' + (MW_TRUSTED_BY ? '<i>Trusted by ' + MW_TRUSTED_BY + ' students</i>' : '') + '<span>Real past questions \u00B7 AI explanations \u00B7 Timed mock exams</span></p>' +
       '<section class="mw-sec"><h2>What\u2019s inside</h2><p class="mw-lead">Every mode, with the number of questions waiting for you.</p><div class="mw-modes">' + mwModeCards() + '</div></section>' +
       '<section class="mw-sec"><h2>Everything a candidate needs</h2><p class="mw-lead">Five tools, one app, no switching between notes, past papers and tutors.</p><div class="mw-rows">' + rows + '</div></section>' +
       '<section class="mw-sec" style="padding-top:0"><div class="mw-belief"><p>There are no dull students. Give every candidate the right practice and the score follows.</p></div></section>' +
@@ -28590,6 +28658,7 @@ document.addEventListener('click', function (e) {
     if (a === 'legal') return lpOpenLegal(t.getAttribute('href').slice(1));
     if (a === 'legalback') return lpCloseLegal();
     if (a === 'explain') return lpExplain();
+    if (a === 'menu') { var mm = document.getElementById('mw-menu'); if (mm) { var op = mm.classList.toggle('open'); t.setAttribute('aria-expanded', op ? 'true' : 'false'); } return; }
     if (a === 'signup') { try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} state.lpEntered = true; state.showSignup = true; state.showLogin = false; syncUrlForAuth('signup'); return render(); }
     if (a === 'hint') return showToast('MyUTME is installed. Open it from your home screen or app list.', '');
     if (a === 'ipcx') { try { sessionStorage.setItem('mw_ipc', '1'); } catch (e) {} var ic = t.closest('.install-promo-card'); if (ic) ic.remove(); return; }
@@ -28616,7 +28685,8 @@ document.addEventListener('click', function (e) {
         var i = +t.getAttribute('data-i'), box = t.parentNode, fb = document.getElementById('mw-fb');
         [].forEach.call(box.children, function (b, n) { b.className = n === 2 ? 'ok' : (n === i ? 'bad' : ''); if (n !== 2 && n !== i) b.className = ''; });
         if (i === 2) box.children[2].className = 'ok';
-        if (fb) fb.textContent = (i === 2 ? 'Correct! The answer is C (were).' : 'Tricky one! The answer is C (were).');
+        if (fb) fb.innerHTML = '<b>' + (i === 2 ? 'Correct! The answer is C (were).' : 'Not quite. The answer is C (were).') + '</b><br>' +
+            '<b>Why:</b> with \u201Cneither \u2026 nor\u201D, the verb agrees with the noun closest to it. Here that is \u201Cthe teachers\u201D, which is plural, so we need the plural verb \u201Cwere\u201D. \u201CWas\u201D, \u201Cis\u201D and \u201Chas been\u201D are all singular.';
         var cb = document.getElementById('mw-cbt'); if (cb) { cb.className = 'mw-cbt ' + (i === 2 ? 'mw-yes' : 'mw-no'); }
         var mo = document.getElementById('mw-more'); if (mo && !document.getElementById('mw-ex').innerHTML) mo.innerHTML = '<div class="mw-pt"><span class="mw-hand">\uD83D\uDC49</span><button class="mw-btn mw-gold" data-lp="explain">\u2728 Better explanation</button></div>';
     }
@@ -28750,7 +28820,7 @@ function renderAdminActivated() {
 async function lpExplain() {
     var ex = document.getElementById('mw-ex'), mo = document.getElementById('mw-more'); if (!ex) return;
     mo.innerHTML = ''; ex.hidden = false;
-    ex.innerHTML = '<div class="mw-typing"><span></span><span></span><span></span><em>Enzo is explaining\u2026</em></div>';
+    ex.innerHTML = '<div class="mw-typing"><span></span><span></span><span></span><em>AI is explaining\u2026</em></div>';
     var txt = null, ctl = new AbortController(), tm = setTimeout(function () { ctl.abort(); }, 12000);
     try {
         var r = await fetch(AI_ASSISTANT_URL, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
@@ -28759,7 +28829,7 @@ async function lpExplain() {
     } catch (e) {}
     clearTimeout(tm);
     if (!txt) txt = '**Step 1:** Spot the rule. With \u201Cneither \u2026 nor\u201D, the verb agrees with the subject nearest to it.\n**Step 2:** The nearest subject is \u201Cthe teachers\u201D, which is plural. So we need a plural verb.\n**Step 3:** \u201Cwas\u201D, \u201Cis\u201D and \u201Chas been\u201D are all singular. Only C, \u201Cwere\u201D, fits.\n**Check:** \u201CNeither the principal nor the teachers were aware\u2026\u201D \u2713\n**The trap:** Most students pick \u201Cwas\u201D because \u201Cprincipal\u201D comes first. Always look at the word closest to the verb.\n\n**Now you try:** Neither the teachers nor the principal ___ aware of the rule. (Answer: was)';
-    ex.innerHTML = '<p class="mw-exh">\u2728 Enzo AI</p><div class="mw-ext">' + esc(txt).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>') + '</div><button class="mw-btn mw-gold" data-lp="signup" style="margin-top:12px;width:100%">Create a free account for more</button>';
+    ex.innerHTML = '<p class="mw-exh">\u2728 AI</p><div class="mw-ext">' + esc(txt).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>') + '</div><button class="mw-btn mw-gold" data-lp="signup" style="margin-top:12px;width:100%">Create a free account for more</button>';
 }
 
 // ---------- Install: honest status (no made-up percentages) ----------
