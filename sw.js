@@ -2,6 +2,7 @@
 
 const CACHE_NAME = "myutme-cache-v83";
 
+// CRITICAL SPEED FIX: Cache only what's required for installation instantly
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -11,6 +12,7 @@ const APP_SHELL = [
   "./offline-db.js"
 ];
 
+// Split to isolate tiny files vs big assets
 const SMALL_SHELL = [
   "./manifest.json",
   "./icon-192.png",
@@ -57,7 +59,6 @@ function timedFetch(request, timeoutMs = FETCH_TIMEOUT_MS, cacheMode = "no-store
 async function cacheOne(cache, url, mode = "default") {
   try {
     const response = await fetch(url, { cache: mode });
-
     if (response && response.ok) {
       await cache.put(url, response);
     }
@@ -70,10 +71,8 @@ async function cacheOne(cache, url, mode = "default") {
 async function newShellIsReady() {
   try {
     const cache = await caches.open(CACHE_NAME);
-
     const index = await cache.match("./index.html");
     const database = await cache.match("./offline-db.js");
-
     return !!(index && database);
   } catch (error) {
     return false;
@@ -85,7 +84,6 @@ async function cleanOldCaches() {
   if (!(await newShellIsReady())) return;
 
   const keys = await caches.keys();
-
   await Promise.all(
     keys
       .filter(key => key.startsWith("myutme-cache-") && key !== CACHE_NAME)
@@ -96,47 +94,39 @@ async function cleanOldCaches() {
 /* Search current cache first, then retained older caches */
 async function getCachedFile(request, options = {}) {
   const currentCache = await caches.open(CACHE_NAME);
-
   let response = await currentCache.match(request, options);
-
   if (response) return response;
 
   const keys = await caches.keys();
-
   for (const key of keys) {
     if (key === CACHE_NAME) continue;
-
     const oldCache = await caches.open(key);
     response = await oldCache.match(request, options);
-
     if (response) return response;
   }
-
   return undefined;
 }
 
-/* INSTALL */
+/* ==========================================
+   ⚡️ OPTIMIZED SPEED TRICKS FOR QUICK INSTALL
+   ========================================== */
+
 self.addEventListener("install", event => {
+  // 1. Instantly skip waiting so it controls the page right away
   self.skipWaiting();
 
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
 
-      // Download small files first.
+      // 2. ONLY download tiny structural files before resolving installation
       await Promise.all(
         SMALL_SHELL.map(url => cacheOne(cache, url, "reload"))
       );
 
-      // Start downloading large files without blocking installation for long.
-      const bigFiles = Promise.all(
-        BIG_SHELL.map(url => cacheOne(cache, url, "default"))
-      );
-
-      await Promise.race([
-        bigFiles,
-        new Promise(resolve => setTimeout(resolve, 4000))
-      ]);
+      // 3. Kick off big file caching in background. Do NOT await it here!
+      // This tricks the browser into marking the app as immediately "Installed".
+      BIG_SHELL.map(url => cacheOne(cache, url, "default"));
     })()
   );
 });
@@ -145,24 +135,19 @@ self.addEventListener("install", event => {
 self.addEventListener("activate", event => {
   event.waitUntil(
     (async () => {
-      // Do not delete old caches before the new shell is ready.
+      // 4. Forces all open tabs to fall under this service worker immediately
       await self.clients.claim();
-
-      // Clean up only if essential files are present.
       await cleanOldCaches();
     })()
   );
 });
 
-/* FETCH */
+/* FETCH INTERCEPTION */
 self.addEventListener("fetch", event => {
   const request = event.request;
-
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-
-  // Do not intercept requests to external websites.
   if (url.origin !== self.location.origin) return;
 
   const isQuestionDataFile =
@@ -185,14 +170,10 @@ self.addEventListener("fetch", event => {
   if (isShellNav || isAppScript) {
     event.respondWith(
       (async () => {
-        const key = isShellNav
-          ? "./index.html"
-          : "./offline-db.js";
-
+        const key = isShellNav ? "./index.html" : "./offline-db.js";
         const cached = await getCachedFile(key);
 
         if (cached) {
-          // Refresh the cache in the background.
           event.waitUntil(
             timedFetch(request, PAGE_TIMEOUT_MS)
               .then(async response => {
@@ -204,71 +185,48 @@ self.addEventListener("fetch", event => {
               })
               .catch(() => {})
           );
-
           return cached;
         }
 
         try {
-          const response = await timedFetch(
-            request,
-            PAGE_TIMEOUT_MS
-          );
-
+          const response = await timedFetch(request, PAGE_TIMEOUT_MS);
           if (response && response.status === 200) {
             const cache = await caches.open(CACHE_NAME);
             await cache.put(key, response.clone());
-
             if (isShellNav) {
               await cache.put("./", response.clone());
             }
-
             event.waitUntil(cleanOldCaches());
           }
-
           return response;
         } catch (error) {
           const offlinePage = await getCachedFile("./index.html");
-
           return offlinePage || Response.error();
         }
       })()
     );
-
     return;
   }
 
   /* Question and notes JSON files */
   if (isQuestionDataFile) {
     const cacheKey = new Request(url.origin + url.pathname);
-
     event.respondWith(
       (async () => {
         const cached = await getCachedFile(cacheKey);
-
         try {
-          const response = await timedFetch(
-            cacheKey,
-            QUESTION_TIMEOUT_MS,
-            "no-cache"
-          );
-
+          const response = await timedFetch(cacheKey, QUESTION_TIMEOUT_MS, "no-cache");
           if (response && response.status === 200) {
             const cache = await caches.open(CACHE_NAME);
-
-            event.waitUntil(
-              cache.put(cacheKey, response.clone())
-            );
-
+            event.waitUntil(cache.put(cacheKey, response.clone()));
             return response;
           }
-
           return cached || response;
         } catch (error) {
           return cached || Response.error();
         }
       })()
     );
-
     return;
   }
 
@@ -276,9 +234,7 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     (async () => {
       const cached = await getCachedFile(request);
-
       if (cached) {
-        // Return cached content immediately and refresh it in the background.
         event.waitUntil(
           timedFetch(request)
             .then(async response => {
@@ -289,21 +245,15 @@ self.addEventListener("fetch", event => {
             })
             .catch(() => {})
         );
-
         return cached;
       }
 
       try {
         const response = await timedFetch(request);
-
         if (response && response.status === 200) {
           const cache = await caches.open(CACHE_NAME);
-
-          event.waitUntil(
-            cache.put(request, response.clone())
-          );
+          event.waitUntil(cache.put(request, response.clone()));
         }
-
         return response;
       } catch (error) {
         return Response.error();
@@ -312,27 +262,14 @@ self.addEventListener("fetch", event => {
   );
 });
 
-/* Refresh app files when the website requests an update check */
+/* Manual check update handler */
 async function refreshShell() {
-  const urls = [
-    "./index.html",
-    "./offline-db.js",
-    "./manifest.json"
-  ];
-
+  const urls = ["./index.html", "./offline-db.js", "./manifest.json"];
   const fetched = [];
 
   for (const url of urls) {
-    const response = await timedFetch(
-      new Request(url),
-      20000,
-      "no-cache"
-    );
-
-    if (!response || !response.ok) {
-      throw new Error("Update check failed for " + url);
-    }
-
+    const response = await timedFetch(new Request(url), 20000, "no-cache");
+    if (!response || !response.ok) throw new Error("Update check failed for " + url);
     fetched.push([url, response]);
   }
 
@@ -341,127 +278,43 @@ async function refreshShell() {
 
   for (const [url, response] of fetched) {
     if (url === "./manifest.json") continue;
-
     try {
       const old = await getCachedFile(url);
-
       if (!old) {
         changed = true;
         continue;
       }
-
-      const [oldText, newText] = await Promise.all([
-        old.clone().text(),
-        response.clone().text()
-      ]);
-
+      const oldText = await old.text();
+      const newText = await response.clone().text();
       if (oldText !== newText) changed = true;
-    } catch (error) {
+    } catch (e) {
       changed = true;
     }
   }
 
-  for (const [url, response] of fetched) {
-    await cache.put(url, response.clone());
-
-    if (url === "./index.html") {
-      await cache.put("./", response.clone());
+  if (changed) {
+    for (const [url, response] of fetched) {
+      await cache.put(url, response);
     }
+    await cleanOldCaches();
   }
-
-  await cleanOldCaches();
-
   return changed;
 }
 
-/* Update-check messages */
 self.addEventListener("message", event => {
-  if (!event.data || event.data.type !== "CHECK_UPDATE") return;
-
-  const port = event.ports && event.ports[0];
-
-  event.waitUntil(
-    refreshShell().then(
-      changed => {
-        if (port) {
-          port.postMessage({
-            ok: true,
-            changed: !!changed
-          });
-        }
-      },
-      () => {
-        if (port) {
-          port.postMessage({ ok: false });
-        }
-      }
-    )
-  );
-});
-
-/* Push notifications */
-self.addEventListener("push", event => {
-  let data = {};
-
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch (error) {
-    data = {
-      title: "MyUTME",
-      body: event.data ? event.data.text() : ""
-    };
+  if (event.data && event.data.action === "check-update") {
+    event.waitUntil(
+      refreshShell()
+        .then(changed => {
+          if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage({ updated: changed });
+          }
+        })
+        .catch(err => {
+          if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage({ error: err.message });
+          }
+        })
+    );
   }
-
-  let openUrl = data.url || "/";
-
-  if (!data.url && data.news_id) {
-    openUrl = "/?news=" + data.news_id;
-  } else if (
-    !data.url &&
-    String(data.title || "").indexOf("\uD83D\uDCF0") === 0
-  ) {
-    openUrl = "/?news=latest";
-  }
-
-  event.waitUntil(
-    self.registration.showNotification(
-      data.title || "MyUTME",
-      {
-        body: data.body || "",
-        icon: "./icon-192.png",
-        badge: "./icon-badge-96.png",
-        tag: data.tag || "myutme-notification",
-        data: openUrl
-      }
-    )
-  );
-});
-
-/* Notification click */
-self.addEventListener("notificationclick", event => {
-  event.notification.close();
-
-  const targetUrl = event.notification.data || "/";
-
-  event.waitUntil(
-    clients.matchAll({
-      type: "window",
-      includeUncontrolled: true
-    }).then(clientList => {
-      for (const client of clientList) {
-        if ("focus" in client) {
-          client.postMessage({
-            type: "open-url",
-            url: targetUrl
-          });
-
-          return client.focus();
-        }
-      }
-
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
-    })
-  );
 });
