@@ -98,18 +98,31 @@ await Promise.race([big, new Promise((r) => setTimeout(r, 4000))]);
 );
 });
 
+// Look in the current cache first, then fall back to any older cache.
+// (caches.match() alone searches the OLDEST cache first, which would keep
+// serving an old index.html forever once old caches are no longer deleted.)
+async function matchCurrent(request, options) {
+try {
+const cache = await caches.open(CACHE_NAME);
+const hit = await cache.match(request, options);
+if (hit) return hit;
+} catch (error) {}
+return caches.match(request, options);
+}
+
+// Old caches are only removed once the new cache holds the page,
+// so a slow first download never leaves the app with nothing cached.
+async function cleanOldCaches() {
+const cache = await caches.open(CACHE_NAME);
+const ready = await cache.match("./index.html");
+if (!ready) return;
+const keys = await caches.keys();
+await Promise.all(keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : null)));
+}
+
 self.addEventListener("activate", (event) => {
-event.waitUntil(
-caches.keys()
-.then((keys) =>
-Promise.all(
-keys.map((key) =>
-key !== CACHE_NAME ? caches.delete(key) : null
-)
-)
-)
-.then(() => self.clients.claim())
-);
+event.waitUntil(self.clients.claim());
+event.waitUntil(cleanOldCaches().catch(() => {}));
 });
 
 self.addEventListener("fetch", (event) => {
@@ -142,7 +155,7 @@ if (isShellNav || isAppScript) {
 const key = isShellNav ? "./index.html" : "./offline-db.js";
 
 event.respondWith(
-  caches.match(key, { ignoreSearch: true }).then((cached) => {
+  matchCurrent(key, { ignoreSearch: true }).then((cached) => {
     if (cached) return cached;
 
     return freshFetch(event.request, PAGE_TIMEOUT_MS)
@@ -156,7 +169,7 @@ event.respondWith(
         return response;
       })
       .catch(() =>
-        caches.match("./index.html").then(
+        matchCurrent("./index.html").then(
           (cachedPage) => cachedPage || Response.error()
         )
       );
@@ -181,7 +194,7 @@ c.put(event.request, clone)
 return response;
 })
 .catch(() =>
-caches.match(event.request, {
+matchCurrent(event.request, {
 ignoreSearch: isAppScript,
 }).then((cached) => cached || Response.error())
 )
@@ -205,12 +218,12 @@ event.respondWith(
         return response;
       }
 
-      return caches.match(cacheKey).then(
+      return matchCurrent(cacheKey).then(
         (cached) => cached || response
       );
     })
     .catch(() =>
-      caches.match(cacheKey).then(
+      matchCurrent(cacheKey).then(
         (cached) => cached || Response.error()
       )
     )
@@ -220,7 +233,7 @@ return;
 }
 
 event.respondWith(
-caches.match(event.request).then((cached) => {
+matchCurrent(event.request).then((cached) => {
 const fetchPromise = freshFetch(event.request)
 .then((response) => {
 if (response && response.status === 200) {
@@ -283,6 +296,7 @@ await cache.put("./", response.clone());
 }
 }
 
+try { await cleanOldCaches(); } catch (error) {}
 return changed;
 }
 
