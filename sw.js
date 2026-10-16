@@ -68,21 +68,34 @@ fetch(request, {
 });
 }
 
-// Install fast: only the small files are awaited. The big files
-// (index.html, offline-db.js) are fetched with no abort timer, using the
-// normal HTTP cache so a page that was just downloaded is not downloaded
-// twice. Install never waits more than a few seconds for them; anything not
-// finished is cached by the fetch handler on first use.
+// Install fast. Small files are awaited. The big page (index.html, ~1.4 MB)
+// is downloaded ONCE and stored under both "./" and "./index.html" (before,
+// it was downloaded twice at the same time, which crawled on slow data).
+// Install never waits more than 3 seconds for the big files.
 const SMALL_SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
-const BIG_SHELL = ["./", "./index.html", "./offline-db.js"];
 
-async function cacheOne(cache, url, mode) {
+async function cacheSmall(cache, url) {
 try {
-const response = await fetch(url, { cache: mode });
-if (response && response.ok) await cache.put(url, response);
-} catch (error) {
-// Continue when a file is unavailable.
+const r = await fetch(url, { cache: "reload" });
+if (r && r.ok) await cache.put(url, r);
+} catch (error) {}
 }
+
+async function cachePage(cache) {
+try {
+const r = await fetch("./index.html", { cache: "default" });
+if (r && r.ok) {
+await cache.put("./", r.clone());
+await cache.put("./index.html", r);
+}
+} catch (error) {}
+}
+
+async function cacheDb(cache) {
+try {
+const r = await fetch("./offline-db.js", { cache: "default" });
+if (r && r.ok) await cache.put("./offline-db.js", r);
+} catch (error) {}
 }
 
 self.addEventListener("install", (event) => {
@@ -90,10 +103,10 @@ self.skipWaiting();
 event.waitUntil(
 (async () => {
 const cache = await caches.open(CACHE_NAME);
-const small = Promise.all(SMALL_SHELL.map((u) => cacheOne(cache, u, "reload")));
-const big = Promise.all(BIG_SHELL.map((u) => cacheOne(cache, u, "default")));
+const small = Promise.all(SMALL_SHELL.map((u) => cacheSmall(cache, u)));
+const big = Promise.all([cachePage(cache), cacheDb(cache)]);
 await small;
-await Promise.race([big, new Promise((r) => setTimeout(r, 4000))]);
+await Promise.race([big, new Promise((r) => setTimeout(r, 3000))]);
 })()
 );
 });
@@ -122,7 +135,6 @@ await Promise.all(keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : n
 
 self.addEventListener("activate", (event) => {
 event.waitUntil(self.clients.claim());
-event.waitUntil(cleanOldCaches().catch(() => {}));
 });
 
 self.addEventListener("fetch", (event) => {
@@ -279,12 +291,16 @@ try {
     continue;
   }
 
-  const [a, b] = await Promise.all([
-    old.clone().text(),
-    response.clone().text(),
-  ]);
-
-  if (a !== b) changed = true;
+  const e1 = old.headers.get("etag"), e2 = response.headers.get("etag");
+  if (e1 && e2) {
+    if (e1 !== e2) changed = true;
+  } else {
+    const [a, b] = await Promise.all([
+      old.clone().text(),
+      response.clone().text(),
+    ]);
+    if (a !== b) changed = true;
+  }
 } catch (error) {}
 
 }
