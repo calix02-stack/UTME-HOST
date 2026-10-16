@@ -8029,6 +8029,60 @@ body { position: fixed; inset: 0; width: 100%; }
 .trial-banner button{margin-left:auto;flex:none;border:0;border-radius:999px;background:var(--green);color:#fff;font-weight:700;font-size:12px;padding:6px 12px;cursor:pointer}
 .trial-banner.ended{background:color-mix(in srgb,#E8A33D 16%,var(--card-bg))}
 </style>
+<style id="mw-v5">
+/* Landing v5: stats strip, guest button, mode cards, sticky CTA */
+.mw-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:-26px;position:relative;z-index:2}
+.mw-stat{background:#fff;border:1px solid #DCE6DF;border-radius:16px;padding:14px 12px;text-align:center;box-shadow:0 8px 22px rgba(15,107,63,.08)}
+.mw-stat b{display:block;font:800 26px 'Bricolage Grotesque',system-ui;color:#0F6B3F;letter-spacing:-.02em;line-height:1.1}
+.mw-stat span{font-size:12.5px;color:#4A5F53}
+@media(min-width:720px){.mw-stats{grid-template-columns:repeat(4,1fr)}}
+.mw-trust{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:16px 0 0;font-size:13.5px;color:#35493E;text-align:center}
+.mw-trust i{font-style:normal;background:#E8F5E9;color:#0F6B3F;border-radius:99px;padding:4px 10px;font-weight:600;font-size:12.5px}
+.mw-act .mw-guest{background:#fff;color:#0F6B3F;font-weight:700;flex:1 1 100%;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.mw-act .mw-signup{background:#E4A93A;color:#1B1405;font-weight:700;flex:1 1 100%}
+.mw-act .mw-btn{flex:1 1 auto}
+.mw-modes{display:grid;gap:10px;margin-top:18px}
+@media(min-width:720px){.mw-modes{grid-template-columns:repeat(3,1fr)}}
+.mw-mode{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid #DCE6DF;border-radius:16px;padding:14px}
+.mw-mode .mw-ic{flex:none}
+.mw-mode h3{font-size:16px}
+.mw-mode p{margin:2px 0 0;font-size:13.5px;color:#4A5F53}
+.mw-mode em{display:inline-block;margin-top:6px;font-style:normal;font-weight:700;font-size:12.5px;color:#0F6B3F;background:#E8F5E9;border-radius:99px;padding:3px 9px}
+.mw-sticky{position:sticky;bottom:0;z-index:6;display:flex;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(244,247,243,.94);backdrop-filter:blur(10px);border-top:1px solid #DCE6DF}
+.mw-sticky .mw-btn{flex:1;padding:13px 10px;font-size:15px}
+.mw-sticky .mw-guest2{background:#fff;color:#0F6B3F;border:1.5px solid #0F6B3F}
+.mw-sticky .mw-signup2{background:#0F6B3F;color:#fff}
+.mw-step-n{flex:none;width:30px;height:30px;border-radius:99px;background:#0F6B3F;color:#fff;display:grid;place-items:center;font-weight:700}
+/* auth-screen guest link */
+.guest-link{display:block;width:100%;margin-top:10px;padding:12px;border:1.5px solid var(--green,#0F6B3F);background:transparent;color:var(--green,#0F6B3F);border-radius:12px;font:600 14px Figtree,system-ui;cursor:pointer}
+/* admin total card */
+.adm-total{background:linear-gradient(135deg,#0F6B3F,#0A4A2B);color:#fff;border-radius:18px;padding:16px;margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.adm-total b{font:800 32px 'Bricolage Grotesque',system-ui;letter-spacing:-.02em;display:block;line-height:1.05}
+.adm-total span{font-size:12.5px;opacity:.85}
+.mw-chips{display:flex;flex-wrap:wrap;gap:8px}.mw-chips span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:99px;padding:6px 12px;font-size:13.5px;color:#fff}.mw-chips b{color:#FFD98A}
+</style>
+
+<style id="myutme-tour-css">
+#mwt{position:fixed;inset:0;z-index:100000;font-family:Figtree,system-ui,sans-serif}
+#mwt .mwt-catch{position:absolute;inset:0}
+#mwt .mwt-spot{position:fixed;border-radius:16px;box-shadow:0 0 0 9999px rgba(8,22,15,.72),0 0 0 3px #E4A93A;transition:all .25s ease;pointer-events:none}
+#mwt .mwt-card{position:fixed;width:min(92vw,360px);background:#fff;color:#10241A;border-radius:18px;padding:16px 16px 14px;box-shadow:0 18px 50px rgba(0,0,0,.4);transition:top .25s ease}
+#mwt .mwt-step{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0F6B3F}
+#mwt h3{margin:4px 0 6px;font:800 18px 'Bricolage Grotesque',Figtree,system-ui,sans-serif;letter-spacing:-.01em}
+#mwt p{margin:0 0 10px;font-size:14px;line-height:1.5;color:#35493E}
+#mwt .mwt-dots{display:flex;gap:5px;margin-bottom:12px}
+#mwt .mwt-dots i{width:6px;height:6px;border-radius:99px;background:#D5DED7}
+#mwt .mwt-dots i.on{width:18px;background:#0F6B3F}
+#mwt .mwt-act{display:flex;align-items:center;gap:8px}
+#mwt .mwt-act button{border:0;border-radius:11px;padding:11px 16px;font:600 14px Figtree,system-ui;cursor:pointer}
+#mwt .mwt-skip{background:none;color:#6B7C72;padding-left:0!important;margin-right:auto}
+#mwt .mwt-back{background:#EEF3EF;color:#10241A}
+#mwt .mwt-next{background:#0F6B3F;color:#fff;margin-left:auto}
+#mwt .mwt-back + .mwt-next{margin-left:0}
+.mwt-chip{display:flex;align-items:center;gap:10px;width:100%;border:1.5px dashed #0F6B3F;background:rgba(15,107,63,.07);color:#0F6B3F;border-radius:14px;padding:11px 14px;margin:0 0 12px;font:600 13.5px Figtree,system-ui;cursor:pointer;text-align:left}
+.mwt-chip b{margin-left:auto;font-weight:700}
+</style>
+
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -9390,7 +9444,7 @@ function __syncMarked(q, mode, on) {
     __setMarked(list);
 }
 function __markedModeLabel(m, year) {
-    const L = { cbt: 'JAMB CBT', exam: 'Past Questions', mock: 'Mock', topic: 'Topic Practice', lit: 'Novel (CBT)', flashcard: 'Flashcards' };
+    const L = { cbt: 'JAMB CBT', exam: 'Past Questions', mock: 'Mock Arena', topic: 'Topic Practice', lit: 'Novel (CBT)', flashcard: 'Flashcards' };
     return (L[m] || 'Practice') + (m === 'exam' && year ? ' \u00B7 ' + year : '');
 }
 function __markedCorrectIndex(it) {
@@ -10735,12 +10789,49 @@ async function loadAllQuestionsCount() {
   return await loadAllQuestionsCountOffline();
 }
 
+// Counts Topic Practice questions (per subject) from the on-device topic store.
+async function adminLoadTopicCounts() {
+    try {
+        const res = await Promise.all([dbGetAll('topic_questions'), dbGetAll('topics')]);
+        const tqs = res[0] || [], tps = res[1] || [];
+        const t2s = {};
+        tps.forEach(function(t) { t2s[t.id] = t.subject_id; });
+        const by = {};
+        tqs.forEach(function(q) {
+            const sid = q.subject_id || t2s[q.topic_id] || 'other';
+            by[sid] = (by[sid] || 0) + 1;
+        });
+        state.topicQCount = tqs.length;
+        state.topicQBySubject = by;
+    } catch (e) {
+        console.warn('Topic counts error:', e);
+        state.topicQCount = state.topicQCount || 0;
+        state.topicQBySubject = state.topicQBySubject || {};
+    }
+}
+// One source of truth for the admin's question totals.
+function adminQuestionTotals() {
+    const c = { cbt: 0, exam: 0, mock: 0, topic: state.topicQCount || 0, novel: 0 };
+    (state.allQuestions || []).forEach(function(q) {
+        const t = q.type || '';
+        if (t === 'cbt') c.cbt++;
+        else if (t === 'exam') c.exam++;
+        else if (t === 'mock') c.mock++;
+        else if (t === 'NOVEL (CBT)') c.novel++;
+    });
+    c.total = c.cbt + c.exam + c.mock + c.topic + c.novel;
+    return c;
+}
+function fmtNum(n) { try { return Number(n).toLocaleString('en-US'); } catch (e) { return String(n); } }
 async function loadAllQuestionsForAdmin() {
     try {
         const all = await dbGetAll('questions');
         state.allQuestions = all || [];
         state.allQuestionsLoaded = true;
 
+        // Topic Practice questions live in their own store ('topic_questions'),
+        // not in 'questions' - that is why the admin showed Topic Practice = 0.
+        await adminLoadTopicCounts();
         // If IndexedDB came back empty, force a resync from the subject files
         // before giving up and showing 0 — this is what was going stale.
         if (state.allQuestions.length === 0) {
@@ -10751,8 +10842,16 @@ async function loadAllQuestionsForAdmin() {
                     storage.set('lastSubjectFileSync', String(Date.now()));
                     const resynced = await dbGetAll('questions');
                     state.allQuestions = resynced || [];
+                    await adminLoadTopicCounts();
                 }
             }
+        } else if (!state.topicQCount && window.OfflineDB && typeof window.OfflineDB.reconcileAllSubjectFiles === 'function' && !state.__topicResyncTried) {
+            // Questions are present but the topic store is empty/stale: sync once.
+            state.__topicResyncTried = true;
+            try {
+                const r2 = await window.OfflineDB.reconcileAllSubjectFiles(SUBJECTS.map(function(x) { return x.id; }));
+                if (r2 && r2.__networkReached) await adminLoadTopicCounts();
+            } catch (e2) {}
         }
         render();
     } catch (e) {
@@ -14394,7 +14493,7 @@ const SUPPORT_QUICK_REPLIES = {
         return { text: 'Scores are calculated automatically from your submitted answers, scaled to 100 per subject. If a specific question looks miskeyed, please use the "🚩 Flag Question" button in your review screen — that goes straight to our content team. For anything else, describe the issue here.', escalate: true };
     },
     offline_issue: function() {
-        return { text: 'CBT Mode works offline once you\'ve logged in at least once while connected (we cache your questions automatically). Other modes like Mock Exams need internet. If CBT still isn\'t working offline, try logging in again once while connected so we can refresh your cache.', escalate: false };
+        return { text: 'JAMB CBT works offline once you\'ve logged in at least once while connected (we cache your questions automatically). Other modes like Mock Exams need internet. If CBT still isn\'t working offline, try logging in again once while connected so we can refresh your cache.', escalate: false };
     },
     other: function() {
         return { text: 'No problem — describe what is going on in as much detail as you can (which screen, what you tapped, any message you saw). I\'ll fix it if I can, or bring in a human.', escalate: false };
@@ -18139,7 +18238,7 @@ function renderHome() {
 
     const quickActions = [
         { view: 'cbt', label: 'JAMB CBT', icon: 'monitor', color: '#35618C', action: 'start-full-mock-utme' },
-        { view: 'exam', label: 'Past Qs', icon: 'clipboard', color: '#A65640' },
+        { view: 'exam', label: 'Past Questions', icon: 'clipboard', color: '#A65640' },
         { view: 'mockexam', label: 'Mock Arena', icon: 'target', color: '#6E5296' },
         { view: 'revise', label: 'Revise', icon: 'rotate', color: '#0F6B3F' },
     ];
@@ -18192,6 +18291,7 @@ function renderHome() {
         '<div><span class="n" id="jamb-cd-days">' + cd.days + (cd.days === 1 ? ' day' : ' days') + '</span><br><span class="l">to JAMB ' + cd.year + ' · next day in <b id="jamb-cd-clock">' + cd.clock + '</b></span></div>' +
         '</div>' +
         '</div>' +
+        '<button class="mwt-chip" data-tour="start">' + svg('sparkles', 18) + ' New here? Take the 30-second app tour<b>Start \u2192</b></button>' +
         renderHomeNextStep(metrics) +
         renderHomeFeatures() +
         renderHomeStudyStudio(metrics) +
@@ -18307,12 +18407,12 @@ function renderCbtMode() {
         '<div class="cbt-mode-select">' +
         '<button class="cbt-mode-btn' + (isFull ? ' active' : '') + '" data-action="cbt-mode" data-mode="full">' +
         '<span class="icon">' + svg('monitor', 24) + '</span>' +
-        '<span class="label">CBT Mode</span>' +
+        '<span class="label">Full CBT</span>' +
         '<span class="desc">' + (requiredSubjects + 1) + ' subjects, timed</span>' +
         '</button>' +
         '<button class="cbt-mode-btn' + (isSingle ? ' active' : '') + '" data-action="cbt-mode" data-mode="single">' +
         '<span class="icon">' + svg('clipboard', 24) + '</span>' +
-        '<span class="label">Exam Mode</span>' +
+        '<span class="label">Single Subject</span>' +
         '<span class="desc">1 subject, instant answers</span>' +
         '</button>' +
         '</div>'
@@ -18383,7 +18483,7 @@ function renderCbtMode() {
             '<div class="ex-list">' + chips + '</div>'
         );
         ready = state.cbtSelected.length === 1;
-        label = 'Start Exam Mode';
+        label = 'Start Single-Subject Practice';
     }
 
     const countChosen = !!state.cbtQuestionCount;
@@ -19508,9 +19608,9 @@ async function loadWeakQuestions() {
 }
 
 const REVISE_MODE_META = {
-    cbt: { label: 'CBT Mode', icon: 'monitor', color: '#3B6EA5' },
-    exam: { label: 'Exam Mode', icon: 'clipboard', color: '#E2543A' },
-    mock: { label: 'Mock Exam', icon: 'target', color: '#6E5296' },
+    cbt: { label: 'JAMB CBT', icon: 'monitor', color: '#3B6EA5' },
+    exam: { label: 'Past Questions', icon: 'clipboard', color: '#E2543A' },
+    mock: { label: 'Mock Arena', icon: 'target', color: '#6E5296' },
     topic: { label: 'Topic Practice', icon: 'list', color: '#6B4F82' },
     novel: { label: 'Novel (CBT)', icon: 'book', color: '#3E7C74' },
     revise: { label: 'Revision Retry', icon: 'rotate', color: '#0F6B3F' },
@@ -22319,6 +22419,8 @@ function renderAdminAnalytics() {
         return '<div class="loading-spinner"><div class="spinner"></div><p>Loading analytics...</p></div>';
     }
     if (state.analyticsLoading) return '<div class="loading-spinner"><div class="spinner"></div><p>Loading analytics...</p></div>';
+    if (!state.allQuestionsLoaded && !state.__aqLoading) { state.__aqLoading = true; loadAllQuestionsForAdmin(); }
+    const qt = adminQuestionTotals();
     const d = state.analyticsData;
     if (!d) return adashCard('Analytics', '<p style="font-size:12px;color:#6b7280;margin:0">No data available.</p>');
     let html = '<div style="display:flex;gap:8px;margin-bottom:12px">' + [7, 14, 30].map(function(n) {
@@ -22328,6 +22430,12 @@ function renderAdminAnalytics() {
         ['Total users', d.totalUsers], ['Activated', d.activated],
         ['New users (' + d.rangeDays + 'd)', d.newUsers], ['Revenue (' + d.rangeDays + 'd)', adashNaira(d.revenueRange)],
         ['Total revenue', adashNaira(d.revenueAll)], ['Keys used / unused', d.keysUsed + ' / ' + d.keysUnused],
+    ]);
+    html += '<p style="font-size:12px;font-weight:700;margin:4px 0 6px;color:#111827">Question bank</p>' + adashKpis([
+        ['Total questions', state.allQuestionsLoaded ? fmtNum(qt.total) : '…'], ['JAMB CBT', fmtNum(qt.cbt)],
+        ['Past Questions', fmtNum(qt.exam)], ['Mock Arena', fmtNum(qt.mock)],
+        ['Topic Practice', fmtNum(qt.topic)], ['Novel (CBT)', fmtNum(qt.novel)],
+        ['Subjects', SUBJECTS.length],
     ]);
     html += adashCard('Signups per day', adashBars(d.days.map(function(k) { return [k.slice(5), d.signups[k]]; })));
     html += adashCard('Revenue per day', adashBars(d.days.map(function(k) { return [k.slice(5), d.sales[k], adashNaira(d.sales[k])]; })));
@@ -22465,6 +22573,11 @@ function renderAdminOverview() {
         });
     }
 
+    // Topic Practice questions come from the topic store, not the 'questions' store.
+    modeCounts.topic = state.topicQCount || 0;
+    subjectBreakdown['subject'] = state.topicQBySubject || {};
+    const grandTotal = modeCounts.cbt + modeCounts.exam + modeCounts.mock + modeCounts.topic + modeCounts.literature;
+
     function renderSubjectBreakdown(type) {
         const breakdown = subjectBreakdown[type] || {};
         const keys = Object.keys(breakdown);
@@ -22480,10 +22593,11 @@ function renderAdminOverview() {
     }
 
     return (
+        '<div class="adm-total"><div><span>Total questions in the bank</span><b>' + fmtNum(grandTotal) + '</b></div><span style="text-align:right">incl. ' + fmtNum(modeCounts.topic) + '<br>topic questions</span></div>' +
         '<p class="section-label">Question Counts by Mode</p>' +
         '<div class="admin-mode-card" data-action="admin-view-questions" data-type="cbt">' +
         '<div class="mode-info">' +
-        '<span class="mode-name">📚 CBT Mode</span>' +
+        '<span class="mode-name">💻 JAMB CBT</span>' +
         '<span class="mode-count">' + modeCounts.cbt + ' questions</span>' +
         renderSubjectBreakdown('cbt') +
         '</div>' +
@@ -22494,7 +22608,7 @@ function renderAdminOverview() {
         '</div>' +
         '<div class="admin-mode-card" data-action="admin-view-questions" data-type="exam">' +
         '<div class="mode-info">' +
-        '<span class="mode-name">📝 Exam Mode</span>' +
+        '<span class="mode-name">📝 Past Questions</span>' +
         '<span class="mode-count">' + modeCounts.exam + ' questions</span>' +
         renderSubjectBreakdown('exam') +
         '</div>' +
@@ -22505,7 +22619,7 @@ function renderAdminOverview() {
         '</div>' +
         '<div class="admin-mode-card" data-action="admin-view-questions" data-type="mock">' +
         '<div class="mode-info">' +
-        '<span class="mode-name">🎯 Mock Exam</span>' +
+        '<span class="mode-name">🎯 Mock Arena</span>' +
         '<span class="mode-count">' + modeCounts.mock + ' questions</span>' +
         renderSubjectBreakdown('mock') +
         '</div>' +
@@ -22541,7 +22655,7 @@ function renderAdminOverview() {
         '<ul class="admin-list" style="font-size:11px">' +
         '<li>Total Users: ' + userCount + '</li>' +
         '<li>Subjects Available: ' + SUBJECTS.length + '</li>' +
-        '<li>Total Questions: ' + (modeCounts.cbt + modeCounts.exam + modeCounts.mock + modeCounts.topic + modeCounts.literature) + '</li>' +
+        '<li>Total Questions: ' + fmtNum(grandTotal) + '</li>' +
         '<li>🔴 Unresolved Flags: ' + state.flaggedCount + '</li>' +
         '</ul>' +
         '</div>'
@@ -22736,10 +22850,11 @@ function renderAdminQuestions() {
         });
     }
 
+    modeCounts.topic = state.topicQCount || 0;
     const modes = [
-        { key: 'cbt', label: '📚 CBT Mode', count: modeCounts.cbt },
-        { key: 'exam', label: '📝 Exam Mode', count: modeCounts.exam },
-        { key: 'mock', label: '🎯 Mock Exam', count: modeCounts.mock },
+        { key: 'cbt', label: '💻 JAMB CBT', count: modeCounts.cbt },
+        { key: 'exam', label: '📝 Past Questions', count: modeCounts.exam },
+        { key: 'mock', label: '🎯 Mock Arena', count: modeCounts.mock },
         { key: 'topic', label: '📋 Topic Practice', count: modeCounts.topic },
         { key: 'literature', label: '📖 Novel (CBT)', count: modeCounts.literature },
     ];
@@ -22788,8 +22903,8 @@ function renderAdminViewModeQuestions() {
 
 function renderAdminSubjectPicker(type) {
     let title = 'All Questions';
-    if (type === 'cbt') title = 'CBT Mode Questions';
-    else if (type === 'exam') title = 'Exam Mode Questions';
+    if (type === 'cbt') title = 'JAMB CBT Questions';
+    else if (type === 'exam') title = 'Past Questions';
     else if (type === 'mock') title = 'Mock Exam Questions';
     else if (type === 'literature') title = 'Novel (CBT) Questions';
 
@@ -22846,7 +22961,7 @@ function renderAdminYearPicker(type, subject) {
 
     return (
         '<div class="admin-view-mode-header">' +
-        '<span class="mode-title" style="font-size:14px">' + esc(subj ? subj.name : subject) + ' — Exam Mode</span>' +
+        '<span class="mode-title" style="font-size:14px">' + esc(subj ? subj.name : subject) + ' — Past Questions</span>' +
         '<button class="btn btn-outline btn-sm" data-action="admin-back-to-subject-picker">← Subjects</button>' +
         '</div>' +
         '<p class="section-label">Select a year</p>' +
@@ -22861,7 +22976,7 @@ const ENGLISH_BATCH_COUNT = 6<!--  -->;
 
 function renderEnglishBatchAdmin(type, year) {
     const batch = state.admin.engBatchSelected || 1;
-    const modeLabel = type === 'cbt' ? 'CBT Mode' : type === 'mock' ? 'Mock Exam' : 'Exam Mode';
+    const modeLabel = type === 'cbt' ? 'JAMB CBT' : type === 'mock' ? 'Mock Arena' : 'Past Questions';
 
     // Exam mode doesn't use passages
     if (type === 'exam') {
@@ -24030,6 +24145,7 @@ function renderLoginModal() {
         (state.authLoading ? 'Signing in…' : 'Log in') + (state.authLoading ? '' : svg('arrowright', 18)) +
         '</button>' +
         '<div class="switch-link">Don&#39;t have an account? <button data-action="switch-to-signup">Sign up</button></div>' +
+        '<button class="guest-link" data-lp="guest">Continue as guest</button>' +
         adBox() +
         '</div>' +
         '</div>' +
@@ -24112,6 +24228,7 @@ function renderSignupModal() {
         (state.authLoading ? 'Creating account…' : 'Create account') + (state.authLoading ? '' : svg('arrowright', 18)) +
         '</button>' +
         '<div class="switch-link">Already have an account? <button data-action="switch-to-login">Log in</button></div>' +
+        '<button class="guest-link" data-lp="guest">Continue as guest</button>' +
         adBox() +
         '</div>' +
         '</div>' +
@@ -28321,6 +28438,20 @@ function lpInstallBtn() {
     if (lpInstalled()) return '<button class="mw-btn mw-ok" data-lp="hint"><span class="mw-tick">' + svg('checkcircle', 18) + '</span>Installed</button>';
     return '<button class="mw-btn mw-gold" data-lp="install">' + svg('download', 18) + 'Install app</button>';
 }
+// Hard-coded public numbers for the landing page (safe, rounded DOWN from the real totals).
+var MW_STATS = { questions: '50,000+' };
+// Set this to a real, verifiable number (e.g. '1,000+') once it is true. Left empty on purpose.
+var MW_TRUSTED_BY = '';
+function mwModeCards() {
+    var m = [
+        ['monitor', 'JAMB CBT', 'Full timed CBT or one subject at a time, in the real exam format.', '11,000+ questions'],
+        ['clipboard', 'Past Questions', 'Real questions from previous JAMB years, marked as you go.', '16,000+ questions'],
+        ['target', 'Mock Arena', 'Scheduled live mock exams with a UTME-style score.', '10,000+ questions'],
+        ['list', 'Topic Practice', 'Read the notes, then drill one topic until it sticks.', '14,000+ questions'],
+        ['book', 'Novel (CBT)', 'Practice questions on the JAMB novel.', '195 questions']
+    ];
+    return m.map(function (x) { return '<div class="mw-mode"><div class="mw-ic">' + svg(x[0], 22) + '</div><div><h3>' + x[1] + '</h3><p>' + x[2] + '</p><em>' + x[3] + '</em></div></div>'; }).join('');
+}
 function renderLanding() {
     var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !lpInstalled();
     var feats = [
@@ -28337,23 +28468,32 @@ function renderLanding() {
     return '<div class="mw">' +
       '<header class="mw-hero"><div class="mw-w"><div class="mw-bar"><div class="mw-brand">' + logoSvg(32) + '<span>My<em>UTME</em></span></div><button class="mw-link" data-lp="login">Log in</button></div>' +
       '<div class="mw-g"><div class="mw-hd"><h1>Sit the UTME a hundred times before you sit it once.</h1>' +
-      '<p class="mw-sub">Timed CBT practice, Enzo AI explanations and offline study for JAMB.</p></div>' +
+      '<p class="mw-sub" style="margin-bottom:14px">Timed CBT practice, Enzo AI explanations and offline study for JAMB.</p>' +
+      '<div class="mw-chips"><span><b>' + MW_STATS.questions + '</b> questions</span><span><b>' + SUBJECTS.length + '</b> subjects</span><span><b>Free</b> to start</span></div></div>' +
       '<div class="mw-dm"><p class="mw-try">Try a real question \u2193</p><div class="mw-cbt" id="mw-cbt"><div class="mw-cbt-top"><span>Mathematics \u00B7 Question 7 of 40</span><b id="mw-clock">01:40:00</b></div>' +
       '<p class="mw-q">If 3x \u2212 5 = 16, what is the value of x?</p><div class="mw-opts">' + opts + '</div>' +
       '<p class="mw-fb" id="mw-fb" aria-live="polite">Tap your answer.</p><div id="mw-more"></div><div class="mw-ex" id="mw-ex" hidden></div></div></div>' +
-      '<div class="mw-ac"><div class="mw-act">' + lpInstallBtn() + '<button class="mw-btn mw-ghost" data-lp="web">Use on the web</button></div>' +
+      '<div class="mw-ac"><div class="mw-act"><button class="mw-btn mw-guest" data-lp="guest">' + svg('user', 18) + 'Continue as guest \u00B7 no sign-up</button><button class="mw-btn mw-signup" data-lp="signup">Create free account</button>' + lpInstallBtn() + '</div>' +
       (ios ? '<p class="mw-hint">On iPhone: tap Share, then Add to Home Screen.</p>' : '<p class="mw-hint">Free to start. Works offline once installed.</p>') + '</div>' +
       '</div></div></header>' +
-      '<main class="mw-w"><section class="mw-sec"><h2>Everything a candidate needs</h2><p class="mw-lead">Five tools, one app, no switching between notes, past papers and tutors.</p><div class="mw-rows">' + rows + '</div></section>' +
+      '<main class="mw-w"><div class="mw-stats">' +
+      '<div class="mw-stat"><b>' + MW_STATS.questions + '</b><span>Practice questions</span></div>' +
+      '<div class="mw-stat"><b>' + SUBJECTS.length + '</b><span>Subjects covered</span></div>' +
+      '<div class="mw-stat"><b>5</b><span>Ways to practise</span></div>' +
+      '<div class="mw-stat"><b>Free</b><span>To start, works offline</span></div></div>' +
+      '<p class="mw-trust">' + (MW_TRUSTED_BY ? '<i>Trusted by ' + MW_TRUSTED_BY + ' students</i>' : '<i>Built for JAMB candidates in Nigeria</i>') + '<span>Real past questions \u00B7 Enzo AI explanations \u00B7 Timed mock exams</span></p>' +
+      '<section class="mw-sec"><h2>What\u2019s inside</h2><p class="mw-lead">Every mode, with the number of questions waiting for you.</p><div class="mw-modes">' + mwModeCards() + '</div></section>' +
+      '<section class="mw-sec"><h2>Everything a candidate needs</h2><p class="mw-lead">Five tools, one app, no switching between notes, past papers and tutors.</p><div class="mw-rows">' + rows + '</div></section>' +
       '<section class="mw-sec" style="padding-top:0"><div class="mw-belief"><p>There are no dull students. Give every candidate the right practice and the score follows.</p></div></section>' +
       '<section class="mw-sec" style="padding-top:0"><h2>Start in three steps</h2><p class="mw-lead">You can look around before you pay anything.</p><ol class="mw-steps">' +
-      '<li><div><b>Create a free account</b><span>Takes under a minute.</span></div></li>' +
-      '<li><div><b>Try the practice and Enzo AI</b><span>See how the CBT screen feels.</span></div></li>' +
+      '<li><div><b>Tap \u201CContinue as guest\u201D</b><span>No sign-up. ' + FREE_QUESTION_LIMIT + ' free questions per subject.</span></div></li>' +
+      '<li><div><b>Create a free account when you are ready</b><span>Saves your progress. Takes under a minute.</span></div></li>' +
       '<li><div><b>Activate with a key</b><span>Pay with Paystack or get a key from our WhatsApp channel.</span></div></li></ol></section>' +
       '<section class="mw-sec" style="padding-top:0"><h2>Questions</h2><div style="margin-top:16px">' + faq + '</div></section>' +
       '<section class="mw-cta"><div><h2>Need an activation key?</h2><p>Join our WhatsApp channel for keys, updates and exam-season tips.</p></div><a class="mw-btn mw-gold" href="' + WHATSAPP_CHANNEL_URL + '" target="_blank" rel="noopener noreferrer">Join WhatsApp channel</a></section></main>' +
       '<footer class="mw-foot"><div class="mw-w"><div class="mw-brand">' + logoSvg(28) + '<span>My<em>UTME</em></span></div><p style="margin:0 0 14px;max-width:44ch">JAMB CBT practice for Nigerian students. Independent, and not affiliated with JAMB.</p>' +
-      '<a href="/privacy" data-lp="legal">Privacy Policy</a><a href="/terms" data-lp="legal">Terms of Service</a><a href="' + WHATSAPP_CHANNEL_URL + '" target="_blank" rel="noopener noreferrer">WhatsApp</a><p style="margin:18px 0 0">\u00A9 2026 MyUTME. All rights reserved.</p></div></footer></div>';
+      '<a href="/privacy" data-lp="legal">Privacy Policy</a><a href="/terms" data-lp="legal">Terms of Service</a><a href="' + WHATSAPP_CHANNEL_URL + '" target="_blank" rel="noopener noreferrer">WhatsApp</a><p style="margin:18px 0 0">\u00A9 2026 MyUTME. All rights reserved.</p></div></footer>' +
+      '<div class="mw-sticky"><button class="mw-btn mw-guest2" data-lp="guest">Continue as guest</button><button class="mw-btn mw-signup2" data-lp="signup">Create account</button></div></div>';
 }
 function legalBody(kind) {
     return LP_LEGAL[kind].s.map(function (x) { return '<section><h2>' + esc(x[0]) + '</h2><p>' + esc(x[1]) + '</p></section>'; }).join('');
@@ -28385,6 +28525,13 @@ document.addEventListener('click', function (e) {
     if (a === 'explain') return lpExplain();
     if (a === 'signup') { try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} state.showSignup = true; state.showLogin = false; syncUrlForAuth('signup'); return render(); }
     if (a === 'hint') return showToast('MyUTME is installed. Open it from your home screen or app list.', '');
+    if (a === 'guest') {
+        try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {}
+        state.lpEntered = true; state.showLogin = false; state.showSignup = false; state.showReset = false; state.authError = null;
+        try { syncUrlForAuth(null); } catch (e) {}
+        showToast('Browsing as guest. You get ' + FREE_QUESTION_LIMIT + ' free questions per subject.', '');
+        return render();
+    }
     if (a === 'web') { state.lpEntered = true; try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} if (lpInstalled() && !isStandaloneApp()) showToast('Open MyUTME from your home screen for the full app experience.', ''); return render(); }
     if (a === 'login') { try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} state.showLogin = true; state.showSignup = false; syncUrlForAuth('login'); return render(); }
     if (a === 'install') { if (tryApkInstall()) return; if (mwPrompt) mwInstallFlow(); else if (window.triggerPWAInstall) window.triggerPWAInstall(); return; }
@@ -29528,5 +29675,133 @@ function deleteQuestionOffline(questionId) {
     });
 })();
 </script>
+<script id="myutme-tour">
+/* ============================================================
+   FIRST-VISIT TOUR  (interactive walkthrough, not a video)
+   Highlights the real buttons on screen and explains each one.
+   Auto-runs once; replay any time from Home -> "Take the tour"
+   or by opening the site with ?tour=1
+   ============================================================ */
+(function () {
+    var KEY = 'myutme_tour_v1';
+    var STEPS = [
+        { t: 'Welcome to MyUTME \uD83D\uDC4B', b: 'Quick 30-second tour. We\u2019ll point at the real buttons so you know exactly where everything is. You can skip any time.' },
+        { sel: '.home-hero', t: 'Your JAMB countdown', b: 'This is your home screen. It shows how many days are left to JAMB, plus a suggested next practice session below it.' },
+        { sel: '.bottom-nav-item[data-view="mysubjects"]', t: 'Practice Hub', b: 'Your study centre. Pick a subject, then choose JAMB CBT, Past Questions, Topic Practice (read notes, then take a topic quiz), Novel (CBT) or Flashcards.' },
+        { sel: '.bottom-nav-item[data-view="mockexam"]', t: 'Mock Arena', b: 'Sit scheduled, timed mock exams with other candidates and get a UTME-style score when you finish.' },
+        { sel: '[data-view="ai-assistant"]', t: 'Enzo AI explanations', b: 'Stuck on a question? Tap \u201CBetter explanation\u201D while practising, or open Enzo AI to ask anything, step by step.', soft: true },
+        { sel: '.bottom-nav-item[data-view="profile"]', t: 'Account & progress', b: 'See your progress, change your subjects, activate your account with a key, and switch dark mode.' },
+        { t: 'You\u2019re all set \u2705', b: 'Tip: guests get 10 free questions per subject. Create a free account to save your progress. Replay this tour any time from the Home screen.' }
+    ];
+    var idx = 0, root = null, active = false;
+
+    function done() { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } }
+    function mark() { try { localStorage.setItem(KEY, '1'); } catch (e) {} }
+    function el(sel) { if (!sel) return null; try { var n = document.querySelector(sel); if (n && n.getBoundingClientRect().width > 0) return n; } catch (e) {} return null; }
+
+    function close(finish) {
+        active = false;
+        if (root && root.parentNode) root.parentNode.removeChild(root);
+        root = null;
+        document.removeEventListener('keydown', onKey, true);
+        window.removeEventListener('resize', place);
+        if (finish) mark();
+    }
+    function onKey(e) { if (e.key === 'Escape') close(true); if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); }
+
+    function go(d) {
+        var n = idx + d;
+        if (n >= STEPS.length) return close(true);
+        if (n < 0) return;
+        idx = n; build(d);
+    }
+
+    function build(dir) {
+        var st = STEPS[idx];
+        var target = el(st.sel);
+        // skip steps whose element isn't on screen (e.g. optional buttons)
+        if (st.sel && !target) {
+            var n2 = idx + (dir === -1 ? -1 : 1);
+            if (n2 < 0) n2 = 0;
+            if (n2 >= STEPS.length) return close(true);
+            idx = n2; return build(dir);
+        }
+        if (!root) {
+            root = document.createElement('div');
+            root.id = 'mwt';
+            root.setAttribute('role', 'dialog');
+            root.setAttribute('aria-modal', 'true');
+            document.body.appendChild(root);
+            document.addEventListener('keydown', onKey, true);
+            window.addEventListener('resize', place);
+        }
+        var dots = STEPS.map(function (_, i) { return '<i class="' + (i === idx ? 'on' : '') + '"></i>'; }).join('');
+        root.innerHTML =
+            '<div class="mwt-catch"></div><div class="mwt-spot" id="mwt-spot"></div>' +
+            '<div class="mwt-card" id="mwt-card"><div class="mwt-step">Step ' + (idx + 1) + ' of ' + STEPS.length + '</div>' +
+            '<h3>' + st.t + '</h3><p>' + st.b + '</p><div class="mwt-dots">' + dots + '</div>' +
+            '<div class="mwt-act"><button class="mwt-skip" data-t="skip">' + (idx === STEPS.length - 1 ? '' : 'Skip') + '</button>' +
+            (idx > 0 ? '<button class="mwt-back" data-t="back">Back</button>' : '') +
+            '<button class="mwt-next" data-t="next">' + (idx === STEPS.length - 1 ? 'Start practising' : 'Next') + '</button></div></div>';
+        if (target && target.scrollIntoView) { try { target.scrollIntoView({ block: 'center', behavior: 'instant' }); } catch (e) { target.scrollIntoView(); } }
+        setTimeout(place, 60);
+    }
+
+    function place() {
+        if (!root) return;
+        var st = STEPS[idx], target = el(st.sel), spot = document.getElementById('mwt-spot'), card = document.getElementById('mwt-card');
+        if (!spot || !card) return;
+        var vw = window.innerWidth, vh = window.innerHeight;
+        if (!target) {
+            spot.style.cssText = 'left:50%;top:50%;width:0;height:0';
+            card.style.cssText = 'left:50%;top:50%;transform:translate(-50%,-50%)';
+            return;
+        }
+        var r = target.getBoundingClientRect(), pad = 6;
+        spot.style.cssText = 'left:' + (r.left - pad) + 'px;top:' + (r.top - pad) + 'px;width:' + (r.width + pad * 2) + 'px;height:' + (r.height + pad * 2) + 'px';
+        var ch = card.offsetHeight, below = r.bottom + 14, top;
+        if (below + ch < vh - 10) top = below;
+        else top = Math.max(10, r.top - ch - 14);
+        card.style.cssText = 'left:50%;transform:translateX(-50%);top:' + top + 'px';
+    }
+
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest && e.target.closest('[data-t]');
+        if (t && root && root.contains(t)) {
+            e.preventDefault(); e.stopPropagation();
+            var a = t.getAttribute('data-t');
+            if (a === 'next') go(1); else if (a === 'back') go(-1); else close(true);
+            return;
+        }
+        var s = e.target.closest && e.target.closest('[data-tour="start"]');
+        if (s) { e.preventDefault(); e.stopPropagation(); start(true); }
+    }, true);
+
+    function start(force) {
+        if (active) return;
+        if (!force && done()) return;
+        active = true; idx = 0; build();
+    }
+    window.startMyUtmeTour = function () { start(true); };
+
+    function ready() {
+        try {
+            if (typeof state === 'undefined' || state.view !== 'home') return false;
+            if (state.legal || state.showFaq || state.showLogin || state.showSignup) return false;
+            if (typeof isAdmin === 'function' && isAdmin()) return false;
+            if (!document.querySelector('.bottom-nav') || !document.querySelector('.home-hero')) return false;
+            if (document.getElementById('mw-refresh') || document.getElementById('mw-dept')) return false;
+            return true;
+        } catch (e) { return false; }
+    }
+    var params = new URLSearchParams(location.search);
+    var tick = setInterval(function () {
+        if (active) return;
+        if (params.get('tour') === '1' && ready()) { params.delete('tour'); start(true); return; }
+        if (!done() && ready()) { clearInterval(tick); setTimeout(function () { if (ready()) start(false); }, 900); }
+    }, 1200);
+})();
+</script>
+
 </body>
 </html>
