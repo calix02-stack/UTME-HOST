@@ -2262,6 +2262,81 @@
     }
     .flashcard-nav .btn { flex: 1; }
 
+    .fc-xp-opts { margin: 0 0 10px; }
+    .fc-option.fc-dim { opacity: .6; }
+    .fc-xp-tools { display: flex; gap: 8px; margin: 0 0 10px; }
+    .fc-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 14px; }
+    .fc-stats div { background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px; padding: 8px 2px; text-align: center; }
+    .fc-stats b { display: block; font-size: 14px; }
+    .fc-stats span { display: block; font-size: 9.5px; color: var(--muted); margin-top: 2px; }
+    .fc-missed { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .fc-missed-item { background: var(--card-bg); border: 1px solid var(--line); border-left: 4px solid var(--danger, #D64545); border-radius: 12px; padding: 10px 12px; text-align: left; }
+    .fc-missed-q { font-size: 13px; font-weight: 600; line-height: 1.45; }
+    .fc-missed-a { font-size: 12.5px; font-weight: 700; color: var(--green-dark); margin-top: 4px; }
+
+    /* ---- Flashcard sound + timer controls ---- */
+    .fc-bar { display: flex; align-items: center; gap: 10px; margin: -6px 0 10px; }
+    .fc-ico { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-bg); font-size: 18px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+    .fc-ico.off { opacity: .6; }
+    .fc-vol { flex: 1; min-width: 0; accent-color: var(--green); height: 28px; }
+    .fc-chip { flex: 0 0 auto; border: 1.5px solid var(--line); background: var(--card-bg); color: var(--muted); font-weight: 700; font-size: 12px; padding: 8px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+    .fc-chip.on { border-color: var(--green); color: var(--green-dark); background: var(--green-light); }
+    .fc-timer { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+    .fc-timer-track { flex: 1; height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+    .fc-timer-fill { height: 100%; border-radius: 999px; background: var(--green); transition: width .25s linear; }
+    .fc-timer-fill.low { background: var(--danger, #D64545); }
+    .fc-timer-text { font-weight: 800; font-size: 13px; min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* ---- Past-questions picker: slim footer so more subjects are visible ---- */
+    .view-picker .picker-footer.ex-foot { margin: 0 -16px 0; padding: 6px 16px calc(6px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); }
+    .view-picker.view-nonav .picker-footer.ex-foot { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px) !important; }
+    .picker-footer.ex-foot .picker-count { display: none; }
+    .picker-footer.ex-foot .btn { min-height: 44px; margin: 0; }
+    .picker-scroll .ex-list { margin-bottom: 6px; gap: 8px; }
+
+    /* ---- Flashcards: answer-in-place card ---- */
+    .flashcard.fc-card2 { min-height: 0; cursor: default; background: var(--card-bg); border: 1px solid var(--line); border-top: 5px solid var(--green); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 20px 16px 16px; text-align: center; }
+    .fc-card2 .fc-label { display: inline-flex; font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--green); background: var(--green-light); padding: 5px 14px; border-radius: 999px; margin-bottom: 12px; font-weight: 800; }
+    .fc-card2 .fc-text { font-family: var(--font-serif); font-size: 18px; font-weight: 700; line-height: 1.5; margin: 0; }
+    .fc-card2 .fc-options { margin-top: 14px; }
+    .fc-card2 .fc-opt-btn { width: 100%; text-align: left; cursor: pointer; font-family: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+    .fc-card2 .fc-opt-btn:active { transform: scale(.985); }
+    .fc-card2 .fc-opt-btn.locked { cursor: default; }
+    .fc-card2 .fc-opt-btn.dim { opacity: .55; }
+    .fc-option.fc-option-wrong { background: rgba(214,69,69,.10); border-color: var(--danger, #D64545); }
+    .fc-option-wrong .fc-opt-letter { background: var(--danger, #D64545); color: #fff; }
+    .fc-option-wrong .fc-opt-text { font-weight: 700; color: var(--danger, #D64545); }
+    .fc-result { margin: 4px 0 10px; text-align: center; font-weight: 800; font-size: 14px; }
+    .fc-result.ok { color: var(--green); } .fc-result.bad { color: var(--danger, #D64545); }
+    .fc-after { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .fc-after .btn { width: 100%; }
+    .fc-xp-q { background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 14px; margin: 8px 0 10px; text-align: center; }
+    .fc-xp-q .fc-text { font-family: var(--font-serif); font-size: 16px; font-weight: 700; line-height: 1.45; margin: 6px 0 0; }
+    .fc-xp-q .fc-label { display: inline-flex; font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--green); background: var(--green-light); padding: 4px 12px; border-radius: 999px; font-weight: 800; }
+    .fc-xp-ans { border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 10px; font-size: 13.5px; line-height: 1.45; background: var(--green-light); color: var(--green-dark); border: 1px solid var(--green); }
+    .fc-xp-ans.mine { background: rgba(214,69,69,.08); color: var(--danger, #D64545); border-color: var(--danger, #D64545); margin-top: -4px; }
+    .fc-xp-box { padding: 16px !important; margin-bottom: 12px; }
+
+    /* ---- Explanation layout: headings, steps, bullets ---- */
+    .exp-body .exp-h { margin: 18px 0 6px; padding-bottom: 4px; font-size: 15px; font-weight: 800; color: var(--ink); border-bottom: 2px solid var(--green); letter-spacing: .005em; }
+    .exp-body > .exp-h:first-child { margin-top: 2px; }
+    .exp-body .exp-h .exp-stepno { display: inline-block; margin-right: 8px; padding: 1px 9px; border-radius: 999px; background: var(--green); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; vertical-align: 1px; }
+    .exp-body .exp-sh { display: flex; gap: 8px; align-items: baseline; margin: 14px 0 4px; font-weight: 800; font-size: 14px; color: var(--ink); }
+    .exp-body .exp-sh .exp-n { flex: 0 0 auto; min-width: 22px; height: 22px; border-radius: 50%; background: var(--green-light); color: var(--green-dark); font-size: 11.5px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+    .exp-body .exp-sh .exp-t { text-decoration: underline; text-decoration-color: var(--green); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+    .exp-body .exp-p { margin: 0 0 8px; line-height: 1.65; }
+    .exp-body .exp-sh + .exp-p, .exp-body .exp-sh + .exp-li { margin-top: 0; }
+    .exp-body .exp-li { position: relative; margin: 0 0 6px; padding-left: 18px; line-height: 1.6; }
+    .exp-body .exp-li::before { content: ""; position: absolute; left: 5px; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .exp-body .exp-ol { margin: 0 0 6px; padding-left: 4px; display: flex; gap: 8px; line-height: 1.6; }
+    .exp-body .exp-ol .exp-n { flex: 0 0 auto; font-weight: 800; color: var(--green); }
+    .exp-body .exp-lblhead { display: block; margin: 14px 0 4px; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+    .exp-body .exp-concept, .exp-body .exp-common-mistake, .exp-body .exp-tip, .exp-body .exp-remember, .exp-body .exp-formula, .exp-body .exp-conclusion, .exp-body .exp-note { padding: 8px 10px; margin: 10px 0; border-radius: 8px; border-left: 4px solid var(--green); background: rgba(0,0,0,0.04); border-bottom: 0; }
+    .exp-body .exp-common-mistake { border-left-color: var(--danger, #D64545); }
+    .exp-body .exp-tip, .exp-body .exp-remember { border-left-color: var(--gold, #E4A93A); }
+    .exp-body .exp-answer { border-left: 4px solid var(--green); }
+    .exp-body .exp-lbl { text-decoration: underline; text-underline-offset: 3px; }
+
     .due-badge {
         display: inline-flex;
         align-items: center;
@@ -8468,8 +8543,6 @@ const SUBJECTS = [
     { id: "lit", code: "LIT", name: "Literature", type: "cbt" },
     { id: "lhm", code: "LHM", name: "The Lekki Headmaster", type: "literature" },
     { id: "crs", code: "CRS", name: "CRS" },
-    { id: "irs", code: "IRS", name: "IRS" },
-    { id: "civ", code: "CIV", name: "Civic Ed." },
     { id: "agr", code: "AGR", name: "Agric Science" },
 ].map(function(s, i) { s.color = SUBJECT_PALETTE[i % SUBJECT_PALETTE.length]; return s; });
 
@@ -8963,38 +9036,72 @@ function mathMatrixHtml(rows) {
 // paragraph. This splits it into clearly spaced, labelled lines like neat
 // written notes: Concept, each Step, Answer, Similar example, Tip.
 function fmtExp(raw) {
-    var LABELS = 'Concept|Step\\s*\\d+|Answer|Similar example|Tip|Note|Check|Common mistake|Mistake to avoid|Remember|Formula|Place values[^:\\n]*';
+    var LABELS = 'Concept|Step\\s*\\d+|Final Answer|Answer|Similar example|Tip|Note|Check|Common mistake|Mistake to avoid|Remember|Formula|Conclusion|Place values[^:\\n]*';
     var t = String(raw == null ? '' : raw).replace(/\r/g, '');
     if (!t.trim()) return '';
-    // Put every label (Concept, Step 1, Answer, Tip...) on its own line.
+    // Put every known label (Concept, Step 1, Answer, Tip...) on its own line.
     t = t.replace(new RegExp('\\s*(' + LABELS + ')\\s*:', 'g'), function(m, lab, off) {
         return (off === 0 ? '' : '\n') + lab + ':';
     });
     var lines = t.split(/\n+/).map(function(x) { return x.trim(); }).filter(Boolean);
-    var labRe = new RegExp('^(' + LABELS + ')\\s*:\\s*(.*)$');
-    // Break a long step into short, readable sub-lines (working shown one
-    // calculation per line, like neat written notes).
+    var labRe = new RegExp('^(' + LABELS + ')\\s*:\\s*(.*)$', 'i');
+    var INLINE = /^(answer|final answer|conclusion|check)$/i;
     function sub(body) {
         var parts = body
-            .replace(/,\s+(?=\d+\s*[÷×x\/]\s*\d+\s*=)/g, '\n')                 // 18 ÷ 2 = 9 r 0, 9 ÷ 2 = ...
+            .replace(/,\s+(?=\d+\s*[÷×x\/]\s*\d+\s*=)/g, '\n')
             .replace(/\.\s+(?=(Reading|Hence|Therefore|So|Thus|Now|Then|Next|Finally)\b)/g, '.\n')
             .split('\n').map(function(x) { return x.trim(); }).filter(Boolean);
         if (parts.length <= 1) return escM(body);
         return parts.map(function(p) { return '<span class="exp-sub">' + escM(p) + '</span>'; }).join('');
     }
-    return lines.map(function(line) {
+    // A short line with no sentence punctuation / maths, followed by more text = a section heading.
+    function isHeading(line, hasNext) {
+        if (!hasNext) return false;
+        if (line.length > 72 || line.length < 4) return false;
+        if (/[.?!,;=+×÷\/\d]$/.test(line) || /[=+×÷]/.test(line)) return false;
+        if (/^[-•*]|^\d+[.)]\s/.test(line)) return false;
+        if (!/^[A-Z"“'‘(]/.test(line)) return false;
+        var words = line.split(/\s+/).length;
+        return words >= 2 && words <= 10;
+    }
+    var out = [];
+    lines.forEach(function(line, idx) {
+        var hasNext = idx < lines.length - 1;
         var m = line.match(labRe);
-        var cls = 'exp-step';
-        var body;
         if (m) {
-            var key = m[1].toLowerCase().replace(/\s*\d+/, '').replace(/\s+/g, '-').replace(/[^a-z-]/g, '');
-            cls += ' exp-' + key;
-            body = '<span class="exp-lbl">' + m[1] + ':</span> ' + sub(m[2]);
-        } else {
-            body = sub(line);
+            var lab = m[1].replace(/\s+/g, ' ');
+            var body = m[2];
+            var key = lab.toLowerCase().replace(/\s*\d+/, '').replace(/\s+/g, '-').replace(/[^a-z-]/g, '');
+            var isStep = /^step/i.test(lab);
+            if (isStep && body && body.length <= 90 && !/[.?!]$/.test(body)) {
+                out.push('<div class="exp-h exp-step"><span class="exp-stepno">' + esc(lab) + '</span>' + escM(body) + '</div>');
+                return;
+            }
+            if (isStep) {
+                out.push('<div class="exp-step"><span class="exp-lbl">' + esc(lab) + ':</span> ' + sub(body) + '</div>');
+                return;
+            }
+            if (INLINE.test(lab) || !body) {
+                out.push('<div class="exp-step exp-' + key + '"><span class="exp-lbl">' + esc(lab) + ':</span>' + (body ? ' ' + sub(body) : '') + '</div>');
+                return;
+            }
+            out.push('<div class="exp-step exp-' + key + '"><span class="exp-lblhead">' + esc(lab) + '</span>' + sub(body) + '</div>');
+            return;
         }
-        return '<div class="' + cls + '">' + body + '</div>';
-    }).join('');
+        // "1. Thallophytes:"  -> numbered sub-heading
+        var nh = line.match(/^(\d+)[.)]\s+(.{1,120}?):\s*$/);
+        if (nh) { out.push('<div class="exp-sh"><span class="exp-n">' + nh[1] + '</span><span class="exp-t">' + escM(nh[2]) + '</span></div>'); return; }
+        // "1. some sentence"  -> numbered row
+        var nl = line.match(/^(\d+)[.)]\s+(.+)$/);
+        if (nl && !/^\d+[.)]\s*\d/.test(line)) { out.push('<div class="exp-ol"><span class="exp-n">' + nl[1] + '.</span><span>' + sub(nl[2]) + '</span></div>'); return; }
+        // "- bullet"
+        var bl = line.match(/^[-•]\s+(.+)$/);
+        if (bl) { out.push('<div class="exp-li">' + sub(bl[1]) + '</div>'); return; }
+        // trailing-colon line like "Word: Mention" is handled as paragraph; "Final Answer:" handled above
+        if (isHeading(line, hasNext)) { out.push('<div class="exp-h">' + escM(line) + '</div>'); return; }
+        out.push('<div class="exp-p">' + sub(line) + '</div>');
+    });
+    return out.join('');
 }
 function escM(raw) {
     let s = String(raw == null ? '' : raw);
@@ -9161,7 +9268,7 @@ function __syncMarked(q, mode, on) {
     __setMarked(list);
 }
 function __markedModeLabel(m, year) {
-    const L = { cbt: 'JAMB CBT', exam: 'Past Questions', mock: 'Mock', topic: 'Topic Practice', lit: 'Novel (CBT)' };
+    const L = { cbt: 'JAMB CBT', exam: 'Past Questions', mock: 'Mock', topic: 'Topic Practice', lit: 'Novel (CBT)', flashcard: 'Flashcards' };
     return (L[m] || 'Practice') + (m === 'exam' && year ? ' \u00B7 ' + year : '');
 }
 function __markedCorrectIndex(it) {
@@ -9257,7 +9364,7 @@ function renderExamLockCard() {
         '<div class="exam-lock-card">' +
         svg('lock', 30) +
         '<p>Free access covers the first ' + FREE_QUESTION_LIMIT + ' questions. Activate your account to unlock the rest of this paper.</p>' +
-        '<button class="btn btn-gold" data-action="set-view" data-view="activate">Activate My Account</button>' +
+        '<button class="btn btn-gold" data-action="show-activate-popup" data-reason="You have reached the end of the free questions.">Unlock all questions</button>' +
         '</div>'
     );
 }
@@ -9265,7 +9372,7 @@ function renderExamLockCard() {
 // cfg: { hasPrev, prevAction, prevIdx, hasNext, nextAction, nextIdx, nextLocked, gotoAction, submitAction, exitMode }
 function renderExamFooterNav(cfg) {
     const next = cfg.nextLocked
-        ? '<button class="ef-next" data-action="set-view" data-view="activate">' + svg('lock', 13) + ' Next</button>'
+        ? '<button class="ef-next" data-action="show-activate-popup" data-reason="You have reached the end of the free questions.">' + svg('lock', 13) + ' Next</button>'
         : '<button class="ef-next" data-action="' + cfg.nextAction + '" data-idx="' + (cfg.nextIdx != null ? cfg.nextIdx : '') + '"' + (cfg.hasNext ? '' : ' disabled') + '>Next ' + svg('chevleft', 13).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + '</button>';
     return (
         '<div class="exam-footer-v2">' +
@@ -9900,6 +10007,18 @@ let state = {
     flashcardQuestions: [],
     flashcardIndex: 0,
     flashcardFlipped: false,
+    flashcardPicked: null,
+    fcSoundOn: true,
+    activatePopup: null,
+    fcPopupShown: false,
+    fcVolume: (function() { var v = parseFloat(storage.get('myutme_fc_volume')); return (v >= 0 && v <= 1) ? v : 0.8; })(),
+    fcTimerOn: storage.get('myutme_fc_timer') === '1',
+    fcTimeLimit: (function() { var v = parseInt(storage.get('myutme_fc_limit'), 10); return (v === 15 || v === 30 || v === 60) ? v : 30; })(),
+    flashcardMissed: [],
+    flashcardSkipped: 0,
+    fcStart: 0,
+    fcElapsed: 0,
+    flashcardExp: false,
     flashcardLoading: false,
     flashcardKnew: 0,
     flashcardDidntKnow: 0,
@@ -11364,9 +11483,8 @@ function markAllNotificationsRead() {
 
 // ---- Guests: can browse everything; actions that need an account show this friendly prompt (no redirect) ----
 const GUEST_BLOCKED = {
-    'start-cbt': 'take a CBT practice', 'start-exam': 'start an exam', 'start-mock': 'start a mock exam', 'start-full-mock-utme': 'start a full mock UTME',
-    'start-literature-cbt': 'practise literature', 'start-topic-practice': 'practise topics', 'start-flashcards': 'use flashcards',
-    'subj-start-cbt': 'take a CBT practice', 'subj-start-exam': 'start an exam', 'subj-start-flashcards': 'use flashcards',
+    // Guests can now try CBT, Past Questions, Topics, Novel and Flashcards (10 free questions per subject).
+    'start-mock': 'start a mock exam', 'start-full-mock-utme': 'start a full mock UTME',
     
     'save-profile-edit': 'save your profile', 'save-avatar-upload': 'save your photo',
     'reserve-live-exam-link': 'create an exam link',
@@ -11388,6 +11506,24 @@ function renderAdminActSheet() {
         (plans.length ? plans.map(function(p) { return '<button class="btn btn-outline" style="padding:11px;margin-bottom:8px;text-align:left" data-action="admin-act-pick" data-planid="' + esc(String(p.id)) + '">' + esc(p.name) + ' · ' + (p.days || 0) + ' days</button>'; }).join('')
             : '<p style="font-size:12px;color:var(--muted)">' + (state.activationPlansLoaded ? 'No plans yet. Create one in the Plans section first.' : 'Loading plans…') + '</p>') +
         '<button style="border:0;background:none;color:var(--faint);font-size:12px;padding:8px;width:100%;cursor:pointer" data-action="admin-act-close">Cancel</button></div>';
+}
+// Friendly pop-up shown when someone reaches the free limit (guests and non-activated users).
+function showActivatePopup(reason) {
+    state.activatePopup = reason || 'You have used your free questions.';
+    render();
+}
+function renderActivatePopup() {
+    const guest = !state.authUser;
+    return '<div class="nw-back" data-action="activate-popup-close"></div>' +
+        '<div class="nw-sheet" style="display:block;text-align:center">' +
+        '<div style="font-size:34px;margin-bottom:4px">🔒</div>' +
+        '<h4 style="margin-bottom:6px;font-size:17px">' + (guest ? 'Create an account to continue' : 'Activate your account to continue') + '</h4>' +
+        '<p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5">' + esc(state.activatePopup || '') + ' Free access covers ' + FREE_QUESTION_LIMIT + ' questions per subject. ' + (guest ? 'Create an account, then activate it to unlock every question in every subject.' : 'Activate to unlock every question in every subject.') + '</p>' +
+        (guest
+            ? '<button class="btn btn-green" style="padding:11px;margin-bottom:8px" data-action="guest-prompt-signup">Create account</button>' +
+              '<button class="btn btn-outline" style="padding:11px;margin-bottom:6px" data-action="guest-prompt-login">Log in</button>'
+            : '<button class="btn btn-gold" style="padding:11px;margin-bottom:8px" data-action="activate-popup-go">Activate My Account</button>') +
+        '<button style="border:0;background:none;color:var(--faint);font-size:12px;padding:6px;cursor:pointer" data-action="activate-popup-close">Not now</button></div>';
 }
 function guestNeedsAccount(reason) {
     state.guestPrompt = reason || 'do this';
@@ -12476,7 +12612,7 @@ function renderMockExamPicker() {
 }
 async function startMockExam(subjects) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
-    if (!isUserActive()) { redirectToActivate('Mock Arena is part of full access. Activate your account to take the Friday Mock.'); return; }
+    if (!isUserActive()) { showActivatePopup('Mock Arena is part of full access.'); return; }
     if (!isFridayToday()) { showToast('The Mock opens on Fridays.', 'error'); return; }
     if (!subjects || subjects.length !== 4 || subjects.indexOf('eng') === -1) { showToast('Pick English plus 3 other subjects.', 'error'); return; }
     if (fridayRecords().some(function(r) { return r.week === fridayKey(); })) { showToast('You have already taken this Friday\'s Mock.', 'error'); return; }
@@ -14664,7 +14800,6 @@ function trialAiRateLimitCheck() {
 //  CBT FUNCTIONS
 // ============================================================
 async function startCbt() {
-    if (!state.authUser) { guestNeedsAccount(); return; }
 
     const isFull = state.cbtMode === 'full';
     const selected = state.cbtSelected;
@@ -14828,7 +14963,6 @@ async function startCbt() {
     saveSessionSnapshot();
 }
 async function startLiteratureCbt() {
-    if (!state.authUser) { guestNeedsAccount(); return; }
 
     state.isLoading = true;
     render();
@@ -15077,7 +15211,6 @@ function __examPassageFor(item) {
 }
 
 async function startExam() {
-    if (!state.authUser) { guestNeedsAccount(); return; }
 
     if (!state.examSubject) {
         showToast("Please select a subject.", "error");
@@ -15197,7 +15330,7 @@ function buildFixedLengthQuestionSet(sourceQuestions, targetCount) {
 // Practice ÷ total questions in that topic (so 100% = every question mastered).
 // Subject % = all mastered questions across its topics ÷ all questions across
 // its topics, so bigger topics count for more. Stored per user on the device.
-const TOPIC_COUNT_CHOICES = [10, 20, 30, 40];
+const TOPIC_COUNT_CHOICES = [20, 30, 40];
 function topicProgressKey() { return 'topicProgress_' + ((state.authUser && state.authUser.id) || 'guest'); }
 function loadTopicProgressStore() {
     try { return JSON.parse(storage.get(topicProgressKey()) || '{}') || {}; } catch (e) { return {}; }
@@ -15308,7 +15441,6 @@ async function loadTopicQuestionsFromFile(subjectId, topicId) {
 }
 
 async function startTopicPractice() {
-    if (!state.authUser) { guestNeedsAccount(); return; }
 
     if (!state.topicSubject || !state.topicId) {
         showToast("Please select a subject and topic.", "error");
@@ -15420,15 +15552,14 @@ async function startTopicPractice() {
 // bank CBT/Exam/Topic already use — no new data source, no new fetch logic.
 // We reuse the same offline-first question loader as CBT Single mode.
 async function startFlashcards(subjectId) {
-    if (!state.authUser) { guestNeedsAccount(); return; }
     if (!subjectId) { showToast('Please select a subject.', 'error'); return; }
 
     state.flashcardSubject = subjectId;
     state.flashcardLoading = true;
     state.flashcardQuestions = [];
     state.flashcardIndex = 0;
-    state.flashcardFlipped = false;
-    state.flashcardKnew = 0;
+    state.flashcardFlipped = false; state.flashcardPicked = null; state.flashcardExp = false;
+    state.flashcardKnew = 0; state.flashcardMissed = []; state.flashcardSkipped = 0; state.fcStart = 0; state.fcElapsed = 0; state.fcPopupShown = false;
     state.flashcardDidntKnow = 0;
     state.view = 'flashcards';
     render();
@@ -15441,7 +15572,7 @@ async function startFlashcards(subjectId) {
         const qs = shuffleArray((questions || []).slice()).map(function(q) {
             return Object.assign({}, q, { subject_id: subjectId, subject_name: s ? s.name : subjectId });
         });
-        state.flashcardQuestions = qs;
+        state.flashcardQuestions = isUserActive() ? qs : qs.slice(0, FREE_QUESTION_LIMIT);
     } catch (e) {
         console.warn('Flashcards load error:', e);
         showToast('Could not load flashcards. Please try again.', 'error');
@@ -16427,8 +16558,8 @@ function setView(v, navOpts) {
         state.flashcardSubject = null;
         state.flashcardQuestions = [];
         state.flashcardIndex = 0;
-        state.flashcardFlipped = false;
-        state.flashcardKnew = 0;
+        state.flashcardFlipped = false; state.flashcardPicked = null; state.flashcardExp = false;
+        state.flashcardKnew = 0; state.flashcardMissed = []; state.flashcardSkipped = 0; state.fcStart = 0; state.fcElapsed = 0; state.fcPopupShown = false;
         state.flashcardDidntKnow = 0;
     }
     if (v === "my-keys") {
@@ -16502,6 +16633,7 @@ function render() {
     requestAnimationFrame(function() {
         __renderScheduled = false;
         renderNow();
+        try { fcAfterRender(); } catch (e) {}
     });
 }
 
@@ -16675,6 +16807,7 @@ function renderNow() {
     }
     if (state.authUser) state.guestPrompt = null;
     if (state.guestPrompt) html += renderGuestPrompt();
+    if (state.activatePopup) html += renderActivatePopup();
     if (state.adminActSheet && isAdmin()) html += renderAdminActSheet();
     if (state.showGotoModal) {
         html += __modalWrap('goto', true, renderGotoModal());
@@ -18188,7 +18321,7 @@ function renderCbtExam() {
             const subjectId = isFullCbt ? null : state.cbtQuestions[0]?.subject_id;
             const subjectName = isFullCbt ? null : state.cbtQuestions[0]?.subject_name;
             
-            saveWeakQuestionsSequentially(state.authUser.id, weakQuestionsToSave, 'cbt');
+            if (state.authUser) saveWeakQuestionsSequentially(state.authUser.id, weakQuestionsToSave, 'cbt');
             
             const subjects = Object.keys(subjectScores);
             const subjectNames = subjects.map(function(sid) {
@@ -18423,7 +18556,7 @@ function renderExamMode() {
     return (
         mwModeHeader('mysubjects', '#E2543A', 'clipboard', 'JAMB Past Questions', '2000\u20132026 \u00B7 JAMB past papers') +
         '<div class="picker-scroll">' + body + '</div>' +
-        '<div class="picker-footer">' + footer + '</div>'
+        '<div class="picker-footer ex-foot">' + footer + '</div>'
     );
 }
 
@@ -18452,7 +18585,7 @@ function renderExamExam() {
         });
         if (state.authUser && state.examSubmitted && !state.examHistorySaved) {
             state.examHistorySaved = true;
-            saveWeakQuestionsSequentially(state.authUser.id, weakQuestionsToSave, 'exam');
+            if (state.authUser) saveWeakQuestionsSequentially(state.authUser.id, weakQuestionsToSave, 'exam');
             
             const subjects = Object.keys(subjectScores);
             const subjectNames = subjects.map(function(sid) {
@@ -18791,7 +18924,7 @@ function renderTopicExam() {
 
         if (state.authUser && state.topicSubmitted && !state.topicHistorySaved) {
             state.topicHistorySaved = true;
-            saveWeakQuestionsSequentially(state.authUser.id, weakQuestionsToSave, 'topic');
+            if (state.authUser) saveWeakQuestionsSequentially(state.authUser.id, weakQuestionsToSave, 'topic');
             recordTopicProgress(state.topicId, state.topicQuestions, state.topicAnswers);
             const subjects = Object.keys(subjectScores);
             const subjectNames = subjects.map(function(sid) {
@@ -18926,7 +19059,7 @@ function renderLitExam() {
 
         if (state.authUser && state.litSubmitted && !state.litHistorySaved) {
             state.litHistorySaved = true;
-            saveWeakQuestionsSequentially(state.authUser.id, weakQuestionsToSave, 'novel');
+            if (state.authUser) saveWeakQuestionsSequentially(state.authUser.id, weakQuestionsToSave, 'novel');
             
             const subjects = Object.keys(subjectScores);
             const subjectNames = subjects.map(function(sid) {
@@ -19446,88 +19579,260 @@ function renderFlashcards() {
     const subj = SUBJECTS.find(function(s) { return s.id === state.flashcardSubject; });
     const total = state.flashcardQuestions.length;
     const q = state.flashcardQuestions[state.flashcardIndex];
+    if (!state.fcStart) state.fcStart = Date.now();
     const pct = Math.round((state.flashcardIndex / total) * 100);
     const hasOptions = Array.isArray(q.options) && q.options.length > 0;
     const hasCorrect = hasOptions && q.correct_answer !== undefined && q.correct_answer !== null && q.options[q.correct_answer] !== undefined;
 
-    // Previously the back of the card only ever showed a bare letter +
-    // text like "B. Paris" while the front never showed the option list at
-    // all — so a student saw "B" with nothing on the front to say what B
-    // even was. Now the front lists every option (so it plays like a real
-    // multiple-choice question you can think through before flipping), and
-    // the back re-shows that same list with the correct one highlighted,
-    // instead of a lone unexplained letter.
-    let optionsListHtml = '';
-    if (hasOptions) {
-        optionsListHtml = '<div class="fc-options">';
-        q.options.forEach(function(opt, i) {
-            optionsListHtml += '<div class="fc-option">' +
-                '<span class="fc-opt-letter">' + String.fromCharCode(65 + i) + '</span>' +
-                '<span class="fc-opt-text">' + escM(opt) + '</span>' +
-                '</div>';
-        });
-        optionsListHtml += '</div>';
+    const subjName = subj ? subj.name : q.subject_name;
+    const hasExp = !!(q.explanation && String(q.explanation).trim());
+    // Multiple-choice cards are answered by tapping an option (green = right, red = your wrong pick).
+    // Cards without a usable key fall back to a simple "Show answer" button under the card.
+    const choiceMode = hasCorrect;
+    const picked = (state.flashcardPicked === undefined) ? null : state.flashcardPicked;
+    const answered = choiceMode ? (picked !== null) : !!state.flashcardFlipped;
+    const correctLetter = hasCorrect ? String.fromCharCode(65 + q.correct_answer) : '';
+
+    // ---- Separate explanation page ----
+    if (state.flashcardExp && answered) {
+        let ansHtml = '';
+        if (hasCorrect) {
+            ansHtml = '<div class="fc-options fc-xp-opts">';
+            q.options.forEach(function(opt, i) {
+                let cls = 'fc-option', letter = String.fromCharCode(65 + i);
+                if (i === q.correct_answer) { cls += ' fc-option-correct'; letter = '✓'; }
+                else if (i === picked) { cls += ' fc-option-wrong'; letter = '✗'; }
+                else { cls += ' fc-dim'; }
+                ansHtml += '<div class="' + cls + '"><span class="fc-opt-letter">' + letter + '</span><span class="fc-opt-text">' + escM(opt) + '</span></div>';
+            });
+            ansHtml += '</div>';
+            if (picked === -1) ansHtml += '<div class="fc-xp-ans mine" style="margin-top:8px">⏰ Time ran out on this card.</div>';
+        } else {
+            ansHtml = '<div class="fc-xp-ans">✅ Answer: <b>' + escM(q.answer || q.correct_text || 'Answer unavailable') + '</b></div>';
+        }
+        let isMarked = false;
+        try { isMarked = __getMarked().some(function(x) { return x.h === __qh(q); }); } catch (e) {}
+        const toolsHtml = '<div class="fc-xp-tools">' +
+            '<button type="button" class="fc-chip' + (isMarked ? ' on' : '') + '" data-action="fc-bookmark">' + (isMarked ? '⭐ Bookmarked' : '☆ Bookmark') + '</button>' +
+            '<button type="button" class="fc-chip" data-action="fc-copy-exp">📋 Copy</button></div>';
+        return (
+            '<button class="back-link" data-action="flashcard-exp-close">' + svg("chevleft", 14) + ' Back to card</button>' +
+            '<h2 class="title" style="margin-bottom:2px;font-size:18px">Explanation</h2>' +
+            '<p class="sub" style="font-size:11px">' + esc(subjName || 'Flashcards') + ' &nbsp;·&nbsp; Card ' + (state.flashcardIndex + 1) + ' of ' + total + '</p>' +
+            '<div class="fc-xp-q"><span class="fc-label">Question</span><p class="fc-text">' + escQ(q.text) + '</p></div>' +
+            ansHtml + toolsHtml +
+            '<div class="explanation-box fc-xp-box"><span class="label">💡 Explanation</span><div class="exp-body">' +
+            (hasExp ? fmtExp(q.explanation) : '<p class="exp-p">No explanation provided for this card.</p>') + '</div></div>' +
+            '<div class="ask-ai-row" style="margin:0 0 10px;display:flex;gap:6px;flex-wrap:wrap">' + askAiButtonHtml(q, subjName, (picked !== null && picked >= 0) ? picked : null, { label: '✨ Further Explanation', inline: true }) + '</div>' + inlineAiBoxHtml(q) +
+            '<button class="btn btn-green" data-action="flashcard-exp-close">Back to card</button>'
+        );
     }
-    let backAnswerHtml;
-    if (hasCorrect) {
-        backAnswerHtml = '<div class="fc-options fc-options-back">';
+
+    let optionsHtml = '';
+    if (hasOptions) {
+        optionsHtml = '<div class="fc-options">';
         q.options.forEach(function(opt, i) {
-            const isCorrect = i === q.correct_answer;
-            backAnswerHtml += '<div class="fc-option' + (isCorrect ? ' fc-option-correct' : '') + '">' +
-                '<span class="fc-opt-letter">' + (isCorrect ? '✓' : String.fromCharCode(65 + i)) + '</span>' +
-                '<span class="fc-opt-text">' + escM(opt) + '</span>' +
-                '</div>';
+            let cls = 'fc-option fc-opt-btn';
+            let letter = String.fromCharCode(65 + i);
+            if (choiceMode && answered) {
+                cls += ' locked';
+                if (i === q.correct_answer) { cls += ' fc-option-correct'; letter = '✓'; }
+                else if (i === picked) { cls += ' fc-option-wrong'; letter = '✗'; }
+                else { cls += ' dim'; }
+            } else if (!choiceMode && answered && hasCorrect === false) {
+                cls += ' locked';
+            }
+            const act = (choiceMode && !answered) ? ' data-action="flashcard-pick" data-i="' + i + '"' : '';
+            optionsHtml += '<button type="button" class="' + cls + '"' + act + '>' +
+                '<span class="fc-opt-letter">' + letter + '</span>' +
+                '<span class="fc-opt-text">' + escM(opt) + '</span></button>';
         });
-        backAnswerHtml += '</div>';
+        optionsHtml += '</div>';
+    }
+    let revealHtml = '';
+    if (!choiceMode && answered) {
+        revealHtml = '<div class="fc-xp-ans" style="margin-top:14px;text-align:left">✅ Answer: <b>' + escM(q.answer || q.correct_text || 'Answer unavailable') + '</b></div>';
+    }
+
+    let belowHtml;
+    if (choiceMode) {
+        if (!answered) {
+            belowHtml = '<p class="flashcard-hint">Tap the option you think is right</p>';
+        } else {
+            const ok = picked === q.correct_answer;
+            belowHtml = '<p class="fc-result ' + (ok ? 'ok' : 'bad') + '">' + (ok ? '✅ Correct!' : (picked === -1 ? '⏰ Time\'s up — the answer is ' + correctLetter : '❌ Wrong — the answer is ' + correctLetter)) + '</p>' +
+                '<div class="fc-after">' +
+                '<button class="btn btn-outline" data-action="flashcard-exp-open">💡 View explanation</button>' +
+                '<button class="btn btn-green" data-action="flashcard-mark" data-know="' + (ok ? '1' : '0') + '">Next ' + svg('arrowright', 14) + '</button>' +
+                '</div>';
+        }
+    } else if (!answered) {
+        belowHtml = '<div class="fc-after"><button class="btn btn-green" data-action="flashcard-flip">👆 Show answer</button></div>';
     } else {
-        // No structured options on this card at all (e.g. a note-derived
-        // Q&A flashcard) — just show the raw answer text, never a naked
-        // letter with nothing to point to.
-        backAnswerHtml = '<p class="fc-text">' + escM(q.answer || q.correct_text || 'Answer unavailable') + '</p>';
+        belowHtml = '<div class="fc-after"><button class="btn btn-outline" data-action="flashcard-exp-open">💡 View explanation</button></div>' +
+            '<p class="flashcard-hint">Did you know it?</p>' +
+            '<div class="flashcard-actions">' +
+            '<button class="btn btn-outline" style="border-color:var(--danger);color:var(--danger)" data-action="flashcard-mark" data-know="0">👎 Didn\'t know it</button>' +
+            '<button class="btn btn-green" data-action="flashcard-mark" data-know="1">👍 I knew it</button>' +
+            '</div>';
     }
 
     return (
         '<button class="back-link" data-action="flashcards-back-to-subjects">' + svg("chevleft", 14) + ' Change subject</button>' +
-        '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subj ? subj.name : 'Flashcards') +
-        '</h2>' +
+        '<h2 class="title" style="margin-bottom:2px;font-size:18px">' + esc(subj ? subj.name : 'Flashcards') + '</h2>' +
         '<p class="sub" style="font-size:11px">Card ' + (state.flashcardIndex + 1) + ' of ' + total +
         ' &nbsp;·&nbsp; 👍 ' + state.flashcardKnew + ' &nbsp; 👎 ' + state.flashcardDidntKnow + '</p>' +
         '<div class="flashcard-progress-track"><div class="flashcard-progress-fill" style="width:' + pct + '%"></div></div>' +
-
-        '<div class="flashcard-stage">' +
-        '<div class="flashcard' + (state.flashcardFlipped ? ' flipped' : '') + '" data-action="flashcard-flip">' +
-        '<div class="flashcard-inner">' +
-        '<div class="flashcard-face fc-front">' +
+        fcControlsHtml(choiceMode && !answered) +
+        '<div class="flashcard-stage"><div class="flashcard fc-card2">' +
         '<span class="fc-label">Question</span>' +
         '<p class="fc-text">' + escQ(q.text) + '</p>' +
-        optionsListHtml +
-        '<span class="fc-tap-badge">👆 Tap to view answer</span>' +
-        '</div>' +
-        '<div class="flashcard-face fc-back">' +
-        '<span class="fc-label">Answer</span>' +
-        backAnswerHtml +
-        (q.explanation ? '<div class="fc-explain exp-body">' + fmtExp(q.explanation) + '</div>' : '') +
-        (state.flashcardFlipped ? '<div class="ask-ai-row" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + askAiButtonHtml(q, (subj ? subj.name : q.subject_name), null, { label: '✨ Further Explanation', inline: true }) + '</div>' + inlineAiBoxHtml(q) : '') +
-        '</div>' +
-        '</div>' +
-        '</div>' +
-        '</div>' +
-
-        (state.flashcardFlipped ?
-            ('<p class="flashcard-hint">Did you know it?</p>' +
-            '<div class="flashcard-actions">' +
-            '<button class="btn btn-outline" style="border-color:var(--danger);color:var(--danger)" data-action="flashcard-mark" data-know="0">👎 Didn\'t know it</button>' +
-            '<button class="btn btn-green" data-action="flashcard-mark" data-know="1">👍 I knew it</button>' +
-            '</div>')
-            :
-            '<p class="flashcard-hint fc-tap-hint">👆 Tap to view answer (or swipe)</p>'
-        ) +
-
+        optionsHtml + revealHtml +
+        '</div></div>' +
+        belowHtml +
         '<div class="flashcard-nav">' +
         (state.flashcardIndex > 0 ? '<button class="btn btn-outline" data-action="flashcard-prev">Previous</button>' : '<span></span>') +
         '<button class="btn btn-outline" data-action="flashcard-skip">Skip ' + svg('arrowright', 14) + '</button>' +
         '</div>'
     );
+}
+
+
+// ============================================================
+//  FLASHCARD SOUNDS + TIMER (sounds are synthesised, no audio files)
+// ============================================================
+function fcLimit() { return state.fcTimeLimit || 30; } // seconds per card when the timer is on (15 / 30 / 60)
+let __fcAudio = null, __fcTimerKey = null, __fcDeadline = 0, __fcInterval = null, __fcLastTick = -1;
+
+function fcAudioCtx() {
+    try {
+        if (!__fcAudio) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            __fcAudio = new AC();
+        }
+        if (__fcAudio.state === 'suspended') __fcAudio.resume();
+        return __fcAudio;
+    } catch (e) { return null; }
+}
+function fcTone(ctx, o) {
+    const t0 = ctx.currentTime + (o.at || 0);
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.f, t0);
+    if (o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2, t0 + o.d);
+    const peak = Math.max(0.0001, (o.v || 0.5) * state.fcVolume);
+    const atk = o.atk || 0.012;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(peak, t0 + atk);
+    if (o.hold) g.gain.setValueAtTime(peak, t0 + o.hold);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.d);
+    let out = g;
+    osc.connect(g);
+    if (o.lp) {
+        const f = ctx.createBiquadFilter();
+        f.type = 'lowpass'; f.frequency.value = o.lp; f.Q.value = 0.7;
+        g.connect(f); out = f;
+    }
+    out.connect(ctx.destination);
+    osc.start(t0); osc.stop(t0 + o.d + 0.05);
+}
+function fcVibrate(kind) {
+    try { if (navigator.vibrate) navigator.vibrate(kind === 'correct' ? [70] : [260]); } catch (e) {}
+}
+function fcPlay(kind) {
+    if (kind === 'correct' || kind === 'wrong') fcVibrate(kind);
+    if (!state.fcSoundOn || state.fcVolume <= 0) return;
+    const ctx = fcAudioCtx();
+    if (!ctx) return;
+    if (kind === 'correct') {
+        // rich bell-like chime: rising C-E-G-C, each note with bell overtones and a long shimmering tail
+        [[523.25, 0], [659.25, 0.12], [783.99, 0.24], [1046.5, 0.36]].forEach(function(n, i) {
+            const last = i === 3, len = last ? 1.3 : 0.45;
+            fcTone(ctx, { f: n[0], at: n[1], d: len, type: 'sine', v: 0.55 });
+            fcTone(ctx, { f: n[0] * 2.01, at: n[1], d: len * 0.7, type: 'sine', v: 0.22 });
+            fcTone(ctx, { f: n[0] * 3.02, at: n[1], d: len * 0.45, type: 'sine', v: 0.10 });
+            fcTone(ctx, { f: n[0] * 4.2, at: n[1], d: len * 0.25, type: 'sine', v: 0.05 });
+            // soft echo
+            fcTone(ctx, { f: n[0], at: n[1] + 0.16, d: len * 0.8, type: 'sine', v: 0.14 });
+        });
+    } else if (kind === 'wrong') {
+        // one steady car-horn "BEEEP": two close horn notes fused into a single flat tone, no pitch change
+        const L = 0.9;
+        fcTone(ctx, { f: 400, d: L, hold: L - 0.12, atk: 0.01, type: 'sawtooth', v: 0.85, lp: 2400 });
+        fcTone(ctx, { f: 500, d: L, hold: L - 0.12, atk: 0.01, type: 'sawtooth', v: 0.85, lp: 2400 });
+        fcTone(ctx, { f: 200, d: L, hold: L - 0.12, atk: 0.01, type: 'square', v: 0.25, lp: 900 });
+    } else if (kind === 'tick') {
+        fcTone(ctx, { f: 1000, d: 0.05, type: 'square', v: 0.12 });
+    } else if (kind === 'blip') {
+        fcTone(ctx, { f: 660, d: 0.12, type: 'sine', v: 0.4 });
+    }
+}
+function fcStopTimer() {
+    if (__fcInterval) { clearInterval(__fcInterval); __fcInterval = null; }
+    __fcTimerKey = null;
+}
+function fcTimerTick() {
+    const left = Math.max(0, (__fcDeadline - Date.now()) / 1000);
+    const secs = Math.ceil(left);
+    const fill = document.getElementById('fc-tfill');
+    const txt = document.getElementById('fc-ttext');
+    if (fill) { fill.style.width = (left / fcLimit() * 100) + '%'; fill.classList.toggle('low', left <= 8); }
+    if (txt) txt.textContent = '⏱ ' + secs + 's';
+    if (left <= 5 && left > 0 && secs !== __fcLastTick) { __fcLastTick = secs; fcPlay('tick'); }
+    if (left <= 0) {
+        fcStopTimer();
+        const q = state.flashcardQuestions && state.flashcardQuestions[state.flashcardIndex];
+        if (state.view === 'flashcards' && q && (state.flashcardPicked === null || state.flashcardPicked === undefined)) {
+            state.flashcardPicked = -1; // -1 = ran out of time, counts as wrong
+            fcPlay('wrong');
+            render();
+        }
+    }
+}
+// Runs after every render: starts/stops the per-card countdown as needed.
+function fcAfterRender() {
+    if (state.view === 'flashcards' && state.flashcardQuestions && state.flashcardQuestions.length && state.flashcardIndex >= state.flashcardQuestions.length && !isUserActive() && !state.fcPopupShown) {
+        state.fcPopupShown = true;
+        showActivatePopup('You have finished your ' + FREE_QUESTION_LIMIT + ' free flashcards.');
+        return;
+    }
+    const q = (state.view === 'flashcards' && state.flashcardQuestions) ? state.flashcardQuestions[state.flashcardIndex] : null;
+    const live = q && state.fcTimerOn && !state.flashcardExp &&
+        (state.flashcardPicked === null || state.flashcardPicked === undefined) &&
+        Array.isArray(q.options) && q.options.length > 0 && q.options[q.correct_answer] !== undefined;
+    if (!live) { fcStopTimer(); return; }
+    const key = state.flashcardSubject + ':' + state.flashcardIndex + ':' + (q.id || '');
+    if (__fcTimerKey !== key) {
+        fcStopTimer();
+        __fcTimerKey = key; __fcDeadline = Date.now() + fcLimit() * 1000; __fcLastTick = -1;
+        __fcInterval = setInterval(fcTimerTick, 250);
+    }
+    fcTimerTick();
+}
+document.addEventListener('pointerdown', function() { if (state.view === 'flashcards') fcAudioCtx(); }, { passive: true });
+document.addEventListener('input', function(e) {
+    const el = e.target;
+    if (el && el.getAttribute && el.getAttribute('data-fc-vol') !== null) {
+        state.fcVolume = Math.min(1, Math.max(0, parseInt(el.value, 10) / 100));
+        storage.set('myutme_fc_volume', String(state.fcVolume));
+        if (state.fcVolume > 0 && !state.fcSoundOn) { state.fcSoundOn = true; render(); }
+    }
+});
+document.addEventListener('change', function(e) {
+    const el = e.target;
+    if (el && el.getAttribute && el.getAttribute('data-fc-vol') !== null) fcPlay('blip');
+});
+
+function fcControlsHtml(showTimer) {
+    const on = state.fcSoundOn && state.fcVolume > 0;
+    return '<div class="fc-bar">' +
+        '<button type="button" class="fc-ico' + (on ? '' : ' off') + '" data-action="fc-sound-toggle" aria-label="' + (on ? 'Mute sound' : 'Turn sound on') + '">' + (on ? '🔊' : '🔇') + '</button>' +
+        '<input type="range" class="fc-vol" min="0" max="100" step="5" value="' + Math.round(state.fcVolume * 100) + '" data-fc-vol aria-label="Volume"' + (state.fcSoundOn ? '' : ' style="opacity:.45"') + '>' +
+        '<button type="button" class="fc-chip' + (state.fcTimerOn ? ' on' : '') + '" data-action="fc-timer-toggle">⏱ Timer: ' + (state.fcTimerOn ? fcLimit() + 's' : 'Off') + '</button>' +
+        '</div>' +
+        ((showTimer && state.fcTimerOn) ? '<div class="fc-timer"><div class="fc-timer-track"><div class="fc-timer-fill" id="fc-tfill" style="width:100%"></div></div><span class="fc-timer-text" id="fc-ttext">⏱ ' + fcLimit() + 's</span></div>' : '');
 }
 
 function renderFlashcardSubjectPicker() {
@@ -19560,15 +19865,42 @@ function renderFlashcardsDone() {
     const total = state.flashcardQuestions.length;
     const subj = SUBJECTS.find(function(s) { return s.id === state.flashcardSubject; });
     const pct = total > 0 ? Math.round((state.flashcardKnew / total) * 100) : 0;
+    if (!state.fcElapsed) state.fcElapsed = Math.max(1, Math.round((Date.now() - (state.fcStart || Date.now())) / 1000));
+    const el = state.fcElapsed;
+    const fmtT = function(sec) { return sec >= 60 ? Math.floor(sec / 60) + 'm ' + (sec % 60) + 's' : sec + 's'; };
+    const avg = total > 0 ? Math.round(el / total) : 0;
+    const msg = pct >= 80 ? '🔥 Excellent work!' : pct >= 50 ? '👍 Good effort. Keep going!' : '💪 Keep practising, you will improve.';
+    const missed = state.flashcardMissed || [];
+    let missedHtml = '';
+    if (missed.length) {
+        missedHtml = '<p class="section-label" style="margin-top:6px">Cards you missed (' + missed.length + ')</p><div class="fc-missed">';
+        missed.forEach(function(m) {
+            const ca = (Array.isArray(m.options) && m.options[m.correct_answer] !== undefined) ? String.fromCharCode(65 + m.correct_answer) + '. ' + m.options[m.correct_answer] : (m.answer || m.correct_text || '');
+            const qt = String(m.text || '').replace(/\u2028/g, ' ');
+            missedHtml += '<div class="fc-missed-item"><div class="fc-missed-q">' + escM(qt.length > 140 ? qt.slice(0, 140) + '…' : qt) + '</div>' +
+                (ca ? '<div class="fc-missed-a">✅ ' + escM(ca) + '</div>' : '') + '</div>';
+        });
+        missedHtml += '</div>';
+    }
     return (
         '<h2 class="title">Deck Complete 🎉</h2>' +
         '<p class="sub" style="font-size:11px">' + esc(subj ? subj.name : '') + ' · ' + total + ' card' + (total === 1 ? '' : 's') + '</p>' +
         '<div class="card" style="text-align:center;padding:20px;margin-bottom:12px">' +
-        '<p style="font-family:var(--font-mono);font-size:36px;margin:0;color:' + GREEN + '">' + state.flashcardKnew +
-        ' / ' + total + '</p>' +
-        '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">Marked "I knew it" (' + pct + '%)</p>' +
+        '<p style="font-family:var(--font-mono);font-size:36px;margin:0;color:' + GREEN + '">' + state.flashcardKnew + ' / ' + total + '</p>' +
+        '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">' + pct + '% correct</p>' +
+        '<p style="font-size:13px;font-weight:700;margin:10px 0 0">' + msg + '</p>' +
         '</div>' +
-        '<button class="btn btn-green" style="margin-bottom:8px" data-action="flashcard-restart">Go Through Again</button>' +
+        '<div class="fc-stats">' +
+        '<div><b>' + state.flashcardKnew + '</b><span>👍 Right</span></div>' +
+        '<div><b>' + state.flashcardDidntKnow + '</b><span>👎 Missed</span></div>' +
+        '<div><b>' + (state.flashcardSkipped || 0) + '</b><span>⏭ Skipped</span></div>' +
+        '<div><b>' + fmtT(el) + '</b><span>⏱ Total</span></div>' +
+        '<div><b>' + fmtT(avg) + '</b><span>Per card</span></div>' +
+        '</div>' +
+        missedHtml +
+        (!isUserActive() ? '<div class="card" style="text-align:center;padding:14px;margin-bottom:12px"><p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">🔒 Free access covers ' + FREE_QUESTION_LIMIT + ' flashcards per subject.</p><button class="btn btn-gold" data-action="show-activate-popup" data-reason="You have finished your free flashcards.">Unlock all flashcards</button></div>' : '') +
+        (missed.length ? '<button class="btn btn-green" style="margin-bottom:8px" data-action="flashcard-retry-missed">🔁 Retry the ' + missed.length + ' I missed</button>' : '') +
+        '<button class="btn ' + (missed.length ? 'btn-outline' : 'btn-green') + '" style="margin-bottom:8px" data-action="flashcard-restart">Go Through Again</button>' +
         '<button class="btn btn-outline" data-action="flashcards-back-to-subjects">Choose Another Subject</button>'
     );
 }
@@ -23581,9 +23913,12 @@ document.addEventListener('click', function(e) {
     if (!el) return;
     const action = el.getAttribute('data-action');
 
+    if (action === 'show-activate-popup') { showActivatePopup(el.getAttribute('data-reason') || 'You have reached the free limit.'); return; }
+    if (action === 'activate-popup-close') { state.activatePopup = null; render(); return; }
+    if (action === 'activate-popup-go') { state.activatePopup = null; setView('activate'); return; }
     if (action === 'guest-prompt-close') { state.guestPrompt = null; render(); return; }
-    if (action === 'guest-prompt-signup') { state.guestPrompt = null; state.showSignup = true; state.showLogin = false; syncUrlForAuth('signup'); render(); return; }
-    if (action === 'guest-prompt-login') { state.guestPrompt = null; state.showLogin = true; state.showSignup = false; syncUrlForAuth('login'); render(); return; }
+    if (action === 'guest-prompt-signup') { state.guestPrompt = null; state.activatePopup = null; state.showSignup = true; state.showLogin = false; syncUrlForAuth('signup'); render(); return; }
+    if (action === 'guest-prompt-login') { state.guestPrompt = null; state.activatePopup = null; state.showLogin = true; state.showSignup = false; syncUrlForAuth('login'); render(); return; }
     if (!state.authUser && GUEST_BLOCKED[action] && !state.isGuestMock &&
         [].indexOf(state.view) === -1) {
         guestNeedsAccount(GUEST_BLOCKED[action]); return;
@@ -23846,6 +24181,81 @@ document.addEventListener('click', function(e) {
         startFlashcards(sid);
         return;
     }
+    if (action === 'flashcard-pick') {
+        if (state.flashcardPicked === null || state.flashcardPicked === undefined) {
+            state.flashcardPicked = parseInt(el.getAttribute('data-i'), 10);
+            const __fq = state.flashcardQuestions[state.flashcardIndex];
+            fcStopTimer();
+            fcPlay(__fq && state.flashcardPicked === __fq.correct_answer ? 'correct' : 'wrong');
+            render();
+        }
+        return;
+    }
+    if (action === 'fc-sound-toggle') {
+        if (state.fcSoundOn && state.fcVolume > 0) { state.fcSoundOn = false; }
+        else { state.fcSoundOn = true; if (state.fcVolume <= 0) { state.fcVolume = 0.8; storage.set('myutme_fc_volume', '0.8'); } fcPlay('blip'); }
+        render();
+        return;
+    }
+    if (action === 'fc-timer-toggle') {
+        // cycles: Off -> 15s -> 30s -> 60s -> Off
+        if (!state.fcTimerOn) { state.fcTimerOn = true; state.fcTimeLimit = 15; }
+        else if (state.fcTimeLimit === 15) { state.fcTimeLimit = 30; }
+        else if (state.fcTimeLimit === 30) { state.fcTimeLimit = 60; }
+        else { state.fcTimerOn = false; state.fcTimeLimit = 30; }
+        storage.set('myutme_fc_timer', state.fcTimerOn ? '1' : '0');
+        storage.set('myutme_fc_limit', String(state.fcTimeLimit));
+        fcStopTimer();
+        render();
+        return;
+    }
+    if (action === 'fc-bookmark') {
+        const bq = state.flashcardQuestions[state.flashcardIndex];
+        if (bq) {
+            const on = !__getMarked().some(function(x) { return x.h === __qh(bq); });
+            try { __syncMarked(bq, 'flashcard', on); } catch (e) {}
+            showToast(on ? 'Bookmarked. Find it in Marked Questions.' : 'Bookmark removed.', '');
+            render();
+        }
+        return;
+    }
+    if (action === 'fc-copy-exp') {
+        const cq = state.flashcardQuestions[state.flashcardIndex];
+        if (cq) {
+            let txt = String(cq.text || '').replace(/\u2028/g, '\n') + '\n';
+            (cq.options || []).forEach(function(o, i) { txt += String.fromCharCode(65 + i) + '. ' + o + '\n'; });
+            if (cq.options && cq.options[cq.correct_answer] !== undefined) txt += '\nAnswer: ' + String.fromCharCode(65 + cq.correct_answer) + '. ' + cq.options[cq.correct_answer] + '\n';
+            txt += '\nExplanation:\n' + (cq.explanation || 'No explanation provided.') + '\n\n(MyUTME)';
+            const done = function() { showToast('Copied to clipboard.', ''); };
+            const fallback = function() {
+                try { const ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); } catch (e) { showToast('Could not copy.', 'error'); }
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, fallback); else fallback();
+        }
+        return;
+    }
+    if (action === 'flashcard-retry-missed') {
+        if (state.flashcardMissed && state.flashcardMissed.length) {
+            state.flashcardQuestions = state.flashcardMissed.slice();
+            state.flashcardIndex = 0;
+            state.flashcardKnew = 0; state.flashcardMissed = []; state.flashcardSkipped = 0; state.fcStart = 0; state.fcElapsed = 0; state.fcPopupShown = false; state.flashcardDidntKnow = 0; state.flashcardMissed = []; state.flashcardSkipped = 0; state.fcStart = 0; state.fcElapsed = 0; state.fcPopupShown = false;
+            state.flashcardFlipped = false; state.flashcardPicked = null; state.flashcardExp = false;
+            render();
+        }
+        return;
+    }
+    if (action === 'flashcard-exp-open') {
+        state.flashcardExp = true;
+        render();
+        try { window.scrollTo(0, 0); var __sc = document.querySelector('.view-content'); if (__sc) __sc.scrollTop = 0; } catch (e) {}
+        return;
+    }
+    if (action === 'flashcard-exp-close') {
+        state.flashcardExp = false;
+        render();
+        try { window.scrollTo(0, 0); var __sc2 = document.querySelector('.view-content'); if (__sc2) __sc2.scrollTop = 0; } catch (e) {}
+        return;
+    }
     if (action === 'flashcard-flip') {
         state.flashcardFlipped = !state.flashcardFlipped;
         render();
@@ -23856,29 +24266,33 @@ document.addEventListener('click', function(e) {
         const q = state.flashcardQuestions[state.flashcardIndex];
         if (q) {
             saveFlashcardProgress(q.id, knewIt);
-            if (knewIt) { state.flashcardKnew++; } else { state.flashcardDidntKnow++; }
+            if (knewIt) { state.flashcardKnew++; } else {
+                state.flashcardDidntKnow++;
+                if (!state.flashcardMissed.some(function(m) { return m === q || (m.id && m.id === q.id); })) state.flashcardMissed.push(q);
+            }
         }
         state.flashcardIndex++;
-        state.flashcardFlipped = false;
+        state.flashcardFlipped = false; state.flashcardPicked = null; state.flashcardExp = false;
         render();
         return;
     }
     if (action === 'flashcard-skip') {
+        state.flashcardSkipped = (state.flashcardSkipped || 0) + 1;
         state.flashcardIndex++;
-        state.flashcardFlipped = false;
+        state.flashcardFlipped = false; state.flashcardPicked = null; state.flashcardExp = false;
         render();
         return;
     }
     if (action === 'flashcard-prev') {
         if (state.flashcardIndex > 0) { state.flashcardIndex--; }
-        state.flashcardFlipped = false;
+        state.flashcardFlipped = false; state.flashcardPicked = null; state.flashcardExp = false;
         render();
         return;
     }
     if (action === 'flashcard-restart') {
         state.flashcardIndex = 0;
-        state.flashcardFlipped = false;
-        state.flashcardKnew = 0;
+        state.flashcardFlipped = false; state.flashcardPicked = null; state.flashcardExp = false;
+        state.flashcardKnew = 0; state.flashcardMissed = []; state.flashcardSkipped = 0; state.fcStart = 0; state.fcElapsed = 0; state.fcPopupShown = false;
         state.flashcardDidntKnow = 0;
         render();
         return;
@@ -23887,7 +24301,7 @@ document.addEventListener('click', function(e) {
         state.flashcardSubject = null;
         state.flashcardQuestions = [];
         state.flashcardIndex = 0;
-        state.flashcardFlipped = false;
+        state.flashcardFlipped = false; state.flashcardPicked = null; state.flashcardExp = false;
         render();
         return;
     }
@@ -24892,7 +25306,7 @@ document.addEventListener('click', function(e) {
                 const isCorrect = idx === item.correct_answer;
                 state.examInstantResults[state.examIndex] = isCorrect;
                 if (!isCorrect) {
-                    saveWeakQuestion(state.authUser?.id, item.id, item.subject_id, 'exam', idx, item.correct_answer);
+                    if (state.authUser) saveWeakQuestion(state.authUser.id, item.id, item.subject_id, 'exam', idx, item.correct_answer);
                 }
             }
         }
@@ -25033,7 +25447,7 @@ document.addEventListener('click', function(e) {
 
     if (action === 'topic-set-count') {
         const c = el.getAttribute('data-count');
-        state.topicCount = (c === 'all') ? 'all' : (parseInt(c, 10) || 20);
+        state.topicCount = (c === 'all') ? 'all' : Math.max(20, parseInt(c, 10) || 20);
         storage.set('topicCount', String(state.topicCount));
         render();
         return;
@@ -25254,6 +25668,7 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'start-topic-practice') {
+        if (state.topicCount !== 'all' && parseInt(state.topicCount, 10) < 20) state.topicCount = 20;
         if (!state.topicCount) { showToast('Choose how many questions first.', ''); return; }
         state.topicNotesId = null;
         startTopicPractice();
@@ -28800,7 +29215,7 @@ function deleteQuestionOffline(questionId) {
             // Swipe right — previous card
             state.flashcardIndex--;
         }
-        state.flashcardFlipped = false;
+        state.flashcardFlipped = false; state.flashcardPicked = null; state.flashcardExp = false;
         render();
     }, { passive: true });
 })();
