@@ -9289,17 +9289,20 @@ const FREE_TRIAL_DAYS = 3;
 // p = { is_active, activation_expiry, created_at }. Returns { msLeft } for a free-plan
 // activation (expiry no later than created_at + 3 days), or null (not activated / paid plan).
 function freePlanOf(p) {
-    if (!p || !p.is_active || !p.activation_expiry || !p.created_at) return null;
-    var exp = Date.parse(p.activation_expiry), cr = Date.parse(p.created_at);
-    if (isNaN(exp) || isNaN(cr)) return null;
-    if (exp - cr > FREE_TRIAL_DAYS * 86400000 + 3600000) return null;   // longer than 3 days = a paid plan
+    if (!p || !p.is_active || !p.activation_expiry) return null;
+    var startRaw = p.free_plan_start || p.created_at;
+    if (!startRaw) return null;
+    var exp = Date.parse(p.activation_expiry), st = Date.parse(startRaw);
+    if (isNaN(exp) || isNaN(st)) return null;
+    if (exp - st > FREE_TRIAL_DAYS * 86400000 + 3600000) return null;   // longer than 3 days = a paid plan
     return { msLeft: exp - Date.now() };
 }
 function myFreePlan() {
     return freePlanOf({
         is_active: state.profile.is_active,
         activation_expiry: state.profile.activation_expiry,
-        created_at: state.authProfile && state.authProfile.created_at
+        created_at: state.authProfile && state.authProfile.created_at,
+        free_plan_start: state.authProfile && state.authProfile.free_plan_start
     });
 }
 function trialActive() {
@@ -9319,7 +9322,7 @@ function renderTrialBanner(hide) {
     if (isUserActive()) return '';
     // Only people who really got the 3-day free plan see "ended". Old accounts (no free-plan expiry, or a
     // paid plan that expired) never see anything about the free plan.
-    var cr = state.authProfile && state.authProfile.created_at ? Date.parse(state.authProfile.created_at) : NaN;
+    var cr = state.authProfile && (state.authProfile.free_plan_start || state.authProfile.created_at) ? Date.parse(state.authProfile.free_plan_start || state.authProfile.created_at) : NaN;
     var ex = state.profile.activation_expiry ? Date.parse(state.profile.activation_expiry) : NaN;
     var hadPlan = !isNaN(cr) && !isNaN(ex) && (ex - cr) <= FREE_TRIAL_DAYS * 86400000 + 3600000;
     if (!hadPlan) return '';
@@ -11871,7 +11874,7 @@ async function checkAuthSession(retriesLeft) {
             loadMyElectivesLocal();
             const cachedProfile = loadOfflineCache('profile_' + user.id);
             let { data: prof, error: pErr } = await withNetworkTimeout(
-                supabase.from('profiles').select('id,username,email,updated_at,is_active,activation_expiry,full_name,created_at,department').eq('id', user.id).maybeSingle(),
+                supabase.from('profiles').select('id,username,email,updated_at,is_active,activation_expiry,full_name,created_at,department,free_plan_start').eq('id', user.id).maybeSingle(),
                 8000, 'Profile load'
             ).catch(function(e) {
                 console.warn('Profile load timed out, using cache if available:', e);
@@ -12042,11 +12045,11 @@ async function signUp(fullName, username, email, password, department) {
             state.profile.is_active = false;
             state.profile.activation_expiry = null;
             try {
-                const __fp = await supabase.from('profiles').select('is_active,activation_expiry,created_at').eq('id', data.user.id).maybeSingle();
+                const __fp = await supabase.from('profiles').select('is_active,activation_expiry,created_at,free_plan_start').eq('id', data.user.id).maybeSingle();
                 if (__fp && __fp.data) {
                     state.profile.is_active = !!__fp.data.is_active;
                     state.profile.activation_expiry = __fp.data.activation_expiry || null;
-                    state.authProfile = Object.assign({}, state.authProfile || {}, { created_at: __fp.data.created_at });
+                    state.authProfile = Object.assign({}, state.authProfile || {}, { created_at: __fp.data.created_at, free_plan_start: __fp.data.free_plan_start || null });
                 }
             } catch (e) {}
             state.profile.fullName = fullName;
@@ -12138,7 +12141,7 @@ async function signIn(emailOrUsername, password) {
             loadMyElectivesLocal();
             const { data: prof, error: pErr } = await supabase
                 .from('profiles')
-                .select('id,username,email,updated_at,is_active,activation_expiry,full_name,created_at,department')
+                .select('id,username,email,updated_at,is_active,activation_expiry,full_name,created_at,department,free_plan_start')
                 .eq('id', data.user.id)
                 .maybeSingle();
             if (!pErr && prof) {
