@@ -12004,6 +12004,7 @@ async function signUp(fullName, username, email, password, department) {
             
             registerDeviceSession();
             state.showActivationBanner = true;
+            goToPostAuthView();
             render();
             
         }
@@ -12109,9 +12110,8 @@ async function signIn(emailOrUsername, password) {
             if (!isUserActive() && !isAdmin()) {
                 state.showActivationBanner = true;
             }
-            // After logging in, land straight on the Account page (not Home)
-            state.view = 'profile';
-            try { syncUrlForView('profile'); } catch (e) {}
+            // After logging in, land on Home (or the subdomain's own page)
+            goToPostAuthView();
             render();
             cacheAllDataForOffline();
             restoreSessionSnapshot();
@@ -12695,8 +12695,9 @@ async function startMockExam(subjects) {
 for (const subjectId of subjects) {
             const allSubjectQuestions = await window.OfflineDB.getQuestionsOffline('mock', subjectId);
             if (subjectId === 'eng') {
-                const engSet = __pickEnglishPaper(allSubjectQuestions, perSubject, true);
+                let engSet = __pickEnglishPaper(allSubjectQuestions, perSubject, true);
                 const pq = engSet.filter(function(q) { return q.uses_passage && q.batch_number > 0; })[0];
+                engSet = await __attachClozePassage(engSet, 'mock', pq ? pq.batch_number : null);
                 if (pq) {
                     const passage = await window.OfflineDB.getPassageOffline(pq.batch_number, 'mock');
                     if (passage) {
@@ -14947,6 +14948,7 @@ async function startCbt() {
                 if (bank && bank.length) {
                     qs = __pickEnglishPaper(bank, perSubject, true);
                     const pq = qs.filter(function(q) { return q.uses_passage && q.batch_number > 0; })[0];
+                    qs = await __attachClozePassage(qs, 'cbt', pq ? pq.batch_number : null);
                     if (pq) {
                         let passage = null;
                         try {
@@ -15212,10 +15214,20 @@ function __pickBySubject(pool, count, subjectId, scope) {
 }
 const __ENG_ORDER = ['gap', 'synonym', 'antonym', 'interpretation', 'structure', 'vowel', 'consonant', 'stress'];
 const __ENG_W = { gap: 9, synonym: 7, antonym: 7, interpretation: 4, structure: 2, vowel: 2, consonant: 2, stress: 3 };
+function __isClozeQ(q) {
+    if (!q) return false;
+    if (q.passage_kind) return q.passage_kind === 'cloze';
+    return /gaps?\s+numbered|gas\s+numbered|numbered\s+gaps/i.test(q.passage_text || '');
+}
+function __gapNo(q) { var m = /question number\s+(\d+)/i.exec((q && q.text) || ''); return m ? parseInt(m[1], 10) : null; }
 function __pickEnglishPaper(questions, n, onePassage) {
-    // Passage block first, then every question TYPE in one run (gaps, synonyms, antonyms, ...).
-    // Unseen questions come first; shared memory with the other modes means a set done in
-    // Past Questions will not come back in CBT or Mock until the whole bank has been used.
+    // Order of every English paper:
+    //   1) ONE normal reading passage (its questions together)
+    //   2) every question TYPE in one run (gaps, synonyms, antonyms, ...)
+    //   3) the fill-the-gap (numbered gaps) passage LAST, its questions together
+    // CBT / Mock (onePassage) take exactly one reading passage + one gap passage, and
+    // every question of a block comes from that single passage. Past Questions keep the
+    // year's own order. Unseen questions come first across all modes.
     const pool = (questions || []).slice();
     const byOrder = function(x, y) { return (x.display_order || 0) - (y.display_order || 0); };
     const served = __getServed('eng'), sv = {};
@@ -15231,20 +15243,33 @@ function __pickEnglishPaper(questions, n, onePassage) {
             pools[pools[q.qtype] ? q.qtype : 'structure'].push(q);
         }
     });
-    const cap = Math.min(10, Math.max(1, Math.ceil(n * 0.25)));
-    const ranked = shuffleArray(groups.map(function(g, i) { return { g: g, i: i, seen: g.every(function(q) { return sv[__qh(q)]; }) ? 1 : 0, small: g.length < 3 ? 1 : 0 }; }))
-        .sort(function(a, b) { return (a.seen - b.seen) || (a.small - b.small); });
-    let gPick = [], used = 0;
-    if (onePassage) {
-        if (ranked.length) { gPick = [{ g: ranked[0].g.slice(0, cap), i: ranked[0].i }]; }
-    } else {
-        ranked.forEach(function(o) { if (used + o.g.length <= cap) { gPick.push(o); used += o.g.length; } });
-        if (!gPick.length && ranked.length) gPick = [{ g: ranked[0].g.slice(0, cap), i: ranked[0].i }];
-    }
-    gPick.sort(function(a, b) { return a.i - b.i; });
-    let block = [];
-    gPick.forEach(function(o) { block = block.concat(o.g.slice().sort(byOrder)); });
-    const R = Math.max(0, n - block.length), tot = __ENG_ORDER.reduce(function(a, t) { return a + __ENG_W[t]; }, 0);
+    const meta = groups.map(function(g, i) {
+        const cloze = __isClozeQ(g[0]);
+        if (cloze) g.sort(function(x, y) { const a = __gapNo(x), b = __gapNo(y); return (a !== null && b !== null && a !== b) ? a - b : byOrder(x, y); });
+        return { g: g, i: i, cloze: cloze, seen: g.every(function(q) { return sv[__qh(q)]; }) ? 1 : 0, small: g.length < 3 ? 1 : 0 };
+    });
+    const rank = function(list) {
+        const arr = onePassage ? shuffleArray(list.slice()) : list.slice();
+        return arr.sort(function(a, b) { return (a.seen - b.seen) || (onePassage ? (a.small - b.small) : (a.i - b.i)); });
+    };
+    const capR = Math.min(10, Math.max(1, Math.ceil(n * 0.25)));
+    const capC = Math.min(10, Math.max(1, Math.ceil(n * 0.2)));
+    const pickBlock = function(list, cap) {
+        let picks = [], used = 0;
+        if (onePassage) {
+            if (list.length) picks = [{ g: list[0].g.slice(0, cap), i: list[0].i }];
+        } else {
+            list.forEach(function(o) { if (used + o.g.length <= cap) { picks.push(o); used += o.g.length; } });
+            if (!picks.length && list.length) picks = [{ g: list[0].g.slice(0, cap), i: list[0].i }];
+        }
+        picks.sort(function(a, b) { return a.i - b.i; });
+        let block = [];
+        picks.forEach(function(o) { block = block.concat(o.g); });
+        return block;
+    };
+    const readBlock = pickBlock(rank(meta.filter(function(o) { return !o.cloze; })), capR);
+    const clozeBlock = pickBlock(rank(meta.filter(function(o) { return o.cloze; })), capC);
+    const R = Math.max(0, n - readBlock.length - clozeBlock.length), tot = __ENG_ORDER.reduce(function(a, t) { return a + __ENG_W[t]; }, 0);
     const want = {}, raw = {};
     __ENG_ORDER.forEach(function(t) { raw[t] = __ENG_W[t] * R / tot; want[t] = Math.floor(raw[t]); });
     let left = R - __ENG_ORDER.reduce(function(a, t) { return a + want[t]; }, 0);
@@ -15256,12 +15281,28 @@ function __pickEnglishPaper(questions, n, onePassage) {
         __ENG_ORDER.forEach(function(t) { if (spill > 0 && want[t] < pools[t].length) { want[t]++; spill--; moved = true; } });
         if (!moved) break;
     }
-    let out = block.slice();
+    let out = readBlock.slice();
     __ENG_ORDER.forEach(function(t) {
         out = out.concat(__freshFirst(pools[t], served).slice(0, want[t]).sort(byOrder));
     });
+    out = out.concat(clozeBlock);
     __markServed('eng', out, pool);
     return out;
+}
+// CBT / Mock: the reading passage is read on its own page first (existing flow). The
+// fill-the-gap passage questions get their passage attached so the Passage button opens it.
+async function __attachClozePassage(qs, mode, mainBatch) {
+    try {
+        const cq = (qs || []).filter(function(q) { return q && q.uses_passage && q.batch_number > 0 && __isClozeQ(q) && q.batch_number !== mainBatch; })[0];
+        if (!cq) return qs;
+        const p = await withNetworkTimeout(window.OfflineDB.getPassageOffline(cq.batch_number, mode), 12000, 'English passage load');
+        if (!p || !p.passage_text) return qs;
+        return qs.map(function(q) {
+            return (q && q.uses_passage && q.batch_number === cq.batch_number)
+                ? Object.assign({}, q, { passage_text: p.passage_text, passage_title: p.title || 'Fill-in-the-gap Passage' })
+                : q;
+        });
+    } catch (e) { return qs; }
 }
 function __examPassages() {
     const list = [], pos = {};
@@ -16516,6 +16557,20 @@ const NAV_PATH_MAP = {
     'mockexam': '/mock-arena',
     'profile': '/account',
 };
+// Subdomains: flashcard.<domain> opens Flashcards, practice.<domain> opens Topic Practice.
+const HOST_VIEWS = { flashcard: 'flashcards', flashcards: 'flashcards', practice: 'topic', topic: 'topic' };
+function hostLandingView() {
+    try { return HOST_VIEWS[String(window.location.hostname).toLowerCase().split('.')[0]] || null; } catch (e) { return null; }
+}
+// Where a person lands right after logging in / creating an account:
+// Home on the main site, or the subdomain's own page (Flashcards / Topic Practice).
+function goToPostAuthView() {
+    const hv = hostLandingView();
+    if (hv) { try { setView(hv); return; } catch (e) {} state.view = hv; return; }
+    state.view = 'home';
+    try { syncUrlForView('home'); } catch (e) {}
+    try { saveSessionSnapshot(); } catch (e) {}
+}
 const PATH_TO_NAV_VIEW = {};
 Object.keys(NAV_PATH_MAP).forEach(function(k) { PATH_TO_NAV_VIEW[NAV_PATH_MAP[k]] = k; });
 
@@ -18332,6 +18387,13 @@ function renderPassageModal() {
         if (!list.length) return '';
         const cur = __examPassageFor(state.examQuestions && state.examQuestions[state.examIndex]);
         return __passageListHtml(list, cur ? cur.p.no : 0);
+    } else if ((function() {
+        const cq = state.view === 'cbt-exam' ? (state.cbtQuestions || [])[state.cbtIndex]
+            : state.view === 'mock-exam' ? (state.mockQuestions || [])[state.mockIndex] : null;
+        if (cq && cq.passage_text) { passage = { title: cq.passage_title, passage_text: cq.passage_text }; return true; }
+        return false;
+    })()) {
+        // passage of the current question (fill-the-gap passage in CBT / Mock)
     } else if (state.engMockHasPassage && state.engMockPassage) {
         passage = state.engMockPassage;
     } else if (state.currentEnglishPassage && (state.view === 'cbt-exam' || state.view === 'mock-exam')) {
@@ -28500,9 +28562,7 @@ async function init() {
         const path = window.location.pathname;
         if (path === '/login') { state.showLogin = true; return; }
         if (path === '/signup') { state.showSignup = true; return; }
-        // Subdomains: flashcard.<domain> opens Flashcards, practice.<domain> opens Topic Practice.
-        const HOST_VIEWS = { flashcard: 'flashcards', flashcards: 'flashcards', practice: 'topic', topic: 'topic' };
-        const hostView = HOST_VIEWS[String(window.location.hostname).toLowerCase().split('.')[0]];
+        const hostView = hostLandingView();
         if (hostView && (path === '/' || path === '')) { state.view = hostView; return; }
         const v = PATH_TO_NAV_VIEW[path] || (path === '/ai-tutor' ? 'ai-assistant' : null);
         if (v) state.view = v;
@@ -28568,6 +28628,12 @@ async function init() {
     ]);
     // Restore session snapshot after auth is ready
     const restored = restoreSessionSnapshot();
+    (function openSubdomainPage() {
+        const hv = hostLandingView();
+        if (!hv || (window.location.pathname !== '/' && window.location.pathname !== '')) return;
+        if (['home', 'profile', 'mysubjects', 'mockexam', 'ai-assistant'].indexOf(state.view) === -1) return;
+        try { setView(hv); } catch (e) { state.view = hv; render(); }
+    })();
     if (restored) {
         // Re-route to the restored view
         const examViews = ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'];
