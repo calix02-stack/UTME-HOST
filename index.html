@@ -791,6 +791,10 @@
        .view — so it stays put on the page bar at all times, on every
        screen, and never appears/disappears with scroll position. */
     .topbar-refresh-btn.is-spinning svg { animation: spin 0.7s linear infinite; }
+    .topbar-left { display: flex; align-items: center; gap: 8px; }
+    .upd-pill { display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 999px; padding: 6px 11px; background: #0F6B3F; color: #fff; font: 700 12px/1 inherit; cursor: pointer; animation: updPulse 1.8s ease-in-out infinite; }
+    .upd-pill.is-busy { opacity: .7; animation: none; }
+    @keyframes updPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(15,107,63,.45); } 50% { box-shadow: 0 0 0 7px rgba(15,107,63,0); } }
 
 
     .view-content {
@@ -17977,7 +17981,9 @@ function renderApp() {
             ? '<div class="topbar-left">' +
               '<button class="icon-btn topbar-refresh-btn" data-action="app-refresh" aria-label="Refresh">' +
               svg('refresh', 16).replace('stroke="currentColor"', 'stroke="white"') +
-              '</button></div>' +
+              '</button>' +
+              (state.updateAvailable ? '<button class="upd-pill" data-action="app-update-now" aria-label="Update available">' + svg('refresh', 13).replace('stroke="currentColor"', 'stroke="white"') + '<span>Update</span></button>' : '') +
+              '</div>' +
               '<div class="topbar-center"><span class="brand">' + logoSvg(18) + '<span>My<b>UTME</b></span>' +
               (state.swVersion ? '<span class="app-version-badge">' + esc(formatVersionBadge(state.swVersion)) + '</span>' : '') +
               '</span></div>' +
@@ -26649,6 +26655,11 @@ document.addEventListener('click', function(e) {
     // DOCUMENTS
     
     // APP REFRESH — fixed button that lives in the topbar on every screen
+    if (action === 'app-update-now') {
+        el.classList.add('is-busy'); el.querySelector('span') && (el.querySelector('span').textContent = 'Updating…');
+        if (window.mwRefresh) window.mwRefresh(); else location.reload();
+        return;
+    }
     if (action === 'app-refresh') {
         refreshApp();
         return;
@@ -29740,6 +29751,40 @@ function swCheckUpdate(timeoutMs) {
         } catch (e) { resolve(false); }
     });
 }
+
+
+// ---------- "Update available" watcher ----------
+// Every POLL_MS (while the app is open and online) it sends two tiny HEAD requests (index.html and
+// sw.js, headers only, a few hundred bytes, no file download). If the server's version stamp
+// (ETag / Last-Modified) differs from what this page started with, a green "Update" button appears
+// on the Home top bar. Tapping it installs the new version. It pauses when the app is in the
+// background and during exams.
+(function () {
+    var POLL_MS = 30000, base = null, busy = false, dead = false;
+    function inExam() { return ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'].indexOf(state.view) !== -1; }
+    async function stamp(file) {
+        var r = await fetch(file, { method: 'HEAD', cache: 'no-store' });
+        if (!r.ok) return null;
+        return r.headers.get('etag') || r.headers.get('last-modified') || r.headers.get('content-length') || '';
+    }
+    async function check() {
+        if (busy || dead || state.updateAvailable || document.hidden || !navigator.onLine || inExam()) return;
+        busy = true;
+        try {
+            var a = await stamp('index.html'), b = await stamp('sw.js');
+            if (a === null || b === null) return;
+            var sig = a + '|' + b;
+            if (sig === '|') { dead = true; return; }          // host gives no version info: cannot detect this way
+            if (base === null) { base = sig; return; }
+            if (sig !== base) { state.updateAvailable = true; render(); }
+        } catch (e) { /* offline or slow: try again next time */ }
+        finally { busy = false; }
+    }
+    setTimeout(check, 12000);                                  // first reading = the version this page is running
+    setInterval(check, POLL_MS);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+    window.addEventListener('online', check);
+})();
 
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
