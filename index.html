@@ -182,24 +182,6 @@
 </script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
-<!-- Telegram Mini App support: runs only when opened from Telegram -->
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script>
-(function(){
-  var tg=window.Telegram&&window.Telegram.WebApp;
-  if(!tg||!tg.initData)return;
-  function safe(f){try{f()}catch(e){}}
-  document.documentElement.setAttribute('data-telegram','1');
-  safe(function(){tg.ready()});
-  safe(function(){tg.expand()});
-  safe(function(){tg.disableVerticalSwipes()});
-  safe(function(){tg.enableClosingConfirmation()});
-  safe(function(){tg.setHeaderColor('#0F6B3F')});
-  safe(function(){tg.BackButton.show();tg.BackButton.onClick(function(){
-    if(window.history.length>1)window.history.back();else tg.close();
-  })});
-})();
-</script>
 <link rel="manifest" href="manifest.json" />            
 <meta name="theme-color" content="#0F6B3F" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -6223,6 +6205,12 @@
     }
 
 
+    .nw-ad{margin:14px auto;text-align:center;max-width:320px}
+    .nw-ad .al{display:block;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+    .nw-ad iframe{border:0;width:300px;height:250px;max-width:100%;background:var(--card-bg);border-radius:6px}
+    .nw-ad.sm{margin:6px auto 8px;max-width:340px;line-height:0}
+    .nw-ad.sm .al{line-height:1.2;margin-bottom:2px}
+    .nw-ad.sm iframe{width:320px;height:50px}
 
     /* In-app notification banner */
     #inapp-notif-banner {
@@ -7982,6 +7970,8 @@ u.q-u { text-decoration: underline; text-decoration-thickness: 2px; text-underli
 .ex-list{display:flex;flex-direction:column;gap:10px;margin:12px 0 18px}
 .ex-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border:1.5px solid var(--line);border-left:6px solid var(--c);border-radius:14px;background:var(--card-bg);color:var(--ink);font:inherit;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .12s,box-shadow .15s}
 .ex-card:active{transform:scale(.985)}
+.ex-card.ex-empty{opacity:.55;background:var(--bg);box-shadow:none;border-left-color:var(--line)}
+.ex-card.ex-empty .ex-badge{background:var(--line);color:var(--muted)}
 .ex-card.sel{background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 62%,#000));border-color:var(--c);color:#fff;box-shadow:0 6px 18px color-mix(in srgb,var(--c) 40%,transparent)}
 .ex-badge{flex:0 0 auto;min-width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;letter-spacing:.04em;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c)}
 .ex-card.sel .ex-badge,.ex-chosen .ex-badge{background:rgba(255,255,255,.22);color:#fff}
@@ -8752,8 +8742,6 @@ function openExternalUrl(url) {
     try { w = window.open(url, '_blank'); } catch (e) {}
     if (!w) { window.location.href = url; }
 }
-// Set this to your bot link after creating it in BotFather, e.g. "https://t.me/MyUTMEBot"
-const TELEGRAM_URL = "https://t.me/MyUTMEPracticeBot";
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
@@ -11903,6 +11891,31 @@ function guestCardHtml(text) {
 // is right even if the news loaded before they finished logging in.)
 // ----- admin -----
 // ----- screens -----
+// Ad box (Adsterra 300x250). Loaded inside its own small frame (ad.html) so it can never cover the screen.
+// Shown to everyone including the admin; hidden only when offline.
+// The app redraws itself many times while opening (login check, settings, courses, news...). An ad frame
+// created during that would be thrown away before it finishes loading, so ads never appeared until a refresh.
+// So we only drop the real ad frames in once the screen has stayed still for a moment.
+function adHtml(big) {
+    if (!navigator.onLine) return '';
+    return big
+        ? '<div class="nw-ad"><span class="al">Advertisement</span><div class="adframe" data-src="/ad.html" data-w="300" data-h="250" style="width:300px;height:250px;max-width:100%;margin:0 auto"></div></div>'
+        : '<div class="nw-ad sm"><span class="al">Advertisement</span><div class="adframe" data-src="/ad-small.html" data-w="320" data-h="50" style="width:320px;height:50px;max-width:100%;margin:0 auto"></div></div>';
+}
+let adFillTimer = null;
+function scheduleAds() { clearTimeout(adFillTimer); adFillTimer = setTimeout(fillAds, 900); }
+function fillAds() {
+    document.querySelectorAll('.adframe').forEach(function(box) {
+        if (box.firstChild) return;
+        const f = document.createElement('iframe');
+        f.src = box.getAttribute('data-src');
+        f.width = box.getAttribute('data-w'); f.height = box.getAttribute('data-h');
+        f.setAttribute('scrolling', 'no'); f.setAttribute('frameborder', '0'); f.title = 'Advertisement';
+        f.style.cssText = 'border:0;width:100%;height:100%;display:block';
+        box.appendChild(f);
+    });
+}
+function adBox() { return adHtml(false); }   // thin 320x50 banner
 // ============================================================
 //  AUTH FUNCTIONS
 // ============================================================
@@ -12882,6 +12895,7 @@ function fridayFlushReleased() {
             }
         });
         if (changed) storage.set(fridayStoreKey(), JSON.stringify(recs));
+        try { fridaySyncScores(); } catch (e) {}
     } catch (e) { console.warn('Friday release error:', e); }
 }
 document.addEventListener('visibilitychange', function() { if (!document.hidden) fridayFlushReleased(); });
@@ -12905,13 +12919,20 @@ function renderMockExamPicker() {
     const sel = (state.mockSelectedSubjects || []).filter(function(id) { return electives.some(function(x) { return x.id === id; }); }).slice(0, 3);
     state.mockSelectedSubjects = sel;
     let html = back + '<h2 class="title">Mock Arena</h2><p class="sub">Friday Mock · every Friday · 2 hours · English + 3 subjects</p>';
+    const __tab = state.mockArenaTab === 'board' ? 'board' : 'mock';
+    html += '<div class="leaderboard-tabs">' +
+        '<button class="leaderboard-tab' + (__tab === 'mock' ? ' active' : '') + '" data-action="friday-tab" data-tab="mock">📝 Mock</button>' +
+        '<button class="leaderboard-tab' + (__tab === 'board' ? ' active' : '') + '" data-action="friday-tab" data-tab="board">🏆 Leaderboard</button></div>';
+    if (__tab === 'board') return html + renderFridayBoard();
 
     if (done && fridayReleased(done)) {
         html += '<div class="card" style="text-align:center;padding:20px"><p style="font-size:34px;margin:0">✅</p>' +
             '<h3 class="title" style="font-size:15px">Your Friday Mock result</h3>' +
             '<p style="font-size:24px;font-weight:700;margin:6px 0">' + done.total + ' / ' + done.max + '</p>' +
             '<p class="sub">' + esc((done.names || []).join(' · ')) + '</p>' +
-            '<p style="font-size:11px;color:var(--muted);margin:8px 0 0">Next Mock opens next Friday.</p></div>';
+            '<p style="font-size:11px;color:var(--muted);margin:8px 0 0">Next Mock opens next Friday.</p>' +
+            '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="friday-share-rec" data-week="' + esc(done.week) + '">📤 Share</button>' +
+            '<button class="btn btn-green" style="flex:1;padding:9px;font-size:12px" data-action="friday-tab" data-tab="board" data-week="' + esc(done.week) + '">🏆 My rank</button></div></div>';
     } else if (done) {
         html += '<div class="card" style="text-align:center;padding:22px"><p style="font-size:34px;margin:0">⏳</p>' +
             '<h3 class="title" style="font-size:15px">Mock submitted</h3>' +
@@ -12951,6 +12972,176 @@ function renderMockExamPicker() {
             '<span style="flex:0 0 64px;text-align:right;font-size:11px;font-weight:700">' + (rel ? r.total + '/' + r.max : (r ? 'Pending' : '—')) + '</span></div>';
     });
     return html + '</div>';
+}
+
+// ============================================================
+//  FRIDAY MOCK LEADERBOARD — top scores out of 400 + best in each subject.
+//  Scores live in Supabase table friday_mock_scores (see friday_mock_scores.sql).
+//  A week's board opens only after that Mock closes (Saturday 12:00 am).
+// ============================================================
+var __fridaySyncAt = 0, __fridaySyncing = false;
+async function fridayUploadScore(rec) {
+    if (!state.authUser || !rec || rec.max !== 400 || !isOnline()) return false;
+    try {
+        const res = await supabase.from('friday_mock_scores').upsert([{
+            user_id: state.authUser.id,
+            username: ((state.profile && (state.profile.name || state.profile.fullName)) || 'Candidate'),
+            week: rec.week, score: rec.total, max_score: rec.max, subject_scores: rec.scores || {}
+        }], { onConflict: 'user_id,week' });
+        if (res && res.error) { console.warn('Friday upload error:', res.error); return false; }
+        const r = fridayRecords().find(function(x) { return x.week === rec.week; });
+        if (r) { r.synced = true; fridaySaveRecord(r); }
+        return true;
+    } catch (e) { console.warn('Friday upload exception:', e); return false; }
+}
+async function fridaySyncScores(force) {
+    if (__fridaySyncing || !state.authUser || !isOnline()) return;
+    if (!force && Date.now() - __fridaySyncAt < 60000) return;
+    __fridaySyncAt = Date.now();
+    __fridaySyncing = true;
+    try {
+        const list = fridayRecords().filter(function(r) { return !r.synced && r.max === 400; });
+        for (let i = 0; i < list.length; i++) await fridayUploadScore(list[i]);
+    } finally { __fridaySyncing = false; }
+}
+function fridayClosedWeeks() {
+    const base = new Date(fridayKey() + 'T00:00:00'), out = [];
+    for (let i = 0; i < 8; i++) {
+        const d = new Date(base.getTime()); d.setDate(d.getDate() - i * 7);
+        const k = fridayKey(d);
+        if (Date.now() >= fridayWindowEnd(k).getTime()) out.push(k);
+    }
+    return out;
+}
+state.fridayBoards = state.fridayBoards || {};
+async function loadFridayBoard(week, force) {
+    const b = state.fridayBoards[week] || (state.fridayBoards[week] = {});
+    if (b.loading) return;
+    const ck = 'fridayBoard_' + week;
+    if (!force) {
+        try {
+            const c = JSON.parse(storage.get(ck) || 'null');
+            if (c && c.rows && Date.now() - c.at < 10 * 60 * 1000) { b.rows = c.rows; b.at = c.at; b.error = false; return; }
+        } catch (e) {}
+    }
+    if (!isOnline()) { b.error = 'offline'; return; }
+    b.loading = true; b.error = false; render();
+    try {
+        const res = await supabase.from('friday_mock_scores')
+            .select('user_id,username,score,max_score,subject_scores')
+            .eq('week', week).order('score', { ascending: false }).limit(500);
+        if (res.error) throw res.error;
+        b.rows = res.data || []; b.at = Date.now();
+        try { storage.set(ck, JSON.stringify({ at: b.at, rows: b.rows })); } catch (e) {}
+    } catch (e) { console.warn('Board load error:', e); b.error = 'fail'; }
+    b.loading = false; render();
+}
+// Competition ranking: equal scores share a rank (1,2,2,4).
+function fridayRanked(rows, valFn) {
+    const list = rows.map(function(r) { return { r: r, v: valFn(r) }; }).filter(function(x) { return typeof x.v === 'number'; });
+    list.sort(function(a, b) { return b.v - a.v; });
+    let rank = 0, prev = null;
+    list.forEach(function(x, i) { if (x.v !== prev) { rank = i + 1; prev = x.v; } x.rank = rank; });
+    return list;
+}
+function fridayBoardRow(x, max, meId) {
+    const me = x.r.user_id === meId;
+    const medal = x.rank === 1 ? '🥇' : x.rank === 2 ? '🥈' : x.rank === 3 ? '🥉' : x.rank;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;margin-bottom:6px;background:' + (me ? 'var(--green-soft, rgba(15,107,63,.12))' : 'var(--bg)') + ';' + (me ? 'border:1.5px solid var(--green)' : '') + '">' +
+        '<span style="flex:0 0 30px;text-align:center;font-weight:800;font-size:' + (x.rank <= 3 ? 18 : 13) + 'px">' + medal + '</span>' +
+        '<span style="flex:1;min-width:0;font-size:13px;font-weight:' + (me ? 800 : 600) + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.r.username || 'Candidate') + (me ? ' (you)' : '') + '</span>' +
+        '<span style="font-weight:800;font-size:13px;color:var(--green)">' + x.v + '<span style="color:var(--muted);font-weight:600"> / ' + max + '</span></span></div>';
+}
+function fridayBoardText(week) {
+    const b = state.fridayBoards[week]; if (!b || !b.rows) return '';
+    const top = fridayRanked(b.rows, function(r) { return r.score; }).slice(0, 10);
+    let t = '🏆 MyUTME Friday Mock · ' + fridayLabel(week) + '\nTop scores (out of 400)\n';
+    top.forEach(function(x) { t += x.rank + '. ' + (x.r.username || 'Candidate') + ' — ' + x.v + '\n'; });
+    return t + '\nBeat them on the next Friday Mock: ' + window.location.origin;
+}
+function renderFridayBoard() {
+    const weeks = fridayClosedWeeks();
+    const openWeek = fridayKey();
+    let html = '';
+    if (isFridayToday()) html += '<div class="card" style="text-align:center;padding:14px"><p style="font-size:12px;color:var(--muted);margin:0">🔒 Today\'s Mock board opens after it closes (Saturday, 12:00 am). Last week\'s ranking is below.</p></div>';
+    if (!weeks.length) return html + '<div class="card" style="text-align:center;padding:24px"><p style="font-size:30px;margin:0">🏆</p><p style="font-size:13px;color:var(--muted)">No ranking yet. It appears after the first Friday Mock closes.</p></div>';
+    let week = state.fridayBoardWeek;
+    if (weeks.indexOf(week) === -1) week = weeks[0];
+    state.fridayBoardWeek = week;
+    const b = state.fridayBoards[week] || (state.fridayBoards[week] = {});
+    if (!b.rows && !b.loading && !b.error) { loadFridayBoard(week); }
+    // week chips
+    html += '<div style="display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px">';
+    weeks.forEach(function(w) {
+        html += '<button class="year-chip' + (w === week ? ' selected' : '') + '" style="flex:0 0 auto" data-action="friday-board-week" data-week="' + w + '">' + fridayLabel(w) + '</button>';
+    });
+    html += '</div>';
+    const mode = state.fridayBoardMode === 'subjects' ? 'subjects' : 'overall';
+    html += '<div class="leaderboard-tabs">' +
+        '<button class="leaderboard-tab' + (mode === 'overall' ? ' active' : '') + '" data-action="friday-board-mode" data-mode="overall">Overall /400</button>' +
+        '<button class="leaderboard-tab' + (mode === 'subjects' ? ' active' : '') + '" data-action="friday-board-mode" data-mode="subjects">By subject</button></div>';
+    if (b.loading && !b.rows) return html + '<div class="loading-spinner"><div class="spinner"></div><p>Loading ranking...</p></div>';
+    if (b.error && !b.rows) return html + '<div class="card" style="text-align:center;padding:20px"><p style="font-size:13px;color:var(--muted);margin:0 0 10px">' + (b.error === 'offline' ? 'Go online to see the ranking.' : 'Could not load the ranking.') + '</p><button class="btn btn-outline" style="padding:8px 14px;font-size:12px" data-action="friday-board-retry">Try again</button></div>';
+    const rows = b.rows || [];
+    if (!rows.length) return html + '<div class="card" style="text-align:center;padding:24px"><p style="font-size:30px;margin:0">🏆</p><p style="font-size:13px;color:var(--muted);margin:6px 0 0">Nobody has a score for ' + fridayLabel(week) + ' yet.</p></div>';
+    const meId = state.authUser && state.authUser.id;
+    if (mode === 'overall') {
+        const ranked = fridayRanked(rows, function(r) { return r.score; });
+        html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><p style="font-size:13px;font-weight:800;margin:0">Top scores · ' + ranked.length + ' candidate' + (ranked.length === 1 ? '' : 's') + '</p>' +
+            '<button class="btn btn-outline" style="padding:6px 10px;font-size:11px" data-action="friday-share-board">📤 Share</button></div>';
+        ranked.slice(0, 20).forEach(function(x) { html += fridayBoardRow(x, 400, meId); });
+        const mine = ranked.find(function(x) { return x.r.user_id === meId; });
+        if (mine && mine.rank > 20) html += '<p style="text-align:center;font-size:11px;color:var(--muted);margin:8px 0 6px">Your position</p>' + fridayBoardRow(mine, 400, meId);
+        return html + '</div>';
+    }
+    // By subject: best in every subject, then the full top 10 of the chosen subject
+    const sids = [];
+    rows.forEach(function(r) { Object.keys(r.subject_scores || {}).forEach(function(k) { if (sids.indexOf(k) === -1) sids.push(k); }); });
+    sids.sort();
+    const nameOf = function(sid) { const sj = SUBJECTS.find(function(x) { return x.id === sid; }); return sj ? sj.name : sid; };
+    html += '<div class="card"><p style="font-size:13px;font-weight:800;margin:0 0 10px">🏅 Highest in each subject</p>';
+    sids.forEach(function(sid) {
+        const rk = fridayRanked(rows, function(r) { return (r.subject_scores || {})[sid]; });
+        if (!rk.length) return;
+        const tied = rk.filter(function(x) { return x.rank === 1; });
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span style="flex:0 0 96px;font-size:12px;color:var(--muted)">' + esc(nameOf(sid)) + '</span>' +
+            '<span style="flex:1;min-width:0;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(tied[0].r.username || 'Candidate') + (tied.length > 1 ? ' +' + (tied.length - 1) : '') + '</span>' +
+            '<span style="font-weight:800;color:var(--green);font-size:13px">' + tied[0].v + '/100</span></div>';
+    });
+    html += '</div>';
+    let sel = state.fridayBoardSubject;
+    if (sids.indexOf(sel) === -1) sel = sids[0];
+    state.fridayBoardSubject = sel;
+    html += '<div style="display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px">';
+    sids.forEach(function(sid) { html += '<button class="year-chip' + (sid === sel ? ' selected' : '') + '" style="flex:0 0 auto" data-action="friday-board-subject" data-subject="' + sid + '">' + esc(nameOf(sid)) + '</button>'; });
+    html += '</div>';
+    const rk = fridayRanked(rows, function(r) { return (r.subject_scores || {})[sel]; });
+    html += '<div class="card"><p style="font-size:13px;font-weight:800;margin:0 0 10px">' + esc(nameOf(sel)) + ' ranking</p>';
+    rk.slice(0, 10).forEach(function(x) { html += fridayBoardRow(x, 100, meId); });
+    const mine = rk.find(function(x) { return x.r.user_id === meId; });
+    if (mine && mine.rank > 10) html += '<p style="text-align:center;font-size:11px;color:var(--muted);margin:8px 0 6px">Your position</p>' + fridayBoardRow(mine, 100, meId);
+    return html + '</div>';
+}
+function fridayShareRecord(week) {
+    const rec = fridayRecords().find(function(r) { return r.week === week; });
+    if (!rec || !fridayReleased(rec)) { showToast('Your result is not released yet.', 'error'); return; }
+    const rows = Object.keys(rec.scores || {}).map(function(sid) {
+        const sj = SUBJECTS.find(function(x) { return x.id === sid; });
+        return { label: sj ? sj.name : sid, value: (rec.scores[sid] || 0) + ' / 100' };
+    });
+    let rankTxt = '';
+    const b = state.fridayBoards[week];
+    if (b && b.rows && state.authUser) {
+        const mine = fridayRanked(b.rows, function(r) { return r.score; }).find(function(x) { return x.r.user_id === state.authUser.id; });
+        if (mine) rankTxt = ' · Rank #' + mine.rank + ' of ' + b.rows.length;
+    }
+    const name = (state.profile && (state.profile.fullName || state.profile.name)) || 'Candidate';
+    shareResultCardImage({ title: 'Friday Mock', subtitle: name + ' · ' + fridayLabel(week) + rankTxt, score: rec.total, maxScore: rec.max, rows: rows });
+}
+function fridayShareText(text) {
+    if (!text) return;
+    if (navigator.share) { navigator.share({ text: text }).catch(function() {}); return; }
+    try { navigator.clipboard.writeText(text).then(function() { showToast('Copied. Paste it anywhere to share.'); }); } catch (e) { showToast('Could not share.', 'error'); }
 }
 async function startMockExam(subjects) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
@@ -13056,6 +13247,7 @@ function doSubmitMock(autoSubmit) {
     fridaySaveRecord({ week: wkKey, at: state.mockSubmittedAt, total: totalScore, max: maxScore, names: names, scores: subjectScores, answered: answered, questions: state.mockQuestions.length,
         pending: { weak: weak, hist: histEntry } });
     fridayFlushReleased();
+    try { fridaySyncScores(true); } catch (e) {}
     state.view = 'mock-result';
     render();
 }
@@ -17049,6 +17241,7 @@ function render() {
 }
 
 function renderNow() {
+    scheduleAds();
     if (state.phase === "splash") {
         root.innerHTML = renderSplash();
         return;
@@ -17869,7 +18062,7 @@ if (v === "subject-modes") return renderSubjectModes();
 // ============================================================
 //  MY SUBJECTS (home for subject combo + practice modes)
 // ============================================================
-function renderMyCourses() { return renderMyCoursesCore(); }
+function renderMyCourses() { return renderMyCoursesCore() + adBox(); }
 function renderBrowseSubjectsBanner() {
     const saved = hasSavedSubjects();
     return '<div class="card" style="margin-bottom:12px;padding:12px 14px;border:1.5px solid var(--green)">' +
@@ -17899,7 +18092,8 @@ function renderBrowseSubjects() {
         '<p class="section-label">' + (left > 0 ? left + ' more to pick' : 'Ready to save') + '</p>' +
         rows +
         '<button class="btn btn-green" style="width:100%;margin-top:6px;padding:12px' + (left === 0 ? '' : ';opacity:.5;pointer-events:none') + '" data-action="browse-save-subjects">Save my 4 subjects</button>' +
-        (hasSavedSubjects() ? '<button class="btn btn-outline" style="width:100%;margin-top:8px;padding:10px" data-action="browse-clear-subjects">Clear and show all subjects</button>' : '');
+        (hasSavedSubjects() ? '<button class="btn btn-outline" style="width:100%;margin-top:8px;padding:10px" data-action="browse-clear-subjects">Clear and show all subjects</button>' : '') +
+        adBox();
 }
 function renderMyCoursesCore() {
     // Local/offline: state.myElectives is loaded from localStorage the moment
@@ -18090,7 +18284,7 @@ function renderSubjectModes() {
         grid
     );
 }
-function renderLearningHub() { return renderLearningHubCore(); }
+function renderLearningHub() { return renderLearningHubCore() + adBox(); }
 function renderLearningHubCore() {
     const tools = [
         { key: 'cbt', label: 'JAMB CBT', blurb: 'Real JAMB-style practice', icon: 'monitor', color: '#3B6EA5' },
@@ -18416,7 +18610,8 @@ function renderHome() {
         renderHomeNextStep(metrics) +
         renderHomeFeatures() +
         renderHomeStudyStudio(metrics) +
-        renderHomeExtras()
+        renderHomeExtras() +
+        adBox()
     );
 }
 
@@ -18926,6 +19121,32 @@ function renderCbtExam() {
 // ============================================================
 //  EXAM MODE
 // ============================================================
+state.examYearCounts = state.examYearCounts || {};
+var __yearCountLoading = {};
+// Works out which years have questions for a subject BEFORE the student taps one.
+// counts[sid] = { "2019": 40, ... }   or null when we can't tell (then nothing is disabled).
+function loadExamYearCounts(sid) {
+    if (!sid || state.examYearCounts[sid] !== undefined || __yearCountLoading[sid]) return;
+    __yearCountLoading[sid] = true;
+    (async function() {
+        let rows = [];
+        try { rows = await window.OfflineDB.getQuestionsOffline('exam', sid); } catch (e) { rows = []; }
+        if (!rows || !rows.length) {
+            try {
+                const res = await fetch('questions-' + sid + '.json');
+                if (res.ok) { const d = await res.json(); rows = ((d && d.questions) || []).filter(function(q) { return q.type === 'exam' && q.subject_id === sid; }); }
+            } catch (e) { rows = []; }
+        }
+        let c = null;
+        if (rows && rows.length && !rows.some(function(q) { return q.year == null; })) {
+            c = {};
+            rows.forEach(function(q) { const y = String(q.year); c[y] = (c[y] || 0) + 1; });
+        }
+        state.examYearCounts[sid] = c;
+        __yearCountLoading[sid] = false;
+        if (state.examSubject === sid && state.examStep === 2) render();
+    })();
+}
 function renderExamMode() {
     let chips = "";
     // Past Questions only covers the student's own JAMB combo (English + their
@@ -18977,12 +19198,23 @@ function renderExamMode() {
         footer = '';
     } else {
         let list = '';
+        loadExamYearCounts(state.examSubject);
+        const yc = state.examYearCounts[state.examSubject];   // undefined = checking, null = unknown
         for (let y = 2026; y >= 2000; y--) {
             const sel = state.examYearPicked && state.examYear === y;
             const c = SUBJECT_PALETTE[(2026 - y) % SUBJECT_PALETTE.length];
+            const n = yc ? (yc[String(y)] || 0) : null;
+            if (yc && n === 0) {
+                list += '<button type="button" class="ex-card ex-year ex-empty" style="--c:' + c + '" data-action="exam-year-empty" data-year="' + y + '">' +
+                    '<span class="ex-badge ex-yrbadge">' + y + '</span>' +
+                    '<span class="ex-name">JAMB ' + y + '<small>No questions yet</small></span>' +
+                    '<span class="ex-check"></span></button>';
+                continue;
+            }
+            const sub = yc === undefined ? 'Checking…' : (yc ? n + ' question' + (n === 1 ? '' : 's') : 'Timed paper');
             list += '<button type="button" class="ex-card ex-year' + (sel ? ' sel' : '') + '" style="--c:' + c + '" data-action="select-exam-year" data-year="' + y + '">' +
                 '<span class="ex-badge ex-yrbadge">' + y + '</span>' +
-                '<span class="ex-name">JAMB ' + y + '<small>Timed paper</small></span>' +
+                '<span class="ex-name">JAMB ' + y + '<small>' + sub + '</small></span>' +
                 '<span class="ex-check">' + (sel ? '✓' : '') + '</span></button>';
         }
         body = modeHtml + '<div class="ex-list">' + list + '</div>';
@@ -20879,7 +21111,7 @@ function renderAdminSupportThread() {
 // ============================================================
 //  HISTORY / RESULT ANALYSIS
 // ============================================================
-function renderHistory() { return renderHistoryCore(); }
+function renderHistory() { return renderHistoryCore() + adBox(); }
 function renderHistoryCore() {
     if (!state.authUser) {
         return (
@@ -21219,7 +21451,7 @@ function renderAnalyticsDashboard() {
 // ============================================================
 //  PROFILE - COMPLETE REWRITE
 // ============================================================
-function renderProfile() { return renderProfileCore(); }
+function renderProfile() { return renderProfileCore() + adBox(); }
 function renderProfileCore() {
     const isLoggedIn = !!state.authUser;
     const isActive = isUserActive();
@@ -21386,7 +21618,7 @@ function renderProfileCore() {
     // we'll be updating those links soon rather than going nowhere.
     const socialLinks = [
         { key: 'whatsapp', label: 'WhatsApp', icon: 'whatsapp', bg: '#25D366', action: 'open-social-whatsapp' },
-        { key: 'telegram', label: 'Telegram', icon: 'telegram', bg: '#229ED9', action: 'open-social-telegram' },
+        { key: 'telegram', label: 'Telegram', icon: 'telegram', bg: '#229ED9', action: 'open-social-coming-soon' },
         { key: 'facebook', label: 'Facebook', icon: 'facebook', bg: '#1877F2', action: 'open-social-coming-soon' },
         { key: 'instagram', label: 'Instagram', icon: 'instagram', bg: 'linear-gradient(135deg,#F58529,#DD2A7B,#8134AF)', action: 'open-social-coming-soon' },
         { key: 'tiktok', label: 'TikTok', icon: 'tiktok', bg: '#000', action: 'open-social-coming-soon' },
@@ -22028,7 +22260,8 @@ function renderNotifications() {
         '<h2 class="title" style="margin:0;font-size:18px">Notifications</h2>' +
         '</div>' +
         tabHtml +
-        items
+        items +
+        adBox()
     );
 }
 
@@ -22054,7 +22287,7 @@ function renderPaymentStatus() {
     );
 }
 
-function renderActivate() { return renderActivateCore(); }
+function renderActivate() { return adBox() + renderActivateCore(); }
 function renderActivateCore() {
     const home = '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>';
     if (!state.authUser) {
@@ -22277,7 +22510,7 @@ const HELP_FAQS = [
     { cat: 'Using the app', q: 'The app is slow or not loading questions', a: 'Check your network, then close and reopen the app. If it persists, tell us your phone model and what you were doing on WhatsApp support.' },
 ];
 
-function renderHelpCenter() { return renderHelpCenterCore(); }
+function renderHelpCenter() { return renderHelpCenterCore() + adBox(); }
 function renderHelpCenterCore() {
     const q = (state.helpSearch || '').toLowerCase().trim();
     const cats = ['Activation', 'Payments', 'Using the app'];
@@ -24265,6 +24498,7 @@ function renderLoginModal() {
         '</button>' +
         '<div class="switch-link">Don&#39;t have an account? <button data-action="switch-to-signup">Sign up</button></div>' +
         '<button class="guest-link" data-lp="guest">Continue as guest</button>' +
+        adBox() +
         '</div>' +
         '</div>' +
         '</div>'
@@ -24347,6 +24581,7 @@ function renderSignupModal() {
         '</button>' +
         '<div class="switch-link">Already have an account? <button data-action="switch-to-login">Log in</button></div>' +
         '<button class="guest-link" data-lp="guest">Continue as guest</button>' +
+        adBox() +
         '</div>' +
         '</div>' +
         '</div>'
@@ -26458,6 +26693,20 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
+    if (action === 'friday-tab') {
+        state.mockArenaTab = el.getAttribute('data-tab') === 'board' ? 'board' : 'mock';
+        const w = el.getAttribute('data-week'); if (w) state.fridayBoardWeek = w;
+        if (state.mockArenaTab === 'board') { state.fridayBoardMode = 'overall'; try { fridaySyncScores(true); } catch (e) {} }
+        render();
+        return;
+    }
+    if (action === 'friday-board-week') { state.fridayBoardWeek = el.getAttribute('data-week'); render(); return; }
+    if (action === 'friday-board-mode') { state.fridayBoardMode = el.getAttribute('data-mode'); render(); return; }
+    if (action === 'friday-board-subject') { state.fridayBoardSubject = el.getAttribute('data-subject'); render(); return; }
+    if (action === 'friday-board-retry') { loadFridayBoard(state.fridayBoardWeek, true); return; }
+    if (action === 'friday-share-board') { fridayShareText(fridayBoardText(state.fridayBoardWeek)); return; }
+    if (action === 'friday-share-rec') { fridayShareRecord(el.getAttribute('data-week')); return; }
+    if (action === 'exam-year-empty') { showToast('This year has no questions yet.', 'error'); return; }
     if (action === 'friday-start') {
         const picks = (state.mockSelectedSubjects || []).filter(function(x) { return x !== 'eng'; }).slice(0, 3);
         startMockExam(['eng'].concat(picks));
@@ -27601,11 +27850,6 @@ if (action === 'browse-filter') {
 
     if (action === 'open-social-whatsapp') {
         openExternalUrl(WHATSAPP_CHANNEL_URL);
-        return;
-    }
-    if (action === 'open-social-telegram') {
-        if (TELEGRAM_URL) { openExternalUrl(TELEGRAM_URL); }
-        else { showToast('Telegram is coming soon — we\'ll share the link here once it\'s live.', ''); }
         return;
     }
     if (action === 'open-social-coming-soon') {
