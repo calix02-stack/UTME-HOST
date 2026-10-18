@@ -217,7 +217,8 @@
   "url": "https://myutme.com.ng",
   "publisher": {
     "@type": "Organization",
-    "name": "MyUTME"
+    "name": "MyUTME",
+    "sameAs": ["https://t.me/MyUTMEPracticeBot"]
   }
 }
 </script>
@@ -8743,6 +8744,7 @@ function openExternalUrl(url) {
     if (!w) { window.location.href = url; }
 }
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
+const TELEGRAM_URL = 'https://t.me/MyUTMEPracticeBot';
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const AI_NAME = "AI";
@@ -8753,6 +8755,12 @@ const ADMIN_GET_USERS_URL = SUPABASE_URL + "/functions/v1/admin-get-users";
 const ADMIN_WHATSAPP_NUMBER = "2347072853151";
 // One support contact. The number is used only to open the chat and is never displayed.
 const SUPPORT_WHATSAPP_NUMBER = ADMIN_WHATSAPP_NUMBER;
+// Support / payment help now opens the MyUTME WhatsApp Channel (no phone numbers in the app).
+// A channel cannot receive a pre-filled message, so the message is copied first.
+function openWhatsAppChannel(msg) {
+    if (msg) { try { copyToClipboard(msg); showToast('Message copied. Follow the channel for help and updates.'); } catch (e) {} }
+    openExternalUrl(WHATSAPP_CHANNEL_URL);
+}
 const PAY_CONTACTS = [
     { label: "Support", number: SUPPORT_WHATSAPP_NUMBER },
 ];
@@ -10735,6 +10743,19 @@ async function loadAllUsers() {
         }
 
         state.allUsers = json.users || [];
+        // The admin-get-users function does not return `department`. Read it through
+        // the admin_get_departments SQL function and merge it in (see admin_general_activation_and_department.sql).
+        if (state.allUsers.length && !state.allUsers.some(function(u) { return 'department' in u; })) {
+            try {
+                const dr = await supabase.rpc('admin_get_departments');
+                if (!dr.error && Array.isArray(dr.data)) {
+                    const dm = {};
+                    dr.data.forEach(function(r) { dm[r.id] = r.department || null; });
+                    state.allUsers.forEach(function(u) { u.department = (u.id in dm) ? dm[u.id] : null; });
+                    state.deptFixError = null;
+                } else if (dr.error) { state.deptFixError = dr.error.message || 'rpc failed'; }
+            } catch (de) { state.deptFixError = (de && de.message) || 'rpc failed'; }
+        }
         state.allUsersError = null;
         state.allUsersLoaded = true;
         return state.allUsers;
@@ -14882,7 +14903,7 @@ const SUPPORT_KB = [
     { k: ['study circle', 'whatsapp group', 'whatsapp channel', 'join group', 'community'],
       a: 'Account → Study Circle has our WhatsApp group and channel links — tap it and join.' },
     { k: ['telegram', 'facebook', 'instagram', 'tiktok', 'social media', 'connect with us'],
-      a: 'Under "Connect With Us" on Account, WhatsApp is live now. Telegram, Facebook, Instagram and TikTok links are coming soon.' },
+      a: 'Under "Connect With Us" on Account, WhatsApp and Telegram are live now. Facebook, Instagram and TikTok links are coming soon.' },
     { k: ['change name', 'edit profile', 'profile picture', 'profile photo', 'change photo', 'avatar', 'update profile', 'change my name'],
       a: 'Account → Profile lets you edit your name and photo. Tap Profile, make your change and save.' },
     { k: ['free trial', 'only 10', '10 questions', 'why only', 'question limit', 'limited questions', 'locked mode', 'unlock full', 'need to activate'],
@@ -21618,7 +21639,7 @@ function renderProfileCore() {
     // we'll be updating those links soon rather than going nowhere.
     const socialLinks = [
         { key: 'whatsapp', label: 'WhatsApp', icon: 'whatsapp', bg: '#25D366', action: 'open-social-whatsapp' },
-        { key: 'telegram', label: 'Telegram', icon: 'telegram', bg: '#229ED9', action: 'open-social-coming-soon' },
+        { key: 'telegram', label: 'Telegram', icon: 'telegram', bg: '#229ED9', action: 'open-social-telegram' },
         { key: 'facebook', label: 'Facebook', icon: 'facebook', bg: '#1877F2', action: 'open-social-coming-soon' },
         { key: 'instagram', label: 'Instagram', icon: 'instagram', bg: 'linear-gradient(135deg,#F58529,#DD2A7B,#8134AF)', action: 'open-social-coming-soon' },
         { key: 'tiktok', label: 'TikTok', icon: 'tiktok', bg: '#000', action: 'open-social-coming-soon' },
@@ -23919,6 +23940,7 @@ function renderAdminUsers() {
     });
 
     const selCount = (state.admin.selectedUserIds || []).length;
+    const generalCard = renderGeneralActivationCard();
     let selectionBar = '';
     if (selCount > 0) {
         selectionBar = (
@@ -23937,6 +23959,7 @@ function renderAdminUsers() {
         '<button class="mini-btn' + (allSelected ? '' : ' primary') + '" data-action="admin-select-all-users" style="font-size:11px">' + (allSelected ? '☑ Unselect all' : '☐ Select all (' + users.length + ')') + '</button></div>';
 
     return (
+        generalCard +
         selectionBar +
         selectAllBar +
         '<div style="font-weight:700;font-size:14px;margin-bottom:10px;color:var(--ink)">👥 Total registered users: ' + users.length + '</div>' +
@@ -23945,6 +23968,48 @@ function renderAdminUsers() {
     );
 }
 
+// ---- General activation: +7 days for every user, switched off by hand (no automatic calls) ----
+const GENERAL_ACTIVATION_DAYS = 7;
+async function loadGeneralGrant() {
+    try {
+        const r = await supabase.from('general_activations').select('id,days,users_count,created_at').is('ended_at', null).order('id', { ascending: false }).limit(1);
+        state.generalGrant = (r.data && r.data[0]) || null;
+        state.generalGrantError = r.error ? (r.error.message || 'error') : null;
+    } catch (e) { state.generalGrant = null; state.generalGrantError = (e && e.message) || 'error'; }
+    render();
+}
+function renderGeneralActivationCard() {
+    if (state.generalGrant === undefined && !state._ggLoading) { state._ggLoading = true; loadGeneralGrant(); }
+    const g = state.generalGrant;
+    let inner;
+    if (g === undefined) inner = '<p style="font-size:12px;color:var(--faint);margin:0">Checking…</p>';
+    else if (g) {
+        inner = '<p style="font-size:12px;margin:0 0 4px"><b style="color:var(--green)">ON</b> · ' + g.days + ' days given to ' + g.users_count + ' users on ' + new Date(g.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + '</p>' +
+            '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">It never switches off by itself. When it is due, tap Deactivate to take the days back.</p>' +
+            '<button class="btn btn-outline" style="width:100%;font-size:12px;padding:10px" data-action="admin-revoke-general">Deactivate general activation</button>';
+    } else {
+        inner = '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Gives every user +' + GENERAL_ACTIVATION_DAYS + ' days. Users who are already active get the days added to what they have left. New sign-ups still get their normal 3 free days.</p>' +
+            '<button class="btn btn-green" style="width:100%;font-size:12px;padding:10px" data-action="admin-grant-general">Give everyone ' + GENERAL_ACTIVATION_DAYS + ' days</button>';
+    }
+    return '<div class="card" style="margin-bottom:12px"><p style="font-weight:800;font-size:14px;margin:0 0 6px">🎁 General activation</p>' + inner +
+        (state.generalGrantError ? '<p style="font-size:11px;color:#B7791F;margin:8px 0 0">Run admin_general_activation_and_department.sql in Supabase first.</p>' : '') + '</div>';
+}
+async function adminGeneralActivation(grant) {
+    if (state._ggBusy) return;
+    const msg = grant ? 'Give EVERY user +' + GENERAL_ACTIVATION_DAYS + ' days of activation now?' : 'Take the general activation days back from everyone now?';
+    if (!confirm(msg)) return;
+    state._ggBusy = true;
+    try {
+        const r = grant ? await supabase.rpc('admin_grant_general_activation', { p_days: GENERAL_ACTIVATION_DAYS }) : await supabase.rpc('admin_revoke_general_activation');
+        if (r.error) throw r.error;
+        const n = r.data && r.data.users;
+        showToast(grant ? 'Done. ' + n + ' users now have +' + GENERAL_ACTIVATION_DAYS + ' days.' : 'General activation deactivated for ' + n + ' users.', 'success');
+        state.generalGrant = undefined; state._ggLoading = false;
+        await loadAllUsers();
+    } catch (e) { showToast((e && e.message) || 'Could not do that.', 'error'); }
+    state._ggBusy = false;
+    render();
+}
 function renderAdminUserDetail() {
     if (!state.coursesLoaded) loadCourses();
     const userId = state.adminSelectedUserId;
@@ -25009,12 +25074,12 @@ document.addEventListener('click', function(e) {
             '👤 Name: ' + (d.name || state.profile.fullName || state.profile.name || '') + '\n' +
             '✉️ Email: ' + (d.email || state.profile.email || '') + '\n' +
             '🧾 Order code: ' + getOrderCode() + '\n\nPlease approve my payment. Thank you!';
-        window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+        openWhatsAppChannel(msg);
         return;
     }
     if (action === 'claim-whatsapp') {
         const c = (state.myClaims || []).find(function(x) { return String(x.id) === el.getAttribute('data-id'); });
-        if (c) window.open('https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(claimWhatsAppText(c)), '_blank');
+        if (c) openWhatsAppChannel(claimWhatsAppText(c));
         return;
     }
     if (action === 'admin-activate-ref') { adminActivateByReference(); return; }
@@ -27802,6 +27867,8 @@ if (action === 'browse-filter') {
         state.adminActSheet = { mode: 'deactivate', userId: el.getAttribute('data-userid') };
         render(); return;
     }
+    if (action === 'admin-grant-general') { adminGeneralActivation(true); return; }
+    if (action === 'admin-revoke-general') { adminGeneralActivation(false); return; }
     if (action === 'admin-act-close') { state.adminActSheet = null; render(); return; }
     if (action === 'admin-act-pick') {
         const uid = state.adminActSheet && state.adminActSheet.userId; state.adminActSheet = null; render();
@@ -27852,6 +27919,10 @@ if (action === 'browse-filter') {
         openExternalUrl(WHATSAPP_CHANNEL_URL);
         return;
     }
+    if (action === 'open-social-telegram') {
+        openExternalUrl(TELEGRAM_URL);
+        return;
+    }
     if (action === 'open-social-coming-soon') {
         const platform = el.getAttribute('data-platform');
         const label = platform ? platform.charAt(0).toUpperCase() + platform.slice(1) : 'This';
@@ -27876,8 +27947,7 @@ if (action === 'browse-filter') {
 
     if (action === 'open-support-whatsapp') {
         const msg = 'Hello MyUTME Support, I need help.\n\n👤 My username: ' + (state.profile.name || 'Guest') + (state.authUser && state.authUser.email ? '\n✉️ Email: ' + state.authUser.email : '') + '\n🧾 Order code: ' + getOrderCode();
-        const waUrl = 'https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
-        window.open(waUrl, '_blank');
+        openWhatsAppChannel(msg);
         return;
     }
 
@@ -27914,8 +27984,7 @@ if (action === 'browse-filter') {
             '👤 My username: ' + (state.profile.name || 'Guest') + '\n' +
             '🧾 Order code: ' + getOrderCode() + '\n\n' +
             'I want to pay manually. Please send me the payment details. Thank you!';
-        const waUrl = 'https://wa.me/' + ADMIN_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
-        window.open(waUrl, '_blank');
+        openWhatsAppChannel(msg);
         return;
     }
 
@@ -29019,7 +29088,7 @@ function renderAdminDeptCard() {
             '<div style="height:8px;border-radius:4px;background:var(--line,#E3E8E4);overflow:hidden"><div style="height:100%;width:' + Math.round(c[k] / total * 100) + '%;background:' + tint[k] + '"></div></div></div>';
     }).join('');
     return '<div class="card" style="margin-bottom:12px"><p style="font-weight:800;font-size:14px;margin:0 0 10px">Students by department (' + users.length + ' users)</p>' + rows +
-        (seen ? '' : '<p style="font-size:11px;color:#B7791F;margin:6px 0 0">Department is not coming through yet. Run the department SQL in Supabase and make sure the admin-get-users function returns the department column.</p>') + '</div>';
+        (seen ? '' : '<p style="font-size:11px;color:#B7791F;margin:6px 0 0">Department is not coming through yet. Run admin_general_activation_and_department.sql in the Supabase SQL Editor, then reload this page.' + (state.deptFixError ? ' (' + String(state.deptFixError).replace(/[<>&]/g, '') + ')' : '') + '</p>') + '</div>';
 }
 
 var AI_STYLE_HINT = '\n\n[Reply format: explain like clear study notes. Use short headed sections, simple steps, one worked example, and short paragraphs with a blank line between them. Be thorough but get to the point fast.]';
