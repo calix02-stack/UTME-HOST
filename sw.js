@@ -3,7 +3,7 @@
 * Installation timeout optimization
   */
 
-const CACHE_NAME = "myutme-cache-v85";
+const CACHE_NAME = "myutme-cache-v86";
 
 const APP_SHELL = [
 "./",
@@ -68,34 +68,53 @@ fetch(request, {
 });
 }
 
-// Install quickly: attempt all shell downloads in parallel,
-// with a single overall deadline.
+// Install: the app shell MUST be fully saved before this worker takes over.
+// If index.html or offline-db.js cannot be saved, installation fails and the
+// previous worker (with its working offline cache) keeps running.
+const REQUIRED_SHELL = ["./index.html", "./offline-db.js"];
+
+async function cacheShellFile(cache, url) {
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await freshFetch(url, 45000);
+      if (!response || !response.ok) throw new Error("Bad response for " + url);
+      // A redirected response cannot be used to answer a page navigation.
+      const clean = response.redirected
+        ? new Response(await response.blob(), {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+          })
+        : response;
+      await cache.put(url, clean);
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 self.addEventListener("install", (event) => {
-event.waitUntil(
-(async () => {
-const cache = await caches.open(CACHE_NAME);
-
-  await Promise.race([
-    Promise.all(
-      APP_SHELL.map(async (url) => {
-        try {
-          const response = await freshFetch(url, FETCH_TIMEOUT_MS);
-          if (response && response.ok) {
-            await cache.put(url, response);
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      await Promise.all(
+        APP_SHELL.map(async (url) => {
+          try {
+            await cacheShellFile(cache, url);
+          } catch (error) {
+            if (REQUIRED_SHELL.indexOf(url) !== -1) throw error;
           }
-        } catch (error) {
-          // Continue when a file is unavailable.
-        }
-      })
-    ),
-    new Promise((resolve) => setTimeout(resolve, 9000)),
-  ]);
-})()
+        })
+      );
+    })()
+  );
 
-);
-
-self.skipWaiting();
+  self.skipWaiting();
 });
+
 
 self.addEventListener("activate", (event) => {
 event.waitUntil(
@@ -124,7 +143,7 @@ url.pathname === "/" ||
 url.pathname.endsWith("/");
 
 const isQuestionDataFile =
-/^/?(questions|notes)-[^/]+.json$/.test(url.pathname) ||
+/^\/?(questions|notes)-[^/]+\.json$/.test(url.pathname) ||
 url.pathname.endsWith("questions-seed.json");
 
 const isAppScript =
@@ -133,7 +152,7 @@ url.pathname.endsWith(".js") &&
 
 const isShellNav =
 (event.request.mode === "navigate" &&
-!/.[a-z0-9]+$/i.test(url.pathname)) ||
+!/\.[a-z0-9]+$/i.test(url.pathname)) ||
 url.pathname === "/" ||
 url.pathname.endsWith("/index.html");
 
