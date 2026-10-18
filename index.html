@@ -182,6 +182,24 @@
 </script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+<!-- Telegram Mini App support: runs only when opened from Telegram -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+(function(){
+  var tg=window.Telegram&&window.Telegram.WebApp;
+  if(!tg||!tg.initData)return;
+  function safe(f){try{f()}catch(e){}}
+  document.documentElement.setAttribute('data-telegram','1');
+  safe(function(){tg.ready()});
+  safe(function(){tg.expand()});
+  safe(function(){tg.disableVerticalSwipes()});
+  safe(function(){tg.enableClosingConfirmation()});
+  safe(function(){tg.setHeaderColor('#0F6B3F')});
+  safe(function(){tg.BackButton.show();tg.BackButton.onClick(function(){
+    if(window.history.length>1)window.history.back();else tg.close();
+  })});
+})();
+</script>
 <link rel="manifest" href="manifest.json" />            
 <meta name="theme-color" content="#0F6B3F" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -6205,12 +6223,6 @@
     }
 
 
-    .nw-ad{margin:14px auto;text-align:center;max-width:320px}
-    .nw-ad .al{display:block;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
-    .nw-ad iframe{border:0;width:300px;height:250px;max-width:100%;background:var(--card-bg);border-radius:6px}
-    .nw-ad.sm{margin:6px auto 8px;max-width:340px;line-height:0}
-    .nw-ad.sm .al{line-height:1.2;margin-bottom:2px}
-    .nw-ad.sm iframe{width:320px;height:50px}
 
     /* In-app notification banner */
     #inapp-notif-banner {
@@ -8740,6 +8752,8 @@ function openExternalUrl(url) {
     try { w = window.open(url, '_blank'); } catch (e) {}
     if (!w) { window.location.href = url; }
 }
+// Set this to your bot link after creating it in BotFather, e.g. "https://t.me/MyUTMEBot"
+const TELEGRAM_URL = "https://t.me/MyUTMEPracticeBot";
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
@@ -11889,31 +11903,6 @@ function guestCardHtml(text) {
 // is right even if the news loaded before they finished logging in.)
 // ----- admin -----
 // ----- screens -----
-// Ad box (Adsterra 300x250). Loaded inside its own small frame (ad.html) so it can never cover the screen.
-// Shown to everyone including the admin; hidden only when offline.
-// The app redraws itself many times while opening (login check, settings, courses, news...). An ad frame
-// created during that would be thrown away before it finishes loading, so ads never appeared until a refresh.
-// So we only drop the real ad frames in once the screen has stayed still for a moment.
-function adHtml(big) {
-    if (!navigator.onLine) return '';
-    return big
-        ? '<div class="nw-ad"><span class="al">Advertisement</span><div class="adframe" data-src="/ad.html" data-w="300" data-h="250" style="width:300px;height:250px;max-width:100%;margin:0 auto"></div></div>'
-        : '<div class="nw-ad sm"><span class="al">Advertisement</span><div class="adframe" data-src="/ad-small.html" data-w="320" data-h="50" style="width:320px;height:50px;max-width:100%;margin:0 auto"></div></div>';
-}
-let adFillTimer = null;
-function scheduleAds() { clearTimeout(adFillTimer); adFillTimer = setTimeout(fillAds, 900); }
-function fillAds() {
-    document.querySelectorAll('.adframe').forEach(function(box) {
-        if (box.firstChild) return;
-        const f = document.createElement('iframe');
-        f.src = box.getAttribute('data-src');
-        f.width = box.getAttribute('data-w'); f.height = box.getAttribute('data-h');
-        f.setAttribute('scrolling', 'no'); f.setAttribute('frameborder', '0'); f.title = 'Advertisement';
-        f.style.cssText = 'border:0;width:100%;height:100%;display:block';
-        box.appendChild(f);
-    });
-}
-function adBox() { return adHtml(false); }   // thin 320x50 banner
 // ============================================================
 //  AUTH FUNCTIONS
 // ============================================================
@@ -17060,7 +17049,6 @@ function render() {
 }
 
 function renderNow() {
-    scheduleAds();
     if (state.phase === "splash") {
         root.innerHTML = renderSplash();
         return;
@@ -17881,7 +17869,7 @@ if (v === "subject-modes") return renderSubjectModes();
 // ============================================================
 //  MY SUBJECTS (home for subject combo + practice modes)
 // ============================================================
-function renderMyCourses() { return renderMyCoursesCore() + adBox(); }
+function renderMyCourses() { return renderMyCoursesCore(); }
 function renderBrowseSubjectsBanner() {
     const saved = hasSavedSubjects();
     return '<div class="card" style="margin-bottom:12px;padding:12px 14px;border:1.5px solid var(--green)">' +
@@ -17911,8 +17899,7 @@ function renderBrowseSubjects() {
         '<p class="section-label">' + (left > 0 ? left + ' more to pick' : 'Ready to save') + '</p>' +
         rows +
         '<button class="btn btn-green" style="width:100%;margin-top:6px;padding:12px' + (left === 0 ? '' : ';opacity:.5;pointer-events:none') + '" data-action="browse-save-subjects">Save my 4 subjects</button>' +
-        (hasSavedSubjects() ? '<button class="btn btn-outline" style="width:100%;margin-top:8px;padding:10px" data-action="browse-clear-subjects">Clear and show all subjects</button>' : '') +
-        adBox();
+        (hasSavedSubjects() ? '<button class="btn btn-outline" style="width:100%;margin-top:8px;padding:10px" data-action="browse-clear-subjects">Clear and show all subjects</button>' : '');
 }
 function renderMyCoursesCore() {
     // Local/offline: state.myElectives is loaded from localStorage the moment
@@ -18103,7 +18090,7 @@ function renderSubjectModes() {
         grid
     );
 }
-function renderLearningHub() { return renderLearningHubCore() + adBox(); }
+function renderLearningHub() { return renderLearningHubCore(); }
 function renderLearningHubCore() {
     const tools = [
         { key: 'cbt', label: 'JAMB CBT', blurb: 'Real JAMB-style practice', icon: 'monitor', color: '#3B6EA5' },
@@ -18429,8 +18416,7 @@ function renderHome() {
         renderHomeNextStep(metrics) +
         renderHomeFeatures() +
         renderHomeStudyStudio(metrics) +
-        renderHomeExtras() +
-        adBox()
+        renderHomeExtras()
     );
 }
 
@@ -20893,7 +20879,7 @@ function renderAdminSupportThread() {
 // ============================================================
 //  HISTORY / RESULT ANALYSIS
 // ============================================================
-function renderHistory() { return renderHistoryCore() + adBox(); }
+function renderHistory() { return renderHistoryCore(); }
 function renderHistoryCore() {
     if (!state.authUser) {
         return (
@@ -21233,7 +21219,7 @@ function renderAnalyticsDashboard() {
 // ============================================================
 //  PROFILE - COMPLETE REWRITE
 // ============================================================
-function renderProfile() { return renderProfileCore() + adBox(); }
+function renderProfile() { return renderProfileCore(); }
 function renderProfileCore() {
     const isLoggedIn = !!state.authUser;
     const isActive = isUserActive();
@@ -21400,7 +21386,7 @@ function renderProfileCore() {
     // we'll be updating those links soon rather than going nowhere.
     const socialLinks = [
         { key: 'whatsapp', label: 'WhatsApp', icon: 'whatsapp', bg: '#25D366', action: 'open-social-whatsapp' },
-        { key: 'telegram', label: 'Telegram', icon: 'telegram', bg: '#229ED9', action: 'open-social-coming-soon' },
+        { key: 'telegram', label: 'Telegram', icon: 'telegram', bg: '#229ED9', action: 'open-social-telegram' },
         { key: 'facebook', label: 'Facebook', icon: 'facebook', bg: '#1877F2', action: 'open-social-coming-soon' },
         { key: 'instagram', label: 'Instagram', icon: 'instagram', bg: 'linear-gradient(135deg,#F58529,#DD2A7B,#8134AF)', action: 'open-social-coming-soon' },
         { key: 'tiktok', label: 'TikTok', icon: 'tiktok', bg: '#000', action: 'open-social-coming-soon' },
@@ -22042,8 +22028,7 @@ function renderNotifications() {
         '<h2 class="title" style="margin:0;font-size:18px">Notifications</h2>' +
         '</div>' +
         tabHtml +
-        items +
-        adBox()
+        items
     );
 }
 
@@ -22069,7 +22054,7 @@ function renderPaymentStatus() {
     );
 }
 
-function renderActivate() { return adBox() + renderActivateCore(); }
+function renderActivate() { return renderActivateCore(); }
 function renderActivateCore() {
     const home = '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>';
     if (!state.authUser) {
@@ -22292,7 +22277,7 @@ const HELP_FAQS = [
     { cat: 'Using the app', q: 'The app is slow or not loading questions', a: 'Check your network, then close and reopen the app. If it persists, tell us your phone model and what you were doing on WhatsApp support.' },
 ];
 
-function renderHelpCenter() { return renderHelpCenterCore() + adBox(); }
+function renderHelpCenter() { return renderHelpCenterCore(); }
 function renderHelpCenterCore() {
     const q = (state.helpSearch || '').toLowerCase().trim();
     const cats = ['Activation', 'Payments', 'Using the app'];
@@ -24280,7 +24265,6 @@ function renderLoginModal() {
         '</button>' +
         '<div class="switch-link">Don&#39;t have an account? <button data-action="switch-to-signup">Sign up</button></div>' +
         '<button class="guest-link" data-lp="guest">Continue as guest</button>' +
-        adBox() +
         '</div>' +
         '</div>' +
         '</div>'
@@ -24363,7 +24347,6 @@ function renderSignupModal() {
         '</button>' +
         '<div class="switch-link">Already have an account? <button data-action="switch-to-login">Log in</button></div>' +
         '<button class="guest-link" data-lp="guest">Continue as guest</button>' +
-        adBox() +
         '</div>' +
         '</div>' +
         '</div>'
@@ -27618,6 +27601,11 @@ if (action === 'browse-filter') {
 
     if (action === 'open-social-whatsapp') {
         openExternalUrl(WHATSAPP_CHANNEL_URL);
+        return;
+    }
+    if (action === 'open-social-telegram') {
+        if (TELEGRAM_URL) { openExternalUrl(TELEGRAM_URL); }
+        else { showToast('Telegram is coming soon — we\'ll share the link here once it\'s live.', ''); }
         return;
     }
     if (action === 'open-social-coming-soon') {
