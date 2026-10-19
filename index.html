@@ -183,7 +183,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
 <link rel="manifest" href="manifest.json" />            
-<meta name="theme-color" content="#0F6B3F" />
+<meta name="theme-color" content="#0A7B63" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="MyUTME" />
 <meta property="og:site_name" content="MyUTME" />
@@ -8194,6 +8194,58 @@ body { position: fixed; inset: 0; width: 100%; }
 </style>
 
 
+
+<style id="myutme-2027">
+/* ===========================================================
+   MyUTME 2027 · colour + shape upgrade (presentation only)
+   Teal-emerald brand, brighter gold, squircle icons, floating pill nav
+   =========================================================== */
+:root:not([data-theme="dark"]) {
+  --green:#0A7B63; --green-dark:#064E40; --green-light:#E0F5EE;
+  --gold:#F7B733; --gold-dark:#DB9A12;
+  --bg:#EAF6F1; --line:#D3E8DF; --ink:#0E2A23; --muted:#4F675D; --faint:#7F968B;
+  --card-bg:#ffffff; --explanation-bg:#E0F5EE; --answered:#0A7B63; --current-q:#F7B733;
+  --topbar-bg:linear-gradient(120deg,#0A7B63 0%,#06604D 55%,#043F34 100%);
+  --drawer-bg:linear-gradient(160deg,#0A7B63 0%,#043F34 100%);
+  --shadow-sm:0 1px 2px rgba(6,78,64,.06),0 8px 20px rgba(6,78,64,.07);
+  --shadow-md:0 3px 8px rgba(6,78,64,.07),0 16px 34px rgba(6,78,64,.11);
+  --shadow-lg:0 22px 50px rgba(6,78,64,.18);
+  --radius-sm:14px; --radius-md:20px; --radius-lg:28px;
+}
+:root[data-theme="dark"] { --gold:#F7B733; --current-q:#F7B733; }
+:root:not([data-theme="dark"]) body { background:linear-gradient(180deg,#DFF3EA 0%,#EEF8F4 38%,#EAF6F1 100%) fixed; }
+
+/* top bar: teal gradient with a gold underline */
+.topbar { background:var(--topbar-bg); box-shadow:0 6px 20px rgba(4,63,52,.28), inset 0 -3px 0 rgba(247,183,51,.9); }
+
+/* cards + buttons */
+.card { border-radius:26px; border:1px solid var(--line); box-shadow:var(--shadow-sm); }
+.btn-primary, .btn-green { background:linear-gradient(135deg,#0A7B63,#065A49); color:#fff; border:0; border-radius:16px; box-shadow:0 10px 22px rgba(10,123,99,.32); }
+.btn-outline { border-radius:16px; border:1.5px solid var(--green); color:var(--green); }
+.year-chip, .subject-chip, .qcount-chip { border-radius:16px; }
+.year-chip.selected { background:linear-gradient(135deg,#0A7B63,#065A49); color:#fff; border-color:transparent; }
+.ex-card, .mode-card-v2, .ph-mode-card, .course-card-h, .acct-menu-item { border-radius:24px; }
+
+/* home hero: richer gradient, gold glow, squircle badge */
+.home-hero { background:radial-gradient(120% 140% at 100% 0%,rgba(247,183,51,.30) 0%,rgba(247,183,51,0) 46%),linear-gradient(150deg,#0A7B63 0%,#065443 58%,#04382F 100%); border-radius:32px; box-shadow:0 20px 44px rgba(4,63,52,.30); }
+.home-hero-badge .hhb-icon { border-radius:20px; background:rgba(255,255,255,.18); }
+.home-hero-badge .hhb-ring { border-radius:24px; border-color:rgba(247,183,51,.75); }
+
+/* quick actions + icon tiles: squircles with a coloured glow */
+.qa-pill { border-radius:24px; border:1px solid var(--line); box-shadow:var(--shadow-sm); }
+.qa-icon { border-radius:15px !important; box-shadow:0 8px 16px -8px currentColor; }
+.cbt-wide .cbt-mode-btn .icon { border-radius:16px; }
+.icon-circle { border-radius:30% !important; }
+
+/* bottom nav: floating pill, active tab is a green gradient */
+.bottom-nav { border-radius:30px; background:rgba(255,255,255,.95); box-shadow:0 14px 34px rgba(4,63,52,.22); }
+:root[data-theme="dark"] .bottom-nav { background:rgba(15,15,31,.94); }
+.bottom-nav-item { border-radius:22px; }
+.bottom-nav-item.active { background:linear-gradient(135deg,#0A7B63,#065A49); color:#fff; box-shadow:0 8px 18px rgba(10,123,99,.38); }
+.bottom-nav-item.active svg { stroke:#fff; color:#fff; }
+.bottom-nav-item.active::before { display:none; }
+::selection { background:rgba(247,183,51,.4); }
+</style>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -18204,13 +18256,13 @@ const atMax = mySubjectIds.length === 4;
     }    
        
     const modes = [
-        { view: 'topic', label: 'Topic Practice', sub: 'Read notes or take a CBT', icon: 'list', tint: '#6B4F82' },
-        { view: 'revise', label: 'Missed Questions', sub: 'Retry questions you missed', icon: 'rotate', tint: '#0F6B3F' },
-        { view: 'marked', label: 'Marked Questions', sub: 'Questions you marked to revisit', icon: 'bookmark', tint: '#C2791C' },
-        { view: 'cbt', label: 'JAMB CBT', sub: 'Full timed practice', icon: 'monitor', tint: '#35618C' },
-        { view: 'exam', label: 'Past Questions', sub: '2000 – 2026', icon: 'clipboard', tint: '#A65640' },
-        { view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
-        { view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#3E7C74' },
+        { view: 'topic', label: 'Topic Practice', sub: 'Read notes or take a CBT', icon: 'list', tint: '#8B5CF6' },
+        { view: 'revise', label: 'Missed Questions', sub: 'Retry questions you missed', icon: 'rotate', tint: '#0A7B63' },
+        { view: 'marked', label: 'Marked Questions', sub: 'Questions you marked to revisit', icon: 'bookmark', tint: '#F59E0B' },
+        { view: 'cbt', label: 'JAMB CBT', sub: 'Full timed practice', icon: 'monitor', tint: '#2F6BFF' },
+        { view: 'exam', label: 'Past Questions', sub: '2000 – 2026', icon: 'clipboard', tint: '#F0662B' },
+        { view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#E04C8E' },
+        { view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#14A3A3' },
 
     ];
     let modeGrid = '<div class="ph-mode-list">';
@@ -18252,9 +18304,9 @@ function renderSubjectModes() {
     if (!s) return renderMyCourses();
 
     const modes = [
-        { action: 'subj-start-cbt', label: 'CBT Practice', sub: 'Timed practice', icon: 'monitor', tint: '#35618C' },
-        { action: 'subj-start-exam', label: 'Past Questions', sub: 'Pick a year, 2000–2026', icon: 'clipboard', tint: '#A65640' },
-        { action: 'subj-start-flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#97527A' },
+        { action: 'subj-start-cbt', label: 'CBT Practice', sub: 'Timed practice', icon: 'monitor', tint: '#2F6BFF' },
+        { action: 'subj-start-exam', label: 'Past Questions', sub: 'Pick a year, 2000–2026', icon: 'clipboard', tint: '#F0662B' },
+        { action: 'subj-start-flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#E04C8E' },
     ];
     let grid = '<div class="mode-grid-v2">';
     modes.forEach(function(m) {
@@ -18282,14 +18334,14 @@ function renderLearningHubCore() {
     const tools = [
         { key: 'cbt', label: 'JAMB CBT', blurb: 'Real JAMB-style practice', icon: 'monitor', color: '#3B6EA5' },
         { key: 'exam', label: 'JAMB Past Questions', blurb: '2000–2026, one subject at a time', icon: 'clipboard', color: '#E2543A' },
-        { key: 'mockexam', label: 'Mock Arena', blurb: 'Create or join a mock arena exam', icon: 'target', color: '#6E5296' },
-        { key: 'flashcards', label: 'Flashcards', blurb: 'Flip through Q&A fast', icon: 'cards', color: '#97527A' },
-        { key: 'literature', label: 'Novel (CBT)', blurb: 'Set texts & comprehension', icon: 'book', color: '#3E7C74' },
+        { key: 'mockexam', label: 'Mock Arena', blurb: 'Create or join a mock arena exam', icon: 'target', color: '#8B5CF6' },
+        { key: 'flashcards', label: 'Flashcards', blurb: 'Flip through Q&A fast', icon: 'cards', color: '#E04C8E' },
+        { key: 'literature', label: 'Novel (CBT)', blurb: 'Set texts & comprehension', icon: 'book', color: '#14A3A3' },
         { key: 'revise', label: 'Missed Questions', blurb: 'Retry questions you missed', icon: 'rotate', color: '#0F6B3F' },
-        { key: 'marked', label: 'Marked Questions', blurb: 'Questions you marked to revisit', icon: 'bookmark', color: '#C2791C' },
-        { key: 'topic', label: 'Topic Practice', blurb: 'Read topic notes or take a topic CBT', icon: 'list', color: '#6B4F82' },
+        { key: 'marked', label: 'Marked Questions', blurb: 'Questions you marked to revisit', icon: 'bookmark', color: '#F59E0B' },
+        { key: 'topic', label: 'Topic Practice', blurb: 'Read topic notes or take a topic CBT', icon: 'list', color: '#8B5CF6' },
 
-        { key: 'history', label: 'Result Analysis', blurb: 'Your exam results & performance', icon: 'clock', color: '#6E5296' },
+        { key: 'history', label: 'Result Analysis', blurb: 'Your exam results & performance', icon: 'clock', color: '#8B5CF6' },
     ];
     let cards = '';
     tools.forEach(function(t, i) {
@@ -18545,10 +18597,10 @@ function renderHome() {
     if (!state.coursesLoaded) loadCourses();
 
     const quickActions = [
-        { view: 'cbt', label: 'JAMB CBT', icon: 'monitor', color: '#35618C', action: 'start-full-mock-utme' },
-        { view: 'exam', label: 'Past Questions', icon: 'clipboard', color: '#A65640' },
-        { view: 'mockexam', label: 'Mock Arena', icon: 'target', color: '#6E5296' },
-        { view: 'revise', label: 'Revise', icon: 'rotate', color: '#0F6B3F' },
+        { view: 'cbt', label: 'JAMB CBT', icon: 'monitor', color: '#2F6BFF', action: 'start-full-mock-utme' },
+        { view: 'exam', label: 'Past Questions', icon: 'clipboard', color: '#F0662B' },
+        { view: 'mockexam', label: 'Mock Arena', icon: 'target', color: '#8B5CF6' },
+        { view: 'revise', label: 'Missed Questions', icon: 'rotate', color: '#0A7B63' },
     ];
     let qaHtml = '<div class="quick-actions">';
     quickActions.forEach(function(a) {
@@ -18950,7 +19002,7 @@ function renderCbtExam() {
                 total_questions: state.cbtQuestions.length,
                 answered_count: state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
                 submitted_at: new Date().toISOString(),
-                exam_title: isFullCbt ? 'CBT Full' : (subjectName || 'Subject Practice'),
+                exam_title: isFullCbt ? 'JAMB CBT' : (subjectName || 'Subject Practice'),
             });
             const cbtTimeLimitMin = isFullCbt ? state.settingsCache.cbtTimeLimit : state.settingsCache.subjectTimeLimit;
             saveAnalyticsTimeSample(isFullCbt ? 'cbt-full' : 'cbt-single', (cbtTimeLimitMin || 0) * 60 - state.cbtTimeLeft, state.cbtQuestions.length);
@@ -18973,14 +19025,14 @@ function renderCbtExam() {
 
         const slipHtml = renderResultBlock({
             candidateName: candidateName,
-            subtitle: isFullCbt ? 'CBT Full' : 'Subject Practice',
+            subtitle: isFullCbt ? 'JAMB CBT' : 'Subject Practice',
             score: totalScore,
             maxScore: maxScore,
             rows: resultRows,
         });
 
         return (
-            '<h2 class="title">' + (isFullCbt ? 'CBT Full' : 'Subject') + ' — Result</h2>' +
+            '<h2 class="title">' + (isFullCbt ? 'JAMB CBT' : 'Subject') + ' — Result</h2>' +
             slipHtml +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="cbt-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="cbt-toggle-review">' +
@@ -19954,9 +20006,9 @@ async function loadWeakQuestions() {
 const REVISE_MODE_META = {
     cbt: { label: 'JAMB CBT', icon: 'monitor', color: '#3B6EA5' },
     exam: { label: 'Past Questions', icon: 'clipboard', color: '#E2543A' },
-    mock: { label: 'Mock Arena', icon: 'target', color: '#6E5296' },
-    topic: { label: 'Topic Practice', icon: 'list', color: '#6B4F82' },
-    novel: { label: 'Novel (CBT)', icon: 'book', color: '#3E7C74' },
+    mock: { label: 'Mock Arena', icon: 'target', color: '#8B5CF6' },
+    topic: { label: 'Topic Practice', icon: 'list', color: '#8B5CF6' },
+    novel: { label: 'Novel (CBT)', icon: 'book', color: '#14A3A3' },
     revise: { label: 'Revision Retry', icon: 'rotate', color: '#0F6B3F' },
     unknown: { label: 'Other', icon: 'rotate', color: '#5B6B60' },
 };
@@ -20277,7 +20329,7 @@ function renderFlashcards() {
         let isMarked = false;
         try { isMarked = __getMarked().some(function(x) { return x.h === __qh(q); }); } catch (e) {}
         const toolsHtml = '<div class="fc-xp-tools">' +
-            '<button type="button" class="fc-chip' + (isMarked ? ' on' : '') + '" data-action="fc-bookmark">' + (isMarked ? '⭐ Bookmarked' : '☆ Bookmark') + '</button>' +
+            '<button type="button" class="fc-chip' + (isMarked ? ' on' : '') + '" data-action="fc-bookmark">' + (isMarked ? '⭐ Marked' : '☆ Mark') + '</button>' +
             '<button type="button" class="fc-chip" data-action="fc-copy-exp">📋 Copy</button>' +
             renderFlagButton(q.id, state.flashcardSubject, 'flashcard', q) + '</div>';
         return (
@@ -21124,7 +21176,7 @@ function renderHistoryCore() {
     // Filter modes - removed 'revise'
     const modeFilters = [
         { key: 'all', label: 'All' },
-        { key: 'cbt-full', label: 'CBT Full' },
+        { key: 'cbt-full', label: 'JAMB CBT' },
         { key: 'cbt-single', label: 'CBT Single' },
         { key: 'exam', label: 'Exam' },
         { key: 'mock', label: 'Mock' },
@@ -21198,7 +21250,7 @@ function renderHistoryCore() {
         });
 
         const pct = entry.max_score > 0 ? Math.round((entry.total_score / entry.max_score) * 100) : 0;
-        const modeLabel = entry.mode === 'cbt-full' ? 'CBT Full' :
+        const modeLabel = entry.mode === 'cbt-full' ? 'JAMB CBT' :
                          entry.mode === 'cbt-single' ? 'CBT Single' :
                          entry.mode === 'novel' ? 'Novel CBT' :
                          entry.mode === 'mock' ? 'Mock Exam' :
@@ -21421,7 +21473,7 @@ function renderAnalyticsDashboard() {
             '<div class="card" style="padding:12px">' +
             '<p style="font-size:20px;font-weight:700;color:var(--green);margin:0 0 2px">' + overallAvg + 's <span style="font-size:11px;font-weight:500;color:var(--muted)">/ question, on average</span></p>'
         );
-        const TIME_MODE_LABELS = { 'cbt-full': 'CBT Full', 'cbt-single': 'CBT Single', 'mock': 'Mock Exam', 'topic': 'Topic Practice', 'novel': 'Novel (CBT)' };
+        const TIME_MODE_LABELS = { 'cbt-full': 'JAMB CBT', 'cbt-single': 'CBT Single', 'mock': 'Mock Exam', 'topic': 'Topic Practice', 'novel': 'Novel (CBT)' };
         Object.keys(byMode).forEach(function(m) {
             const label = TIME_MODE_LABELS[m] || m;
             const avg = byMode[m].questions > 0 ? Math.round(byMode[m].seconds / byMode[m].questions) : 0;
@@ -21554,7 +21606,7 @@ function renderProfileCore() {
     const menuItems = [
         { key: 'set-view|study-circle', icon: 'whatsapp', color: '#0F6B3F', title: 'Study Circle', sub: 'Join our WhatsApp group & channel' },
         { key: 'start-profile-edit', icon: 'edit', color: '#3B6EA5', title: 'Profile', sub: 'Edit your name and photo' },
-        { key: 'set-view|history', icon: 'chart', color: '#6E5296', title: 'Result Analysis', sub: 'Your exam results and performance' },
+        { key: 'set-view|history', icon: 'chart', color: '#8B5CF6', title: 'Result Analysis', sub: 'Your exam results and performance' },
         { key: 'set-view|support', icon: 'chat', color: '#46527A', title: 'Support', sub: 'Chat with us or WhatsApp' },
     ];
     // (Activation keys now live inside the Activate page, not as their own icon.)
@@ -24933,7 +24985,7 @@ document.addEventListener('click', function(e) {
         if (bq) {
             const on = !__getMarked().some(function(x) { return x.h === __qh(bq); });
             try { __syncMarked(bq, 'flashcard', on); } catch (e) {}
-            showToast(on ? 'Bookmarked. Find it in Marked Questions.' : 'Bookmark removed.', '');
+            showToast(on ? 'Marked. Find it in Marked Questions.' : 'Removed from Marked Questions.', '');
             render();
         }
         return;
@@ -25908,7 +25960,7 @@ document.addEventListener('click', function(e) {
         const subjectName = (SUBJECTS.find(function(s) { return s.id === state.cbtSelected[0]; }) || {}).name;
         downloadResultBreakdownPdf({
             title: isFullCbt ? 'CBT Full — Result' : (subjectName ? subjectName + ' — CBT Result' : 'CBT Result'),
-            modeLabel: isFullCbt ? 'CBT Full' : 'CBT Single',
+            modeLabel: isFullCbt ? 'JAMB CBT' : 'CBT Single',
             totalScore: totalScore,
             maxScore: maxScore,
             subjectScores: isFullCbt ? subjectScores : null,
@@ -27976,7 +28028,7 @@ if (action === 'browse-filter') {
 
         const studentName = state.profile.fullName || state.profile.name || 'Guest';
 
-        const modeLabel = entry.mode === 'cbt-full' ? 'CBT Full' :
+        const modeLabel = entry.mode === 'cbt-full' ? 'JAMB CBT' :
                          entry.mode === 'cbt-single' ? 'CBT Single' :
                          entry.mode === 'novel' ? 'Novel CBT' :
                          entry.mode === 'mock' ? 'Mock Exam' :
