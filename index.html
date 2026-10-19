@@ -8246,31 +8246,6 @@ body { position: fixed; inset: 0; width: 100%; }
 .bottom-nav-item.active::before { display:none; }
 ::selection { background:rgba(247,183,51,.4); }
 </style>
-
-<style id="mw-stickers-css">
-.mw-refresh-due .topbar-refresh-btn{position:relative}
-.mw-refresh-due .topbar-refresh-btn::after{content:"";position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:#F7B733;box-shadow:0 0 0 2px rgba(255,255,255,.9);animation:mwDot 1.6s ease-in-out infinite}
-@keyframes mwDot{50%{transform:scale(1.35)}}
-.mw-char{display:block;pointer-events:none}
-.mw-char svg{display:block;width:100%;height:100%;overflow:visible}
-.mw-bob{animation:mwBob 3.2s ease-in-out infinite}
-@keyframes mwBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-.mw-wave{transform-origin:82px 90px;animation:mwWave 1.8s ease-in-out infinite}
-@keyframes mwWave{0%,100%{transform:rotate(0)}50%{transform:rotate(-16deg)}}
-.mw-blink{transform-box:fill-box;transform-origin:center;animation:mwBlink 4s infinite}
-@keyframes mwBlink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
-.mw-home-char{position:absolute;right:14px;top:10px;width:84px;height:94px;z-index:1}
-.home-hero .hi,.home-hero .name{padding-right:0;max-width:100%}
-.home-hero .home-hero-badge{display:none!important}
-.mw-lady-wrap{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;background:var(--card-bg,#fff);border:1px solid var(--line);border-radius:22px;padding:14px 10px 6px 18px;margin:4px 0 12px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
-.mw-wl{flex:1;align-self:center;padding-bottom:8px;position:relative;z-index:1}.mw-wl b{display:block;font-family:var(--font-serif);font-size:19px;color:var(--ink);margin-bottom:5px}.mw-wl span{font-size:12.5px;color:var(--muted);line-height:1.5}
-.mw-lady-wrap::before{content:"";position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:170px;height:104px;border-radius:50%;background:radial-gradient(closest-side,rgba(15,107,63,.16),transparent)}
-.mw-lady{width:94px;height:172px;flex:none;position:relative}
-.mw-upd-char{width:84px;height:154px;margin:0 auto 4px}
-.mw-empty-char{width:84px;height:154px;margin:0 auto 6px}
-.mw-res-char{width:72px;height:132px;margin:0 auto 8px}
-@media(prefers-reduced-motion:reduce){.mw-bob,.mw-wave,.mw-blink{animation:none}}
-</style>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -8820,7 +8795,7 @@ function openExternalUrl(url) {
 }
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const TELEGRAM_URL = 'https://t.me/MyUTMEPracticeBot';
-const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/HYkf4Tl2tHn4vV0cxF2A1M?s=cl&p=a&mlu=4&ilr=4";
+const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const AI_NAME = "AI";
 const AI_CREATOR = "Enzo";
@@ -9048,7 +9023,6 @@ function renderResultBlock(opts) {
         (opts.subtitle ? '<span class="result-doc-sub">' + esc(opts.subtitle) + '</span>' : '') +
         '</div>' +
         '<div class="result-doc-score">' +
-        mwChar('grad', 'mw-res-char') +
         '<p class="rd-line">You scored</p>' +
         '<span class="rd-big">' + opts.score + '</span><span class="rd-outof">/ ' + opts.maxScore + '</span>' +
         '<p class="rd-pct">' + pct + '%</p>' +
@@ -18677,7 +18651,6 @@ function renderHome() {
         '<div><span class="n" id="jamb-cd-days">' + cd.days + (cd.days === 1 ? ' day' : ' days') + '</span><br><span class="l">to JAMB ' + cd.year + ' · next day in <b id="jamb-cd-clock">' + cd.clock + '</b></span></div>' +
         '</div>' +
         '</div>' +
-        '<div class="mw-lady-wrap"><div class="mw-wl"><b>Hello there! \uD83D\uDC4B</b><span>Pick a subject below and let\'s get you JAMB-ready.</span></div>' + mwChar('lady', 'mw-lady') + '</div>' +
         '<button class="mwt-chip" data-tour="start">' + svg('sparkles', 18) + ' New here? Take the 30-second app tour<b>Start \u2192</b></button>' +
         renderHomeNextStep(metrics) +
         renderHomeFeatures() +
@@ -21228,7 +21201,7 @@ function renderHistoryCore() {
             '<h2 class="title" style="font-size:14px">📊 Result Analysis</h2>' +
             '<p class="sub" style="font-size:11px">View all your exam results and performance</p>' +
             filterHtml +
-            '<div class="card">' + mwChar('boy', 'mw-empty-char') + '<p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No results yet for this filter. Complete an exam to see it here.</p></div>'
+            '<div class="card"><p style="text-align:center;color:var(--faint);padding:16px 0;font-size:13px">No results yet for this filter. Complete an exam to see it here.</p></div>'
         );
     }
 
@@ -29069,133 +29042,30 @@ document.addEventListener('click', function (e) {
     function last() { try { return Number(localStorage.getItem(K) || 0); } catch (e) { return 0; } }
     function stamp() { try { localStorage.setItem(K, String(Date.now())); } catch (e) {} }
     if (!last()) stamp();
-    // No more blocking screen. After 24 hours without a successful update check, a small
-    // gold dot appears on the refresh icon in the top bar. Tapping the icon refreshes (online only).
-    function check() { document.body.classList.toggle('mw-refresh-due', Date.now() - last() >= DAY); }
-    window.__mwStamp = stamp;
+    function show() {
+        if (document.getElementById('mw-refresh')) return;
+        var d = document.createElement('div'); d.id = 'mw-refresh'; d.setAttribute('role', 'alertdialog');
+        d.innerHTML = '<div><div style="display:inline-flex">' + logoSvg(44) + '</div><h3>Time for a quick refresh</h3><p>MyUTME refreshes every 24 hours so your questions and features stay up to date. Your progress and saved questions are kept.</p><button id="mw-refresh-btn">Refresh now</button></div>';
+        document.body.appendChild(d);
+        document.getElementById('mw-refresh-btn').onclick = async function () {
+            var b = this;
+            if (!navigator.onLine) { b.textContent = 'Connect to the internet to refresh'; return; }
+            b.textContent = 'Refreshing\u2026'; b.disabled = true;
+            try {
+                var reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+                if (reg) { await reg.update().catch(function () {}); await swCheckUpdate(15000); }
+            } catch (e) {}
+            stamp(); location.reload();
+        };
+    }
+    function check() { if (!navigator.onLine) { var o = document.getElementById('mw-refresh'); if (o) o.remove(); return; } if (Date.now() - last() >= DAY && EXAMS.indexOf(state.view) === -1) show(); }
+    window.addEventListener('offline', function () { var o = document.getElementById('mw-refresh'); if (o) o.remove(); });
     setInterval(check, 60000); window.addEventListener('online', check); document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
     setTimeout(check, 3000);
 })();
 
 
 
-
-
-// ---------- Cartoon characters (human-style stickers with faces and bodies) ----------
-(function () {
-    // Every character is now a fair, beautiful lady drawn full-length.
-    var SK = '#F9E0CB', SH = '#EDC7A8', GOLD = '#F7B733';
-    var BLACK = { c: '#17110f', h: '#4d3d36' }, BROWN = { c: '#5a3420', h: '#9a6a46' };
-    function lady(o) {
-        var H = o.hair, D = o.dress, D2 = o.trim || GOLD, pose = o.pose, s = '<svg viewBox="0 0 120 220">';
-        s += '<ellipse cx="60" cy="213" rx="30" ry="4" fill="#000" opacity=".13"/>';
-        // long hair behind the body
-        s += '<path d="M39 50Q33 12 60 11Q87 12 81 50L89 120Q76 132 70 106L50 106Q44 132 31 120Z" fill="' + H.c + '"/>';
-        // legs and shoes
-        s += '<rect x="51" y="168" width="7" height="38" rx="3.5" fill="' + SK + '"/><rect x="62" y="168" width="7" height="38" rx="3.5" fill="' + SK + '"/>';
-        s += '<path d="M46 205q1-4 7-4h5v8q0 3-3 3H49q-4 0-3-7zM74 205q-1-4-7-4h-5v8q0 3 3 3h9q4 0 3-7z" fill="' + D2 + '"/>';
-        // neck + dress
-        s += '<rect x="54" y="66" width="12" height="20" rx="5" fill="' + SH + '"/>';
-        s += '<path d="M46 85Q60 80 74 85L72 119Q93 148 90 177Q60 186 30 177Q27 148 48 119Z" fill="' + D + '"/>';
-        s += '<path d="M48 119h24" stroke="' + D2 + '" stroke-width="5" stroke-linecap="round"/><path d="M31 175Q60 185 89 175" stroke="' + D2 + '" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
-        s += '<path d="M60 130Q56 152 52 180M60 130Q64 152 68 180" stroke="#000" stroke-width="1" opacity=".08" fill="none"/>';
-        s += '<path d="M52 84L60 99 68 84Z" fill="' + SK + '"/>';
-        // arms
-        var arm = function (d) { return '<path d="' + d + '" stroke="' + SK + '" stroke-width="7" stroke-linecap="round" fill="none"/>'; };
-        var hand = function (x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="4.4" fill="' + SK + '"/>'; };
-        if (pose === 'wave') {
-            s += arm('M46 90Q37 108 42 130') + hand(42, 132);
-            s += '<g class="mw-wave" style="transform-origin:74px 90px">' + arm('M74 90Q93 94 94 70') +
-                '<path d="M90 61v-7M94 59v-8M98 61v-7M88 66l-4-3" stroke="' + SK + '" stroke-width="2.8" stroke-linecap="round"/>' + '<ellipse cx="94" cy="65" rx="5.6" ry="6" fill="' + SK + '"/></g>';
-        } else if (pose === 'cheer') {
-            s += arm('M46 90Q27 84 21 58') + hand(21, 54) + arm('M74 90Q93 84 99 58') + hand(99, 54);
-        } else if (pose === 'think') {
-            s += arm('M46 90Q36 112 58 124') + hand(58, 124) + arm('M74 90Q92 98 74 72') + hand(68, 70);
-        } else if (pose === 'read') {
-            s += arm('M46 90Q29 112 34 136') + arm('M74 90Q91 112 86 136');
-        } else if (pose === 'point') {
-            s += arm('M46 90Q37 108 42 130') + hand(42, 132) + arm('M74 90Q97 92 104 76') + hand(104, 74) +
-                '<path d="M105 76L113 26" stroke="' + GOLD + '" stroke-width="2.8" stroke-linecap="round"/><circle cx="113" cy="25" r="2.6" fill="#E11D48"/>';
-        } else {
-            s += arm('M46 90Q37 108 42 130') + hand(42, 132) + arm('M74 90Q83 108 78 130') + hand(78, 132);
-        }
-        s += '<circle cx="46" cy="90" r="6.5" fill="' + D + '"/><circle cx="74" cy="90" r="6.5" fill="' + D + '"/>';
-        if (pose === 'read') {
-            s += '<rect x="26" y="110" width="68" height="34" rx="3.5" fill="#0a4a2c"/>' +
-                '<path d="M60 114Q45 107 30 112V141Q45 137 60 143Z" fill="#FFFBEF"/><path d="M60 114Q75 107 90 112V141Q75 137 60 143Z" fill="#F6EEDA"/>' +
-                '<path d="M36 119Q47 116 55 119M36 125Q47 122 55 125M36 131Q47 128 55 131M65 119Q73 116 84 119M65 125Q73 122 84 125M65 131Q73 128 84 131" stroke="#cdbf9c" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
-                '<path d="M60 114V143" stroke="#0a4a2c" stroke-width="2.4"/><path d="M60 143v13l4-4 4 4v-13z" fill="#E11D48"/>' +
-                '<circle cx="34" cy="137" r="4.4" fill="' + SK + '"/><circle cx="86" cy="137" r="4.4" fill="' + SK + '"/>';
-        }
-        // head
-        s += '<circle cx="41" cy="52" r="3.4" fill="' + SK + '"/><circle cx="79" cy="52" r="3.4" fill="' + SK + '"/>' +
-            '<circle cx="41" cy="58" r="2" fill="' + GOLD + '"/><circle cx="79" cy="58" r="2" fill="' + GOLD + '"/>' +
-            '<ellipse cx="60" cy="48" rx="19" ry="22" fill="' + SK + '"/>';
-        // face
-        var sleepy = pose === 'sleep', eye = function (x) {
-            return sleepy ? '<path d="M' + (x - 4.5) + ' 50Q' + x + ' 55 ' + (x + 4.5) + ' 50" stroke="#2a1710" stroke-width="2" fill="none" stroke-linecap="round"/>'
-                : '<g class="mw-blink"><ellipse cx="' + x + '" cy="50" rx="3.3" ry="4.2" fill="#2a1710"/></g><circle cx="' + (x + 1) + '" cy="48.5" r="1.2" fill="#fff"/>' +
-                '<path d="M' + (x - 5) + ' 49Q' + x + ' 44 ' + (x + 5) + ' 49" stroke="#17110f" stroke-width="2" fill="none" stroke-linecap="round"/>'; };
-        s += eye(52) + eye(68);
-        s += '<path d="M47 43.5Q52 40.5 57 42.5M63 42.5Q68 40.5 73 43.5" stroke="' + H.c + '" stroke-width="1.8" fill="none" stroke-linecap="round"/>';
-        s += '<path d="M60 52q-1.8 4.5 1 4.6" stroke="#d9a98a" stroke-width="1.4" fill="none" stroke-linecap="round"/>';
-        s += '<path d="M53.5 62Q57 60.4 60 62Q63 60.4 66.5 62Q60 70.5 53.5 62Z" fill="#D9506A"/><path d="M57 63.6Q60 65 63 63.6" stroke="#fff" stroke-width=".9" opacity=".6" fill="none"/>';
-        s += '<ellipse cx="46.5" cy="59" rx="4.6" ry="2.7" fill="#FF8F9B" opacity=".42"/><ellipse cx="73.5" cy="59" rx="4.6" ry="2.7" fill="#FF8F9B" opacity=".42"/>';
-        if (o.glasses) s += '<g fill="none" stroke="#2a1710" stroke-width="1.8"><circle cx="52" cy="50" r="7"/><circle cx="68" cy="50" r="7"/><path d="M59 50h2"/></g>';
-        // front hair
-        s += '<path d="M40 50Q37 19 60 18Q83 19 80 50Q74 33 61 32Q49 33 40 50Z" fill="' + H.c + '"/>' +
-            '<path d="M41 50Q37 63 41 76M79 50Q83 63 79 76" stroke="' + H.c + '" stroke-width="5" stroke-linecap="round" fill="none"/>' +
-            '<path d="M49 25Q58 21 69 25" stroke="' + H.h + '" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>';
-        if (o.cap) s += '<path d="M46 31v9q14 8 28 0v-9z" fill="#2b2b4a"/><path d="M32 27L60 14 88 27 60 40z" fill="#1b1b2f"/>' +
-            '<path d="M60 27L84 30v15" stroke="' + GOLD + '" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="84" cy="47" r="3.2" fill="' + GOLD + '"/>';
-        if (o.extra) s += o.extra;
-        return s + '</svg>';
-    }
-    var CH = {
-        // 1: book stack with graduation cap (home hero, top right)
-        books: function () { return '<svg viewBox="0 0 120 134">' +
-            '<ellipse cx="60" cy="130" rx="46" ry="4" fill="#000" opacity=".15"/>' +
-            // bottom book
-            '<rect x="8" y="98" width="104" height="28" rx="4" fill="#0F6B3F"/><rect x="8" y="98" width="104" height="5" rx="3" fill="#fff" opacity=".16"/>' +
-            '<rect x="98" y="101" width="11" height="22" rx="2" fill="#FBF3DC"/><path d="M98 106h11M98 111h11M98 116h11" stroke="#d8c9a3" stroke-width="1"/>' +
-            '<rect x="18" y="98" width="3.5" height="28" fill="' + GOLD + '"/><rect x="84" y="98" width="3.5" height="28" fill="' + GOLD + '"/>' +
-            '<text x="50" y="116" font-size="10" font-weight="800" text-anchor="middle" fill="#fff" font-family="Georgia,serif" letter-spacing=".5">JAMB CBT</text>' +
-            // middle book
-            '<rect x="15" y="70" width="92" height="27" rx="4" fill="#2563EB"/><rect x="15" y="70" width="92" height="5" rx="3" fill="#fff" opacity=".18"/>' +
-            '<rect x="12" y="73" width="10" height="21" rx="2" fill="#FBF3DC"/><path d="M12 78h10M12 83h10M12 88h10" stroke="#d8c9a3" stroke-width="1"/>' +
-            '<rect x="30" y="70" width="3.5" height="27" fill="' + GOLD + '"/><rect x="92" y="70" width="3.5" height="27" fill="' + GOLD + '"/>' +
-            '<text x="62" y="88" font-size="11" font-weight="800" text-anchor="middle" fill="#fff" font-family="Georgia,serif" letter-spacing=".5">PAST Qs</text>' +
-            '<path d="M76 97v14l4-4 4 4V97z" fill="#E11D48"/>' +
-            // top book
-            '<g transform="rotate(-5 60 56)"><rect x="20" y="43" width="84" height="26" rx="4" fill="' + GOLD + '"/><rect x="20" y="43" width="84" height="5" rx="3" fill="#fff" opacity=".28"/>' +
-            '<rect x="94" y="46" width="9" height="20" rx="2" fill="#FBF3DC"/><path d="M94 51h9M94 56h9M94 61h9" stroke="#d8c9a3" stroke-width="1"/>' +
-            '<rect x="29" y="43" width="3.5" height="26" fill="#0a4a2c"/><rect x="84" y="43" width="3.5" height="26" fill="#0a4a2c"/>' +
-            '<text x="58" y="61" font-size="14" font-weight="800" text-anchor="middle" fill="#0a4a2c" font-family="Georgia,serif" letter-spacing="1">UTME</text></g>' +
-            // graduation cap
-            '<path d="M36 26v12q24 12 48 0V26z" fill="#2b2b4a"/><path d="M60 5L103 21 60 37 17 21z" fill="#1b1b2f"/><path d="M60 5L103 21 60 21z" fill="#fff" opacity=".07"/>' +
-            '<circle cx="60" cy="21" r="2.6" fill="' + GOLD + '"/><path d="M60 21L97 24v15" stroke="' + GOLD + '" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M94 39h6l-1 8h-4z" fill="' + GOLD + '"/>' +
-            '<path d="M8 40l2.5 5 5 2.5-5 2.5-2.5 5-2.5-5-5-2.5 5-2.5z" fill="' + GOLD + '" opacity=".9"/></svg>'; },
-        // 1b: fair lady waving, hands empty (home welcome card)
-        lady: function () { return lady({ hair: BLACK, dress: '#0F6B3F', pose: 'wave' }); },
-        // 2: lady thinking (empty states)
-        boy: function () { return lady({ hair: BROWN, dress: '#2563EB', pose: 'think',
-            extra: '<g class="mw-bob"><circle cx="92" cy="40" r="3" fill="#fff" stroke="#E4A93A" stroke-width="1.6"/><circle cx="101" cy="26" r="9" fill="#fff" stroke="#E4A93A" stroke-width="1.8"/><text x="101" y="31" font-size="13" text-anchor="middle" font-weight="800" fill="#E4A93A">?</text></g>' }); },
-        // 3: graduate celebrating (results / success)
-        grad: function () { return lady({ hair: BLACK, dress: '#1b1b2f', trim: GOLD, pose: 'cheer', cap: true,
-            extra: '<g class="mw-bob"><circle cx="10" cy="30" r="2.6" fill="#F7B733"/><circle cx="108" cy="24" r="3" fill="#2563EB"/><circle cx="100" cy="8" r="2.2" fill="#E11D48"/><circle cx="14" cy="8" r="2.2" fill="#0F6B3F"/></g>' }); },
-        // 4: lady reading a well-made open book (update / loading)
-        reader: function () { return lady({ hair: BROWN, dress: '#E11D48', pose: 'read' }); },
-        // 5: lady teacher with pointer (tips / study)
-        teacher: function () { return lady({ hair: BLACK, dress: '#7C3AED', pose: 'point', glasses: true }); },
-        // 6: sleepy / offline lady
-        offline: function () { return lady({ hair: BROWN, dress: '#0EA5A4', pose: 'sleep',
-            extra: '<g class="mw-bob" font-family="Georgia,serif" font-weight="800" fill="#8A9990"><text x="88" y="30" font-size="13">z</text><text x="98" y="18" font-size="10">z</text></g>' }); }
-    };
-    window.mwChar = function (name, cls) {
-        var f = CH[name] || CH.lady;
-        return '<div class="mw-char mw-bob ' + (cls || '') + '" aria-hidden="true">' + f() + '</div>';
-    };
-})();
 
 // ---------- Page header with a Back icon (JAMB CBT, Past Questions) ----------
 function plainModeHead(backAttrs, backLabel, title) {
@@ -29342,10 +29212,9 @@ window.mwInstallFlow = async function () {
     function el() { if (!ind) { ind = document.createElement('div'); ind.id = 'mw-ptr'; ind.innerHTML = ARROW; document.body.appendChild(ind); } return ind; }
     function pos(y, r) { var i = el(); i.style.opacity = y > 4 ? 1 : 0; i.style.transform = 'translateY(' + (y - 60) + 'px) rotate(' + (r || 0) + 'deg)'; }
     window.mwRefresh = async function () {
-        if (!navigator.onLine) { busy = false; try { pos(0, 0); } catch (e) {} showToast("No internet. You're offline, so the app keeps working from your saved copy.", 'offline'); return; }
         try { var reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) { await reg.update().catch(function () {}); await swCheckUpdate(15000); } } catch (e) {}
         try { localStorage.setItem('myutme_forced_refresh', String(Date.now())); } catch (e) {}
-        busy = false; location.reload();
+        location.reload();
     };
     document.addEventListener('touchstart', function (e) {
         act = false; ok = false;
@@ -29731,7 +29600,7 @@ function refreshApp() {
         // must first download the newest version, then reload onto it.
         if (btn) btn.classList.add('is-spinning');
         swCheckUpdate(12000).then(function (ok) {
-            if (ok) { try { localStorage.setItem('myutme_last_update_check', String(Date.now())); localStorage.setItem('myutme_forced_refresh', String(Date.now())); } catch (e) {} }
+            if (ok) { try { localStorage.setItem('myutme_last_update_check', String(Date.now())); } catch (e) {} }
         }).then(function () { location.reload(); });
     }, 350);
 }
@@ -29911,26 +29780,50 @@ function swCheckUpdate(timeoutMs) {
 //    comparison every 3 minutes.
 //  * the app also checks the moment you open it or come back to it (it then updates by itself).
 (function () {
-    // The banner now appears ONLY when the service worker itself confirms (by comparing real
-    // file contents) that a newer version exists. No more 30-second header polling, which
-    // gave false alarms. Once shown it stays until tapped, and it is never shown offline.
-    var shown = false;
+    var POLL_MS = 30000, base = null, busy = false, noHeaders = false, shown = false;
+    var FILES = ['index.html', 'offline-db.js', 'sw.js'];
     function inExam() { return ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'].indexOf(state.view) !== -1 || !!state.aiSending; }
     function showBanner() {
-        if (shown || !navigator.onLine) return; shown = true;
+        if (shown) return; shown = true;
         var b = document.createElement('button');
         b.id = 'upd-banner'; b.type = 'button';
-        b.textContent = 'Update available \u00B7 tap to update';
+        b.textContent = '🔄 Update available · tap to update';
         b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 8px);z-index:2147483000;border:0;border-radius:999px;padding:11px 18px;background:#0F6B3F;color:#fff;font:700 13px/1 system-ui,-apple-system,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;max-width:94vw';
         b.onclick = function () {
-            if (!navigator.onLine) { b.textContent = 'Connect to the internet to update'; return; }
-            b.textContent = 'Updating\u2026'; b.disabled = true;
+            b.textContent = 'Updating…'; b.disabled = true;
             try { if (window.mwRefresh) window.mwRefresh(); else location.reload(); } catch (e) { location.reload(); }
         };
         document.body.appendChild(b);
-        setInterval(function () { b.style.display = (inExam() || !navigator.onLine) ? 'none' : 'block'; }, 1000);
+        setInterval(function () { b.style.display = inExam() ? 'none' : 'block'; }, 1000);   // local check only, no network
     }
     window.__showUpdateBanner = showBanner;
+    async function stamp(file) {
+        var r = await fetch(file + '?cb=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+        if (!r.ok) return null;
+        return [r.headers.get('etag'), r.headers.get('last-modified'), r.headers.get('content-length')].join('~');
+    }
+    async function check() {
+        if (busy || shown || document.hidden || !navigator.onLine) return;
+        busy = true;
+        try {
+            var parts = [];
+            for (var i = 0; i < FILES.length; i++) { var v = await stamp(FILES[i]); if (v === null) { if (i === 0) return; v = 'x'; } parts.push(v); }
+            var sig = parts.join('|');
+            window.__updDebug = { base: base, now: sig, at: new Date().toISOString() };
+            if (sig.replace(/[~|x]/g, '') === '') { noHeaders = true; return; }   // host gives no version info
+            if (base === null) { base = sig; return; }
+            if (sig !== base) showBanner();
+        } catch (e) { /* offline or slow: try again next time */ }
+        finally { busy = false; }
+    }
+    setTimeout(check, 8000);                                   // first reading = the version this page is running
+    setInterval(check, POLL_MS);
+    setInterval(function () {                                  // fallback when the host gives no version info
+        if (!noHeaders || shown || document.hidden || !navigator.onLine) return;
+        swCheckUpdate(20000).then(function (ok) { if (ok && window.__swChanged) { window.__swChanged = false; showBanner(); } });
+    }, 180000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+    window.addEventListener('online', check);
 })();
 
 if ("serviceWorker" in navigator) {
@@ -29950,7 +29843,7 @@ if ("serviceWorker" in navigator) {
                     swCheckUpdate(20000).then(function (ok) {
                         checking = false;
                         if (!ok) { lastCheck = 0; return; }       // failed (slow/offline): try again next time
-                        try { localStorage.setItem('myutme_last_update_check', String(Date.now())); localStorage.setItem('myutme_forced_refresh', String(Date.now())); document.body.classList.remove('mw-refresh-due'); } catch (e) {}
+                        try { localStorage.setItem('myutme_last_update_check', String(Date.now())); } catch (e) {}
                         if (window.__swChanged && !atOpen) {
                             window.__swChanged = false;          // found while the app is in use: let the student tap "Update"
                             if (window.__showUpdateBanner) window.__showUpdateBanner();
