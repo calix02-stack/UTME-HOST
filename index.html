@@ -29647,8 +29647,15 @@ async function init() {
     // can stay open in the background for days, so "on every open" alone left new questions
     // waiting until a full restart).
     let __reconcileRunning = false;
+    // FIRST EVER OPEN: the full download of every subject file (many MB) used to start 3 seconds
+    // in and fought the browser's "Install app" step for the connection, making installing very
+    // slow. On a first open it now waits 45 seconds so installing finishes first. Any subject the
+    // student taps into before then still loads straight away (it fetches just that one file).
+    const __firstRunSync = !storage.get('lastSubjectFileSync');
+    const __reconcileNotBefore = Date.now() + (__firstRunSync ? 45000 : 0);
     function runSubjectReconcile() {
         if (__reconcileRunning) return;
+        if (Date.now() < __reconcileNotBefore) return;
         __reconcileRunning = true;
         setTimeout(function() { __reconcileRunning = false; }, 25000);
         const subjectIds = SUBJECTS.map(function(s) { return s.id; });
@@ -29682,7 +29689,7 @@ async function init() {
             console.warn('window.OfflineDB.reconcileAllSubjectFiles is not defined — skipping subject file reconcile.');
         }
     }
-    setTimeout(runSubjectReconcile, 3000);
+    setTimeout(runSubjectReconcile, __firstRunSync ? 45500 : 3000);
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState !== 'visible') return;
         const last = parseInt(storage.get('lastSubjectFileSync') || '0', 10) || 0;
