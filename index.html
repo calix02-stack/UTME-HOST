@@ -17950,7 +17950,6 @@ function renderApp() {
               '<button class="icon-btn topbar-refresh-btn" data-action="app-refresh" aria-label="Refresh">' +
               svg('refresh', 16).replace('stroke="currentColor"', 'stroke="white"') +
               '</button>' +
-              (state.updateAvailable ? '<button class="upd-pill" data-action="app-update-now" aria-label="Update available">' + svg('refresh', 13).replace('stroke="currentColor"', 'stroke="white"') + '<span>Update</span></button>' : '') +
               '</div>' +
               '<div class="topbar-center"><span class="brand">' + logoSvg(18) + '<span>My<b>UTME</b></span>' +
               (state.swVersion ? '<span class="app-version-badge">' + esc(formatVersionBadge(state.swVersion)) + '</span>' : '') +
@@ -20279,7 +20278,8 @@ function renderFlashcards() {
         try { isMarked = __getMarked().some(function(x) { return x.h === __qh(q); }); } catch (e) {}
         const toolsHtml = '<div class="fc-xp-tools">' +
             '<button type="button" class="fc-chip' + (isMarked ? ' on' : '') + '" data-action="fc-bookmark">' + (isMarked ? '⭐ Bookmarked' : '☆ Bookmark') + '</button>' +
-            '<button type="button" class="fc-chip" data-action="fc-copy-exp">📋 Copy</button></div>';
+            '<button type="button" class="fc-chip" data-action="fc-copy-exp">📋 Copy</button>' +
+            renderFlagButton(q.id, state.flashcardSubject, 'flashcard', q) + '</div>';
         return (
             '<button class="back-link" data-action="flashcard-exp-close">' + svg("chevleft", 14) + ' Back to card</button>' +
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">Explanation</h2>' +
@@ -20353,6 +20353,7 @@ function renderFlashcards() {
         '<span class="fc-label">Question</span>' +
         '<p class="fc-text">' + escQ(q.text) + '</p>' +
         optionsHtml + revealHtml +
+        '<div style="display:flex;justify-content:flex-end;margin-top:10px">' + renderFlagButton(q.id, state.flashcardSubject, 'flashcard', q) + '</div>' +
         '</div></div>' +
         belowHtml +
         '<div class="flashcard-nav">' +
@@ -29717,34 +29718,58 @@ function swCheckUpdate(timeoutMs) {
 
 
 // ---------- "Update available" watcher ----------
-// Every POLL_MS (while the app is open and online) it sends two tiny HEAD requests (index.html and
-// sw.js, headers only, a few hundred bytes, no file download). If the server's version stamp
-// (ETag / Last-Modified) differs from what this page started with, a green "Update" button appears
-// on the Home top bar. Tapping it installs the new version. It pauses when the app is in the
-// background and during exams.
+// A green banner "Update available · tap to update" appears at the top of EVERY screen (except during
+// an exam) as soon as you upload a new version. How it knows:
+//  * every 30 s (app open, online) it sends tiny HEAD requests (headers only, no download) for
+//    index.html, offline-db.js and sw.js, each with a cache-busting "?cb=" so a CDN cannot answer
+//    with an old copy. If the server's version stamp (ETag + Last-Modified + size) changed since
+//    this page started, the banner shows.
+//  * if the host sends no version info at all, it falls back to the service worker's own full
+//    comparison every 3 minutes.
+//  * the app also checks the moment you open it or come back to it (it then updates by itself).
 (function () {
-    var POLL_MS = 30000, base = null, busy = false, dead = false;
-    function inExam() { return ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'].indexOf(state.view) !== -1; }
+    var POLL_MS = 30000, base = null, busy = false, noHeaders = false, shown = false;
+    var FILES = ['index.html', 'offline-db.js', 'sw.js'];
+    function inExam() { return ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'].indexOf(state.view) !== -1 || !!state.aiSending; }
+    function showBanner() {
+        if (shown) return; shown = true;
+        var b = document.createElement('button');
+        b.id = 'upd-banner'; b.type = 'button';
+        b.textContent = '🔄 Update available · tap to update';
+        b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 8px);z-index:2147483000;border:0;border-radius:999px;padding:11px 18px;background:#0F6B3F;color:#fff;font:700 13px/1 system-ui,-apple-system,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;max-width:94vw';
+        b.onclick = function () {
+            b.textContent = 'Updating…'; b.disabled = true;
+            try { if (window.mwRefresh) window.mwRefresh(); else location.reload(); } catch (e) { location.reload(); }
+        };
+        document.body.appendChild(b);
+        setInterval(function () { b.style.display = inExam() ? 'none' : 'block'; }, 1000);   // local check only, no network
+    }
+    window.__showUpdateBanner = showBanner;
     async function stamp(file) {
-        var r = await fetch(file, { method: 'HEAD', cache: 'no-store' });
+        var r = await fetch(file + '?cb=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
         if (!r.ok) return null;
-        return r.headers.get('etag') || r.headers.get('last-modified') || r.headers.get('content-length') || '';
+        return [r.headers.get('etag'), r.headers.get('last-modified'), r.headers.get('content-length')].join('~');
     }
     async function check() {
-        if (busy || dead || state.updateAvailable || document.hidden || !navigator.onLine || inExam()) return;
+        if (busy || shown || document.hidden || !navigator.onLine) return;
         busy = true;
         try {
-            var a = await stamp('index.html'), b = await stamp('sw.js');
-            if (a === null || b === null) return;
-            var sig = a + '|' + b;
-            if (sig === '|') { dead = true; return; }          // host gives no version info: cannot detect this way
+            var parts = [];
+            for (var i = 0; i < FILES.length; i++) { var v = await stamp(FILES[i]); if (v === null) { if (i === 0) return; v = 'x'; } parts.push(v); }
+            var sig = parts.join('|');
+            window.__updDebug = { base: base, now: sig, at: new Date().toISOString() };
+            if (sig.replace(/[~|x]/g, '') === '') { noHeaders = true; return; }   // host gives no version info
             if (base === null) { base = sig; return; }
-            if (sig !== base) { state.updateAvailable = true; render(); }
+            if (sig !== base) showBanner();
         } catch (e) { /* offline or slow: try again next time */ }
         finally { busy = false; }
     }
-    setTimeout(check, 12000);                                  // first reading = the version this page is running
+    setTimeout(check, 8000);                                   // first reading = the version this page is running
     setInterval(check, POLL_MS);
+    setInterval(function () {                                  // fallback when the host gives no version info
+        if (!noHeaders || shown || document.hidden || !navigator.onLine) return;
+        swCheckUpdate(20000).then(function (ok) { if (ok && window.__swChanged) { window.__swChanged = false; showBanner(); } });
+    }, 180000);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
     window.addEventListener('online', check);
 })();
@@ -29757,7 +29782,7 @@ if ("serviceWorker" in navigator) {
             // version. A tiny "not modified" reply if nothing changed. With no internet it does nothing
             // and shows no error; it simply tries again when the network is back.
             var lastCheck = 0, checking = false;
-            var autoUpdate = function (force) {
+            var autoUpdate = function (force, atOpen) {
                 try {
                     if (checking || !navigator.onLine) return;
                     if (!force && Date.now() - lastCheck < 3 * 60 * 1000) return;   // at most once every 3 minutes
@@ -29767,7 +29792,10 @@ if ("serviceWorker" in navigator) {
                         checking = false;
                         if (!ok) { lastCheck = 0; return; }       // failed (slow/offline): try again next time
                         try { localStorage.setItem('myutme_last_update_check', String(Date.now())); } catch (e) {}
-                        if (window.__swChanged) {
+                        if (window.__swChanged && !atOpen) {
+                            window.__swChanged = false;          // found while the app is in use: let the student tap "Update"
+                            if (window.__showUpdateBanner) window.__showUpdateBanner();
+                        } else if (window.__swChanged) {
                             window.__swChanged = false;
                             var tryReload = function () {      // never interrupt an exam or an AI reply
                                 var busy = ['cbt-exam', 'exam-exam', 'topic-exam', 'lit-exam', 'mock-exam'].indexOf(state.view) !== -1 || state.aiSending;
@@ -29779,7 +29807,7 @@ if ("serviceWorker" in navigator) {
                     }, function () { checking = false; });
                 } catch (e) { checking = false; }
             };
-            setTimeout(function () { autoUpdate(true); }, 1500);
+            setTimeout(function () { autoUpdate(true, true); }, 1500);
             window.addEventListener('online', function () { autoUpdate(true); });
             document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') autoUpdate(false); });
         }).catch(function (err) {
