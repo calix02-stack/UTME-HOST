@@ -8271,6 +8271,38 @@ body { position: fixed; inset: 0; width: 100%; }
 .mw-res-char{width:72px;height:132px;margin:0 auto 8px}
 @media(prefers-reduced-motion:reduce){.mw-bob,.mw-wave,.mw-blink{animation:none}}
 </style>
+<style id="mw-compact">
+/* Compact home page: less scrolling */
+.home-hero{padding:14px 16px!important;margin-bottom:10px!important;border-radius:20px!important;position:relative;overflow:hidden;min-height:0}
+.home-hero .hi{font-size:12px!important;margin:0!important;padding-right:80px!important}
+.home-hero .name{font-size:22px!important;margin:1px 0 8px!important;padding-right:80px!important;min-height:0!important}
+.home-hero .cd-row{padding:7px 10px!important;margin:0!important;max-width:calc(100% - 74px)}
+.mw-hero-lady{position:absolute;right:6px;bottom:0;width:66px;height:121px;pointer-events:none}
+.mwt-chip{padding:7px 12px!important;margin:0 0 8px!important;font-size:12.5px!important;border-radius:12px!important}
+.study-next-step{padding:10px 12px!important;margin:0 0 10px!important;gap:10px!important}
+.study-next-step .study-eyebrow,.study-next-step .next-step-copy p{display:none!important}
+.next-step-icon{width:34px!important;height:34px!important;flex:none}.next-step-copy h2{font-size:14px!important}
+.next-step-button{padding:7px 12px!important;font-size:12px!important;min-height:0!important}
+.section-hdr{margin:4px 0 8px!important}.section-hdr>div p{display:none!important}
+.mw-hf{gap:8px!important;margin:0 0 10px!important}
+.mw-hf button{padding:10px 12px!important;gap:2px!important}
+.mw-hf i{display:none!important}
+.mw-hf-ic{width:34px!important;height:34px!important;margin-bottom:0!important}
+.mw-hf button:not(.mw-hf-cta){flex-direction:row!important;align-items:center!important;gap:8px!important}
+.mw-hf button:not(.mw-hf-cta) b{font-size:13px}
+.mw-hf button.mw-hf-cta{gap:10px!important}.mw-hf-cta b{font-size:15px!important}
+.study-studio{padding:12px!important;margin:0 0 10px!important}
+.study-studio-heading{margin-bottom:8px!important}.study-studio-heading h2{font-size:15px!important}
+.study-studio-sub,.study-studio .study-eyebrow{display:none!important}
+.study-insights-link{padding:6px 10px!important;font-size:11px!important;min-height:0!important}
+.study-stats-grid{gap:6px!important}.study-stat{padding:8px!important;gap:0!important}.study-stat-icon{display:none!important}
+.study-stat strong{font-size:16px!important}
+.study-tools-grid{margin-top:8px!important;gap:8px!important}
+.study-tool-card{padding:10px 12px!important}.study-tool-heading p,.study-tool-note{display:none!important}
+.study-tool-icon{width:28px!important;height:28px!important;flex-basis:28px!important;font-size:16px!important}
+.goal-progress-copy{margin:8px 0 6px!important}.study-goal-choices{margin-top:8px!important}
+.card[style*="border-left:3px solid var(--gold)"]{padding:9px 12px!important;margin-bottom:8px!important}
+</style>
 </head>
 <body>
 <!-- This app is a JS-rendered single page app, so the two blocks below
@@ -8820,7 +8852,7 @@ function openExternalUrl(url) {
 }
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const TELEGRAM_URL = 'https://t.me/MyUTMEPracticeBot';
-const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/HYkf4Tl2tHn4vV0cxF2A1M?s=cl&p=a&mlu=4&ilr=4";
+const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const AI_NAME = "AI";
 const AI_CREATOR = "Enzo";
@@ -17704,7 +17736,7 @@ const FAQ_FEATURES = [
 const FAQ_QA = [
     { q: 'Is MyUTME free to use?', a: 'You can create a free account and explore the app right away. Some features require account activation to unlock full access. MyUTME does not use wallet funding — you simply pay to activate, either manually or straight to our dedicated account, as explained below.' },
     { q: 'How do I activate my account?', a: 'Go to the Activate menu and get a license key by paying either manually (chat with our team on WhatsApp to pay and get activated) or via Paystack, which can pay straight into our dedicated account by card, bank transfer or USSD. Once payment is confirmed, enter your activation key to unlock full access to practice questions, mock exams and more.' },
-    { q: 'Can I use the app without internet?', a: 'Yes. MyUTME works completely offline, including the mock exams. Load your questions once, then practise anytime and anywhere, even with no data.' },,
+    { q: 'Can I use the app without internet?', a: 'Yes. MyUTME works completely offline, including the mock exams. Load your questions once, then practise anytime and anywhere, even with no data.' },
     { q: 'How accurate are the practice questions?', a: 'Our question bank is built from real past JAMB questions and carefully reviewed CBT-style questions, kept as close as possible to what you\u2019ll actually face on exam day.' },
     { q: 'What subjects are covered?', a: 'All core JAMB subjects are covered. You can practice any subject individually, by topic, or combine them into a full mock exam just like the real UTME.' },
     { q: 'How does the AI work?', a: 'The AI answers questions in plain language, explains concepts you\u2019re stuck on, and can walk you through why an answer is correct — available any time from the AI tab.' },
@@ -18676,8 +18708,8 @@ function renderHome() {
         '<span class="cd-emoji">🎯</span>' +
         '<div><span class="n" id="jamb-cd-days">' + cd.days + (cd.days === 1 ? ' day' : ' days') + '</span><br><span class="l">to JAMB ' + cd.year + ' · next day in <b id="jamb-cd-clock">' + cd.clock + '</b></span></div>' +
         '</div>' +
+        mwChar('lady', 'mw-hero-lady') +
         '</div>' +
-        '<div class="mw-lady-wrap"><div class="mw-wl"><b>Hello there! \uD83D\uDC4B</b><span>Pick a subject below and let\'s get you JAMB-ready.</span></div>' + mwChar('lady', 'mw-lady') + '</div>' +
         '<button class="mwt-chip" data-tour="start">' + svg('sparkles', 18) + ' New here? Take the 30-second app tour<b>Start \u2192</b></button>' +
         renderHomeNextStep(metrics) +
         renderHomeFeatures() +
