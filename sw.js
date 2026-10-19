@@ -3,7 +3,7 @@
 * Installation timeout optimization
   */
 
-const CACHE_NAME = "myutme-cache-v87";
+const CACHE_NAME = "myutme-cache-v86";
 
 const APP_SHELL = [
 "./",
