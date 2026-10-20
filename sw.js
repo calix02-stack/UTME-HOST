@@ -1,236 +1,358 @@
-/* MyUTME Service Worker — Fast Installation + Offline CBT */
+/*! MyUTME service worker · enzo-ai
+ * Fast install: the app shell is revalidated (tiny "not changed" reply) instead of
+ * being force-downloaded again, so installing no longer waits on the 1.4 MB page.
+ */
 
-"use strict";
-
-const CACHE_NAME = "myutme-cache-v87";
+const CACHE_NAME = "myutme-cache-v88";
 
 const APP_SHELL = [
-    "./index.html",
-    "./offline-db.js"
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./offline-db.js",
 ];
 
-const OPTIONAL_FILES = [
-    "./manifest.json",
-    "./icon-192.png",
-    "./icon-512.png"
-];
+const FETCH_TIMEOUT_MS = 8000;
+const PAGE_TIMEOUT_MS = 12000;
+const QUESTION_TIMEOUT_MS = 15000;
 
-const INSTALL_TIMEOUT = 15000;
-const NAVIGATION_TIMEOUT = 4000;
-const QUESTION_TIMEOUT = 8000;
-
-const BASE_URL = self.registration.scope;
-
-function absoluteURL(path) {
-    return new URL(path, BASE_URL).href;
-}
-
-async function fetchWithTimeout(request, timeout) {
+function freshFetch(request, timeoutMs = FETCH_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeout);
+    const timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error("Network request timed out"));
+    }, timeoutMs);
 
-    try {
-        return await fetch(request, {
-            cache: "no-store",
-            signal: controller.signal
-        });
-    } finally {
+    fetch(request, {
+      cache: "no-store",
+      signal: controller.signal,
+    }).then(
+      (response) => {
         clearTimeout(timer);
-    }
+        resolve(response);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
 }
 
-async function cacheFile(cache, path, timeout = INSTALL_TIMEOUT) {
-    const url = absoluteURL(path);
+function revalidateFetch(request, timeoutMs = FETCH_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error("Network request timed out"));
+    }, timeoutMs);
 
-    const response = await fetchWithTimeout(url, timeout);
-
-    if (!response.ok) {
-        throw new Error("Failed to cache " + path);
-    }
-
-    await cache.put(url, response.clone());
+    fetch(request, {
+      cache: "no-cache",
+      signal: controller.signal,
+    }).then(
+      (response) => {
+        clearTimeout(timer);
+        resolve(response);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
 }
 
-self.addEventListener("install", event => {
-    event.waitUntil((async () => {
-        const cache = await caches.open(CACHE_NAME);
+// Install: the app shell MUST be saved before this worker takes over.
+// If index.html or offline-db.js cannot be saved, installation fails and the
+// previous worker (with its working offline cache) keeps running.
+const REQUIRED_SHELL = ["./index.html", "./offline-db.js"];
 
-        /*
-         * Fetch essential files simultaneously.
-         * No duplicate "./" request and no repeated retries.
-         */
-        await Promise.all(
-            APP_SHELL.map(path => cacheFile(cache, path))
-        );
+async function cacheShellFile(cache, url) {
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      // "no-cache" asks the server "has this changed?". If not, the reply is a tiny
+      // 304 and the copy the browser just downloaded is reused, so install is quick.
+      const response = await revalidateFetch(url, 20000);
+      if (!response || !response.ok) throw new Error("Bad response for " + url);
+      // A redirected response cannot be used to answer a page navigation.
+      const clean = response.redirected
+        ? new Response(await response.blob(), {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+          })
+        : response;
+      await cache.put(url, clean);
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
 
-        /*
-         * Icons and manifest are optional for offline operation.
-         * Their failure must not block installation.
-         */
-        await Promise.allSettled(
-            OPTIONAL_FILES.map(path =>
-                cacheFile(cache, path, 5000)
-            )
-        );
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      await Promise.all(
+        APP_SHELL.map(async (url) => {
+          try {
+            await cacheShellFile(cache, url);
+          } catch (error) {
+            if (REQUIRED_SHELL.indexOf(url) !== -1) throw error;
+          }
+        })
+      );
+    })()
+  );
 
-        await self.skipWaiting();
-    })());
+  self.skipWaiting();
 });
 
-self.addEventListener("activate", event => {
-    event.waitUntil((async () => {
-        const keys = await caches.keys();
-
-        await Promise.all(
-            keys
-                .filter(key =>
-                    key.startsWith("myutme-cache-") &&
-                    key !== CACHE_NAME
-                )
-                .map(key => caches.delete(key))
-        );
-
-        await self.clients.claim();
-    })());
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : null))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
 });
 
-async function cachedFallback(request, fallbackPath) {
-    const cache = await caches.open(CACHE_NAME);
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
 
-    const cached = await cache.match(request);
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
 
-    if (cached) return cached;
+  const isAppShell =
+    event.request.mode === "navigate" ||
+    url.pathname.endsWith(".html") ||
+    url.pathname === "/" ||
+    url.pathname.endsWith("/");
 
-    if (fallbackPath) {
-        const fallback = await cache.match(
-            absoluteURL(fallbackPath)
-        );
+  const isQuestionDataFile =
+    /^\/?(questions|notes)-[^/]+\.json$/.test(url.pathname) ||
+    url.pathname.endsWith("questions-seed.json");
 
-        if (fallback) return fallback;
-    }
+  const isAppScript =
+    url.pathname.endsWith(".js") && /offline-db/.test(url.pathname);
 
-    return null;
-}
+  const isShellNav =
+    (event.request.mode === "navigate" &&
+      !/\.[a-z0-9]+$/i.test(url.pathname)) ||
+    url.pathname === "/" ||
+    url.pathname.endsWith("/index.html");
 
-async function handleNavigation(request) {
-    try {
-        const response = await fetchWithTimeout(
-            request,
-            NAVIGATION_TIMEOUT
-        );
+  if (isShellNav || isAppScript) {
+    const key = isShellNav ? "./index.html" : "./offline-db.js";
 
-        if (response.ok) {
-            const cache = await caches.open(CACHE_NAME);
-
-            await cache.put(
-                absoluteURL("./index.html"),
-                response.clone()
-            );
-        }
-
-        return response;
-    } catch (error) {
-        const fallback = await cachedFallback(
-            request,
-            "./index.html"
-        );
-
-        if (fallback) return fallback;
-
-        return new Response(
-            "MyUTME is unavailable offline. Please reconnect and reload.",
-            {
-                status: 503,
-                headers: {
-                    "Content-Type": "text/plain; charset=utf-8"
-                }
-            }
-        );
-    }
-}
-
-async function handleQuestionFile(request) {
-    try {
-        const response = await fetchWithTimeout(
-            request,
-            QUESTION_TIMEOUT
-        );
-
-        if (response.ok) {
-            const cache = await caches.open(CACHE_NAME);
-
-            await cache.put(request, response.clone());
-        }
-
-        return response;
-    } catch (error) {
-        const cached = await cachedFallback(request);
-
+    event.respondWith(
+      caches.match(key, { ignoreSearch: true }).then((cached) => {
         if (cached) return cached;
 
-        return new Response(
-            JSON.stringify({
-                error: "Question file unavailable offline."
-            }),
-            {
-                status: 503,
-                headers: {
-                    "Content-Type": "application/json"
-                }
+        return freshFetch(event.request, PAGE_TIMEOUT_MS)
+          .then((response) => {
+            if (response && response.status === 200) {
+              const clone = response.clone();
+              event.waitUntil(
+                caches.open(CACHE_NAME).then((c) => c.put(key, clone))
+              );
             }
-        );
+            return response;
+          })
+          .catch(() =>
+            caches
+              .match("./index.html")
+              .then((cachedPage) => cachedPage || Response.error())
+          );
+      })
+    );
+    return;
+  }
+
+  if (isAppShell || isAppScript) {
+    event.respondWith(
+      freshFetch(event.request, PAGE_TIMEOUT_MS)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            event.waitUntil(
+              caches.open(CACHE_NAME).then((c) => c.put(event.request, clone))
+            );
+          }
+          return response;
+        })
+        .catch(() =>
+          caches
+            .match(event.request, { ignoreSearch: isAppScript })
+            .then((cached) => cached || Response.error())
+        )
+    );
+    return;
+  }
+
+  if (isQuestionDataFile) {
+    const cacheKey = new Request(url.origin + url.pathname);
+
+    event.respondWith(
+      revalidateFetch(cacheKey, QUESTION_TIMEOUT_MS)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            event.waitUntil(
+              caches.open(CACHE_NAME).then((c) => c.put(cacheKey, clone))
+            );
+            return response;
+          }
+
+          return caches
+            .match(cacheKey)
+            .then((cached) => cached || response);
+        })
+        .catch(() =>
+          caches
+            .match(cacheKey)
+            .then((cached) => cached || Response.error())
+        )
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      const fetchPromise = freshFetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            event.waitUntil(
+              caches.open(CACHE_NAME).then((c) => c.put(event.request, clone))
+            );
+          }
+          return response;
+        })
+        .catch(() => cached || Response.error());
+
+      return cached || fetchPromise;
+    })
+  );
+});
+
+async function refreshShell() {
+  const urls = ["./index.html", "./offline-db.js", "./manifest.json"];
+  const fetched = [];
+
+  for (const url of urls) {
+    const response = await revalidateFetch(new Request(url), 20000);
+    if (!response || !response.ok) {
+      throw new Error("Update check failed for " + url);
     }
+    fetched.push([url, response]);
+  }
+
+  const cache = await caches.open(CACHE_NAME);
+  let changed = false;
+
+  for (const [url, response] of fetched) {
+    if (url === "./manifest.json") continue;
+
+    try {
+      const old = await cache.match(url);
+      if (!old) {
+        changed = true;
+        continue;
+      }
+
+      const [a, b] = await Promise.all([
+        old.clone().text(),
+        response.clone().text(),
+      ]);
+
+      if (a !== b) changed = true;
+    } catch (error) {}
+  }
+
+  for (const [url, response] of fetched) {
+    await cache.put(url, response.clone());
+    if (url === "./index.html") {
+      await cache.put("./", response.clone());
+    }
+  }
+
+  return changed;
 }
 
-self.addEventListener("fetch", event => {
-    const request = event.request;
+self.addEventListener("message", (event) => {
+  if (!event.data || event.data.type !== "CHECK_UPDATE") return;
 
-    if (request.method !== "GET") return;
+  const port = event.ports && event.ports[0];
 
-    const url = new URL(request.url);
+  event.waitUntil(
+    refreshShell().then(
+      (changed) => port && port.postMessage({ ok: true, changed: !!changed }),
+      () => port && port.postMessage({ ok: false })
+    )
+  );
+});
 
-    // Do not intercept requests to Supabase or other external services.
-    if (url.origin !== self.location.origin) return;
+self.addEventListener("push", (event) => {
+  let data = {};
 
-    if (request.mode === "navigate") {
-        event.respondWith(handleNavigation(request));
-        return;
-    }
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (error) {
+    data = {
+      title: "MyUTME",
+      body: event.data ? event.data.text() : "",
+    };
+  }
 
-    const pathname = url.pathname.toLowerCase();
+  let openUrl = data.url || "/";
+  if (!data.url && data.news_id) {
+    openUrl = "/?news=" + data.news_id;
+  } else if (
+    !data.url &&
+    String(data.title || "").indexOf("\uD83D\uDCF0") === 0
+  ) {
+    openUrl = "/?news=latest";
+  }
 
-    // Question files: network first, with offline cache fallback.
-    if (pathname.endsWith(".json")) {
-        event.respondWith(handleQuestionFile(request));
-        return;
-    }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "MyUTME", {
+      body: data.body || "",
+      icon: "./icon-192.png",
+      badge: "./icon-badge-96.png",
+      tag: data.tag || "myutme-notification",
+      data: openUrl,
+    })
+  );
+});
 
-    // App shell scripts and manifest: cache first.
-    if (
-        pathname.endsWith("/offline-db.js") ||
-        pathname.endsWith("/manifest.json") ||
-        pathname.endsWith("/icon-192.png") ||
-        pathname.endsWith("/icon-512.png")
-    ) {
-        event.respondWith((async () => {
-            const cached = await caches.match(request);
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data || "/";
 
-            if (cached) return cached;
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if ("focus" in client) {
+            client.postMessage({ type: "open-url", url: targetUrl });
+            return client.focus();
+          }
+        }
 
-            try {
-                const response = await fetch(request);
-
-                if (response.ok) {
-                    const cache = await caches.open(CACHE_NAME);
-                    await cache.put(request, response.clone());
-                }
-
-                return response;
-            } catch (error) {
-                return new Response("File unavailable offline.", {
-                    status: 503
-                });
-            }
-        })());
-    }
+        if (clients.openWindow) return clients.openWindow(targetUrl);
+      })
+  );
 });
