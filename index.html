@@ -30075,7 +30075,22 @@ if ("serviceWorker" in navigator) {
         if (isIOSDevice && isSafariBrowser) {
             showToast('📲 Tap Share, then "Add to Home Screen" to install.', '');
         } else {
-            showToast("Install option isn't available yet in this browser — try Chrome or Safari.", '');
+            // Chrome only offers the install prompt when MyUTME is NOT already installed and is ready.
+            // Give it a few seconds to become ready, then explain clearly instead of showing an error.
+            showToast('Getting the install ready… please wait a few seconds.', '');
+            for (let i = 0; i < 16; i++) {
+                await new Promise(function (r) { setTimeout(r, 250); });
+                if (window.mwHasPrompt && window.mwHasPrompt()) return window.mwInstallFlow();
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                    state.pwaInstallAvailable = false;
+                    if (typeof render === "function") render();
+                    return;
+                }
+            }
+            showToast('MyUTME may already be installed on this phone. Look for it on your home screen or app list. If not, tap the browser menu (⋮) then "Install app".', '');
         }
     };
 
