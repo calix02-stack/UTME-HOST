@@ -9615,7 +9615,7 @@ function renderTrialBanner(hide) {
 // Direct APK install (instant, no waiting for Chrome to "mint" the app).
 // Upload your signed APK to the site, then put its address here, e.g. 'https://myutme.com.ng/MyUTME.apk'.
 // Leave it empty to keep the normal browser install.
-const MYUTME_APK_URL = '';
+const MYUTME_APK_URL = 'https://myutme.com.ng/MyUTME.apk';
 function tryApkInstall() {
     if (!MYUTME_APK_URL || !/android/i.test(navigator.userAgent)) return false;
     var a = document.createElement('a');
@@ -29973,9 +29973,8 @@ function swCheckUpdate(timeoutMs) {
 })();
 
 if ("serviceWorker" in navigator) {
-    // Register immediately instead of waiting for every page resource to finish loading.
-    // This lets the browser begin the PWA installability/offline setup sooner.
-    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).then(function (reg) {
+    window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (reg) {
             // Automatic update, like the question files: every time the app is opened (and when it
             // comes back to the front, or the internet returns) it asks the server if there is a newer
             // version. A tiny "not modified" reply if nothing changed. With no internet it does nothing
@@ -30009,8 +30008,9 @@ if ("serviceWorker" in navigator) {
             setTimeout(function () { autoUpdate(true, true); }, 1500);
             window.addEventListener('online', function () { autoUpdate(true); });
             document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') autoUpdate(false); });
-    }).catch(function (err) {
-        console.warn("SW registration failed:", err);
+        }).catch(function (err) {
+            console.warn("SW registration failed:", err);
+        });
     });
 
     // When a new service worker takes control (i.e. a new version was
