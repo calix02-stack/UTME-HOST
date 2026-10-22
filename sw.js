@@ -3,7 +3,7 @@
  * being force-downloaded again, so installing no longer waits on the 1.4 MB page.
  */
 
-const CACHE_NAME = "myutme-cache-v88";
+const CACHE_NAME = "myutme-cache-v89";
 
 const APP_SHELL = [
   "./",
@@ -202,28 +202,27 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isQuestionDataFile) {
+    // Offline-first: answer instantly from the saved copy, refresh quietly in the background.
     const cacheKey = new Request(url.origin + url.pathname);
 
     event.respondWith(
-      revalidateFetch(cacheKey, QUESTION_TIMEOUT_MS)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            event.waitUntil(
-              caches.open(CACHE_NAME).then((c) => c.put(cacheKey, clone))
-            );
+      caches.match(cacheKey).then((cached) => {
+        const refresh = revalidateFetch(cacheKey, QUESTION_TIMEOUT_MS)
+          .then((response) => {
+            if (response && response.status === 200) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((c) => c.put(cacheKey, clone));
+            }
             return response;
-          }
+          })
+          .catch(() => null);
 
-          return caches
-            .match(cacheKey)
-            .then((cached) => cached || response);
-        })
-        .catch(() =>
-          caches
-            .match(cacheKey)
-            .then((cached) => cached || Response.error())
-        )
+        if (cached) {
+          event.waitUntil(refresh);
+          return cached;
+        }
+        return refresh.then((response) => response || Response.error());
+      })
     );
     return;
   }
