@@ -13146,6 +13146,11 @@ function fridayClosedWeeks() {
     return out;
 }
 state.fridayBoards = state.fridayBoards || {};
+// Forget every loaded/cached ranking so the next view fetches fresh scores.
+function fridayResetBoards() {
+    state.fridayBoards = {};
+    try { var __b = new Date(fridayKey() + 'T00:00:00'); for (var __i = 0; __i < 14; __i++) { var __d = new Date(__b.getTime()); __d.setDate(__d.getDate() - __i); storage.set('fridayBoard_' + fridayKey(__d), ''); } } catch (e) {}
+}
 async function loadFridayBoard(week, force) {
     const b = state.fridayBoards[week] || (state.fridayBoards[week] = {});
     if (b.loading) return;
@@ -13153,7 +13158,8 @@ async function loadFridayBoard(week, force) {
     if (!force) {
         try {
             const c = JSON.parse(storage.get(ck) || 'null');
-            if (c && c.rows && Date.now() - c.at < 10 * 60 * 1000) { b.rows = c.rows; b.at = c.at; b.error = false; return; }
+            var __p = week.split('-'), __close = new Date(+__p[0], +__p[1] - 1, +__p[2] + 1).getTime();
+            if (c && c.rows && c.rows.length && c.at >= __close + 10 * 60 * 1000) { b.rows = c.rows; b.at = c.at; b.error = false; return; }
         } catch (e) {}
     }
     if (!isOnline()) { b.error = 'offline'; return; }
@@ -13164,7 +13170,7 @@ async function loadFridayBoard(week, force) {
             .eq('week', week).order('score', { ascending: false }).limit(500);
         if (res.error) throw res.error;
         b.rows = res.data || []; b.at = Date.now();
-        try { storage.set(ck, JSON.stringify({ at: b.at, rows: b.rows })); } catch (e) {}
+        try { if (b.rows.length) storage.set(ck, JSON.stringify({ at: b.at, rows: b.rows })); } catch (e) {}
     } catch (e) { console.warn('Board load error:', e); b.error = 'fail'; }
     b.loading = false; render();
 }
@@ -13192,10 +13198,11 @@ function mockAllBoardSubjects() {
 function mockSubjectName(sid) { var sj = SUBJECTS.find(function(x) { return x.id === sid; }); return sj ? sj.name : sid; }
 // The newest closed day on which this subject was set. Each new attempt replaces the old board.
 function mockBoardDayFor(sid) {
-    var days = fridayClosedWeeks();
-    for (var i = 0; i < days.length; i++) {
-        var wd = new Date(days[i] + 'T00:00:00').getDay();
-        if (MOCK_SCHEDULE[wd].indexOf(sid) !== -1) return days[i];
+    var base = new Date(fridayKey() + 'T00:00:00');
+    for (var i = 0; i < 14; i++) {
+        if (i === 0) continue;   // today's board opens after the Mock closes at 12:00 am
+        var d = new Date(base.getTime()); d.setDate(d.getDate() - i);
+        if (MOCK_SCHEDULE[d.getDay()].indexOf(sid) !== -1) return fridayKey(d);
     }
     return null;
 }
