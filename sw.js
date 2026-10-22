@@ -1,359 +1,387 @@
-/*! MyUTME service worker · enzo-ai
- * Fast install: the app shell is revalidated (tiny "not changed" reply) instead of
- * being force-downloaded again, so installing no longer waits on the 1.4 MB page.
+/* MyUTME service worker — fast, upgrade-safe install
+ * Keeps offline question fetching and push notifications.
  */
+'use strict';
 
-const CACHE_NAME = "myutme-cache-v92";
+const CACHE_NAME = 'myutme-cache-v93';
+const CACHE_PREFIX = 'myutme-cache-';
 
 const APP_SHELL = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./offline-db.js",
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './offline-db.js'
 ];
 
+const REQUIRED_SHELL = ['./index.html', './offline-db.js'];
 const FETCH_TIMEOUT_MS = 8000;
 const PAGE_TIMEOUT_MS = 12000;
 const QUESTION_TIMEOUT_MS = 15000;
 
-function freshFetch(request, timeoutMs = FETCH_TIMEOUT_MS) {
-  return new Promise((resolve, reject) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      controller.abort();
-      reject(new Error("Network request timed out"));
-    }, timeoutMs);
-
-    fetch(request, {
-      cache: "no-store",
-      signal: controller.signal,
-    }).then(
-      (response) => {
-        clearTimeout(timer);
-        resolve(response);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
+function absolute(url) {
+  return new URL(url, self.registration.scope).href;
 }
 
-function revalidateFetch(request, timeoutMs = FETCH_TIMEOUT_MS) {
-  return new Promise((resolve, reject) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      controller.abort();
-      reject(new Error("Network request timed out"));
-    }, timeoutMs);
+function timedFetch(request, timeoutMs, cacheMode) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    fetch(request, {
-      cache: "no-cache",
-      signal: controller.signal,
-    }).then(
-      (response) => {
-        clearTimeout(timer);
-        resolve(response);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
+  return fetch(request, {
+    cache: cacheMode || 'no-store',
+    signal: controller.signal
+  }).finally(() => clearTimeout(timer));
 }
 
-// Install: the app shell MUST be saved before this worker takes over.
-// If index.html or offline-db.js cannot be saved, installation fails and the
-// previous worker (with its working offline cache) keeps running.
-const REQUIRED_SHELL = ["./index.html", "./offline-db.js"];
+async function getOldCacheNames() {
+  const keys = await caches.keys();
 
-async function cacheShellFile(cache, url) {
-  let lastError;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      // "no-cache" asks the server "has this changed?". If not, the reply is a tiny
-      // 304 and the copy the browser just downloaded is reused, so install is quick.
-      const response = await revalidateFetch(url, 20000);
-      if (!response || !response.ok) throw new Error("Bad response for " + url);
-      // A redirected response cannot be used to answer a page navigation.
-      const clean = response.redirected
-        ? new Response(await response.blob(), {
-            status: response.status,
-            statusText: response.statusText,
-            headers: response.headers,
-          })
-        : response;
-      await cache.put(url, clean);
-      return;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw lastError;
-}
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      await Promise.all(
-        APP_SHELL.map(async (url) => {
-          try {
-            await cacheShellFile(cache, url);
-          } catch (error) {
-            if (REQUIRED_SHELL.indexOf(url) !== -1) throw error;
-          }
-        })
-      );
-    })()
+  return keys.filter(name =>
+    name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME
   );
+}
+
+async function findPreviousResponse(url) {
+  const target = absolute(url);
+  const names = await getOldCacheNames();
+
+  for (const name of names) {
+    const cache = await caches.open(name);
+    const response = await cache.match(target);
+
+    if (response) return response;
+  }
+
+  return null;
+}
+
+async function seedFromPreviousCache(newCache, url) {
+  const previous = await findPreviousResponse(url);
+
+  if (!previous) return false;
+
+  await newCache.put(absolute(url), previous.clone());
+  return true;
+}
+
+async function fetchAndStore(cache, url, timeoutMs) {
+  const response = await timedFetch(
+    absolute(url),
+    timeoutMs,
+    'no-store'
+  );
+
+  if (!response || !response.ok) {
+    throw new Error('HTTP error for ' + url);
+  }
+
+  await cache.put(absolute(url), response.clone());
+
+  return response;
+}
+
+/*
+ * Fast installation:
+ * Reuse cached files from the previous MyUTME version.
+ * Only download required files that are missing.
+ */
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+
+    // Reuse the existing app shell during updates.
+    await Promise.all(
+      APP_SHELL.map(async url => {
+        await seedFromPreviousCache(cache, url);
+      })
+    );
+
+    // These two files are required for the app to run.
+    await Promise.all(
+      REQUIRED_SHELL.map(async url => {
+        if (await cache.match(absolute(url))) return;
+
+        await fetchAndStore(cache, url, FETCH_TIMEOUT_MS);
+      })
+    );
+
+    // Download optional assets without delaying installation.
+    const optional = APP_SHELL.filter(
+      url => !REQUIRED_SHELL.includes(url)
+    );
+
+    Promise.all(
+      optional.map(async url => {
+        if (await cache.match(absolute(url))) return;
+
+        try {
+          await fetchAndStore(cache, url, 2500);
+        } catch (_) {}
+      })
+    ).catch(() => {});
+  })());
 
   self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : null))
-        )
-      )
-      .then(() => self.clients.claim())
-  );
-});
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    // Delete only previous MyUTME caches.
+    const keys = await caches.keys();
 
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return;
-  // The app installer file is never cached, so people always get the newest APK.
-  if (url.pathname.endsWith(".apk")) return;
-
-  const isAppShell =
-    event.request.mode === "navigate" ||
-    url.pathname.endsWith(".html") ||
-    url.pathname === "/" ||
-    url.pathname.endsWith("/");
-
-  const isQuestionDataFile =
-    /^\/?(questions|notes)-[^/]+\.json$/.test(url.pathname) ||
-    url.pathname.endsWith("questions-seed.json");
-
-  const isAppScript =
-    url.pathname.endsWith(".js") && /offline-db/.test(url.pathname);
-
-  const isShellNav =
-    (event.request.mode === "navigate" &&
-      !/\.[a-z0-9]+$/i.test(url.pathname)) ||
-    url.pathname === "/" ||
-    url.pathname.endsWith("/index.html");
-
-  if (isShellNav || isAppScript) {
-    const key = isShellNav ? "./index.html" : "./offline-db.js";
-
-    event.respondWith(
-      caches.match(key, { ignoreSearch: true }).then((cached) => {
-        if (cached) return cached;
-
-        return freshFetch(event.request, PAGE_TIMEOUT_MS)
-          .then((response) => {
-            if (response && response.status === 200) {
-              const clone = response.clone();
-              event.waitUntil(
-                caches.open(CACHE_NAME).then((c) => c.put(key, clone))
-              );
-            }
-            return response;
-          })
-          .catch(() =>
-            caches
-              .match("./index.html")
-              .then((cachedPage) => cachedPage || Response.error())
-          );
-      })
-    );
-    return;
-  }
-
-  if (isAppShell || isAppScript) {
-    event.respondWith(
-      freshFetch(event.request, PAGE_TIMEOUT_MS)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            event.waitUntil(
-              caches.open(CACHE_NAME).then((c) => c.put(event.request, clone))
-            );
-          }
-          return response;
-        })
-        .catch(() =>
-          caches
-            .match(event.request, { ignoreSearch: isAppScript })
-            .then((cached) => cached || Response.error())
-        )
-    );
-    return;
-  }
-
-  if (isQuestionDataFile) {
-    // Offline-first: answer instantly from the saved copy, refresh quietly in the background.
-    const cacheKey = new Request(url.origin + url.pathname);
-
-    event.respondWith(
-      caches.match(cacheKey).then((cached) => {
-        const refresh = revalidateFetch(cacheKey, QUESTION_TIMEOUT_MS)
-          .then((response) => {
-            if (response && response.status === 200) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((c) => c.put(cacheKey, clone));
-            }
-            return response;
-          })
-          .catch(() => null);
-
-        if (cached) {
-          event.waitUntil(refresh);
-          return cached;
+    await Promise.all(
+      keys.map(name => {
+        if (
+          name.startsWith(CACHE_PREFIX) &&
+          name !== CACHE_NAME
+        ) {
+          return caches.delete(name);
         }
-        return refresh.then((response) => response || Response.error());
       })
     );
-    return;
-  }
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = freshFetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            event.waitUntil(
-              caches.open(CACHE_NAME).then((c) => c.put(event.request, clone))
-            );
-          }
-          return response;
-        })
-        .catch(() => cached || Response.error());
-
-      return cached || fetchPromise;
-    })
-  );
+    await self.clients.claim();
+  })());
 });
 
-async function refreshShell() {
-  const urls = ["./index.html", "./offline-db.js", "./manifest.json"];
-  const fetched = [];
-
-  for (const url of urls) {
-    const response = await revalidateFetch(new Request(url), 20000);
-    if (!response || !response.ok) {
-      throw new Error("Update check failed for " + url);
-    }
-    fetched.push([url, response]);
-  }
-
+async function networkThenCache(request, timeoutMs, cacheUrl) {
   const cache = await caches.open(CACHE_NAME);
-  let changed = false;
-
-  for (const [url, response] of fetched) {
-    if (url === "./manifest.json") continue;
-
-    try {
-      const old = await cache.match(url);
-      if (!old) {
-        changed = true;
-        continue;
-      }
-
-      const [a, b] = await Promise.all([
-        old.clone().text(),
-        response.clone().text(),
-      ]);
-
-      if (a !== b) changed = true;
-    } catch (error) {}
-  }
-
-  for (const [url, response] of fetched) {
-    await cache.put(url, response.clone());
-    if (url === "./index.html") {
-      await cache.put("./", response.clone());
-    }
-  }
-
-  return changed;
-}
-
-self.addEventListener("message", (event) => {
-  if (!event.data || event.data.type !== "CHECK_UPDATE") return;
-
-  const port = event.ports && event.ports[0];
-
-  event.waitUntil(
-    refreshShell().then(
-      (changed) => port && port.postMessage({ ok: true, changed: !!changed }),
-      () => port && port.postMessage({ ok: false })
-    )
-  );
-});
-
-self.addEventListener("push", (event) => {
-  let data = {};
 
   try {
-    data = event.data ? event.data.json() : {};
+    const response = await timedFetch(
+      request,
+      timeoutMs,
+      'no-store'
+    );
+
+    if (response && response.ok) {
+      await cache.put(
+        cacheUrl || request,
+        response.clone()
+      );
+    }
+
+    return response;
   } catch (error) {
-    data = {
-      title: "MyUTME",
-      body: event.data ? event.data.text() : "",
+    const cached = await cache.match(cacheUrl || request);
+
+    if (cached) return cached;
+
+    throw error;
+  }
+}
+
+self.addEventListener('fetch', event => {
+  const request = event.request;
+
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+
+  if (url.origin !== self.location.origin) return;
+
+  const pathname = url.pathname;
+
+  const isQuestionFile =
+    /\.json$/i.test(pathname) &&
+    /(eng|phy|chm|bio|math|lit|gov|eco|crs|irs|commerce|account|agric|geog|history|subject|question|topic)/i.test(pathname);
+
+  // Navigation: open cached app immediately when available.
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+
+      const cached = await cache.match(
+        absolute('./index.html')
+      );
+
+      if (cached) {
+        event.waitUntil((async () => {
+          try {
+            const fresh = await timedFetch(
+              request,
+              PAGE_TIMEOUT_MS,
+              'no-store'
+            );
+
+            if (fresh && fresh.ok) {
+              await cache.put(
+                absolute('./index.html'),
+                fresh.clone()
+              );
+            }
+          } catch (_) {}
+        })());
+
+        return cached;
+      }
+
+      return networkThenCache(
+        request,
+        PAGE_TIMEOUT_MS,
+        absolute('./index.html')
+      );
+    })());
+
+    return;
+  }
+
+  // Question files: fetch the latest copy, falling back to cache offline.
+  if (isQuestionFile) {
+    event.respondWith(
+      networkThenCache(
+        request,
+        QUESTION_TIMEOUT_MS,
+        request
+      )
+    );
+
+    return;
+  }
+
+  // Core app files: return cached versions immediately.
+  if (
+    /\/(?:index\.html|offline-db\.js|manifest\.json|icon-192\.png|icon-512\.png)$/.test(pathname)
+  ) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(request);
+
+      if (cached) {
+        event.waitUntil((async () => {
+          try {
+            const fresh = await timedFetch(
+              request,
+              FETCH_TIMEOUT_MS,
+              'no-store'
+            );
+
+            if (fresh && fresh.ok) {
+              await cache.put(request, fresh.clone());
+            }
+          } catch (_) {}
+        })());
+
+        return cached;
+      }
+
+      return networkThenCache(
+        request,
+        FETCH_TIMEOUT_MS,
+        request
+      );
+    })());
+
+    return;
+  }
+
+  // Other same-origin GET requests.
+  event.respondWith(
+    networkThenCache(request, FETCH_TIMEOUT_MS, request)
+  );
+});
+
+/* Manual update check used by the app. */
+async function refreshShell() {
+  const cache = await caches.open(CACHE_NAME);
+
+  const urls = [
+    './index.html',
+    './offline-db.js',
+    './manifest.json'
+  ];
+
+  return Promise.allSettled(
+    urls.map(async url => {
+      try {
+        return await fetchAndStore(cache, url, 5000);
+      } catch (_) {
+        // Keep the existing cached copy if refreshing fails.
+        return null;
+      }
+    })
+  );
+}
+
+self.addEventListener('message', event => {
+  const data = event.data || {};
+
+  if (data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  } else if (data.type === 'CHECK_UPDATE') {
+    event.waitUntil(refreshShell());
+  }
+});
+
+/* Push notifications */
+self.addEventListener('push', event => {
+  let payload = {};
+
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (_) {
+    payload = {
+      body: event.data ? event.data.text() : ''
     };
   }
 
-  let openUrl = data.url || "/";
-  if (!data.url && data.news_id) {
-    openUrl = "/?news=" + data.news_id;
-  } else if (
-    !data.url &&
-    String(data.title || "").indexOf("\uD83D\uDCF0") === 0
-  ) {
-    openUrl = "/?news=latest";
-  }
+  const title = payload.title || 'MyUTME';
+
+  const options = {
+    body: payload.body || 'You have a new update from MyUTME.',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+
+    data: {
+      url: payload.url || (payload.data && payload.data.url) || './'
+    },
+
+    tag: payload.tag || 'myutme-notification',
+    renotify: Boolean(payload.renotify)
+  };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || "MyUTME", {
-      body: data.body || "",
-      icon: "./icon-192.png",
-      badge: "./icon-badge-96.png",
-      tag: data.tag || "myutme-notification",
-      data: openUrl,
-    })
+    self.registration.showNotification(title, options)
   );
 });
 
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const targetUrl = event.notification.data || "/";
 
-  event.waitUntil(
-    clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList) => {
-        for (const client of clientList) {
-          if ("focus" in client) {
-            client.postMessage({ type: "open-url", url: targetUrl });
-            return client.focus();
+  const target =
+    event.notification.data && event.notification.data.url
+      ? event.notification.data.url
+      : './';
+
+  event.waitUntil((async () => {
+    const targetUrl = new URL(
+      target,
+      self.registration.scope
+    ).href;
+
+    const windows = await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    });
+
+    for (const client of windows) {
+      if (
+        client.url.startsWith(self.registration.scope) &&
+        'focus' in client
+      ) {
+        try {
+          if (client.navigate) {
+            await client.navigate(targetUrl);
           }
-        }
+        } catch (_) {}
 
-        if (clients.openWindow) return clients.openWindow(targetUrl);
-      })
-  );
+        return client.focus();
+      }
+    }
+
+    if (self.clients.openWindow) {
+      return self.clients.openWindow(targetUrl);
+    }
+  })());
 });
