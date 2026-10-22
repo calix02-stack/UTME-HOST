@@ -229,8 +229,10 @@
 <link rel="shortcut icon" href="https://myutme.com.ng/icon-192.png" />
 <title>MyUTME – JAMB CBT Practice App</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 <style id="mw-css">
 .mw,.mwl{position:fixed;inset:0;overflow-y:auto;background:#F4F7F3;color:#10241A;font:400 16px/1.55 Figtree,system-ui,sans-serif;z-index:5;-webkit-overflow-scrolling:touch}
 .mw *,.mwl *{box-sizing:border-box}
@@ -12959,10 +12961,30 @@ const LIVE_EXAM_START_PRESETS = [
 // ============================================================
 //  FRIDAY MOCK — offline, one exam per Friday, saved on this device
 // ============================================================
+// Daily Mock: every night 8:00 pm to 10:00 pm (device time). One schedule for the 7 days,
+// and no two subjects from the same department share a day.
+var MOCK_OPEN_HOUR = 20, MOCK_CLOSE_HOUR = 22, MOCK_Q_PER_SUBJECT = 40, MOCK_SECS_PER_Q = 45;
+var MOCK_SCHEDULE = {
+    1: ['eng'],            // Monday
+    2: ['math', 'gov'],    // Tuesday   Science + Arts
+    3: ['phy', 'acc'],     // Wednesday Science + Commercial
+    4: ['lit', 'agr'],     // Thursday  Arts + Science
+    5: ['crs', 'bio'],     // Friday    Arts + Science
+    6: ['chem', 'com'],    // Saturday  Science + Commercial
+    0: ['geo', 'eco']      // Sunday    Arts + Commercial
+};
+var MOCK_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+function mockSubjectsForDay(d) { return (MOCK_SCHEDULE[(d || new Date()).getDay()] || ['eng']).slice(); }
+function mockSubjectNames(ids) { return ids.map(function(id) { var x = SUBJECTS.find(function(y) { return y.id === id; }); return x ? x.name : id; }); }
+function mockOpenNow() { var h = new Date().getHours(); return h >= MOCK_OPEN_HOUR && h < MOCK_CLOSE_HOUR; }
+function mockOpensIn() {
+    var n = new Date(), t = new Date(n.getFullYear(), n.getMonth(), n.getDate(), MOCK_OPEN_HOUR, 0, 0, 0);
+    if (n.getTime() >= t.getTime()) return 0;
+    var ms = t.getTime() - n.getTime(), h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+    return h + ' hr' + (h === 1 ? '' : 's') + ' ' + m + ' min';
+}
 function fridayKey(d) {
     const t = new Date((d || new Date()).getTime());
-    t.setHours(0, 0, 0, 0);
-    t.setDate(t.getDate() - ((t.getDay() + 2) % 7));
     return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
 }
 function fridayStoreKey() { return 'friday_mock_' + (state.authUser ? state.authUser.id : 'guest'); }
@@ -12973,10 +12995,10 @@ function fridaySaveRecord(rec) {
     try { storage.set(fridayStoreKey(), JSON.stringify(all)); } catch (e) {}
     try { backupMarkDirty(); } catch (e) {}
 }
-function isFridayToday() { return new Date().getDay() === 5; }
+function isFridayToday() { return mockOpenNow(); }
 // The Mock is open for 24 hours (Friday 12:00 am to Saturday 12:00 am).
 // Scores, history and missed questions stay hidden until that window closes.
-function fridayWindowEnd(week) { var p = String(week).split('-'); return new Date(+p[0], +p[1] - 1, +p[2] + 1, 0, 0, 0, 0); }
+function fridayWindowEnd(week) { var p = String(week).split('-'); return new Date(+p[0], +p[1] - 1, +p[2], MOCK_CLOSE_HOUR, 0, 0, 0); }
 function fridayReleased(rec) { return !!rec && Date.now() >= fridayWindowEnd(rec.week).getTime(); }
 function fridayWaitText(rec) {
     var ms = Math.max(0, fridayWindowEnd(rec.week).getTime() - Date.now());
@@ -12995,7 +13017,7 @@ function fridayFlushReleased() {
                 delete r.pending;
                 changed = true;
                 try { if (pend.weak && pend.weak.length) saveWeakQuestionsSequentially(state.authUser.id, pend.weak, 'mock'); } catch (e) {}
-                try { if (pend.hist) saveHistoryEntry(pend.hist); } catch (e) {}
+                try { (pend.hists || (pend.hist ? [pend.hist] : [])).forEach(function(h) { saveHistoryEntry(h); }); } catch (e) {}
             }
         });
         if (changed) storage.set(fridayStoreKey(), JSON.stringify(recs));
@@ -13003,7 +13025,7 @@ function fridayFlushReleased() {
     } catch (e) { console.warn('Friday release error:', e); }
 }
 document.addEventListener('visibilitychange', function() { if (!document.hidden) fridayFlushReleased(); });
-function daysToFriday() { return (5 - new Date().getDay() + 7) % 7; }
+
 function fridayLabel(w) {
     const p = w.split('-');
     return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -13022,51 +13044,57 @@ function renderMockExamPicker() {
     const electives = SUBJECTS.filter(function(x) { return x.id !== 'eng' && x.id !== 'lhm'; });
     const sel = (state.mockSelectedSubjects || []).filter(function(id) { return electives.some(function(x) { return x.id === id; }); }).slice(0, 3);
     state.mockSelectedSubjects = sel;
-    let html = back + '<h2 class="title">Mock Arena</h2><p class="sub">Friday Mock · every Friday · 2 hours · English + 3 subjects</p>';
+    const todaySubs = mockSubjectsForDay();
+    const todayNames = mockSubjectNames(todaySubs);
+    let html = back + '<h2 class="title">Mock Arena</h2><p class="sub">Daily Mock · every night · 8:00 pm to 10:00 pm</p>';
     const __tab = state.mockArenaTab === 'board' ? 'board' : 'mock';
     html += '<div class="leaderboard-tabs">' +
         '<button class="leaderboard-tab' + (__tab === 'mock' ? ' active' : '') + '" data-action="friday-tab" data-tab="mock">📝 Mock</button>' +
         '<button class="leaderboard-tab' + (__tab === 'board' ? ' active' : '') + '" data-action="friday-tab" data-tab="board">🏆 Leaderboard</button></div>';
     if (__tab === 'board') return html + renderFridayBoard();
 
+    const takenIds = done ? Object.keys(done.scores || {}) : [];
+    const remaining = todaySubs.filter(function(id) { return takenIds.indexOf(id) === -1; });
     if (done && fridayReleased(done)) {
         html += '<div class="card" style="text-align:center;padding:20px"><p style="font-size:34px;margin:0">✅</p>' +
-            '<h3 class="title" style="font-size:15px">Your Friday Mock result</h3>' +
-            '<p style="font-size:24px;font-weight:700;margin:6px 0">' + done.total + ' / ' + done.max + '</p>' +
-            '<p class="sub">' + esc((done.names || []).join(' · ')) + '</p>' +
-            '<p style="font-size:11px;color:var(--muted);margin:8px 0 0">Next Mock opens next Friday.</p>' +
+            '<h3 class="title" style="font-size:15px">Your Mock result for today</h3>' +
+            Object.keys(done.scores || {}).map(function(sid) { return '<p style="font-size:20px;font-weight:700;margin:6px 0">' + esc(mockSubjectName(sid)) + ' <span style="color:var(--green)">' + done.scores[sid] + ' / 100</span></p>'; }).join('') +
+            '<p style="font-size:11px;color:var(--muted);margin:8px 0 0">Tomorrow: ' + esc(mockSubjectNames(mockSubjectsForDay(new Date(Date.now() + 86400000))).join(' + ')) + ' at 8:00 pm.</p>' +
             '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="friday-share-rec" data-week="' + esc(done.week) + '">📤 Share</button>' +
             '<button class="btn btn-green" style="flex:1;padding:9px;font-size:12px" data-action="friday-tab" data-tab="board" data-week="' + esc(done.week) + '">🏆 My rank</button></div></div>';
     } else if (done) {
         html += '<div class="card" style="text-align:center;padding:22px"><p style="font-size:34px;margin:0">⏳</p>' +
-            '<h3 class="title" style="font-size:15px">Mock submitted</h3>' +
-            '<p style="font-size:12.5px;color:var(--muted);margin:8px 0 0;line-height:1.5">Results are released after the 24-hour Mock window closes (Saturday, 12:00 am). Your result will be ready in about <b>' + fridayWaitText(done) + '</b>.</p></div>';
-    } else if (!isFridayToday()) {
-        const n = daysToFriday();
-        html += '<div class="card" style="text-align:center;padding:22px"><p style="font-size:34px;margin:0">🔒</p>' +
-            '<h3 class="title" style="font-size:15px">The Mock opens on Fridays</h3>' +
-            '<p style="font-size:12px;color:var(--muted);margin:6px 0 0">Opens in ' + n + ' day' + (n === 1 ? '' : 's') + '. It is open for 24 hours, runs offline, and results are released after it closes.</p></div>';
-    } else {
-        html += '<div class="card"><p style="font-size:12.5px;font-weight:700;margin:0 0 4px">English + pick 3 other subjects</p>' +
-            '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + (sel.length + 1) + ' of 4 subjects · ' + ((sel.length + 1) * 40) + ' questions · 2 hours · results after the Mock closes tonight</p>' +
-            '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
-            '<button class="btn btn-green" style="padding:8px 12px;font-size:12px;opacity:.9" disabled>' + esc(engSubj ? engSubj.name : 'English') + ' ✓</button>';
-        electives.forEach(function(s) {
-            const on = sel.indexOf(s.id) !== -1;
-            html += '<button class="btn ' + (on ? 'btn-green' : 'btn-outline') + '" style="padding:8px 12px;font-size:12px" data-action="friday-toggle-subject" data-subject="' + s.id + '">' + esc(s.name) + '</button>';
-        });
-        const ok = sel.length === 3;
-        html += '</div><button class="btn btn-green" style="width:100%;margin-top:14px;padding:12px;opacity:' + (ok ? 1 : .5) + '" ' + (ok ? '' : 'disabled ') + 'data-action="friday-start">' + (ok ? 'Start Friday Mock' : 'Pick ' + (3 - sel.length) + ' more subject' + (3 - sel.length === 1 ? '' : 's')) + '</button></div>';
+            '<h3 class="title" style="font-size:15px">Submitted: ' + esc(takenIds.map(mockSubjectName).join(' + ')) + '</h3>' +
+            '<p style="font-size:12.5px;color:var(--muted);margin:8px 0 0;line-height:1.5">Results are released when tonight\'s Mock closes at 10:00 pm. Your result will be ready in about <b>' + fridayWaitText(done) + '</b>.</p></div>';
     }
+    if (remaining.length) {
+        if (!mockOpenNow()) {
+            const late = new Date().getHours() >= MOCK_CLOSE_HOUR;
+            html += '<div class="card" style="text-align:center;padding:22px"><p style="font-size:34px;margin:0">🔒</p>' +
+                '<h3 class="title" style="font-size:15px">' + (late ? 'Tonight\'s Mock has closed' : 'Tonight: ' + esc(mockSubjectNames(remaining).join(' or '))) + '</h3>' +
+                '<p style="font-size:12px;color:var(--muted);margin:6px 0 0">' + (late ? 'It opens again tomorrow at 8:00 pm.' : 'Opens at 8:00 pm, in ' + mockOpensIn() + '. It runs until 10:00 pm.') + '</p></div>';
+        } else {
+            html += '<div class="card"><p style="font-size:12.5px;font-weight:700;margin:0 0 4px">' + MOCK_DAY_NAMES[new Date().getDay()] + ' Mock · pick one subject</p>' +
+                '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + MOCK_Q_PER_SUBJECT + ' questions · each subject is scored out of 100 · closes at 10:00 pm' + (todaySubs.length > 1 ? ' · you can take the other subject after' : '') + '</p>' +
+                remaining.map(function(id) { return '<button class="btn btn-green" style="width:100%;padding:12px;margin-bottom:8px" data-action="friday-start" data-subject="' + id + '">Start ' + esc(mockSubjectName(id)) + '</button>'; }).join('') + '</div>';
+        }
+    }
+    // Week schedule
+    html += '<div class="card"><p style="font-size:13px;font-weight:700;margin:0 0 8px">Weekly timetable · 8 pm to 10 pm</p>';
+    [1, 2, 3, 4, 5, 6, 0].forEach(function(d) {
+        const isToday = new Date().getDay() === d;
+        html += '<div style="display:flex;gap:10px;padding:6px 0;font-size:12px;' + (isToday ? 'font-weight:800;color:var(--green)' : '') + '"><span style="flex:0 0 84px">' + MOCK_DAY_NAMES[d] + '</span><span style="flex:1">' + esc(mockSubjectNames(MOCK_SCHEDULE[d]).join(' + ')) + '</span></div>';
+    });
+    html += '</div>';
 
     // Weekly progress — only results that have been released
     const weeks = [];
     const base = new Date(wk + 'T00:00:00');
-    for (let i = 7; i >= 0; i--) { const d = new Date(base.getTime()); d.setDate(d.getDate() - i * 7); weeks.push(fridayKey(d)); }
+    for (let i = 6; i >= 0; i--) { const d = new Date(base.getTime()); d.setDate(d.getDate() - i); weeks.push(fridayKey(d)); }
     const taken = recs.filter(function(r) { return r.max > 0 && fridayReleased(r); });
     const avg = taken.length ? Math.round(taken.reduce(function(a, r) { return a + (r.total / r.max) * 100; }, 0) / taken.length) : null;
-    html += '<div class="card"><p style="font-size:13px;font-weight:700;margin:0 0 4px">Weekly progress</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 12px">' + (avg === null ? 'Your Friday scores will appear here.' : taken.length + ' Friday' + (taken.length === 1 ? '' : 's') + ' taken · average ' + avg + '%') + '</p>';
+    html += '<div class="card"><p style="font-size:13px;font-weight:700;margin:0 0 4px">Last 7 days</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 12px">' + (avg === null ? 'Your daily Mock scores will appear here.' : taken.length + ' Mock' + (taken.length === 1 ? '' : 's') + ' taken · average ' + avg + '%') + '</p>';
     weeks.forEach(function(w) {
         const r = recs.find(function(x) { return x.week === w; });
         const rel = r && fridayReleased(r);
@@ -13085,7 +13113,7 @@ function renderMockExamPicker() {
 // ============================================================
 var __fridaySyncAt = 0, __fridaySyncing = false;
 async function fridayUploadScore(rec) {
-    if (!state.authUser || !rec || rec.max !== 400 || !isOnline()) return false;
+    if (!state.authUser || !rec || !rec.max || !isOnline()) return false;
     try {
         const res = await supabase.from('friday_mock_scores').upsert([{
             user_id: state.authUser.id,
@@ -13104,14 +13132,14 @@ async function fridaySyncScores(force) {
     __fridaySyncAt = Date.now();
     __fridaySyncing = true;
     try {
-        const list = fridayRecords().filter(function(r) { return !r.synced && r.max === 400; });
+        const list = fridayRecords().filter(function(r) { return !r.synced && r.max > 0; });
         for (let i = 0; i < list.length; i++) await fridayUploadScore(list[i]);
     } finally { __fridaySyncing = false; }
 }
 function fridayClosedWeeks() {
     const base = new Date(fridayKey() + 'T00:00:00'), out = [];
-    for (let i = 0; i < 8; i++) {
-        const d = new Date(base.getTime()); d.setDate(d.getDate() - i * 7);
+    for (let i = 0; i < 14; i++) {
+        const d = new Date(base.getTime()); d.setDate(d.getDate() - i);
         const k = fridayKey(d);
         if (Date.now() >= fridayWindowEnd(k).getTime()) out.push(k);
     }
@@ -13148,82 +13176,64 @@ function fridayRanked(rows, valFn) {
     list.forEach(function(x, i) { if (x.v !== prev) { rank = i + 1; prev = x.v; } x.rank = rank; });
     return list;
 }
-function fridayBoardRow(x, max, meId) {
+function fridayBoardRow(x, max, meId, subName) {
     const me = x.r.user_id === meId;
     const medal = x.rank === 1 ? '🥇' : x.rank === 2 ? '🥈' : x.rank === 3 ? '🥉' : x.rank;
     return '<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;margin-bottom:6px;background:' + (me ? 'var(--green-soft, rgba(15,107,63,.12))' : 'var(--bg)') + ';' + (me ? 'border:1.5px solid var(--green)' : '') + '">' +
         '<span style="flex:0 0 30px;text-align:center;font-weight:800;font-size:' + (x.rank <= 3 ? 18 : 13) + 'px">' + medal + '</span>' +
-        '<span style="flex:1;min-width:0;font-size:13px;font-weight:' + (me ? 800 : 600) + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.r.username || 'Candidate') + (me ? ' (you)' : '') + '</span>' +
+        '<span style="flex:1;min-width:0;font-size:13px;font-weight:' + (me ? 800 : 600) + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.r.username || 'Candidate') + (me ? ' (you)' : '') + (subName ? '<span style="color:var(--muted);font-weight:600"> · ' + esc(subName) + '</span>' : '') + '</span>' +
         '<span style="font-weight:800;font-size:13px;color:var(--green)">' + x.v + '<span style="color:var(--muted);font-weight:600"> / ' + max + '</span></span></div>';
 }
+function mockAllBoardSubjects() {
+    var out = [];
+    [1, 2, 3, 4, 5, 6, 0].forEach(function(d) { MOCK_SCHEDULE[d].forEach(function(id) { if (out.indexOf(id) === -1) out.push(id); }); });
+    return out;
+}
+function mockSubjectName(sid) { var sj = SUBJECTS.find(function(x) { return x.id === sid; }); return sj ? sj.name : sid; }
+// The newest closed day on which this subject was set. Each new attempt replaces the old board.
+function mockBoardDayFor(sid) {
+    var days = fridayClosedWeeks();
+    for (var i = 0; i < days.length; i++) {
+        var wd = new Date(days[i] + 'T00:00:00').getDay();
+        if (MOCK_SCHEDULE[wd].indexOf(sid) !== -1) return days[i];
+    }
+    return null;
+}
 function fridayBoardText(week) {
+    const sid = state.fridayBoardSubject;
     const b = state.fridayBoards[week]; if (!b || !b.rows) return '';
-    const top = fridayRanked(b.rows, function(r) { return r.score; }).slice(0, 10);
-    let t = '🏆 MyUTME Friday Mock · ' + fridayLabel(week) + '\nTop scores (out of 400)\n';
-    top.forEach(function(x) { t += x.rank + '. ' + (x.r.username || 'Candidate') + ' — ' + x.v + '\n'; });
-    return t + '\nBeat them on the next Friday Mock: ' + window.location.origin;
+    const top = fridayRanked(b.rows, function(r) { return (r.subject_scores || {})[sid]; }).slice(0, 10);
+    let t = '🏆 MyUTME Mock · ' + mockSubjectName(sid) + ' · ' + fridayLabel(week) + '\nTop scores (out of 100)\n';
+    top.forEach(function(x) { t += x.rank + '. ' + (x.r.username || 'Candidate') + ' · ' + mockSubjectName(sid) + ' — ' + x.v + '/100\n'; });
+    return t + '\nBeat them at the next 8 pm Mock: ' + window.location.origin;
 }
 function renderFridayBoard() {
-    const weeks = fridayClosedWeeks();
-    const openWeek = fridayKey();
-    let html = '';
-    if (isFridayToday()) html += '<div class="card" style="text-align:center;padding:14px"><p style="font-size:12px;color:var(--muted);margin:0">🔒 Today\'s Mock board opens after it closes (Saturday, 12:00 am). Last week\'s ranking is below.</p></div>';
-    if (!weeks.length) return html + '<div class="card" style="text-align:center;padding:24px"><p style="font-size:30px;margin:0">🏆</p><p style="font-size:13px;color:var(--muted)">No ranking yet. It appears after the first Friday Mock closes.</p></div>';
-    let week = state.fridayBoardWeek;
-    if (weeks.indexOf(week) === -1) week = weeks[0];
+    const sids = mockAllBoardSubjects();
+    let sel = state.fridayBoardSubject;
+    if (sids.indexOf(sel) === -1) sel = mockSubjectsForDay()[0];
+    state.fridayBoardSubject = sel;
+    let html = '<div style="display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px">';
+    sids.forEach(function(sid) { html += '<button class="year-chip' + (sid === sel ? ' selected' : '') + '" style="flex:0 0 auto" data-action="friday-board-subject" data-subject="' + sid + '">' + esc(mockSubjectName(sid)) + '</button>'; });
+    html += '</div>';
+    const week = mockBoardDayFor(sel);
     state.fridayBoardWeek = week;
+    const sname = mockSubjectName(sel);
+    if (!week) return html + '<div class="card" style="text-align:center;padding:24px"><p style="font-size:30px;margin:0">🏆</p><p style="font-size:13px;color:var(--muted);margin:6px 0 0">No ranking for ' + esc(sname) + ' yet. It appears after its first Mock closes.</p></div>';
     const b = state.fridayBoards[week] || (state.fridayBoards[week] = {});
     if (!b.rows && !b.loading && !b.error) { loadFridayBoard(week); }
-    // week chips
-    html += '<div style="display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px">';
-    weeks.forEach(function(w) {
-        html += '<button class="year-chip' + (w === week ? ' selected' : '') + '" style="flex:0 0 auto" data-action="friday-board-week" data-week="' + w + '">' + fridayLabel(w) + '</button>';
-    });
-    html += '</div>';
-    const mode = state.fridayBoardMode === 'subjects' ? 'subjects' : 'overall';
-    html += '<div class="leaderboard-tabs">' +
-        '<button class="leaderboard-tab' + (mode === 'overall' ? ' active' : '') + '" data-action="friday-board-mode" data-mode="overall">Overall /400</button>' +
-        '<button class="leaderboard-tab' + (mode === 'subjects' ? ' active' : '') + '" data-action="friday-board-mode" data-mode="subjects">By subject</button></div>';
     if (b.loading && !b.rows) return html + '<div class="loading-spinner"><div class="spinner"></div><p>Loading ranking...</p></div>';
     if (b.error && !b.rows) return html + '<div class="card" style="text-align:center;padding:20px"><p style="font-size:13px;color:var(--muted);margin:0 0 10px">' + (b.error === 'offline' ? 'Go online to see the ranking.' : 'Could not load the ranking.') + '</p><button class="btn btn-outline" style="padding:8px 14px;font-size:12px" data-action="friday-board-retry">Try again</button></div>';
-    const rows = b.rows || [];
-    if (!rows.length) return html + '<div class="card" style="text-align:center;padding:24px"><p style="font-size:30px;margin:0">🏆</p><p style="font-size:13px;color:var(--muted);margin:6px 0 0">Nobody has a score for ' + fridayLabel(week) + ' yet.</p></div>';
     const meId = state.authUser && state.authUser.id;
-    if (mode === 'overall') {
-        const ranked = fridayRanked(rows, function(r) { return r.score; });
-        html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><p style="font-size:13px;font-weight:800;margin:0">Top scores · ' + ranked.length + ' candidate' + (ranked.length === 1 ? '' : 's') + '</p>' +
-            '<button class="btn btn-outline" style="padding:6px 10px;font-size:11px" data-action="friday-share-board">📤 Share</button></div>';
-        ranked.slice(0, 20).forEach(function(x) { html += fridayBoardRow(x, 400, meId); });
-        const mine = ranked.find(function(x) { return x.r.user_id === meId; });
-        if (mine && mine.rank > 20) html += '<p style="text-align:center;font-size:11px;color:var(--muted);margin:8px 0 6px">Your position</p>' + fridayBoardRow(mine, 400, meId);
-        return html + '</div>';
-    }
-    // By subject: best in every subject, then the full top 10 of the chosen subject
-    const sids = [];
-    rows.forEach(function(r) { Object.keys(r.subject_scores || {}).forEach(function(k) { if (sids.indexOf(k) === -1) sids.push(k); }); });
-    sids.sort();
-    const nameOf = function(sid) { const sj = SUBJECTS.find(function(x) { return x.id === sid; }); return sj ? sj.name : sid; };
-    html += '<div class="card"><p style="font-size:13px;font-weight:800;margin:0 0 10px">🏅 Highest in each subject</p>';
-    sids.forEach(function(sid) {
-        const rk = fridayRanked(rows, function(r) { return (r.subject_scores || {})[sid]; });
-        if (!rk.length) return;
-        const tied = rk.filter(function(x) { return x.rank === 1; });
-        html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span style="flex:0 0 96px;font-size:12px;color:var(--muted)">' + esc(nameOf(sid)) + '</span>' +
-            '<span style="flex:1;min-width:0;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(tied[0].r.username || 'Candidate') + (tied.length > 1 ? ' +' + (tied.length - 1) : '') + '</span>' +
-            '<span style="font-weight:800;color:var(--green);font-size:13px">' + tied[0].v + '/100</span></div>';
-    });
-    html += '</div>';
-    let sel = state.fridayBoardSubject;
-    if (sids.indexOf(sel) === -1) sel = sids[0];
-    state.fridayBoardSubject = sel;
-    html += '<div style="display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px">';
-    sids.forEach(function(sid) { html += '<button class="year-chip' + (sid === sel ? ' selected' : '') + '" style="flex:0 0 auto" data-action="friday-board-subject" data-subject="' + sid + '">' + esc(nameOf(sid)) + '</button>'; });
-    html += '</div>';
-    const rk = fridayRanked(rows, function(r) { return (r.subject_scores || {})[sel]; });
-    html += '<div class="card"><p style="font-size:13px;font-weight:800;margin:0 0 10px">' + esc(nameOf(sel)) + ' ranking</p>';
-    rk.slice(0, 10).forEach(function(x) { html += fridayBoardRow(x, 100, meId); });
+    const rk = fridayRanked(b.rows || [], function(r) { return (r.subject_scores || {})[sel]; });
+    if (!rk.length) return html + '<div class="card" style="text-align:center;padding:24px"><p style="font-size:30px;margin:0">🏆</p><p style="font-size:13px;color:var(--muted);margin:6px 0 0">Nobody has a ' + esc(sname) + ' score yet.</p></div>';
+    const tied = rk.filter(function(x) { return x.rank === 1; });
+    html += '<div class="card" style="text-align:center;padding:16px"><p style="font-size:11px;color:var(--muted);margin:0 0 4px">Highest score · ' + esc(sname) + ' · ' + fridayLabel(week) + '</p>' +
+        '<p style="font-size:16px;font-weight:800;margin:0">🥇 ' + esc(tied[0].r.username || 'Candidate') + (tied.length > 1 ? ' +' + (tied.length - 1) : '') + ' · ' + esc(sname) + ' · <span style="color:var(--green)">' + tied[0].v + '/100</span></p></div>';
+    html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><p style="font-size:13px;font-weight:800;margin:0">' + esc(sname) + ' ranking · ' + rk.length + ' candidate' + (rk.length === 1 ? '' : 's') + '</p>' +
+        '<button class="btn btn-outline" style="padding:6px 10px;font-size:11px" data-action="friday-share-board">📤 Share</button></div>';
+    rk.slice(0, 20).forEach(function(x) { html += fridayBoardRow(x, 100, meId, sname); });
     const mine = rk.find(function(x) { return x.r.user_id === meId; });
-    if (mine && mine.rank > 10) html += '<p style="text-align:center;font-size:11px;color:var(--muted);margin:8px 0 6px">Your position</p>' + fridayBoardRow(mine, 100, meId);
+    if (mine && mine.rank > 20) html += '<p style="text-align:center;font-size:11px;color:var(--muted);margin:8px 0 6px">Your position</p>' + fridayBoardRow(mine, 100, meId, sname);
     return html + '</div>';
 }
 function fridayShareRecord(week) {
@@ -13240,7 +13250,7 @@ function fridayShareRecord(week) {
         if (mine) rankTxt = ' · Rank #' + mine.rank + ' of ' + b.rows.length;
     }
     const name = (state.profile && (state.profile.fullName || state.profile.name)) || 'Candidate';
-    shareResultCardImage({ title: 'Friday Mock', subtitle: name + ' · ' + fridayLabel(week) + rankTxt, score: rec.total, maxScore: rec.max, rows: rows });
+    shareResultCardImage({ title: 'Daily Mock', subtitle: name + ' · ' + fridayLabel(week) + rankTxt, score: rec.total, maxScore: rec.max, rows: rows });
 }
 function fridayShareText(text) {
     if (!text) return;
@@ -13250,14 +13260,17 @@ function fridayShareText(text) {
 async function startMockExam(subjects) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
     if (!isUserActive()) { showActivatePopup('Mock Arena is part of full access.'); return; }
-    if (!isFridayToday()) { showToast('The Mock opens on Fridays.', 'error'); return; }
-    if (!subjects || subjects.length !== 4 || subjects.indexOf('eng') === -1) { showToast('Pick English plus 3 other subjects.', 'error'); return; }
-    if (fridayRecords().some(function(r) { return r.week === fridayKey(); })) { showToast('You have already taken this Friday\'s Mock.', 'error'); return; }
+    if (!mockOpenNow()) { showToast('The Mock is open every night from 8:00 pm to 10:00 pm.', 'error'); return; }
+    const __sid = subjects && subjects[0];
+    if (!__sid || mockSubjectsForDay().indexOf(__sid) === -1) { showToast('That subject is not on tonight\'s Mock.', 'error'); return; }
+    subjects = [__sid];
+    const __rec = fridayRecords().find(function(r) { return r.week === fridayKey(); });
+    if (__rec && __rec.scores && (__sid in __rec.scores)) { showToast('You have already taken ' + mockSubjectName(__sid) + ' tonight.', 'error'); return; }
     state.isLoading = true;
     render();
     try {
         let allQuestions = [];
-        const perSubject = 40;
+        const perSubject = MOCK_Q_PER_SUBJECT;
         state.engMockPassage = null;
         state.engMockHasPassage = false;
         state.engMockPassageRead = false;
@@ -13284,7 +13297,7 @@ for (const subjectId of subjects) {
         }
         if (!allQuestions.length) throw new Error('Questions are not on this device yet. Open the app online once to download them.');
         state.mockExamSource = 'friday';
-        state.mockExamId = 'friday-' + fridayKey();
+        state.mockExamId = 'friday-' + fridayKey() + '-' + subjects[0];
         state.mockWeekKey = fridayKey();
         state.currentMockAttempt = { id: state.mockExamId, started_at: new Date().toISOString() };
         state.mockQuestions = allQuestions;
@@ -13296,7 +13309,9 @@ for (const subjectId of subjects) {
         state.mockResultReleased = true;
         state.isGuestMock = false;
         state.mockDisplayName = null;
-        state.mockTimeLeft = 2 * 60 * 60;
+        var __closeAt = new Date(); __closeAt.setHours(MOCK_CLOSE_HOUR, 0, 0, 0);
+        state.mockTotalSeconds = Math.max(60, Math.min(allQuestions.length * MOCK_SECS_PER_Q, Math.floor((__closeAt.getTime() - Date.now()) / 1000)));
+        state.mockTimeLeft = state.mockTotalSeconds;
         state.isLoading = false;
         buildMockSubjectGroups(allQuestions);
         state.view = 'mock-exam';
@@ -13321,16 +13336,17 @@ function doSubmitMock(autoSubmit) {
     if (state.mockSubmitted) return;
     state.mockSubmitted = true;
     if (state.mockTimer) { clearInterval(state.mockTimer); state.mockTimer = null; }
-    const correct = {}, weak = [];
+    const correct = {}, weak = [], qCount = {};
     state.mockQuestions.forEach(function(q, i) {
         if (!(q.subject_id in correct)) correct[q.subject_id] = 0;
+        qCount[q.subject_id] = (qCount[q.subject_id] || 0) + 1;
         const a = state.mockAnswers[i];
         if (a === null || a === undefined) return;
         if (a === q.correct_answer) correct[q.subject_id]++;
         else weak.push({ questionId: q.id, subjectId: q.subject_id, userAnswer: a, correctAnswer: q.correct_answer });
     });
     const subjectScores = {};
-    Object.keys(correct).forEach(function(sid) { subjectScores[sid] = Math.round((correct[sid] / 40) * 100); });
+    Object.keys(correct).forEach(function(sid) { subjectScores[sid] = Math.round((correct[sid] / (qCount[sid] || MOCK_Q_PER_SUBJECT)) * 100); });
     const ids = Object.keys(subjectScores);
     const maxScore = ids.length * 100;
     const totalScore = Math.min(maxScore, ids.reduce(function(a, sid) { return a + subjectScores[sid]; }, 0));
@@ -13338,18 +13354,26 @@ function doSubmitMock(autoSubmit) {
     state.mockSubjectScores = subjectScores;
     state.mockTotal = maxScore;
     state.mockSubmittedAt = new Date().toISOString();
-    state.mockWaitingForResults = true;   // Friday Mock: result stays hidden until the 24 hours end
+    state.mockWaitingForResults = true;   // Daily Mock: result stays hidden until 10:00 pm
     state.mockResultReleased = false;
     state.isGuestMock = false;
     const names = ids.map(function(sid) { const s = SUBJECTS.find(function(x) { return x.id === sid; }); return s ? s.name : sid; });
     const answered = state.mockAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
     const wkKey = state.mockWeekKey || fridayKey();
     const histEntry = { mode: 'mock', subjects: names, subject_scores: subjectScores, total_score: totalScore, max_score: maxScore,
-        total_questions: state.mockQuestions.length, answered_count: answered, submitted_at: state.mockSubmittedAt, exam_title: 'Friday Mock' };
-    if (state.authUser) saveAnalyticsTimeSample('mock', 2 * 60 * 60 - state.mockTimeLeft, state.mockQuestions.length);
+        total_questions: state.mockQuestions.length, answered_count: answered, submitted_at: state.mockSubmittedAt, exam_title: 'Daily Mock' };
+    if (state.authUser) saveAnalyticsTimeSample('mock', (state.mockTotalSeconds || 2 * 60 * 60) - state.mockTimeLeft, state.mockQuestions.length);
     // Score, history and missed questions are held back until the 24-hour Mock window closes.
-    fridaySaveRecord({ week: wkKey, at: state.mockSubmittedAt, total: totalScore, max: maxScore, names: names, scores: subjectScores, answered: answered, questions: state.mockQuestions.length,
-        pending: { weak: weak, hist: histEntry } });
+    const prev = fridayRecords().find(function(r) { return r.week === wkKey; }) || null;
+    const mScores = Object.assign({}, prev ? prev.scores : {}, subjectScores);
+    const mIds = Object.keys(mScores);
+    const prevPend = prev && prev.pending ? prev.pending : null;
+    const prevHists = prevPend ? (prevPend.hists || (prevPend.hist ? [prevPend.hist] : [])) : [];
+    fridaySaveRecord({ week: wkKey, at: state.mockSubmittedAt, max: mIds.length * 100,
+        total: mIds.reduce(function(a, sid) { return a + mScores[sid]; }, 0),
+        names: mIds.map(function(sid) { return mockSubjectName(sid); }), scores: mScores,
+        answered: (prev ? prev.answered || 0 : 0) + answered, questions: (prev ? prev.questions || 0 : 0) + state.mockQuestions.length,
+        pending: { weak: (prevPend && prevPend.weak ? prevPend.weak : []).concat(weak), hists: prevHists.concat([histEntry]) } });
     fridayFlushReleased();
     try { fridaySyncScores(true); } catch (e) {}
     state.view = 'mock-result';
@@ -14971,8 +14995,8 @@ const SUPPORT_KB = [
       a: 'Topic Practice (Practice Hub → Topic Practice) lets you pick a subject and topic, then either read the notes or take a short CBT on that topic.' },
     { k: ['add subject', 'change subject', 'swap subject', 'my subjects', 'choose subject', 'remove subject', 'four subjects', '4 subjects', 'my courses', 'select subject'],
       a: 'English is always included and you can have up to 4 subjects in total (English + 3).\n• To add: Practice Hub → Add Subject → pick one\n• To change: use the swap option on that subject\'s card and pick the replacement (the old one is removed once you choose)' },
-    { k: ['mock exam', 'mock arena', 'friday mock', 'when is mock', 'mock start', 'mock schedule', 'mock result', 'mock score', 'weekly progress'],
-      a: 'The Friday Mock opens every Friday, all day, and works offline.\n1. Open Mock Arena on a Friday\n2. English is included, so pick 3 other subjects\n3. Start — it runs for 2 hours\nYour score is saved on this phone, and Mock Arena shows your progress for each Friday. It is also in Account → Result Analysis.' },
+    { k: ['mock exam', 'mock arena', 'friday mock', 'daily mock', 'when is mock', 'mock start', 'mock schedule', 'mock result', 'mock score', 'weekly progress'],
+      a: 'The Daily Mock opens every night from 8:00 pm to 10:00 pm and works offline.\nMon: English\nTue: Mathematics + Government\nWed: Physics + Accounting\nThu: Literature + Agric Science\nFri: CRS + Biology\nSat: Chemistry + Commerce\nSun: Geography + Economics\nOpen Mock Arena at 8 pm and tap Start. Results are released at 10:00 pm. Your score is saved on this phone and is also in Account → Result Analysis.' },
     { k: ['result analysis', 'my results', 'past results', 'see my score', 'where is my result', 'exam history', 'my history', 'review my answer'],
       a: 'Every finished CBT, Past Questions, Mock, Novel or Topic attempt is saved in Account → Result Analysis. Use the filter tabs (CBT Full, CBT Single, Exam, Mock, Novel CBT, Topic) to find it.' },
     { k: ['offline', 'no internet', 'without internet', 'no network', 'data off', 'work offline', 'no data', 'without data', 'without network', 'without wifi', 'use offline'],
@@ -22235,7 +22259,7 @@ function renderMockResult() {
             '<p style="font-size:13px;color:var(--muted);margin:0">' +
             (state.isGuestMock
                 ? 'Your exam has been submitted and your score is saved. Results haven\'t been released yet.'
-                : (state.mockExamSource === 'friday' ? 'Your Friday Mock has been submitted. Results are released after the 24-hour Mock window closes (Saturday, 12:00 am). Come back then to see your score.' : 'Your mock has been submitted. Results will be released by the admin.')) +
+                : (state.mockExamSource === 'friday' ? 'Your Mock has been submitted. Results are released when tonight\'s Mock closes at 10:00 pm. Come back then to see your score.' : 'Your mock has been submitted. Results will be released by the admin.')) +
             '</p>' +
             (resultLink
                 ? '<div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:10px;text-align:left">' +
@@ -22254,7 +22278,7 @@ function renderMockResult() {
         const maxScore = state.mockTotal || 100;
         const subjectScores = state.mockSubjectScores || {};
         const submittedAt = state.mockSubmittedAt ? new Date(state.mockSubmittedAt) : null;
-        const examsList = [{ id: state.mockExamId, title: 'Friday Mock' }];
+        const examsList = [{ id: state.mockExamId, title: 'Daily Mock' }];
         const exam = examsList.find(function(e) { return e.id === state.mockExamId; });
         let subjRows = "";
         Object.keys(subjectScores).forEach(function(sid) {
@@ -26832,18 +26856,7 @@ document.addEventListener('click', function(e) {
 
     
 
-    if (action === 'friday-toggle-subject') {
-        const id = el.getAttribute('data-subject');
-        if (id === 'eng') return;
-        const cur = (state.mockSelectedSubjects || []).filter(function(x) { return x !== 'eng'; });
-        const i = cur.indexOf(id);
-        if (i !== -1) cur.splice(i, 1);
-        else if (cur.length < 3) cur.push(id);
-        else showToast('English is included. Pick exactly 3 other subjects.', 'error');
-        state.mockSelectedSubjects = cur;
-        render();
-        return;
-    }
+    if (action === 'friday-toggle-subject') { return; }
     if (action === 'friday-tab') {
         state.mockArenaTab = el.getAttribute('data-tab') === 'board' ? 'board' : 'mock';
         const w = el.getAttribute('data-week'); if (w) state.fridayBoardWeek = w;
@@ -26859,8 +26872,7 @@ document.addEventListener('click', function(e) {
     if (action === 'friday-share-rec') { fridayShareRecord(el.getAttribute('data-week')); return; }
     if (action === 'exam-year-empty') { showToast('This year has no questions yet.', 'error'); return; }
     if (action === 'friday-start') {
-        const picks = (state.mockSelectedSubjects || []).filter(function(x) { return x !== 'eng'; }).slice(0, 3);
-        startMockExam(['eng'].concat(picks));
+        startMockExam([el.getAttribute('data-subject') || mockSubjectsForDay()[0]]);
         return;
     }
     if (action === 'mock-answer') {
@@ -26917,7 +26929,7 @@ document.addEventListener('click', function(e) {
         const score = state.mockScore;
         const maxScore = state.mockTotal || 100;
         const subjectScores = state.mockSubjectScores || {};
-        const examsList = [{ id: state.mockExamId, title: 'Friday Mock' }];
+        const examsList = [{ id: state.mockExamId, title: 'Daily Mock' }];
         const exam = (examsList || []).find(function(e) { return e.id === state.mockExamId; });
         const candidateName = state.mockDisplayName || state.profile.fullName || state.profile.name || 'Candidate';
         const rows = Object.keys(subjectScores).map(function(sid) {
@@ -26982,7 +26994,7 @@ document.addEventListener('click', function(e) {
     if (action === 'download-mock-pdf') {
         const questions = state.mockQuestions || [];
         const answers = state.mockAnswers || [];
-        const examsList = [{ id: state.mockExamId, title: 'Friday Mock' }];
+        const examsList = [{ id: state.mockExamId, title: 'Daily Mock' }];
         const exam = examsList.find(function(e) { return e.id === state.mockExamId; });
         downloadResultBreakdownPdf({
             title: (exam ? exam.title : 'Mock Exam') + ' — Result',
