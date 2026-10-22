@@ -3,7 +3,7 @@
  * being force-downloaded again, so installing no longer waits on the 1.4 MB page.
  */
 
-const CACHE_NAME = "myutme-cache-v91";
+const CACHE_NAME = "myutme-cache-v92";
 
 const APP_SHELL = [
   "./",
@@ -96,21 +96,17 @@ async function cacheShellFile(cache, url) {
   throw lastError;
 }
 
-// Install is now FAST: only the tiny files are saved here, so the app can finish
-// installing right away. The big app page (index.html) and offline-db.js are saved
-// straight after the install (CHECK_UPDATE message) or on the first open, whichever
-// comes first, so the home-screen app is ready quickly and the rest downloads after.
-const FAST_SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
-
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
       await Promise.all(
-        FAST_SHELL.map(async (url) => {
+        APP_SHELL.map(async (url) => {
           try {
             await cacheShellFile(cache, url);
-          } catch (error) {}
+          } catch (error) {
+            if (REQUIRED_SHELL.indexOf(url) !== -1) throw error;
+          }
         })
       );
     })()
