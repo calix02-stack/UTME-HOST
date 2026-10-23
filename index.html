@@ -12974,12 +12974,44 @@ var MOCK_SCHEDULE = {
     0: ['geo', 'eco']      // Sunday    Arts + Commercial
 };
 var MOCK_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-// The Mock is created by the admin and shared as a link: /?mock=bio,gov&d=2026-10-23
-function mockActive() {
-    try { var m = JSON.parse(storage.get('activeMock') || 'null'); if (m && Array.isArray(m.subs) && m.subs.length && /^\d{4}-\d{2}-\d{2}$/.test(m.day || '')) return m; } catch (e) {}
-    return null;
+// Mocks are created by the admin (Admin Panel > Mocks) and shared as a link:
+//   /?mock=bio,gov&s=<start seconds, base36>&e=<end seconds, base36>
+// A user's list of Mocks (from links they opened) is kept in storage 'myMocks'.
+function mockLinkFor(ex) { return location.origin + '/?mock=' + ex.subs.join(',') + '&s=' + Math.floor(ex.start / 1000).toString(36) + '&e=' + Math.floor(ex.end / 1000).toString(36); }
+// A short, copyable Mock code, e.g. BIO-GOV-H5EW9-H5EXK (subjects, start minute, end minute). It carries everything, so it never expires or disappears.
+function mockCodeFor(ex) { return ex.subs.join('-').toUpperCase() + '-' + Math.floor(ex.start / 60000).toString(36).toUpperCase() + '-' + Math.floor(ex.end / 60000).toString(36).toUpperCase(); }
+function mockParseCode(txt) {
+    try {
+        var t = String(txt || '').trim().toLowerCase().split(/[\s\-._]+/).filter(Boolean);
+        if (t.length < 3 || t.length > 4) return null;
+        var en = parseInt(t[t.length - 1], 36) * 60000, st = parseInt(t[t.length - 2], 36) * 60000;
+        var subs = t.slice(0, t.length - 2);
+        if (!st || !en || en <= st) return null;
+        for (var i = 0; i < subs.length; i++) { if (subs[i] === 'lhm' || !SUBJECTS.some(function(x) { return x.id === subs[i]; })) return null; }
+        return mockMakeExam(subs, st, en);
+    } catch (e) { return null; }
 }
-function mockSubjectsForDay() { var m = mockActive(); return (m && m.day === fridayKey()) ? m.subs.slice() : []; }
+function mockMakeExam(subs, start, end) { return { id: subs.join('-') + '-' + Math.floor(start / 60000).toString(36), subs: subs, start: start, end: end }; }
+function mockReadList(key) { try { var l = JSON.parse(storage.get(key) || '[]'); return Array.isArray(l) ? l.filter(function(x) { return x && Array.isArray(x.subs) && x.start && x.end; }) : []; } catch (e) { return []; } }
+function mockExams() {
+    var cutoff = Date.now() - 36 * 3600 * 1000;
+    return mockReadList('myMocks').filter(function(x) { return x.end > cutoff; }).sort(function(a, b) { return a.start - b.start; });
+}
+function mockAddToMine(ex) {
+    var l = mockReadList('myMocks').filter(function(x) { return x.id !== ex.id; });
+    l.push(ex);
+    try { storage.set('myMocks', JSON.stringify(l.slice(-30))); } catch (e) {}
+}
+function mockExamById(id) { return mockExams().find(function(x) { return x.id === id; }) || null; }
+function mockExamStatus(ex) { var n = Date.now(); return n < ex.start ? 'upcoming' : (n <= ex.end ? 'open' : 'closed'); }
+function mockExamWeek(ex) { return fridayKey(new Date(ex.start)); }
+function mockFmtTime(ms) { return new Date(ms).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); }
+function mockFmtRange(ex) {
+    var a = new Date(ex.start), b = new Date(ex.end);
+    var t = function(d) { return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
+    var same = a.toDateString() === b.toDateString();
+    return a.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) + ', ' + t(a) + ' to ' + (same ? '' : b.toLocaleDateString([], { day: 'numeric', month: 'short' }) + ', ') + t(b);
+}
 function captureMockLink() {
     try {
         var p = new URLSearchParams(location.search), raw = p.get('mock');
@@ -12987,17 +13019,14 @@ function captureMockLink() {
         var subs = [];
         raw.split(',').forEach(function(id) { id = id.trim(); if (id && id !== 'lhm' && SUBJECTS.some(function(x) { return x.id === id; }) && subs.indexOf(id) === -1) subs.push(id); });
         subs = subs.slice(0, 2);
-        if (!subs.length) return false;
-        var d = p.get('d');
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(d || '')) d = fridayKey();
-        storage.set('activeMock', JSON.stringify({ subs: subs, day: d }));
+        var st = parseInt(p.get('s') || '', 36) * 1000, en = parseInt(p.get('e') || '', 36) * 1000;
+        if (!subs.length || !st || !en || en <= st) return false;
+        mockAddToMine(mockMakeExam(subs, st, en));
         storage.set('pendingMock', '1');
         try { history.replaceState({}, '', location.pathname); } catch (e) {}
         return true;
     } catch (e) { return false; }
 }
-function mockSubjectNames(ids) { return ids.map(function(id) { var x = SUBJECTS.find(function(y) { return y.id === id; }); return x ? x.name : id; }); }
-function mockOpenNow() { return mockSubjectsForDay().length > 0; }
 function mockOpensIn_unused() {
     var n = new Date(), t = new Date(n.getFullYear(), n.getMonth(), n.getDate(), MOCK_OPEN_HOUR, 0, 0, 0);
     if (n.getTime() >= t.getTime()) return 0;
@@ -13016,7 +13045,7 @@ function fridaySaveRecord(rec) {
     try { storage.set(fridayStoreKey(), JSON.stringify(all)); } catch (e) {}
     try { backupMarkDirty(); } catch (e) {}
 }
-function isFridayToday() { return mockOpenNow(); }
+function isFridayToday() { return mockExams().some(function(x) { return mockExamStatus(x) === 'open'; }); }
 // The Mock is open for 24 hours (Friday 12:00 am to Saturday 12:00 am).
 // Scores, history and missed questions stay hidden until that window closes.
 function fridayWindowEnd(week) { var p = String(week).split('-'); return new Date(+p[0], +p[1] - 1, +p[2], MOCK_RELEASE_HOUR, 0, 0, 0); }
@@ -13051,23 +13080,34 @@ function fridayLabel(w) {
     const p = w.split('-');
     return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
-function renderAdminMockCreator() {
+function renderAdminMocks() {
+    if (!isAdmin()) return '';
     const sel = state.adminMockSel || [];
-    const off = state.adminMockDayOffset || 0;
     const chip = function(on) { return 'padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;border:1.5px solid var(--green);cursor:pointer;margin:0 6px 8px 0;background:' + (on ? 'var(--green)' : 'transparent') + ';color:' + (on ? '#fff' : 'var(--green)'); };
-    let h = '<div class="card"><p style="font-size:13px;font-weight:800;margin:0 0 4px">🛠 Create a Mock (admin only)</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Pick 1 or 2 subjects, then create the link and share it.</p><div>';
+    const field = 'width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;margin:4px 0 10px';
+    let h = '<div class="card"><p style="font-size:14px;font-weight:800;margin:0 0 4px">➕ Create a Mock</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Pick 1 or 2 subjects and set when it starts and ends. Each subject keeps the normal time (about 30 minutes).</p><div>';
     SUBJECTS.filter(function(x) { return x.id !== 'lhm'; }).forEach(function(x) {
         h += '<button style="' + chip(sel.indexOf(x.id) !== -1) + '" data-action="adminmock-toggle" data-subject="' + x.id + '">' + esc(x.name) + '</button>';
     });
-    h += '</div><div style="margin:2px 0 10px"><button style="' + chip(off === 0) + '" data-action="adminmock-day" data-offset="0">Today</button>' +
-        '<button style="' + chip(off === 1) + '" data-action="adminmock-day" data-offset="1">Tomorrow</button></div>' +
-        '<button class="btn btn-green" style="width:100%;padding:11px" data-action="adminmock-create">Create link</button>';
-    if (state.adminMockLink) {
-        h += '<p style="font-size:11px;word-break:break-all;margin:12px 0 8px;padding:10px;border-radius:10px;background:var(--bg)">' + esc(state.adminMockLink) + '</p>' +
-            '<div style="display:flex;gap:8px"><button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="adminmock-copy">Copy link</button>' +
-            '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="adminmock-share">Share</button></div>';
-    }
+    h += '</div><label style="font-size:12px;font-weight:700">Starts</label><input id="am-start" type="datetime-local" style="' + field + '" value="' + esc(state.adminMockStart || '') + '">' +
+        '<label style="font-size:12px;font-weight:700">Ends</label><input id="am-end" type="datetime-local" style="' + field + '" value="' + esc(state.adminMockEnd || '') + '">' +
+        '<button class="btn btn-green" style="width:100%;padding:12px" data-action="adminmock-create">Create Mock</button></div>';
+    const list = mockReadList('adminMocks').sort(function(a, b) { return b.start - a.start; });
+    h += '<div class="card"><p style="font-size:14px;font-weight:800;margin:0 0 10px">📋 Your Mocks</p>';
+    if (!list.length) h += '<p style="font-size:12px;color:var(--muted);margin:0">No Mock created yet.</p>';
+    list.forEach(function(ex) {
+        const st = mockExamStatus(ex);
+        h += '<div style="border-top:1px solid var(--line);padding:12px 0">' +
+            '<div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:13px">' + esc(mockSubjectNames(ex.subs).join(' + ')) + '</b><span style="font-size:10px;font-weight:800;color:' + (st === 'open' ? 'var(--green)' : '#7a8580') + '">' + st.toUpperCase() + '</span></div>' +
+            '<p style="font-size:11.5px;color:var(--muted);margin:3px 0 6px">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
+            '<p style="font-size:10.5px;color:var(--muted);margin:0 0 4px">Mock code</p>' +
+            '<p style="font-size:17px;font-weight:800;letter-spacing:.06em;word-break:break-all;margin:0 0 10px;padding:11px;border-radius:10px;background:var(--bg);user-select:all;-webkit-user-select:all">' + esc(mockCodeFor(ex)) + '</p>' +
+            '<div style="display:flex;gap:8px;margin-bottom:8px"><button class="btn btn-green" style="flex:1;padding:10px;font-size:12px" data-action="adminmock-copycode" data-exam="' + esc(ex.id) + '">Copy code</button>' +
+            '<button class="btn btn-outline" style="flex:1;padding:10px;font-size:12px" data-action="adminmock-copy" data-exam="' + esc(ex.id) + '">Copy link</button></div>' +
+            '<div style="display:flex;gap:8px"><button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="adminmock-share" data-exam="' + esc(ex.id) + '">Share</button>' +
+            '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="adminmock-delete" data-exam="' + esc(ex.id) + '">Delete</button></div></div>';
+    });
     return h + '</div>';
 }
 function renderMockExamPicker() {
@@ -13084,38 +13124,50 @@ function renderMockExamPicker() {
     const electives = SUBJECTS.filter(function(x) { return x.id !== 'eng' && x.id !== 'lhm'; });
     const sel = (state.mockSelectedSubjects || []).filter(function(id) { return electives.some(function(x) { return x.id === id; }); }).slice(0, 3);
     state.mockSelectedSubjects = sel;
-    const todaySubs = mockSubjectsForDay();
-    const todayNames = mockSubjectNames(todaySubs);
-    let html = back + '<h2 class="title">Mock Arena</h2><p class="sub">Mock set by MyUTME · one subject at a time</p>';
+    let html = back + '<h2 class="title">Mock Arena</h2><p class="sub">Your Mocks · set by MyUTME</p>';
     const __tab = state.mockArenaTab === 'board' ? 'board' : 'mock';
     html += '<div class="leaderboard-tabs">' +
         '<button class="leaderboard-tab' + (__tab === 'mock' ? ' active' : '') + '" data-action="friday-tab" data-tab="mock">📝 Mock</button>' +
         '<button class="leaderboard-tab' + (__tab === 'board' ? ' active' : '') + '" data-action="friday-tab" data-tab="board">🏆 Leaderboard</button></div>';
     if (__tab === 'board') return html + renderFridayBoard();
-    if (isAdmin()) html += renderAdminMockCreator();
 
-    const takenIds = done ? Object.keys(done.scores || {}) : [];
-    const remaining = todaySubs.filter(function(id) { return takenIds.indexOf(id) === -1; });
-    if (done && fridayReleased(done)) {
-        html += '<div class="card" style="text-align:center;padding:20px"><p style="font-size:34px;margin:0">✅</p>' +
-            '<h3 class="title" style="font-size:15px">Your Mock result for today</h3>' +
-            Object.keys(done.scores || {}).map(function(sid) { return '<p style="font-size:20px;font-weight:700;margin:6px 0">' + esc(mockSubjectName(sid)) + ' <span style="color:var(--green)">' + done.scores[sid] + ' / 100</span></p>'; }).join('') +
-            '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="friday-share-rec" data-week="' + esc(done.week) + '">📤 Share</button>' +
-            '<button class="btn btn-green" style="flex:1;padding:9px;font-size:12px" data-action="friday-tab" data-tab="board" data-week="' + esc(done.week) + '">🏆 My rank</button></div></div>';
-    } else if (done) {
-        html += '<div class="card" style="text-align:center;padding:22px"><p style="font-size:34px;margin:0">⏳</p>' +
-            '<h3 class="title" style="font-size:15px">Submitted: ' + esc(takenIds.map(mockSubjectName).join(' + ')) + '</h3>' +
-            '<p style="font-size:12.5px;color:var(--muted);margin:8px 0 0;line-height:1.5">Results are released at 10:00 pm tonight. Your result will be ready in about <b>' + fridayWaitText(done) + '</b>.</p></div>';
+    html += '<div class="card" style="padding:14px"><p style="font-size:12.5px;font-weight:700;margin:0 0 8px">Have a Mock code?</p>' +
+        '<div style="display:flex;gap:8px"><input id="mock-code-input" type="text" autocapitalize="characters" autocomplete="off" placeholder="e.g. BIO-GOV-H5EW9-H5EXK" style="flex:1;min-width:0;padding:11px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font-size:13px">' +
+        '<button class="btn btn-green" style="padding:10px 16px;font-size:13px" data-action="mock-join-code">Add</button></div></div>';
+    const exams = mockExams();
+    if (!exams.length) {
+        html += '<div class="card" style="text-align:center;padding:24px"><p style="font-size:34px;margin:0">📝</p>' +
+            '<h3 class="title" style="font-size:15px">No Mock yet</h3>' +
+            '<p style="font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.5">When MyUTME shares a Mock link or code, open the link or type the code above, and your Mock will show here with its time.</p></div>';
     }
-    if (!todaySubs.length) {
-        const am = mockActive();
-        html += '<div class="card" style="text-align:center;padding:22px"><p style="font-size:34px;margin:0">🔒</p>' +
-            '<h3 class="title" style="font-size:15px">' + (am && am.day > wk ? 'Mock opens ' + esc(fridayLabel(am.day)) : 'No Mock is open right now') + '</h3>' +
-            '<p style="font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.5">' + (am && am.day > wk ? esc(mockSubjectNames(am.subs).join(' + ')) + '. Come back on that day.' : 'Open the Mock link MyUTME shares in the group to join the next one.') + '</p></div>';
-    } else if (remaining.length) {
-        html += '<div class="card"><p style="font-size:12.5px;font-weight:700;margin:0 0 4px">Today\'s Mock: ' + esc(mockSubjectNames(todaySubs).join(' + ')) + '</p>' +
-            '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + MOCK_Q_PER_SUBJECT + ' questions · each subject is scored out of 100 · open until 12:00 am · results at 10:00 pm (shown at once if you finish after 10:00 pm)' + (todaySubs.length > 1 ? ' · you can take the other subject after' : '') + '</p>' +
-            remaining.map(function(id) { return '<button class="btn btn-green" style="width:100%;padding:12px;margin-bottom:8px" data-action="friday-start" data-subject="' + id + '">Start ' + esc(mockSubjectName(id)) + '</button>'; }).join('') + '</div>';
+    let anyReleased = null;
+    exams.slice().reverse().forEach(function(ex) {
+        const st = mockExamStatus(ex);
+        const rec = recs.find(function(r) { return r.week === mockExamWeek(ex); });
+        const badge = st === 'open' ? '<span style="background:#0F6B3F;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">OPEN NOW</span>'
+            : st === 'upcoming' ? '<span style="background:#B7791F;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">UPCOMING</span>'
+            : '<span style="background:#7a8580;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">CLOSED</span>';
+        let card = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><p style="font-size:14px;font-weight:800;margin:0">' + esc(mockSubjectNames(ex.subs).join(' + ')) + '</p>' + badge + '</div>' +
+            '<p style="font-size:11.5px;color:var(--muted);margin:0 0 10px">🕒 ' + esc(mockFmtRange(ex)) + '</p>';
+        ex.subs.forEach(function(sid) {
+            const taken = rec && rec.scores && (sid in rec.scores);
+            if (taken) {
+                const rel = fridayReleased(rec);
+                if (rel) anyReleased = rec;
+                card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span>' +
+                    (rel ? '<b style="color:var(--green)">' + rec.scores[sid] + ' / 100</b>' : '<span style="color:var(--muted);font-size:11.5px">✓ Submitted · result at 10:00 pm</span>') + '</div>';
+            } else if (st === 'open') {
+                card += '<button class="btn btn-green" style="width:100%;padding:12px;margin-top:6px" data-action="friday-start" data-subject="' + sid + '" data-exam="' + esc(ex.id) + '">Start ' + esc(mockSubjectName(sid)) + '</button>';
+            } else {
+                card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span><span style="color:var(--muted);font-size:11.5px">' + (st === 'upcoming' ? 'Opens ' + esc(mockFmtTime(ex.start)) : 'Closed') + '</span></div>';
+            }
+        });
+        if (st === 'open') card += '<p style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.5">' + MOCK_Q_PER_SUBJECT + ' questions per subject · each scored out of 100 · results at 10:00 pm (shown at once if you finish after 10:00 pm)' + (ex.subs.length > 1 ? ' · take one subject, then the other' : '') + '</p>';
+        html += card + '</div>';
+    });
+    if (anyReleased) {
+        html += '<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="friday-share-rec" data-week="' + esc(anyReleased.week) + '">📤 Share my result</button>' +
+            '<button class="btn btn-green" style="flex:1;padding:9px;font-size:12px" data-action="friday-tab" data-tab="board" data-week="' + esc(anyReleased.week) + '">🏆 Leaderboard</button></div>';
     }
 
     // Weekly progress — only results that have been released
@@ -13307,15 +13359,20 @@ function fridayShareText(text) {
     if (navigator.share) { navigator.share({ text: text }).catch(function() {}); return; }
     try { navigator.clipboard.writeText(text).then(function() { showToast('Copied. Paste it anywhere to share.'); }); } catch (e) { showToast('Could not share.', 'error'); }
 }
-async function startMockExam(subjects) {
+async function startMockExam(subjects, examId) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
     if (!isUserActive()) { showActivatePopup('Mock Arena is part of full access.'); return; }
-    if (!mockOpenNow()) { showToast('No Mock is open right now. Use the link MyUTME shares.', 'error'); return; }
+    const __ex = mockExamById(examId);
+    if (!__ex) { showToast('Open the Mock link MyUTME shared first.', 'error'); return; }
+    const __st = mockExamStatus(__ex);
+    if (__st === 'upcoming') { showToast('This Mock opens ' + mockFmtTime(__ex.start) + '.', 'error'); return; }
+    if (__st === 'closed') { showToast('This Mock has closed.', 'error'); return; }
     const __sid = subjects && subjects[0];
-    if (!__sid || mockSubjectsForDay().indexOf(__sid) === -1) { showToast('That subject is not in today\'s Mock.', 'error'); return; }
+    if (!__sid || __ex.subs.indexOf(__sid) === -1) { showToast('That subject is not in this Mock.', 'error'); return; }
     subjects = [__sid];
-    const __rec = fridayRecords().find(function(r) { return r.week === fridayKey(); });
-    if (__rec && __rec.scores && (__sid in __rec.scores)) { showToast('You have already taken ' + mockSubjectName(__sid) + ' tonight.', 'error'); return; }
+    const __wk = mockExamWeek(__ex);
+    const __rec = fridayRecords().find(function(r) { return r.week === __wk; });
+    if (__rec && __rec.scores && (__sid in __rec.scores)) { showToast('You have already taken ' + mockSubjectName(__sid) + '.', 'error'); return; }
     state.isLoading = true;
     render();
     try {
@@ -13347,8 +13404,8 @@ for (const subjectId of subjects) {
         }
         if (!allQuestions.length) throw new Error('Questions are not on this device yet. Open the app online once to download them.');
         state.mockExamSource = 'friday';
-        state.mockExamId = 'friday-' + fridayKey() + '-' + subjects[0];
-        state.mockWeekKey = fridayKey();
+        state.mockExamId = 'friday-' + __wk + '-' + subjects[0];
+        state.mockWeekKey = __wk;
         state.currentMockAttempt = { id: state.mockExamId, started_at: new Date().toISOString() };
         state.mockQuestions = allQuestions;
         state.mockAnswers = new Array(allQuestions.length).fill(null);
@@ -13359,8 +13416,7 @@ for (const subjectId of subjects) {
         state.mockResultReleased = true;
         state.isGuestMock = false;
         state.mockDisplayName = null;
-        var __closeAt = new Date(); __closeAt.setHours(MOCK_CLOSE_HOUR, 0, 0, 0);
-        state.mockTotalSeconds = Math.max(60, Math.min(allQuestions.length * MOCK_SECS_PER_Q, Math.floor((__closeAt.getTime() - Date.now()) / 1000)));
+        state.mockTotalSeconds = Math.max(60, Math.min(allQuestions.length * MOCK_SECS_PER_Q, Math.floor((__ex.end - Date.now()) / 1000)));
         state.mockTimeLeft = state.mockTotalSeconds;
         state.isLoading = false;
         buildMockSubjectGroups(allQuestions);
@@ -15047,7 +15103,7 @@ const SUPPORT_KB = [
     { k: ['add subject', 'change subject', 'swap subject', 'my subjects', 'choose subject', 'remove subject', 'four subjects', '4 subjects', 'my courses', 'select subject'],
       a: 'English is always included and you can have up to 4 subjects in total (English + 3).\n• To add: Practice Hub → Add Subject → pick one\n• To change: use the swap option on that subject\'s card and pick the replacement (the old one is removed once you choose)' },
     { k: ['mock exam', 'mock arena', 'friday mock', 'daily mock', 'when is mock', 'mock start', 'mock schedule', 'mock result', 'mock score', 'weekly progress'],
-      a: 'The Mock is set by MyUTME and shared as a link in our group.\n1. Tap the link and log in\n2. The Mock Arena opens with that day\'s subjects (1 or 2)\n3. Pick one subject, tap Start, then take the other after\nEach subject is 40 questions, scored over 100. Results come out at 10:00 pm; if you finish after 10:00 pm you see your score at once. Scores and rankings are in Mock Arena → Leaderboard.' },
+      a: 'The Mock is set by MyUTME and shared as a link in our group.\n1. Tap the link and log in\n2. The Mock Arena shows that Mock with its start and end time\n3. When it is open, pick one subject and tap Start (take the other subject after)\nEach subject is 40 questions, scored over 100. Results come out at 10:00 pm; if you finish after 10:00 pm you see your score at once. Rankings are in Mock Arena → Leaderboard.' },
     { k: ['result analysis', 'my results', 'past results', 'see my score', 'where is my result', 'exam history', 'my history', 'review my answer'],
       a: 'Every finished CBT, Past Questions, Mock, Novel or Topic attempt is saved in Account → Result Analysis. Use the filter tabs (CBT Full, CBT Single, Exam, Mock, Novel CBT, Topic) to find it.' },
     { k: ['offline', 'no internet', 'without internet', 'no network', 'data off', 'work offline', 'no data', 'without data', 'without network', 'without wifi', 'use offline'],
@@ -22747,6 +22803,7 @@ const ADMIN_TABS = [
     { key: "payments", label: "💳 Payments" },
     { key: "flagged", label: "🚩 Flagged" },
     { key: "support", label: "💬 Support" },
+    { key: "mocks", label: "📝 Mocks" },
 ];
 
 function renderAdmin() {
@@ -22782,6 +22839,7 @@ function renderAdmin() {
     else if (state.adminTab === "payments") body = renderAdminPayments();
     else if (state.adminTab === "flagged") body = renderAdminFlagged();
     else if (state.adminTab === "support") body = renderAdminSupport();
+    else if (state.adminTab === "mocks") body = renderAdminMocks();
     else if (state.adminTab === "guestai") body = renderAdminGuestAi();
     else body = renderAdminOverview();
 
@@ -26922,33 +26980,54 @@ document.addEventListener('click', function(e) {
     if (action === 'friday-share-board') { fridayShareText(fridayBoardText(state.fridayBoardWeek)); return; }
     if (action === 'friday-share-rec') { fridayShareRecord(el.getAttribute('data-week')); return; }
     if (action === 'exam-year-empty') { showToast('This year has no questions yet.', 'error'); return; }
-    if (action === 'adminmock-toggle') {
+    if (action === 'adminmock-toggle' || action === 'adminmock-create' || action === 'adminmock-copy' || action === 'adminmock-copycode' || action === 'adminmock-share' || action === 'adminmock-delete') {
         if (!isAdmin()) return;
-        const id = el.getAttribute('data-subject'); const cur = (state.adminMockSel || []).slice(); const i = cur.indexOf(id);
-        if (i !== -1) cur.splice(i, 1); else if (cur.length >= 2) { showToast('Maximum of 2 subjects.', 'error'); return; } else cur.push(id);
-        state.adminMockSel = cur; state.adminMockLink = ''; render(); return;
-    }
-    if (action === 'adminmock-day') { if (!isAdmin()) return; state.adminMockDayOffset = parseInt(el.getAttribute('data-offset'), 10) || 0; state.adminMockLink = ''; render(); return; }
-    if (action === 'adminmock-create') {
-        if (!isAdmin()) return;
-        const subs = (state.adminMockSel || []).slice(0, 2);
-        if (!subs.length) { showToast('Pick at least 1 subject.', 'error'); return; }
-        const d = new Date(); d.setDate(d.getDate() + (state.adminMockDayOffset || 0));
-        const day = fridayKey(d);
-        state.adminMockLink = location.origin + '/?mock=' + subs.join(',') + '&d=' + day;
-        try { storage.set('activeMock', JSON.stringify({ subs: subs, day: day })); } catch (e) {}
-        showToast('Link created.'); render(); return;
-    }
-    if (action === 'adminmock-copy') { if (!isAdmin() || !state.adminMockLink) return; try { navigator.clipboard.writeText(state.adminMockLink).then(function() { showToast('Link copied.'); }); } catch (e) { showToast('Could not copy.', 'error'); } return; }
-    if (action === 'adminmock-share') {
-        if (!isAdmin() || !state.adminMockLink) return;
-        const am = mockActive();
-        const txt = 'MyUTME Mock: ' + (am ? mockSubjectNames(am.subs).join(' + ') : '') + '. Log in and take it here:\n' + state.adminMockLink;
+        const sEl = document.getElementById('am-start'), eEl = document.getElementById('am-end');
+        if (sEl) state.adminMockStart = sEl.value; if (eEl) state.adminMockEnd = eEl.value;
+        if (action === 'adminmock-toggle') {
+            const id = el.getAttribute('data-subject'); const cur = (state.adminMockSel || []).slice(); const i = cur.indexOf(id);
+            if (i !== -1) cur.splice(i, 1); else if (cur.length >= 2) { showToast('Maximum of 2 subjects.', 'error'); return; } else cur.push(id);
+            state.adminMockSel = cur; render(); return;
+        }
+        if (action === 'adminmock-create') {
+            const subs = (state.adminMockSel || []).slice(0, 2);
+            const st = new Date(state.adminMockStart || '').getTime(), en = new Date(state.adminMockEnd || '').getTime();
+            if (!subs.length) { showToast('Pick at least 1 subject.', 'error'); return; }
+            if (!st || !en) { showToast('Set the start time and the end time.', 'error'); return; }
+            if (en <= st) { showToast('The end time must be after the start time.', 'error'); return; }
+            if (en <= Date.now()) { showToast('The end time has already passed.', 'error'); return; }
+            const ex = mockMakeExam(subs, st, en);
+            const list = mockReadList('adminMocks').filter(function(x) { return x.id !== ex.id; });
+            list.push(ex);
+            try { storage.set('adminMocks', JSON.stringify(list)); } catch (e) {}
+            mockAddToMine(ex);
+            state.adminMockSel = []; state.adminMockStart = ''; state.adminMockEnd = '';
+            showToast('Mock created. Copy its code or link below.'); render(); return;
+        }
+        const exId = el.getAttribute('data-exam');
+        const ex = mockReadList('adminMocks').find(function(x) { return x.id === exId; });
+        if (!ex) return;
+        if (action === 'adminmock-delete') {
+            if (!window.confirm('Delete this Mock (' + mockSubjectNames(ex.subs).join(' + ') + ')?')) return;
+            try { storage.set('adminMocks', JSON.stringify(mockReadList('adminMocks').filter(function(x) { return x.id !== exId; }))); } catch (e) {}
+            try { storage.set('myMocks', JSON.stringify(mockReadList('myMocks').filter(function(x) { return x.id !== exId; }))); } catch (e) {}
+            showToast('Mock deleted.'); render(); return;
+        }
+        const link = mockLinkFor(ex);
+        if (action === 'adminmock-copycode') { try { navigator.clipboard.writeText(mockCodeFor(ex)).then(function() { showToast('Code copied.'); }); } catch (e) { showToast('Could not copy.', 'error'); } return; }
+        if (action === 'adminmock-copy') { try { navigator.clipboard.writeText(link).then(function() { showToast('Link copied.'); }); } catch (e) { showToast('Could not copy.', 'error'); } return; }
+        const txt = 'MyUTME Mock: ' + mockSubjectNames(ex.subs).join(' + ') + '\n' + mockFmtRange(ex) + '\nCode: ' + mockCodeFor(ex) + '\nLog in and take it here:\n' + link;
         if (navigator.share) { navigator.share({ text: txt }).catch(function() {}); } else { try { navigator.clipboard.writeText(txt); showToast('Copied. Paste it to share.'); } catch (e) {} }
         return;
     }
+    if (action === 'mock-join-code') {
+        const inp = document.getElementById('mock-code-input');
+        const ex = mockParseCode(inp ? inp.value : '');
+        if (!ex) { showToast('That code is not valid. Check it and try again.', 'error'); return; }
+        mockAddToMine(ex); showToast('Mock added.'); render(); return;
+    }
     if (action === 'friday-start') {
-        startMockExam([el.getAttribute('data-subject') || mockSubjectsForDay()[0]]);
+        startMockExam([el.getAttribute('data-subject')], el.getAttribute('data-exam'));
         return;
     }
     if (action === 'mock-answer') {
