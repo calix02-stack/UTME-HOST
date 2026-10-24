@@ -5344,6 +5344,28 @@
         padding: 20px;
     }
 
+    /* Bottom sheet used by admin Activate/Deactivate, the activate pop-up and the guest prompt */
+    .nw-back {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.55);
+    }
+    .nw-sheet {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1001;
+        max-width: 480px;
+        margin: 0 auto;
+        background: var(--modal-bg, #fff);
+        color: var(--ink);
+        border-radius: 20px 20px 0 0;
+        padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+    }
+
     /* Question count selector - REMOVED */
     .q-count-selector { display: none; }
 
@@ -8854,6 +8876,21 @@ function openExternalUrl(url) {
 }
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const TELEGRAM_URL = 'https://t.me/MyUTMEPracticeBot';
+const TELEGRAM_APP_URL = 'tg://resolve?domain=MyUTMEPracticeBot';
+// Opens the Telegram app directly (you stay logged in there). Only if the app is not installed
+// does it fall back to the t.me web page.
+function openTelegram() {
+    var left = false;
+    function onHide() { if (document.hidden) left = true; }
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onHide);
+    try { window.location.href = TELEGRAM_APP_URL; } catch (e) {}
+    setTimeout(function() {
+        document.removeEventListener('visibilitychange', onHide);
+        window.removeEventListener('pagehide', onHide);
+        if (!left && !document.hidden) openExternalUrl(TELEGRAM_URL);
+    }, 1400);
+}
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const AI_NAME = "AI";
@@ -23119,34 +23156,90 @@ function renderAdminAnalytics() {
     const qt = adminQuestionTotals();
     const d = state.analyticsData;
     if (!d) return adashCard('Analytics', '<p style="font-size:12px;color:#6b7280;margin:0">No data available.</p>');
-    let html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><p style="font-size:15px;font-weight:800;margin:0">Analytics</p>' +
-        '<button class="btn btn-outline btn-sm" data-action="analytics-refresh" style="flex:0 0 auto;padding:5px 10px">' + svg('refresh', 15) + '</button></div>';
-    html += adashKpis([
-        ['Total users', d.totalUsers], ['Activated', d.activated], ['New this week', d.newUsers],
-        ['Revenue this week', adashCompactNaira(d.revenueRange)], ['Total revenue', adashCompactNaira(d.revenueAll)], ['Keys used / unused', d.keysUsed + '/' + d.keysUnused],
-    ], 3);
-    html += '<p style="font-size:11px;font-weight:700;margin:6px 0 4px">Question bank</p>' + adashKpis([
-        ['Total', state.allQuestionsLoaded ? fmtNum(qt.total) : '…'], ['JAMB CBT', fmtNum(qt.cbt)],
-        ['Past Qs', fmtNum(qt.exam)], ['Mock', fmtNum(qt.mock)],
-        ['Topic', fmtNum(qt.topic)], ['Novel', fmtNum(qt.novel)],
-        ['Subjects', SUBJECTS.length],
-    ], 4, 13);
-    const dayLetter = function(k) { return new Date(k + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 3); };
-    html += adashCard('Signups', adashColumns(d.days.map(function(k) { return [dayLetter(k), d.signups[k]]; }), '#16a34a'));
-    html += adashCard('Revenue', adashColumns(d.days.map(function(k) { return [dayLetter(k), d.sales[k], d.sales[k] ? adashCompactNaira(d.sales[k]) : '0']; }), '#d97706') +
+    const dayName = function(k) { return new Date(k + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 1); };
+    const todayKey = d.days[d.days.length - 1];
+    const maxOf = function(o) { return Math.max.apply(null, d.days.map(function(k) { return o[k]; }).concat([1])); };
+    const CARD = 'background:#fff;color:#111827;border:1px solid #e5e7eb;border-radius:18px;padding:14px;';
+    const goTab = function(tab) { return ' data-action="admin-tab" data-tab="' + tab + '" style="cursor:pointer;'; };
+
+    // header
+    let html = '<div style="display:flex;align-items:center;justify-content:space-between;margin:2px 0 12px"><div>' +
+        '<p style="font-size:18px;font-weight:800;margin:0">Analytics</p><p style="font-size:11px;color:var(--muted);margin:1px 0 0">Last 7 days</p></div>' +
+        '<button class="btn btn-outline btn-sm" data-action="analytics-refresh" style="flex:0 0 auto;padding:7px 11px;border-radius:12px">' + svg('refresh', 15) + '</button></div>';
+
+    // hero: revenue
+    const revMax = maxOf(d.sales);
+    html += '<div style="background:linear-gradient(135deg,#0F6B3F,#0A4A2B);color:#fff;border-radius:22px;padding:16px 16px 12px;margin-bottom:12px;box-shadow:0 8px 24px rgba(15,107,63,.25)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+        '<div><p style="font-size:11px;opacity:.8;margin:0;letter-spacing:.04em;text-transform:uppercase">Total revenue</p>' +
+        '<p style="font-size:30px;font-weight:800;margin:2px 0 0;line-height:1.1">' + adashNaira(d.revenueAll) + '</p></div>' +
+        '<div style="text-align:right"><p style="font-size:10px;opacity:.8;margin:0">This week</p>' +
+        '<p style="font-size:15px;font-weight:800;margin:2px 0 0;background:rgba(255,255,255,.16);padding:3px 10px;border-radius:99px;display:inline-block">' + adashNaira(d.revenueRange) + '</p></div></div>' +
+        '<div style="display:flex;align-items:flex-end;gap:7px;height:78px;margin-top:14px">' + d.days.map(function(k) {
+            const v = d.sales[k], h = v > 0 ? Math.max(6, Math.round(v / revMax * 58)) : 3;
+            return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">' +
+                (v > 0 ? '<span style="font-size:8px;font-weight:700;margin-bottom:2px;white-space:nowrap">' + adashCompactNaira(v) + '</span>' : '') +
+                '<div style="width:100%;height:' + h + 'px;border-radius:6px;background:' + (v > 0 ? (k === todayKey ? '#F7B733' : 'rgba(255,255,255,.85)') : 'rgba(255,255,255,.22)') + '"></div>' +
+                '<span style="font-size:9px;margin-top:4px;opacity:' + (k === todayKey ? '1' : '.7') + ';font-weight:' + (k === todayKey ? '800' : '500') + '">' + dayName(k) + '</span></div>';
+        }).join('') + '</div></div>';
+
+    // three stat tiles
+    const pct = d.totalUsers ? Math.round(d.activated / d.totalUsers * 100) : 0;
+    const tile = function(icon, label, value, sub, color) {
+        return '<div style="' + CARD + 'padding:11px 10px;border-radius:16px;min-width:0"><div style="width:26px;height:26px;border-radius:9px;background:' + color + '1f;display:flex;align-items:center;justify-content:center;font-size:13px;margin-bottom:6px">' + icon + '</div>' +
+            '<p style="font-size:19px;font-weight:800;margin:0;line-height:1.1">' + value + '</p>' +
+            '<p style="font-size:10px;color:#6b7280;margin:2px 0 0">' + label + '</p>' +
+            (sub ? '<p style="font-size:9px;color:' + color + ';font-weight:700;margin:3px 0 0">' + sub + '</p>' : '') + '</div>';
+    };
+    html += '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px">' +
+        tile('👥', 'Total users', fmtNum(d.totalUsers), '+' + d.newUsers + ' this week', '#2563eb') +
+        tile('✅', 'Activated', fmtNum(d.activated), pct + '% of users', '#0F6B3F') +
+        tile('🔑', 'Keys used', d.keysUsed, d.keysUnused + ' unused', '#d97706') + '</div>';
+
+    // signups
+    const sMax = maxOf(d.signups);
+    html += '<div style="' + CARD + 'margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">' +
+        '<p style="font-size:13px;font-weight:800;margin:0">New signups</p><p style="font-size:11px;color:#6b7280;margin:0"><b style="color:#111827;font-size:14px">' + d.newUsers + '</b> total</p></div>' +
+        '<div style="display:flex;align-items:flex-end;gap:7px;height:96px">' + d.days.map(function(k) {
+            const v = d.signups[k], h = v > 0 ? Math.max(6, Math.round(v / sMax * 62)) : 3;
+            return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">' +
+                '<span style="font-size:10px;font-weight:700;margin-bottom:2px;color:' + (v ? '#111827' : '#d1d5db') + '">' + v + '</span>' +
+                '<div style="width:100%;height:' + h + 'px;border-radius:6px;background:' + (v > 0 ? (k === todayKey ? '#0F6B3F' : '#86d3a8') : '#eef0f2') + '"></div>' +
+                '<span style="font-size:9px;margin-top:4px;color:#6b7280;font-weight:' + (k === todayKey ? '800' : '500') + '">' + dayName(k) + '</span></div>';
+        }).join('') + '</div></div>';
+
+    // revenue by plan: share bars
+    const plans = Object.keys(d.byPlan).sort(function(x, y) { return d.byPlan[y].amt - d.byPlan[x].amt; });
+    const planTotal = plans.reduce(function(t, n) { return t + d.byPlan[n].amt; }, 0) || 1;
+    html += '<div style="' + CARD + 'margin-bottom:12px"><p style="font-size:13px;font-weight:800;margin:0 0 10px">Revenue by plan</p>' + (plans.length ? plans.map(function(n) {
+        const sh = Math.round(d.byPlan[n].amt / planTotal * 100);
+        return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;font-size:12px"><span style="font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(n) + ' <span style="color:#6b7280;font-weight:500">· ' + d.byPlan[n].n + ' sold</span></span>' +
+            '<span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><b>' + adashNaira(d.byPlan[n].amt) + '</b><button data-action="rev-hide-plan" data-plan="' + esc(n) + '" title="Leave this plan out" style="border:0;background:none;color:#9ca3af;font-size:15px;line-height:1;cursor:pointer;padding:0 2px">×</button></span></div>' +
+            '<div style="height:6px;background:#eef0f2;border-radius:99px;margin-top:5px;overflow:hidden"><div style="height:100%;width:' + sh + '%;background:linear-gradient(90deg,#0F6B3F,#34a96b);border-radius:99px"></div></div></div>';
+    }).join('') : '<p style="font-size:12px;color:#6b7280;margin:0">No sales yet.</p>') +
+        '<details style="margin-top:4px"><summary style="font-size:11px;color:#6b7280;cursor:pointer">Revenue filter' + ((d.revFrom || (d.revHidden && d.revHidden.length)) ? ' · on' : '') + '</summary>' +
         '<div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap"><span style="font-size:10px;color:#6b7280">Count revenue from</span>' +
         '<input id="rev-from-input" type="date" value="' + esc(d.revFrom || '') + '" style="font-size:11px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:8px;color:#111827;background:#fff" />' +
         '<button class="mini-btn primary" data-action="rev-from-apply" style="font-size:10px">Apply</button>' +
-        ((d.revFrom || (d.revHidden && d.revHidden.length)) ? '<button class="mini-btn" data-action="rev-reset" style="font-size:10px">Reset</button>' : '') + '</div>');
-    const plans = Object.keys(d.byPlan);
-    html += adashCard('Revenue by plan', plans.length ? '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">' + plans.map(function(p) {
-        return '<div style="background:#f9fafb;border-radius:10px;padding:7px 9px;min-width:0;position:relative"><button data-action="rev-hide-plan" data-plan="' + esc(p) + '" title="Leave this plan out of revenue" style="position:absolute;top:2px;right:4px;border:0;background:none;color:#9ca3af;font-size:14px;cursor:pointer">×</button><p style="font-size:11px;font-weight:700;margin:0;padding-right:14px;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(p) + '</p>' +
-            '<p style="font-size:10px;color:#6b7280;margin:1px 0 0">' + d.byPlan[p].n + ' sold · <b style="color:#111827">' + adashCompactNaira(d.byPlan[p].amt) + '</b></p></div>';
-    }).join('') + '</div>' : '<p style="font-size:12px;color:#6b7280;margin:0">No activations yet.</p>');
-    html += adashKpis([
-        ['Confirmed claims', d.confirmedClaims], ['Pending claims', d.pendingClaims],
-        ['Unread support', d.unreadSupport], ['Open flags', d.flagged],
-    ], 4, 15);
+        ((d.revFrom || (d.revHidden && d.revHidden.length)) ? '<button class="mini-btn" data-action="rev-reset" style="font-size:10px">Reset</button>' : '') + '</div></details></div>';
+
+    // needs attention
+    const att = function(label, n, tab, color) {
+        return '<div data-action="admin-tab" data-tab="' + tab + '" style="flex:1;min-width:0;text-align:center;cursor:pointer;padding:9px 4px;border-radius:14px;background:' + (n > 0 ? color + '1a' : '#f3f4f6') + '">' +
+            '<p style="font-size:18px;font-weight:800;margin:0;color:' + (n > 0 ? color : '#9ca3af') + '">' + n + '</p><p style="font-size:9px;color:#6b7280;margin:1px 0 0">' + label + '</p></div>';
+    };
+    html += '<div style="' + CARD + 'margin-bottom:12px"><p style="font-size:13px;font-weight:800;margin:0 0 8px">Needs attention</p>' +
+        '<div style="display:flex;gap:8px">' + att('Pending payments', d.pendingClaims, 'payments', '#d97706') + att('Unread support', d.unreadSupport, 'support', '#2563eb') + att('Open flags', d.flagged, 'flagged', '#dc2626') + '</div></div>';
+
+    // question bank: stacked bar
+    const parts = [['JAMB CBT', qt.cbt, '#0F6B3F'], ['Past Qs', qt.exam, '#2563eb'], ['Mock', qt.mock, '#d97706'], ['Topic', qt.topic, '#7c3aed'], ['Novel', qt.novel, '#db2777']];
+    const qSum = parts.reduce(function(t, x) { return t + (Number(x[1]) || 0); }, 0) || 1;
+    html += '<div style="' + CARD + 'margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><p style="font-size:13px;font-weight:800;margin:0">Question bank</p>' +
+        '<p style="font-size:11px;color:#6b7280;margin:0"><b style="color:#111827;font-size:14px">' + (state.allQuestionsLoaded ? fmtNum(qt.total) : '…') + '</b> questions · ' + SUBJECTS.length + ' subjects</p></div>' +
+        '<div style="display:flex;height:10px;border-radius:99px;overflow:hidden;background:#eef0f2">' + parts.map(function(x) { return '<div style="width:' + ((Number(x[1]) || 0) / qSum * 100) + '%;background:' + x[2] + '"></div>'; }).join('') + '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 8px;margin-top:10px">' + parts.map(function(x) {
+            return '<div style="font-size:10px;color:#6b7280;display:flex;align-items:center;gap:5px;min-width:0"><span style="width:8px;height:8px;border-radius:99px;background:' + x[2] + ';flex-shrink:0"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + x[0] + ' <b style="color:#111827">' + fmtNum(x[1]) + '</b></span></div>';
+        }).join('') + '</div></div>';
     return html;
 }
 
@@ -28311,7 +28404,7 @@ if (action === 'browse-filter') {
         return;
     }
     if (action === 'open-social-telegram') {
-        openExternalUrl(TELEGRAM_URL);
+        openTelegram();
         return;
     }
     if (action === 'open-social-coming-soon') {
