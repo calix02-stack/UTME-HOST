@@ -16,7 +16,6 @@ const APP_SHELL = [
 ];
 
 const REQUIRED_SHELL = ['./index.html', './offline-db.js'];
-const INSTALL_FETCH_TIMEOUT_MS = 15000;
 const FETCH_TIMEOUT_MS = 8000;
 const PAGE_TIMEOUT_MS = 12000;
 const QUESTION_TIMEOUT_MS = 15000;
@@ -26,8 +25,8 @@ function absolute(url) {
 }
 
 function timedFetch(request, timeoutMs, cacheMode) {
-  // A timeout of 0 means do not abort the request. Cached file writes use
-  // fetchAndStore so its timeout stays active until the response is stored.
+  // A timeout of 0 means do not abort the request. Used only for the tiny app shell
+  // during installation so a slow connection does not force installation to restart.
   if (!timeoutMs || timeoutMs <= 0) {
     return fetch(request, { cache: cacheMode || 'no-store' });
   }
@@ -72,38 +71,19 @@ async function seedFromPreviousCache(newCache, url) {
 }
 
 async function fetchAndStore(cache, url, timeoutMs) {
-  const target = absolute(url);
-  const controller = timeoutMs > 0 ? new AbortController() : null;
-  let timer = null;
+  const response = await timedFetch(
+    absolute(url),
+    timeoutMs,
+    'no-store'
+  );
 
-  const storeResponse = async () => {
-    const response = await fetch(target, {
-      cache: 'no-store',
-      ...(controller ? { signal: controller.signal } : {})
-    });
-
-    if (!response || !response.ok) {
-      throw new Error('HTTP error for ' + url);
-    }
-
-    await cache.put(target, response.clone());
-    return response;
-  };
-
-  if (!controller) return storeResponse();
-
-  const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => {
-      controller.abort();
-      reject(new Error('Timed out fetching ' + url));
-    }, timeoutMs);
-  });
-
-  try {
-    return await Promise.race([storeResponse(), timeout]);
-  } finally {
-    clearTimeout(timer);
+  if (!response || !response.ok) {
+    throw new Error('HTTP error for ' + url);
   }
+
+  await cache.put(absolute(url), response.clone());
+
+  return response;
 }
 
 /*
@@ -118,20 +98,15 @@ self.addEventListener('install', event => {
     // Installation is deliberately limited to the app shell. Never download
     // subject/question JSON files, icons, or other optional assets here.
     // Reuse cached shell files from the previous version whenever possible.
-    // A slow or failed fetch must not block Chrome's install prompt indefinitely;
-    // normal online navigation can populate any shell files that were skipped.
-    await Promise.all(REQUIRED_SHELL.map(async url => {
-      try {
-        if (await cache.match(absolute(url))) return;
-        if (await seedFromPreviousCache(cache, url)) return;
-        await fetchAndStore(cache, url, INSTALL_FETCH_TIMEOUT_MS);
-      } catch (error) {
-        console.warn('MyUTME: app shell cache deferred during install', url, error);
-      }
-    }));
-
-    await self.skipWaiting();
+    for (const url of REQUIRED_SHELL) {
+      if (await cache.match(absolute(url))) continue;
+      if (await seedFromPreviousCache(cache, url)) continue;
+      // No 8-second abort: the app shell fetch is the only required install work.
+      await fetchAndStore(cache, url, 0);
+    }
   })());
+
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
