@@ -30056,56 +30056,10 @@ async function init() {
     // Reusable so it can also run when the app comes back to the foreground (an installed app
     // can stay open in the background for days, so "on every open" alone left new questions
     // waiting until a full restart).
-    let __reconcileRunning = false;
-    // FIRST EVER OPEN: the full download of every subject file (many MB) used to start 3 seconds
-    // in and fought the browser's "Install app" step for the connection, making installing very
-    // slow. On a first open it now waits 45 seconds so installing finishes first. Any subject the
-    // student taps into before then still loads straight away (it fetches just that one file).
-    const __firstRunSync = !storage.get('lastSubjectFileSync');
-    const __reconcileNotBefore = Date.now() + (__firstRunSync ? 45000 : 0);
-    function runSubjectReconcile() {
-        if (__reconcileRunning) return;
-        if (Date.now() < __reconcileNotBefore) return;
-        __reconcileRunning = true;
-        setTimeout(function() { __reconcileRunning = false; }, 25000);
-        const subjectIds = SUBJECTS.map(function(s) { return s.id; });
-        if (window.OfflineDB && typeof window.OfflineDB.reconcileAllSubjectFiles === 'function') {
-            withNetworkTimeout(window.OfflineDB.reconcileAllSubjectFiles(subjectIds), 20000, 'Subject file reconcile')
-                .then(function(results) {
-                    if (results.__networkReached) {
-                        storage.set('lastSubjectFileSync', String(Date.now()));
-                        const wiped = subjectIds.filter(function(id) { return results[id] && results[id].status === 'wiped'; });
-                        if (wiped.length) {
-                            console.log('Removed local data for subjects no longer on the server:', wiped.join(', '));
-                        }
-                    } else {
-                        console.warn('Subject file reconcile found no network — offline data left untouched, will retry on next load.');
-                    }
-                    if (state.view === 'admin') {
-                        loadAllQuestionsForAdmin();
-                        loadAllQuestionsCountOffline();
-                    }
-                    __reconcileRunning = false;
-                    if (state.view === 'topic-list') state.topicsLoaded = false;
-                    render();
-                })
-                .catch(function(err) {
-                    // Timed out or crashed — never let this take the app
-                    // down or hold anything up; just try again next open.
-                    __reconcileRunning = false;
-                    console.warn('Subject file reconcile did not complete:', err);
-                });
-        } else {
-            console.warn('window.OfflineDB.reconcileAllSubjectFiles is not defined — skipping subject file reconcile.');
-        }
-    }
-    setTimeout(runSubjectReconcile, __firstRunSync ? 45500 : 3000);
-    document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState !== 'visible') return;
-        const last = parseInt(storage.get('lastSubjectFileSync') || '0', 10) || 0;
-        if (Date.now() - last > 60000) runSubjectReconcile();
-    });
-    window.addEventListener('online', function() { runSubjectReconcile(); });
+    // Automatic all-subject reconciliation is disabled. It downloaded every
+    // subject JSON file on startup/resume and competed with installation and CBT.
+    // Questions are fetched only when a student explicitly opens a CBT/topic mode.
+    // The admin's explicit manual sync action remains available.
 
 
     // check for payment confirmations while a request is pending (user) or the Payments tab is open (admin)

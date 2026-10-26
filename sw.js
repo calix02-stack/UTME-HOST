@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const CACHE_NAME = 'myutme-cache-v93';
+const CACHE_NAME = 'myutme-cache-v94';
 const CACHE_PREFIX = 'myutme-cache-';
 
 const APP_SHELL = [
@@ -25,6 +25,11 @@ function absolute(url) {
 }
 
 function timedFetch(request, timeoutMs, cacheMode) {
+  // A timeout of 0 means do not abort the request. Used only for the tiny app shell
+  // during installation so a slow connection does not force installation to restart.
+  if (!timeoutMs || timeoutMs <= 0) {
+    return fetch(request, { cache: cacheMode || 'no-store' });
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -90,36 +95,15 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
 
-    // Reuse the existing app shell during updates.
-    await Promise.all(
-      APP_SHELL.map(async url => {
-        await seedFromPreviousCache(cache, url);
-      })
-    );
-
-    // These two files are required for the app to run.
-    await Promise.all(
-      REQUIRED_SHELL.map(async url => {
-        if (await cache.match(absolute(url))) return;
-
-        await fetchAndStore(cache, url, FETCH_TIMEOUT_MS);
-      })
-    );
-
-    // Download optional assets without delaying installation.
-    const optional = APP_SHELL.filter(
-      url => !REQUIRED_SHELL.includes(url)
-    );
-
-    Promise.all(
-      optional.map(async url => {
-        if (await cache.match(absolute(url))) return;
-
-        try {
-          await fetchAndStore(cache, url, 2500);
-        } catch (_) {}
-      })
-    ).catch(() => {});
+    // Installation is deliberately limited to the app shell. Never download
+    // subject/question JSON files, icons, or other optional assets here.
+    // Reuse cached shell files from the previous version whenever possible.
+    for (const url of REQUIRED_SHELL) {
+      if (await cache.match(absolute(url))) continue;
+      if (await seedFromPreviousCache(cache, url)) continue;
+      // No 8-second abort: the app shell fetch is the only required install work.
+      await fetchAndStore(cache, url, 0);
+    }
   })());
 
   self.skipWaiting();
@@ -227,18 +211,10 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Question files: fetch the latest copy, falling back to cache offline.
-  if (isQuestionFile) {
-    event.respondWith(
-      networkThenCache(
-        request,
-        QUESTION_TIMEOUT_MS,
-        request
-      )
-    );
-
-    return;
-  }
+  // Question JSON is never prefetched or cached by the service worker.
+  // The app requests only the selected subject when the student starts a CBT.
+  // Let that request pass directly to the network; no bulk downloads during install/startup.
+  if (isQuestionFile) return;
 
   // Core app files: return cached versions immediately.
   if (
