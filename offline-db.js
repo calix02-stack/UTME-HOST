@@ -458,14 +458,10 @@
                 var filtered = filterQuestions(file.questions, type, year, limit);
                 if (filtered.length > 0) {
                     finish(filtered);
-                    // Best-effort: cache what we fetched for next time, so a
-                    // working local DB has this data available offline later.
-                    storePutAll('questions', file.questions.map(function (q) {
-                        var copy = Object.assign({}, q);
-                        if (!copy.id) copy.id = uid();
-                        copy.subject_id = subjectId;
-                        return copy;
-                    })).catch(function () {});
+                    // Best-effort: save the whole subject file (questions, topics, passages) on the
+                    // phone so next time it is instant and works offline. Topics used to be left out
+                    // here, which is why Topic Practice said "no topics".
+                    trackSubjectSave(subjectId, saveSubjectFileLocal(subjectId, file));
                 } else {
                     maybeFail();
                 }
@@ -891,6 +887,85 @@
                     .then(function () { return putSubjectTopics(subjectId, file); });
             }).catch(function () { /* ignore — additive best-effort */ });
         }));
+    };
+
+    // ---- Download once, then use offline ----
+    // Questions load from the internet instantly when they are not on the phone yet. The first
+    // time a subject loads, its whole file (questions + topics + passages) is saved on the phone,
+    // and from then on that subject also works offline and never needs downloading again.
+    var __dlInflight = {};
+    var __dlMissing = {};
+
+    function subjectFp(file) {
+        return [file.exportedAt || '', file.questions.length, (file.topics || []).length, (file.topic_questions || []).length].join('|');
+    }
+
+    function saveSubjectFileLocal(subjectId, file) {
+        var normalized = (file.questions || []).map(function (q) {
+            var copy = Object.assign({}, q);
+            if (!copy.id) copy.id = uid();
+            copy.subject_id = subjectId;
+            return copy;
+        });
+        var passages = (file.passages || []).map(function (p) {
+            var copy = Object.assign({}, p, { subject_id: p.subject_id || subjectId });
+            copy.id = copy.subject_id + '_' + copy.mode + '_' + copy.batch_number;
+            return copy;
+        });
+        return Promise.all([
+            normalized.length ? storePutAll('questions', normalized) : Promise.resolve(),
+            passages.length ? storePutAll('passages', passages) : Promise.resolve(),
+            putSubjectTopics(subjectId, file)
+        ]).then(function () {
+            return storePut('meta', { key: 'sync_' + subjectId, fp: subjectFp(file) });
+        });
+    }
+
+    function trackSubjectSave(subjectId, promise) {
+        var p = promise.then(function () { return { ok: true }; }, function () { return { ok: false }; })
+            .then(function (r) { delete __dlInflight[subjectId]; return r; });
+        __dlInflight[subjectId] = p;
+        return p;
+    }
+
+    // Makes sure one subject is saved on this phone. Never rejects. Downloads only if it has not
+    // been downloaded before and the phone is online.
+    OfflineDB.ensureSubjectLocal = function (subjectId) {
+        if (__dlInflight[subjectId]) return __dlInflight[subjectId];
+        var p = storeGet('meta', 'sync_' + subjectId).then(function (m) {
+            if (m) return { ok: true, already: true };
+            if (__dlMissing[subjectId] || navigator.onLine === false) return { ok: false };
+            return fetchSubjectFile(subjectId).then(function (file) {
+                if (file.notFound || (!(file.questions || []).length && !(file.topics || []).length)) {
+                    __dlMissing[subjectId] = true;
+                    return { ok: false };
+                }
+                return saveSubjectFileLocal(subjectId, file).then(function () { return { ok: true }; });
+            });
+        }).catch(function () { return { ok: false }; }).then(function (r) {
+            delete __dlInflight[subjectId];
+            return r;
+        });
+        __dlInflight[subjectId] = p;
+        return p;
+    };
+
+    // If a subject's topics / questions are not on the phone yet, load them from the internet
+    // right now, save them, then read again.
+    var __getTopicsLocal = OfflineDB.getTopicsOffline;
+    OfflineDB.getTopicsOffline = function (subjectId) {
+        return __getTopicsLocal(subjectId).then(function (rows) {
+            if (rows && rows.length) return rows;
+            return OfflineDB.ensureSubjectLocal(subjectId).then(function () { return __getTopicsLocal(subjectId); });
+        });
+    };
+
+    var __getQuestionsLocal = OfflineDB.getQuestionsOffline;
+    OfflineDB.getQuestionsOffline = function (type, subjectId) {
+        return __getQuestionsLocal(type, subjectId).then(function (rows) {
+            if (rows && rows.length) return rows;
+            return OfflineDB.ensureSubjectLocal(subjectId).then(function () { return __getQuestionsLocal(type, subjectId); });
+        });
     };
 
     // Expose the real implementation. index.html's readiness shim
