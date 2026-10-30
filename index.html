@@ -8877,19 +8877,30 @@ function openExternalUrl(url) {
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbBnbK6LCoWwWpksJT33";
 const TELEGRAM_URL = 'https://t.me/MyUTMEPracticeBot';
 const TELEGRAM_APP_URL = 'tg://resolve?domain=MyUTMEPracticeBot';
-// Opens the Telegram app directly (you stay logged in there). Only if the app is not installed
-// does it fall back to the t.me web page.
+// Opens the Telegram bot. On phones the normal t.me link is used: the phone hands it straight to the
+// Telegram app, which is already logged in. (The old tg:// trick fell back to the Telegram website
+// after 1.4 seconds, and the website asks you to log in every time.)
+// On desktop we try the Telegram app first and only use the website if the app did not open.
 function openTelegram() {
+    var mobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (mobile) {
+        var a = document.createElement('a');
+        a.href = TELEGRAM_URL; a.target = '_blank'; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+        return;
+    }
     var left = false;
-    function onHide() { if (document.hidden) left = true; }
+    function onHide() { left = true; }
     document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('blur', onHide);
     window.addEventListener('pagehide', onHide);
     try { window.location.href = TELEGRAM_APP_URL; } catch (e) {}
     setTimeout(function() {
         document.removeEventListener('visibilitychange', onHide);
+        window.removeEventListener('blur', onHide);
         window.removeEventListener('pagehide', onHide);
-        if (!left && !document.hidden) openExternalUrl(TELEGRAM_URL);
-    }, 1400);
+        if (!left) openExternalUrl(TELEGRAM_URL);
+    }, 2500);
 }
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
@@ -11275,23 +11286,33 @@ function blockIfOffline(customMsg) {
     return false;
 }
 
+// Downloads the questions ONCE (first visit while online). After that the app uses what is already
+// saved on the phone and never runs this big download again on every open.
+const QUESTIONS_DOWNLOADED_KEY = 'myutme_questions_downloaded_v1';
 async function cacheAllDataForOffline() {
     if (!state.authUser || !isOnline()) return;
+    if (storage.get(QUESTIONS_DOWNLOADED_KEY) === '1') return;
+    if (state.__firstDownloadRunning) return;
+    state.__firstDownloadRunning = true;
     try {
+        // Ask the browser to keep the saved questions (stops it deleting them to free space).
+        try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
         const settings = await loadSettings();
-        const eng = SUBJECTS.find(function(s) { return s.compulsory; });
         const cbtSubjects = SUBJECTS.filter(function(s) { return s.id !== 'lhm'; });
 
         for (const subj of cbtSubjects) {
-            const qs = await window.OfflineDB.loadQuestionsOffline('cbt', subj.id, null, settings.cbtQuestionsPerSubject || 40);
-            if (qs.length > 0) saveOfflineCache('cbt_' + subj.id, qs);
+            if (!isOnline()) return;   // lost connection: try again next open
+            try {
+                const qs = await window.OfflineDB.loadQuestionsOffline('cbt', subj.id, null, settings.cbtQuestionsPerSubject || 40);
+                if (qs.length > 0) saveOfflineCache('cbt_' + subj.id, qs);
+            } catch (e) { console.warn('Offline cache skipped for', subj.id, e); }
         }
         saveOfflineCache('settings', settings);
-        // Caching now runs silently in the background — no toast on every
-        // login/app-open. (Previously: "Offline data ready — CBT works
-        // without internet now.")
+        if (isOnline()) storage.set(QUESTIONS_DOWNLOADED_KEY, '1');
     } catch (e) {
         console.warn('Offline cache build error:', e);
+    } finally {
+        state.__firstDownloadRunning = false;
     }
 }
 
@@ -13417,7 +13438,14 @@ function fridayShareText(text) {
 }
 async function startMockExam(subjects, examId) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
-    if (!isUserActive()) { showActivatePopup('Mock Arena is part of full access.'); return; }
+    // Not activated (free 3 days are over): ONE free Mock attempt, limited to the first
+    // FREE_QUESTION_LIMIT questions. After that they are asked to activate.
+    const __freeMockKey = 'freeMockUsed_' + state.authUser.id;
+    const __freeMock = !isUserActive();
+    if (__freeMock && storage.get(__freeMockKey) === '1') {
+        showActivatePopup('You have used your one free Mock attempt. Activate your account to take more Mocks.');
+        return;
+    }
     const __ex = mockExamById(examId);
     if (!__ex) { showToast('Open the Mock link MyUTME shared first.', 'error'); return; }
     const __st = mockExamStatus(__ex);
@@ -13459,6 +13487,10 @@ for (const subjectId of subjects) {
             }
         }
         if (!allQuestions.length) throw new Error('Questions are not on this device yet. Open the app online once to download them.');
+        if (__freeMock) {
+            storage.set(__freeMockKey, '1');
+            showToast('Free Mock: the first ' + FREE_QUESTION_LIMIT + ' questions are open. Activate your account to continue after that.', '');
+        }
         state.mockExamSource = 'friday';
         state.mockExamId = 'friday-' + __wk + '-' + subjects[0];
         state.mockWeekKey = __wk;
@@ -15202,7 +15234,7 @@ const SUPPORT_KB = [
     { k: ['refresh', 'reload', '+version', 'update the app', 'new version', 'latest version', 'app version', 'old version', 'pull down'],
       a: 'Tap the ⟳ refresh button at the top of Home to reload the app. On the website you can also drag down from the top; the installed app uses the button only.\nYour version shows next to the logo (like v11). If it looks old, close the app fully and reopen it while online, then tap refresh.\nOffline, refresh just says there is no connection — nothing is broken.' },
     { k: ['install app', 'add to home screen', 'install the app', 'download app', 'app icon', 'home screen', 'install pwa', 'how to install'],
-      a: 'Go to Account → Install App (it shows when your browser supports it).\n• iPhone (Safari): Share → Add to Home Screen\n• Android (Chrome): menu ⋮ → Install app / Add to Home screen\nThen open MyUTME from the new icon.' },
+      a: 'MyUTME works right in your browser, there is nothing to install. Just open the website, log in and practise.' },
     { k: ['ai tutor', 'tutor', 'ask ai', 'study help'],
       a: 'AI (bottom menu) is for study questions — explanations, solving problems and topics. It needs internet. I only handle app and account problems, so use AI for subject questions.' },
     { k: ['study circle', 'whatsapp group', 'whatsapp channel', 'join group', 'community'],
@@ -17897,6 +17929,7 @@ function renderSplash() {
 //  forward are Log in, Sign up, or (website only) Help & FAQs.
 // ============================================================
 function renderInstallPromoCard() {
+    return '';   // Install App option removed
     if (isStandaloneApp()) return '';
     // Only show once the browser has actually signaled it's installable
     // (or on iOS Safari, where "install" means Add to Home Screen).
@@ -21934,9 +21967,6 @@ function renderProfileCore() {
           : isActive
             ? { key: 'set-view|activate', icon: 'checkcircle', color: '#0F6B3F', title: 'Activated', sub: (expiry ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left · ' : '') + 'Renew activation', badge: 'RENEW' }
             : { key: 'set-view|activate', icon: 'key', color: '#E4A93A', title: 'Activate', sub: 'Unlock full CBT access & all features', badge: 'GO' });
-    }
-    if (state.pwaInstallAvailable && !isStandaloneApp()) {
-        menuItems.push({ key: 'trigger-pwa-install', icon: 'download', color: '#0F6B3F', title: 'Install App', sub: 'Add MyUTME to your home screen' });
     }
     
     let menuHtml = '<div class="ph-mode-list">';
@@ -29360,6 +29390,7 @@ function shouldShowLanding() {
     return true;
 }
 function lpInstallBtn() {
+    return '';   // Install App option removed
     if (lpInstalled()) return '<button class="mw-btn mw-ok" data-lp="hint"><span class="mw-tick">' + svg('checkcircle', 18) + '</span>Installed</button>';
     return '<button class="mw-btn mw-gold" data-lp="install">' + svg('download', 18) + 'Install app</button>';
 }
@@ -30396,84 +30427,9 @@ if ("serviceWorker" in navigator) {
 }
 
 (function () {
-    const iosTip = document.getElementById("pwa-ios-tip");
-    const iosTipClose = document.getElementById("pwa-ios-tip-close");
-    let deferredPrompt = null;
-
-    function isStandalone() {
-        return window.matchMedia("(display-mode: standalone)").matches ||
-            window.navigator.standalone === true;
-    }
-
-    if (isStandalone()) {
-        return;
-    }
-
-    window.addEventListener("beforeinstallprompt", function (e) {
-        e.preventDefault();
-        deferredPrompt = e;
-        state.pwaInstallAvailable = true;
-        if (typeof render === "function") render();
-    });
-
-    window.addEventListener("appinstalled", function () {
-        deferredPrompt = null;
-        state.pwaInstallAvailable = false;
-        if (iosTip) iosTip.classList.remove("show");
-        if (typeof render === "function") render();
-    });
-
-    window.triggerPWAInstall = async function () {
-        if (tryApkInstall()) return;
-        if (window.mwHasPrompt && window.mwHasPrompt()) return window.mwInstallFlow();
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            await deferredPrompt.userChoice;
-            deferredPrompt = null;
-            state.pwaInstallAvailable = false;
-            if (typeof render === "function") render();
-            return;
-        }
-        const isIOSDevice = /iphone|ipad|ipod/i.test(navigator.userAgent);
-        const isSafariBrowser = /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
-        if (isIOSDevice && isSafariBrowser) {
-            showToast('📲 Tap Share, then "Add to Home Screen" to install.', '');
-        } else {
-            // Chrome only offers the install prompt when MyUTME is NOT already installed and is ready.
-            // Give it a few seconds to become ready, then explain clearly instead of showing an error.
-            showToast('Getting the install ready… please wait a few seconds.', '');
-            for (let i = 0; i < 16; i++) {
-                await new Promise(function (r) { setTimeout(r, 250); });
-                if (window.mwHasPrompt && window.mwHasPrompt()) return window.mwInstallFlow();
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    await deferredPrompt.userChoice;
-                    deferredPrompt = null;
-                    state.pwaInstallAvailable = false;
-                    if (typeof render === "function") render();
-                    return;
-                }
-            }
-            showToast('MyUTME may already be installed on this phone. Look for it on your home screen or app list. If not, tap the browser menu (⋮) then "Install app".', '');
-        }
-    };
-
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isSafari = /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
-    if (isIOS && isSafari) {
-        state.pwaInstallAvailable = true;
-        if (typeof render === "function") render();
-        const dismissed = storage.get("pwaIosTipDismissed");
-        if (!dismissed && iosTip) {
-            setTimeout(function () { iosTip.classList.add("show"); }, 2500);
-        }
-    }
-    if (iosTipClose) {
-        iosTipClose.addEventListener("click", function () {
-            iosTip.classList.remove("show");
-            storage.set("pwaIosTipDismissed", "true");
-        });
-    }
+    // Install App option removed. We only stop the browser from showing its own install banner.
+    window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); });
+    window.triggerPWAInstall = function () {};
 })();
 // Placeholder for offline-db functions (moved to offline-db.js)
 // These are here to prevent reference errors if offline-db.js hasn't loaded yet
