@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const CACHE_NAME = 'myutme-cache-v95';
+const CACHE_NAME = 'myutme-cache-v96';
 const CACHE_PREFIX = 'myutme-cache-';
 
 const APP_SHELL = [
