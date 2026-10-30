@@ -8415,7 +8415,7 @@ body { position: fixed; inset: 0; width: 100%; }
     });
 })();
 </script>
-<script src="offline-db.js?v=6" defer></script>
+<script src="offline-db.js?v=7" defer></script>
 <script>
 // ============================================================
 //  VIEWPORT HEIGHT FIX
@@ -11286,29 +11286,34 @@ function blockIfOffline(customMsg) {
     return false;
 }
 
-// Downloads the questions ONCE (first visit while online). After that the app uses what is already
-// saved on the phone and never runs this big download again on every open.
-const QUESTIONS_DOWNLOADED_KEY = 'myutme_questions_downloaded_v1';
+// Downloads the student's OWN subjects once (first visit while online): questions, topics and
+// passages. After that they are saved on the phone, so they also work offline and are never
+// downloaded again. Any other subject loads from the internet the first time it is opened.
+const QUESTIONS_DOWNLOADED_KEY = 'myutme_questions_downloaded_v2';
 async function cacheAllDataForOffline() {
     if (!state.authUser || !isOnline()) return;
-    if (storage.get(QUESTIONS_DOWNLOADED_KEY) === '1') return;
+    if (!window.OfflineDB || typeof window.OfflineDB.ensureSubjectLocal !== 'function') return;   // older cached file: try next open
+    const ids = getBrowsableSubjectIds().filter(function(id) { return id !== 'lhm'; });
+    const doneKey = ids.slice().sort().join(',');
+    if (storage.get(QUESTIONS_DOWNLOADED_KEY) === doneKey) return;   // already downloaded these subjects
     if (state.__firstDownloadRunning) return;
     state.__firstDownloadRunning = true;
     try {
         // Ask the browser to keep the saved questions (stops it deleting them to free space).
         try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
         const settings = await loadSettings();
-        const cbtSubjects = SUBJECTS.filter(function(s) { return s.id !== 'lhm'; });
-
-        for (const subj of cbtSubjects) {
+        let allOk = true;
+        for (const id of ids) {
             if (!isOnline()) return;   // lost connection: try again next open
+            const r = await window.OfflineDB.ensureSubjectLocal(id);
+            if (!r || !r.ok) { allOk = false; continue; }
             try {
-                const qs = await window.OfflineDB.loadQuestionsOffline('cbt', subj.id, null, settings.cbtQuestionsPerSubject || 40);
-                if (qs.length > 0) saveOfflineCache('cbt_' + subj.id, qs);
-            } catch (e) { console.warn('Offline cache skipped for', subj.id, e); }
+                const qs = await window.OfflineDB.loadQuestionsOffline('cbt', id, null, settings.cbtQuestionsPerSubject || 40);
+                if (qs.length > 0) saveOfflineCache('cbt_' + id, qs);
+            } catch (e) { /* subject has no CBT questions: fine */ }
         }
         saveOfflineCache('settings', settings);
-        if (isOnline()) storage.set(QUESTIONS_DOWNLOADED_KEY, '1');
+        if (allOk && isOnline()) storage.set(QUESTIONS_DOWNLOADED_KEY, doneKey);
     } catch (e) {
         console.warn('Offline cache build error:', e);
     } finally {
@@ -13486,7 +13491,7 @@ for (const subjectId of subjects) {
                 allQuestions = allQuestions.concat(__pickBySubject(allSubjectQuestions, perSubject, subjectId, 'mock_' + subjectId));
             }
         }
-        if (!allQuestions.length) throw new Error('Questions are not on this device yet. Open the app online once to download them.');
+        if (!allQuestions.length) throw new Error('Could not load these questions. Check your internet connection and try again.');
         if (__freeMock) {
             storage.set(__freeMockKey, '1');
             showToast('Free Mock: the first ' + FREE_QUESTION_LIMIT + ' questions are open. Activate your account to continue after that.', '');
@@ -19910,7 +19915,9 @@ function renderTopicsListPage() {
         body = '<div class="loading-spinner"><div class="spinner"></div><p>Loading topics...</p></div>';
         loadTopics(state.topicSubject);
     } else if (state.topicsList.length === 0) {
-        body = '<div class="tp-empty">No topics have been added for this subject yet.</div>';
+        body = isOnline()
+            ? '<div class="tp-empty">No topics have been added for this subject yet.</div>'
+            : '<div class="tp-empty">Topics for this subject are not on your phone yet. Connect to the internet and open it again.</div>';
     } else {
         let totalQ = 0;
         state.topicsList.forEach(function(t) { totalQ += (t.question_count || 0); });
