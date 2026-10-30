@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const CACHE_NAME = 'myutme-cache-v94';
+const CACHE_NAME = 'myutme-cache-v95';
 const CACHE_PREFIX = 'myutme-cache-';
 
 const APP_SHELL = [
@@ -186,7 +186,7 @@ self.addEventListener('fetch', event => {
             const fresh = await timedFetch(
               request,
               PAGE_TIMEOUT_MS,
-              'no-store'
+              'no-cache'
             );
 
             if (fresh && fresh.ok) {
@@ -230,7 +230,7 @@ self.addEventListener('fetch', event => {
             const fresh = await timedFetch(
               request,
               FETCH_TIMEOUT_MS,
-              'no-store'
+              'no-cache'
             );
 
             if (fresh && fresh.ok) {
