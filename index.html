@@ -8625,6 +8625,16 @@ function wrapLocalOnly(client) {
         }
     });
 }
+function getAuthStorage() {
+    try {
+        var k = '__myutme_ls_test__';
+        window.localStorage.setItem(k, '1');
+        window.localStorage.removeItem(k);
+        return window.localStorage;
+    } catch (e) {
+        return window.sessionStorage;   // phone blocks saved storage: nothing else we can do
+    }
+}
 function createRealSupabaseClient() {
     return wrapLocalOnly(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { fetch: fastFetch },
@@ -8632,8 +8642,10 @@ function createRealSupabaseClient() {
             persistSession: true,
             autoRefreshToken: true,
             detectSessionInUrl: true,
-            // Website visitors sign in every visit (session ends when the tab closes); the installed app keeps its login.
-            storage: isStandaloneApp() ? window.localStorage : window.sessionStorage,
+            // Keep people logged in on every device and browser, including Telegram's built-in
+            // browser. (It used to use a temporary session everywhere except the installed app,
+            // which made people log in again every single visit.)
+            storage: getAuthStorage(),
         },
     }));
 }
@@ -12314,6 +12326,14 @@ async function checkAuthSession(retriesLeft) {
             startBackupSync();
             registerDeviceSession();
             syncPendingSubmissions();
+        } else if (state.authUser && !usingOfflineSupabaseStub) {
+            // The first screen was drawn from the saved profile, but Supabase has no real session
+            // (for example the old temporary login that was lost when the page closed). Show the
+            // logged-out screen instead of a half-working logged-in one.
+            state.authUser = null;
+            state.authProfile = null;
+            state.profile = { name: "Guest", email: "", id: null, is_active: true, activation_expiry: null, fullName: "", avatarUrl: null };
+            storage.set("profile", JSON.stringify(state.profile));
         }
         const readNotifs = storage.get("readNotifications");
         if (readNotifs) {
@@ -29858,7 +29878,7 @@ async function init() {
     // and quietly corrects state if the cache was stale (e.g. the
     // session actually expired, or they signed out elsewhere).
     (function hydrateAuthFromCache() {
-        if (storage.get('wasEverLoggedIn') !== 'true' || !isStandaloneApp()) return;
+        if (storage.get('wasEverLoggedIn') !== 'true') return;
         try {
             const cachedProfileRaw = storage.get('profile');
             if (!cachedProfileRaw) return;
