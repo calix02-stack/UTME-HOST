@@ -9846,7 +9846,7 @@ function renderExamLockCard() {
 // cfg: { hasPrev, prevAction, prevIdx, hasNext, nextAction, nextIdx, nextLocked, gotoAction, submitAction, exitMode }
 function renderExamFooterNav(cfg) {
     const next = cfg.nextLocked
-        ? '<button class="ef-next" data-action="show-activate-popup" data-reason="' + (state.authUser ? 'Activate your account to continue.' : 'Create an account or log in to continue.') + '">Next</button>'
+        ? '<button class="ef-next" data-action="' + (cfg.lockAction || 'show-activate-popup') + '" data-reason="' + (state.authUser ? 'Activate your account to continue.' : 'Create an account or log in to continue.') + '">Next</button>'
         : '<button class="ef-next" data-action="' + cfg.nextAction + '" data-idx="' + (cfg.nextIdx != null ? cfg.nextIdx : '') + '"' + (cfg.hasNext ? '' : ' disabled') + '>Next ' + svg('chevleft', 13).replace('<svg ', '<svg style="transform:scaleX(-1)" ') + '</button>';
     return (
         '<div class="exam-footer-v2">' +
@@ -13066,9 +13066,9 @@ const LIVE_EXAM_START_PRESETS = [
 // ============================================================
 //  FRIDAY MOCK — offline, one exam per Friday, saved on this device
 // ============================================================
-// Daily Mock: open every night 6:00 pm to 12:00 am (device time); results at 10:00 pm. One schedule for the 7 days,
+// Daily Mock: open every night 6:00 pm to 12:00 am (device time); results show immediately. One schedule for the 7 days,
 // and no two subjects from the same department share a day.
-var MOCK_OPEN_HOUR = 18, MOCK_CLOSE_HOUR = 24, MOCK_RELEASE_HOUR = 22, MOCK_Q_PER_SUBJECT = 40, MOCK_SECS_PER_Q = 45;
+var MOCK_OPEN_HOUR = 18, MOCK_CLOSE_HOUR = 24, MOCK_RELEASE_HOUR = 0, MOCK_Q_PER_SUBJECT = 40, MOCK_SECS_PER_Q = 45;
 var MOCK_SCHEDULE = {
     1: ['eng'],            // Monday
     2: ['lit', 'agr'],     // Tuesday   Arts + Science
@@ -13082,7 +13082,8 @@ var MOCK_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 // Mocks are created by the admin (Admin Panel > Mocks) and shared as a link:
 //   /?mock=bio,gov&s=<start seconds, base36>&e=<end seconds, base36>
 // A user's list of Mocks (from links they opened) is kept in storage 'myMocks'.
-function mockLinkFor(ex) { return location.origin + '/?mock=' + ex.subs.join(',') + '&s=' + Math.floor(ex.start / 1000).toString(36) + '&e=' + Math.floor(ex.end / 1000).toString(36); }
+var MOCK_LINK_BASE = '';   // optional: e.g. 'https://join.myutme.com.ng' (a different domain opens in the browser, not the installed app)
+function mockLinkFor(ex) { return (MOCK_LINK_BASE || location.origin) + '/?mock=' + ex.subs.join(',') + '&s=' + Math.floor(ex.start / 1000).toString(36) + '&e=' + Math.floor(ex.end / 1000).toString(36); }
 // A short, copyable Mock code, e.g. BIO-GOV-H5EW9-H5EXK (subjects, start minute, end minute). It carries everything, so it never expires or disappears.
 function mockCodeFor(ex) { return ex.subs.join('-').toUpperCase() + '-' + Math.floor(ex.start / 60000).toString(36).toUpperCase() + '-' + Math.floor(ex.end / 60000).toString(36).toUpperCase(); }
 function mockParseCode(txt) {
@@ -13126,11 +13127,39 @@ function captureMockLink() {
         subs = subs.slice(0, 2);
         var st = parseInt(p.get('s') || '', 36) * 1000, en = parseInt(p.get('e') || '', 36) * 1000;
         if (!subs.length || !st || !en || en <= st) return false;
-        mockAddToMine(mockMakeExam(subs, st, en));
+        var __gx = mockMakeExam(subs, st, en);
+        mockAddToMine(__gx);
+        state.mockGate = __gx;
         storage.set('pendingMock', '1');
         try { history.replaceState({}, '', location.pathname); } catch (e) {}
         return true;
     } catch (e) { return false; }
+}
+
+// ============================================================
+//  MOCK LINK GATE — what a signed-out visitor sees after tapping a shared Mock link.
+//  No guest attempts: they either become a student or log in, then start the exam.
+// ============================================================
+function renderMockGate() {
+    var ex = state.mockGate;
+    if (!ex) return renderAuthGate();
+    var st = mockExamStatus(ex);
+    var badge = st === 'open' ? '<span style="background:#0F6B3F;color:#fff;border-radius:999px;padding:3px 11px;font-size:11px;font-weight:800">OPEN NOW</span>'
+        : st === 'upcoming' ? '<span style="background:#B7791F;color:#fff;border-radius:999px;padding:3px 11px;font-size:11px;font-weight:800">UPCOMING</span>'
+        : '<span style="background:#7a8580;color:#fff;border-radius:999px;padding:3px 11px;font-size:11px;font-weight:800">CLOSED</span>';
+    var inApp = /Telegram|FBAN|FBAV|Instagram|Line\//i.test(navigator.userAgent || '');
+    return '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:var(--bg)">' +
+        '<div class="card" style="max-width:420px;width:100%;text-align:center;padding:26px 20px">' +
+        '<p style="font-size:38px;margin:0 0 6px">📝</p>' +
+        '<p style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--green);margin:0 0 4px">MYUTME MOCK EXAM</p>' +
+        '<h2 class="title" style="font-size:20px;margin:0 0 8px">' + esc(mockSubjectNames(ex.subs).join(' + ')) + '</h2>' +
+        '<div style="margin-bottom:8px">' + badge + '</div>' +
+        '<p style="font-size:12.5px;color:var(--muted);margin:0 0 16px;line-height:1.5">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
+        '<p style="font-size:13px;margin:0 0 16px;line-height:1.55">To start this exam you must be a MyUTME student.</p>' +
+        '<button class="btn btn-green" style="width:100%;padding:13px;margin-bottom:8px" data-action="show-signup">Become a student</button>' +
+        '<button class="btn btn-outline" style="width:100%;padding:13px" data-action="show-login">I\'m already a student</button>' +
+        (inApp ? '<p style="font-size:11px;color:var(--muted);margin:14px 0 0;line-height:1.5">Tip: tap the ⋮ menu and choose <b>Open in Chrome</b> (or your browser) for the smoothest experience.</p>' : '') +
+        '</div></div>';
 }
 function mockOpensIn_unused() {
     var n = new Date(), t = new Date(n.getFullYear(), n.getMonth(), n.getDate(), MOCK_OPEN_HOUR, 0, 0, 0);
@@ -13256,14 +13285,14 @@ function renderMockExamPicker() {
                 const rel = fridayReleased(rec);
                 if (rel) anyReleased = rec;
                 card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span>' +
-                    (rel ? '<b style="color:var(--green)">' + rec.scores[sid] + ' / 100</b>' : '<span style="color:var(--muted);font-size:11.5px">✓ Submitted · result at 10:00 pm</span>') + '</div>';
+                    (rel ? '<b style="color:var(--green)">' + rec.scores[sid] + ' / 100</b>' : '<span style="color:var(--muted);font-size:11.5px">✓ Submitted</span>') + '</div>';
             } else if (st === 'open') {
                 card += '<button class="btn btn-green" style="width:100%;padding:12px;margin-top:6px" data-action="friday-start" data-subject="' + sid + '" data-exam="' + esc(ex.id) + '">Start ' + esc(mockSubjectName(sid)) + '</button>';
             } else {
                 card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span><span style="color:var(--muted);font-size:11.5px">' + (st === 'upcoming' ? 'Opens ' + esc(mockFmtTime(ex.start)) : 'Closed') + '</span></div>';
             }
         });
-        if (st === 'open') card += '<p style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.5">' + MOCK_Q_PER_SUBJECT + ' questions per subject · each scored out of 100 · results at 10:00 pm (shown at once if you finish after 10:00 pm)' + (ex.subs.length > 1 ? ' · take one subject, then the other' : '') + '</p>';
+        if (st === 'open') card += '<p style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.5">' + MOCK_Q_PER_SUBJECT + ' questions per subject · each scored out of 100 · results show immediately after you submit' + (ex.subs.length > 1 ? ' · take one subject, then the other' : '') + '</p>';
         html += card + '</div>';
     });
     if (anyReleased) {
@@ -13465,12 +13494,6 @@ async function startMockExam(subjects, examId) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
     // Not activated (free 3 days are over): ONE free Mock attempt, limited to the first
     // FREE_QUESTION_LIMIT questions. After that they are asked to activate.
-    const __freeMockKey = 'freeMockUsed_' + state.authUser.id;
-    const __freeMock = !isUserActive();
-    if (__freeMock && storage.get(__freeMockKey) === '1') {
-        showActivatePopup('You have used your one free Mock attempt. Activate your account to take more Mocks.');
-        return;
-    }
     const __ex = mockExamById(examId);
     if (!__ex) { showToast('Open the Mock link MyUTME shared first.', 'error'); return; }
     const __st = mockExamStatus(__ex);
@@ -13512,10 +13535,7 @@ for (const subjectId of subjects) {
             }
         }
         if (!allQuestions.length) throw new Error('Could not load these questions. Check your internet connection and try again.');
-        if (__freeMock) {
-            storage.set(__freeMockKey, '1');
-            showToast('Free Mock: the first ' + FREE_QUESTION_LIMIT + ' questions are open. Activate your account to continue after that.', '');
-        }
+        if (!isPaidUser()) showToast('Free preview: the first ' + MOCK_FREE_QUESTIONS + ' questions are open. Activate to continue after that.', '');
         state.mockExamSource = 'friday';
         state.mockExamId = 'friday-' + __wk + '-' + subjects[0];
         state.mockWeekKey = __wk;
@@ -13542,6 +13562,8 @@ for (const subjectId of subjects) {
                 clearInterval(state.mockTimer);
                 state.mockTimer = null;
                 submitMockExam(true);
+            } else if (state.view !== 'mock-exam') {
+                /* student is on the Activate page: keep the clock running, don't re-draw that page */
             } else if (!tickTimerDisplay(state.mockTimeLeft)) render();
         }, 1000);
     } catch (e) {
@@ -13573,7 +13595,7 @@ function doSubmitMock(autoSubmit) {
     state.mockSubjectScores = subjectScores;
     state.mockTotal = maxScore;
     state.mockSubmittedAt = new Date().toISOString();
-    const __relNow = Date.now() >= fridayWindowEnd(state.mockWeekKey || fridayKey()).getTime();
+    const __relNow = true;   // results are shown immediately
     state.mockWaitingForResults = !__relNow;   // Daily Mock: hidden until 10:00 pm; shown at once if submitted after 10:00 pm
     state.mockResultReleased = __relNow;
     state.isGuestMock = false;
@@ -14713,6 +14735,25 @@ function parseInlineAiReply(raw) {
     return { text: text, possibleError: possibleError };
 }
 
+var AI_CLOUD_TABLE = 'ai_explanation_cache';
+function aiQuestionKey(item) {
+    var s = String(item.text || '') + '|' + String(item.correct_answer) + '|' + (item.options || []).join('~'), h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    return String(item.id) + ':' + (h >>> 0).toString(36);
+}
+function warmAiAssistant() {   // wakes the AI server while the student is still reading
+    try { if (isOnline()) fetch(AI_ASSISTANT_URL, { method: 'OPTIONS' }).catch(function() {}); } catch (e) {}
+}
+async function inlineAiCloudGet(key) {
+    try {
+        var r = await supabase.from(AI_CLOUD_TABLE).select('explanation').eq('question_key', key).limit(1);
+        if (r && !r.error && r.data && r.data[0] && r.data[0].explanation) return r.data[0].explanation;
+    } catch (e) {}
+    return null;
+}
+function inlineAiCloudSet(key, text) {
+    try { supabase.from(AI_CLOUD_TABLE).insert([{ question_key: key, explanation: text }]).then(function() {}, function() {}); } catch (e) {}
+}
 async function requestInlineExplanation(item, subjectName) {
     if (!item || !item.id) { showToast('Could not load this question.', 'error'); return; }
     var qid = String(item.id);
@@ -14732,6 +14773,15 @@ async function requestInlineExplanation(item, subjectName) {
     inlineAiState[qid] = { status: 'loading', open: true };
     render();
 
+    var __ckey = aiQuestionKey(item);
+    var __cloud = await inlineAiCloudGet(__ckey);
+    if (__cloud) {
+        inlineAiState[qid] = { status: 'done', open: true, text: __cloud, possibleError: false };
+        inlineAiLocalSet(qid, __cloud);
+        render();
+        return;
+    }
+
     var letters = 'ABCDEFGH';
     var options = item.options || [];
     var hasCorrect = item.correct_answer !== undefined && item.correct_answer !== null;
@@ -14739,7 +14789,7 @@ async function requestInlineExplanation(item, subjectName) {
     // but the student never sees this prompt — only the finished explanation.
     var payload = {
         userId: state.authUser.id,
-        message: 'Please explain this question in depth, step by step.',
+        message: 'Explain this question clearly and briefly, step by step: why the correct answer is right and, in one line each, why the others are wrong. Keep it under 150 words.',
         questionContext: {
             questionId: qid,
             subject: subjectName || item.subject_name || null,
@@ -14749,26 +14799,30 @@ async function requestInlineExplanation(item, subjectName) {
         }
     };
 
-    for (var attempt = 0; attempt < 3; attempt++) {
+    for (var attempt = 0; attempt < 2; attempt++) {
+        var __ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        var __tm = __ctl ? setTimeout(function() { try { __ctl.abort(); } catch (e) {} }, 25000) : null;
         try {
             var res = await fetchAiAssistant({
                 method: 'POST',
+                signal: __ctl ? __ctl.signal : undefined,
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
                 body: JSON.stringify(payload)
             });
+            if (__tm) clearTimeout(__tm);
             var data = await res.json().catch(function() { return null; });
             if (res.ok && data && data.reply) {
                 var parsed = parseInlineAiReply(data.reply);
                 inlineAiState[qid] = { status: 'done', open: true, text: parsed.text, possibleError: parsed.possibleError };
-                if (!parsed.possibleError && parsed.text.indexOf('Sorry, I could not') !== 0) inlineAiLocalSet(qid, parsed.text);
+                if (!parsed.possibleError && parsed.text.indexOf('Sorry, I could not') !== 0) { inlineAiLocalSet(qid, parsed.text); inlineAiCloudSet(__ckey, parsed.text); }
                 render();
                 return;
             }
         } catch (e) {
+            if (__tm) clearTimeout(__tm);
             console.warn('Inline explanation attempt ' + (attempt + 1) + ' failed:', e);
         }
-        // The first try sometimes fails while the AI "wakes up" — wait a moment and try again.
-        if (attempt < 2) await new Promise(function(r) { setTimeout(r, 1200); });
+        if (attempt < 1) await new Promise(function(r) { setTimeout(r, 400); });
     }
     inlineAiState[qid] = { status: 'error', open: true };
     render();
@@ -14813,8 +14867,10 @@ function openReviewSession(kind) {
         cbt:   { q: state.cbtQuestions,   a: state.cbtAnswers,   title: 'CBT Review' },
         exam:  { q: state.examQuestions,  a: state.examAnswers,  title: 'Past Questions Review' },
         topic: { q: state.topicQuestions, a: state.topicAnswers, title: 'Topic Practice Review' },
-        lit:   { q: state.litQuestions,   a: state.litAnswers,   title: 'Novel Review' }
+        lit:   { q: state.litQuestions,   a: state.litAnswers,   title: 'Novel Review' },
+        mock:  { q: state.mockQuestions,  a: state.mockAnswers,  title: 'Mock Review' }
     }[kind];
+    try { warmAiAssistant(); } catch (e) {}
     if (!cfg || !cfg.q || !cfg.q.length) { showToast('Nothing to review yet.', 'error'); return; }
     state.reviewSession = {
         kind: kind,
@@ -14848,7 +14904,7 @@ function renderReviewPage() {
     var isCorrect = answered && userAns === item.correct_answer;
     var rvLocal = 0;
     for (var rj = 0; rj < i; rj++) { if (rs.items[rj] && rs.items[rj].subject_id === item.subject_id) rvLocal++; }
-    var rvLocked = isLocalIndexLocked(rvLocal);
+    var rvLocked = rs.kind === 'mock' ? isMockIndexLocked(rvLocal) : isLocalIndexLocked(rvLocal);
 
     var opts = '';
     (item.options || []).forEach(function(o, k) {
@@ -15251,7 +15307,7 @@ const SUPPORT_KB = [
     { k: ['add subject', 'change subject', 'swap subject', 'my subjects', 'choose subject', 'remove subject', 'four subjects', '4 subjects', 'my courses', 'select subject'],
       a: 'English is always included and you can have up to 4 subjects in total (English + 3).\n• To add: Practice Hub → Add Subject → pick one\n• To change: use the swap option on that subject\'s card and pick the replacement (the old one is removed once you choose)' },
     { k: ['mock exam', 'mock arena', 'friday mock', 'daily mock', 'when is mock', 'mock start', 'mock schedule', 'mock result', 'mock score', 'weekly progress'],
-      a: 'The Mock is set by MyUTME and shared as a link in our group.\n1. Tap the link and log in\n2. The Mock Arena shows that Mock with its start and end time\n3. When it is open, pick one subject and tap Start (take the other subject after)\nEach subject is 40 questions, scored over 100. Results come out at 10:00 pm; if you finish after 10:00 pm you see your score at once. Rankings are in Mock Arena → Leaderboard.' },
+      a: 'The Mock is set by MyUTME and shared as a link in our group.\n1. Tap the link and log in\n2. The Mock Arena shows that Mock with its start and end time\n3. When it is open, pick one subject and tap Start (take the other subject after)\nEach subject is 40 questions, scored over 100. Your result shows immediately after you submit, and you can review every question. Rankings are in Mock Arena → Leaderboard.' },
     { k: ['result analysis', 'my results', 'past results', 'see my score', 'where is my result', 'exam history', 'my history', 'review my answer'],
       a: 'Every finished CBT, Past Questions, Mock, Novel or Topic attempt is saved in Account → Result Analysis. Use the filter tabs (CBT Full, CBT Single, Exam, Mock, Novel CBT, Topic) to find it.' },
     { k: ['offline', 'no internet', 'without internet', 'no network', 'data off', 'work offline', 'no data', 'without data', 'without network', 'without wifi', 'use offline'],
@@ -17772,6 +17828,8 @@ function renderNow() {
     let html;
     if (state.legal) {
         html = renderLegalPage();
+    } else if (state.mockGate && !state.authUser && !state.showLogin && !state.showSignup && !state.showReset) {
+        html = renderMockGate();
     } else if (shouldShowLanding()) {
         html = renderLanding();
     } else if (state.showFaq) {
@@ -22375,6 +22433,25 @@ function retryPendingPayments() {
 // ============================================================
 //  MOCK EXAM
 // ============================================================
+
+// ============================================================
+//  MOCK FREE PREVIEW — a student who has not activated a paid plan can open any Mock
+//  but cannot go past question MOCK_FREE_QUESTIONS (10). The lock card sends them to
+//  the Activate page with the ₦500 plan already picked, and they come back to the exam.
+// ============================================================
+var MOCK_FREE_QUESTIONS = 10;
+function isPaidUser() {
+    if (isAdmin()) return true;
+    if (!state.authUser) return false;
+    return isUserActive() && !myFreePlan();
+}
+function isMockIndexLocked(localIndex) { return !isPaidUser() && localIndex >= MOCK_FREE_QUESTIONS; }
+function renderMockLockCard() {
+    return '<div class="exam-lock-card">' +
+        '<p><b>You\'ve reached question ' + MOCK_FREE_QUESTIONS + '.</b><br>The first ' + MOCK_FREE_QUESTIONS + ' questions are free. Activate your account to continue this exam.</p>' +
+        '<button class="btn btn-gold" data-action="mock-activate-go">Activate to continue</button>' +
+        '</div>';
+}
 function renderMockExam() {
     if (state.engMockHasPassage && state.engMockPassage && !state.engMockPassageRead) {
         return renderMockPassagePage();
@@ -22466,8 +22543,8 @@ function renderMockExam() {
     const nextIdx = hasNext ? currentSubjectQuestions[currentSubjectIndex + 1] : null;
 
     const hasPassage = state.engMockHasPassage && state.engMockPassage;
-    const qLocked = isLocalIndexLocked(currentSubjectIndex);
-    const nextLocked = hasNext && isLocalIndexLocked(currentSubjectIndex + 1);
+    const qLocked = isMockIndexLocked(currentSubjectIndex);
+    const nextLocked = hasNext && isMockIndexLocked(currentSubjectIndex + 1);
 
     return (
         '<div class="exam-shell">' +
@@ -22484,7 +22561,7 @@ function renderMockExam() {
         }) +
         (state.mockSubjectOrder.length > 1 ? '<div class="subject-tabs">' + subjectTabs + '</div>' : '') +
         (qLocked
-            ? renderExamLockCard()
+            ? renderMockLockCard()
             : (renderExamQCardHeader(currentSubjectIndex + 1, item?.text) +
                '<div class="exam-options-wrap">' + opts + '</div>')
         ) +
@@ -22494,6 +22571,7 @@ function renderMockExam() {
             hasNext: hasNext, nextAction: 'mock-goto', nextIdx: nextIdx, nextLocked: nextLocked,
             gotoAction: 'show-goto-mock',
             submitAction: 'mock-submit',
+            lockAction: 'mock-activate-go',
             exitMode: 'mock-exam',
         }) +
         '</div>'
@@ -22598,7 +22676,8 @@ function renderMockResult() {
                 maxScore: maxScore,
                 rows: subjRowsForTable,
             }) +
-            '<button class="btn btn-outline" style="margin-top:10px;padding:10px" data-action="mock-result-share">📤 Share Result</button>' +
+            '<button class="btn btn-gold" style="margin-top:10px;padding:12px" data-action="mock-review">🔍 Review my answers &amp; explanations</button>' +
+            '<button class="btn btn-outline" style="margin-top:8px;padding:10px" data-action="mock-result-share">📤 Share Result</button>' +
             '<button class="btn btn-green" style="margin-top:8px;padding:10px" data-action="mock-exit">Back to Home</button>'
         );
     }
@@ -22703,7 +22782,10 @@ function renderPaymentStatus() {
 
 function renderActivate() { return renderActivateCore(); }
 function renderActivateCore() {
-    const home = '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>';
+    const __midMock = !!(state.returnToMockExam && state.mockQuestions && state.mockQuestions.length && !state.mockSubmitted);
+    const home = __midMock
+        ? '<button class="back-link" data-action="mock-resume-exam">' + svg("chevleft", 14) + ' Back to my exam</button>'
+        : '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>';
     if (!state.authUser) {
         return (
             home +
@@ -28667,6 +28749,27 @@ if (action === 'browse-filter') {
         }
         return;
     }
+    if (action === 'mock-activate-go') {
+        state.returnToMockExam = true;
+        const __go = function() {
+            const __pl = state.activationPlans || [];
+            const __p500 = __pl.find(function(x) { return Number(x.price) === 500; });
+            if (__p500) state.selectedPlanId = __p500.id;
+            state.activateRedirectReason = 'Activate to continue your mock exam. Your answers are saved and the timer keeps running.';
+            state.view = 'activate';
+            render();
+            try { window.scrollTo(0, 0); } catch (e) {}
+        };
+        if (!state.activationPlansLoaded) loadActivationPlans().then(__go, __go); else __go();
+        return;
+    }
+    if (action === 'mock-resume-exam') {
+        state.returnToMockExam = false;
+        if (state.mockQuestions && state.mockQuestions.length && !state.mockSubmitted) state.view = 'mock-exam'; else state.view = 'home';
+        render();
+        return;
+    }
+    if (action === 'mock-review') { openReviewSession('mock'); return; }
     if (action === 'review-prev') {
         if (state.reviewSession && state.reviewSession.index > 0) {
             state.reviewSession.index--;
