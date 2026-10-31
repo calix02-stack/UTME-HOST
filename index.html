@@ -9655,7 +9655,8 @@ function trialActive() {
     return !!(f && f.msLeft > 0);
 }
 function freeAttemptAllowed() { return true; }   // old per-mode attempts removed: the free plan replaces them
-function renderTrialBanner(hide) {
+function renderTrialBanner(hide) { return renderMockRetakeNote(hide) + renderTrialBanner_orig(hide); }
+function renderTrialBanner_orig(hide) {
     if (hide || isAdmin() || state.view === 'activate') return '';
     if (!state.authUser) return '';   // guests never see anything about the free plan
     var f = myFreePlan();
@@ -13257,7 +13258,7 @@ function renderMockExamPicker() {
     const electives = SUBJECTS.filter(function(x) { return x.id !== 'eng' && x.id !== 'lhm'; });
     const sel = (state.mockSelectedSubjects || []).filter(function(id) { return electives.some(function(x) { return x.id === id; }); }).slice(0, 3);
     state.mockSelectedSubjects = sel;
-    let html = back + '<h2 class="title">Mock Arena</h2><p class="sub">Your Mocks · set by MyUTME</p>';
+    let html = back + '<h2 class="title">Mock Arena</h2><p class="sub">Your Mocks · set by MyUTME</p>' + renderMockRetakeNote(false);
     const __tab = state.mockArenaTab === 'board' ? 'board' : 'mock';
     html += '<div class="leaderboard-tabs">' +
         '<button class="leaderboard-tab' + (__tab === 'mock' ? ' active' : '') + '" data-action="friday-tab" data-tab="mock">📝 Mock</button>' +
@@ -13286,6 +13287,7 @@ function renderMockExamPicker() {
                 if (rel) anyReleased = rec;
                 card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span>' +
                     (rel ? '<b style="color:var(--green)">' + rec.scores[sid] + ' / 100</b>' : '<span style="color:var(--muted);font-size:11.5px">✓ Submitted</span>') + '</div>';
+                card += mockReviewRowHtml(rec, sid, st);
             } else if (st === 'open') {
                 card += '<button class="btn btn-green" style="width:100%;padding:12px;margin-top:6px" data-action="friday-start" data-subject="' + sid + '" data-exam="' + esc(ex.id) + '">Start ' + esc(mockSubjectName(sid)) + '</button>';
             } else {
@@ -13345,7 +13347,7 @@ async function fridaySyncScores(force) {
     __fridaySyncAt = Date.now();
     __fridaySyncing = true;
     try {
-        const list = fridayRecords().filter(function(r) { return !r.synced && r.max > 0; });
+        const list = fridayRecords().filter(function(r) { return !r.synced && r.max > 0 && !fridayHeld(r); });
         for (let i = 0; i < list.length; i++) await fridayUploadScore(list[i]);
     } finally { __fridaySyncing = false; }
 }
@@ -13494,6 +13496,7 @@ async function startMockExam(subjects, examId) {
     if (!state.authUser) { showToast('Please login first.', 'error'); return; }
     // Not activated (free 3 days are over): ONE free Mock attempt, limited to the first
     // FREE_QUESTION_LIMIT questions. After that they are asked to activate.
+    storage.set('mockRetakeNote_' + state.authUser.id, '0');
     const __ex = mockExamById(examId);
     if (!__ex) { showToast('Open the Mock link MyUTME shared first.', 'error'); return; }
     const __st = mockExamStatus(__ex);
@@ -13573,7 +13576,7 @@ for (const subjectId of subjects) {
         render();
     }
 }
-function doSubmitMock(autoSubmit) {
+function doSubmitMock(autoSubmit, opts) {
     if (state.mockSubmitted) return;
     state.mockSubmitted = true;
     if (state.mockTimer) { clearInterval(state.mockTimer); state.mockTimer = null; }
@@ -13614,10 +13617,16 @@ function doSubmitMock(autoSubmit) {
     fridaySaveRecord({ week: wkKey, at: state.mockSubmittedAt, max: mIds.length * 100,
         total: mIds.reduce(function(a, sid) { return a + mScores[sid]; }, 0),
         names: mIds.map(function(sid) { return mockSubjectName(sid); }), scores: mScores,
+        limited: Object.assign({}, prev && prev.limited ? prev.limited : {}, isPaidUser() ? {} : ids.reduce(function(o, s) { o[s] = true; return o; }, {})),
         answered: (prev ? prev.answered || 0 : 0) + answered, questions: (prev ? prev.questions || 0 : 0) + state.mockQuestions.length,
         pending: { weak: (prevPend && prevPend.weak ? prevPend.weak : []).concat(weak), hists: prevHists.concat([histEntry]) } });
+    mockSaveReview(wkKey);
     fridayFlushReleased();
     try { fridaySyncScores(true); } catch (e) {}
+    if (opts && opts.toActivate) {
+        mockGoActivate('Your exam is saved with your answers so far. Activate now and this attempt is cancelled so you can retake the exam from the start. If you leave without activating, your score stays saved.');
+        return;
+    }
     state.view = 'mock-result';
     render();
 }
@@ -22448,9 +22457,111 @@ function isPaidUser() {
 function isMockIndexLocked(localIndex) { return !isPaidUser() && localIndex >= MOCK_FREE_QUESTIONS; }
 function renderMockLockCard() {
     return '<div class="exam-lock-card">' +
-        '<p><b>You\'ve reached question ' + MOCK_FREE_QUESTIONS + '.</b><br>The first ' + MOCK_FREE_QUESTIONS + ' questions are free. Activate your account to continue this exam.</p>' +
+        '<p><b>You\'ve reached question ' + MOCK_FREE_QUESTIONS + '.</b><br>The first ' + MOCK_FREE_QUESTIONS + ' questions are free.</p>' +
+        '<p style="font-size:12px;line-height:1.55;margin:8px 0 12px">You can leave this exam to activate. If you activate, your exam is not disrupted: it is cancelled and you can restart it from the beginning. If you leave without activating, your exam is submitted and your score is saved.</p>' +
         '<button class="btn btn-gold" data-action="mock-activate-go">Activate to continue</button>' +
         '</div>';
+}
+
+// ============================================================
+//  MOCK: saved review, leave-to-activate, retake after activation
+// ============================================================
+function mockReviewKey(uid, week, sid) { return 'mockReview_' + uid + '_' + week + '_' + sid; }
+function mockSaveReview(week) {
+    try {
+        if (!state.authUser || !state.mockQuestions || !state.mockQuestions.length) return;
+        var uid = state.authUser.id, sid = state.mockQuestions[0].subject_id;
+        var items = state.mockQuestions.map(function(q) {
+            var c = {};
+            Object.keys(q).forEach(function(k) { var v = q[k]; if (typeof v === 'string' && v.length > 60000) return; c[k] = v; });
+            return c;
+        });
+        var key = mockReviewKey(uid, week, sid);
+        storage.set(key, JSON.stringify({ items: items, answers: state.mockAnswers.slice(), at: Date.now() }));
+        var ik = 'mockReviewIdx_' + uid, list = [];
+        try { list = JSON.parse(storage.get(ik) || '[]'); } catch (e) { list = []; }
+        list = list.filter(function(k) { return k !== key; }); list.push(key);
+        while (list.length > 14) storage.remove(list.shift());
+        storage.set(ik, JSON.stringify(list));
+    } catch (e) { console.warn('Review save skipped:', e); }
+}
+function mockOpenSavedReview(week, sid) {
+    try {
+        var raw = state.authUser && storage.get(mockReviewKey(state.authUser.id, week, sid));
+        var d = raw ? JSON.parse(raw) : null;
+        if (!d || !d.items || !d.items.length) { showToast('This review is no longer saved on this phone.', 'error'); return; }
+        try { warmAiAssistant(); } catch (e) {}
+        state.reviewSession = { kind: 'mock', items: d.items, answers: d.answers || [], title: 'Mock Review · ' + mockSubjectName(sid), index: 0, returnView: 'mockexam' };
+        state.view = 'review'; state.drawerOpen = false; render();
+        try { window.scrollTo(0, 0); } catch (e) {}
+    } catch (e) { showToast('Could not open the review.', 'error'); }
+}
+function mockReviewRowHtml(rec, sid, st) {
+    var h = '';
+    if (!state.authUser) return h;
+    if (storage.get(mockReviewKey(state.authUser.id, rec.week, sid)))
+        h += '<button class="btn btn-outline" style="width:100%;padding:10px;margin:2px 0 6px;font-size:12px" data-action="mock-review-saved" data-week="' + esc(rec.week) + '" data-subject="' + esc(sid) + '">🔍 Review answers</button>';
+    if (rec.limited && rec.limited[sid] && st === 'open' && !isPaidUser())
+        h += '<p style="font-size:11px;color:var(--muted);margin:0 0 6px;line-height:1.5">You stopped at the free limit (question ' + MOCK_FREE_QUESTIONS + '). Activate while this Mock is still open and this attempt is cancelled so you can retake it from the start.</p>' +
+             '<button class="btn btn-gold" style="width:100%;padding:10px;margin:0 0 6px;font-size:12px" data-action="mock-activate-go">Activate to retake</button>';
+    return h;
+}
+function mockGoActivate(reason) {
+    var go = function() {
+        var pl = state.activationPlans || [];
+        var p500 = pl.find(function(x) { return Number(x.price) === 500; });
+        if (p500) state.selectedPlanId = p500.id;
+        state.activateRedirectReason = reason || 'Activate your account to unlock all Mock questions.';
+        state.view = 'activate'; render();
+        try { window.scrollTo(0, 0); } catch (e) {}
+    };
+    if (!state.activationPlansLoaded) loadActivationPlans().then(go, go); else go();
+}
+// An unactivated attempt is held back from the leaderboard while its Mock is still open,
+// because activating cancels it (so the student can retake).
+function fridayHeld(r) {
+    if (!r || !r.limited) return false;
+    return Object.keys(r.limited).some(function(sid) {
+        return mockExams().some(function(x) { return mockExamWeek(x) === r.week && x.subs.indexOf(sid) !== -1 && mockExamStatus(x) === 'open'; });
+    });
+}
+// When a student activates: any unactivated attempt whose Mock is STILL OPEN is cancelled so they can retake it.
+// If the Mock has already closed, the score simply stays.
+function mockCancelLimitedAttempts() {
+    if (!state.authUser || !isPaidUser()) return;
+    var recs = fridayRecords(), changed = false, cancelled = 0;
+    if (!recs.some(function(r) { return r.limited && Object.keys(r.limited).length; })) return;
+    var out = [];
+    recs.forEach(function(r) {
+        if (r.limited) {
+            Object.keys(r.limited).forEach(function(sid) {
+                var open = mockExams().some(function(x) { return mockExamWeek(x) === r.week && x.subs.indexOf(sid) !== -1 && mockExamStatus(x) === 'open'; });
+                if (open) { delete r.scores[sid]; cancelled++; storage.remove(mockReviewKey(state.authUser.id, r.week, sid)); r.synced = false; }
+                delete r.limited[sid]; changed = true;
+            });
+            var ids = Object.keys(r.scores || {});
+            r.max = ids.length * 100;
+            r.total = ids.reduce(function(a, s) { return a + r.scores[s]; }, 0);
+            r.names = ids.map(function(s) { return mockSubjectName(s); });
+        }
+        if (r.scores && Object.keys(r.scores).length) out.push(r);
+        else if (!r.limited) out.push(r);
+    });
+    if (!changed) return;
+    try { storage.set(fridayStoreKey(), JSON.stringify(out)); } catch (e) {}
+    try { backupMarkDirty(); } catch (e) {}
+    if (cancelled) {
+        storage.set('mockRetakeNote_' + state.authUser.id, '1');
+        showToast('You are activated. Your Mock attempt was cancelled, so you can retake it now.', '');
+        try { fridaySyncScores(true); } catch (e) {}
+        render();
+    }
+}
+function renderMockRetakeNote(hide) {
+    if (hide || !state.authUser || state.view === 'activate') return '';
+    if (storage.get('mockRetakeNote_' + state.authUser.id) !== '1') return '';
+    return '<div class="trial-banner"><span><b>You are activated.</b> Your earlier Mock attempt was cancelled, so you can retake it now.</span>' +
+        '<button data-action="mock-retake-go">Retake</button></div>';
 }
 function renderMockExam() {
     if (state.engMockHasPassage && state.engMockPassage && !state.engMockPassageRead) {
@@ -28750,19 +28861,12 @@ if (action === 'browse-filter') {
         return;
     }
     if (action === 'mock-activate-go') {
-        state.returnToMockExam = true;
-        const __go = function() {
-            const __pl = state.activationPlans || [];
-            const __p500 = __pl.find(function(x) { return Number(x.price) === 500; });
-            if (__p500) state.selectedPlanId = __p500.id;
-            state.activateRedirectReason = 'Activate to continue your mock exam. Your answers are saved and the timer keeps running.';
-            state.view = 'activate';
-            render();
-            try { window.scrollTo(0, 0); } catch (e) {}
-        };
-        if (!state.activationPlansLoaded) loadActivationPlans().then(__go, __go); else __go();
+        if (state.view === 'mock-exam' && state.mockQuestions && state.mockQuestions.length && !state.mockSubmitted) { doSubmitMock(false, { toActivate: true }); return; }
+        mockGoActivate('Activate your account to unlock all Mock questions.');
         return;
     }
+    if (action === 'mock-review-saved') { mockOpenSavedReview(el.getAttribute('data-week'), el.getAttribute('data-subject')); return; }
+    if (action === 'mock-retake-go') { if (state.authUser) storage.set('mockRetakeNote_' + state.authUser.id, '0'); state.mockArenaTab = 'mock'; setView('mockexam'); return; }
     if (action === 'mock-resume-exam') {
         state.returnToMockExam = false;
         if (state.mockQuestions && state.mockQuestions.length && !state.mockSubmitted) state.view = 'mock-exam'; else state.view = 'home';
@@ -30045,6 +30149,8 @@ async function init() {
             setView('mockexam');
         } catch (e) {}
     }, 700);
+
+    setInterval(function() { try { if (state.phase === 'app' && state.authUser) mockCancelLimitedAttempts(); } catch (e) {} }, 2000);
 
     // Splash/logo screen removed — go straight into the app.
     state.phase = 'app';
