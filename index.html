@@ -20132,7 +20132,27 @@ function videoCardHtml(note, topicName) {
         '<span class="vl-go">&rsaquo;</span></button>';
 }
 function openVideoLesson(url, title) {
-    if (!url || document.getElementById('vl-overlay')) return;
+    if (!url || document.getElementById('vl-overlay') || window.__vlOpening) return;
+    window.__vlOpening = true;
+    // Check the lesson file is really there BEFORE opening the player. Some hosts answer a missing
+    // file with the app's own index.html, which used to show as an empty black player.
+    fetch(url, { cache: 'no-cache' })
+        .then(function(r) { return r.ok ? r.text() : ''; })
+        .then(function(t) {
+            window.__vlOpening = false;
+            if (!t || t.indexOf('lesson-content') === -1) {
+                showToast('This video lesson is not on the server yet. Upload ' + url + ' and try again.', 'error');
+                return;
+            }
+            mountVideoLesson(url, title);
+        })
+        .catch(function() {
+            window.__vlOpening = false;
+            showToast('Could not open the video lesson. Check your internet and try again.', 'error');
+        });
+}
+function mountVideoLesson(url, title) {
+    if (document.getElementById('vl-overlay')) return;
     var ov = document.createElement('div');
     ov.id = 'vl-overlay';
     ov.setAttribute('role', 'dialog');
@@ -20143,6 +20163,16 @@ function openVideoLesson(url, title) {
     document.body.appendChild(ov);
     document.documentElement.classList.add('vl-open');
     try { history.pushState({ myutmeVideo: true }, ''); } catch (e) {}
+    // Safety net: if the frame ever loads something that is not a lesson, close it with a message.
+    var f = ov.querySelector('iframe');
+    f.addEventListener('load', function() {
+        var bad = false;
+        try { var d = f.contentDocument; bad = !!d && !d.getElementById('lesson-content'); } catch (e) {}
+        if (bad && document.getElementById('vl-overlay')) {
+            closeVideoLesson();
+            showToast('This video lesson could not load. Please try again later.', 'error');
+        }
+    });
 }
 function closeVideoLesson(fromPopstate) {
     var ov = document.getElementById('vl-overlay');
