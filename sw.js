@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const CACHE_NAME = 'myutme-cache-v96';
+const CACHE_NAME = 'myutme-cache-v97';
 const CACHE_PREFIX = 'myutme-cache-';
 
 const APP_SHELL = [
@@ -16,6 +16,8 @@ const APP_SHELL = [
 ];
 
 const REQUIRED_SHELL = ['./index.html', './offline-db.js'];
+// Video lessons: lessons/*.html and their font/logo files (same-origin).
+const LESSON_RE = /\/lessons\/[^/]+\.(?:html|woff2|ttf|jpg|png)$/i;
 const FETCH_TIMEOUT_MS = 8000;
 const PAGE_TIMEOUT_MS = 12000;
 const QUESTION_TIMEOUT_MS = 15000;
@@ -156,6 +158,42 @@ async function networkThenCache(request, timeoutMs, cacheUrl) {
   }
 }
 
+/*
+ * Video lessons: open from the cache instantly (works offline), and quietly
+ * refresh the saved copy when online. Lesson files are small, self-contained pages.
+ */
+async function lessonResponse(request, event) {
+  const u = new URL(request.url);
+  const key = u.origin + u.pathname;          // ignore ?query so one copy is kept
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(key);
+
+  const refresh = (async () => {
+    const res = await fetch(key, { cache: 'no-cache' });
+    if (res && res.ok) await cache.put(key, res.clone());
+    return res;
+  })();
+
+  if (cached) {
+    event.waitUntil(refresh.catch(() => {}));
+    return cached;
+  }
+  return refresh;                              // first open: network (then cached)
+}
+
+async function cacheLessons(urls) {
+  const cache = await caches.open(CACHE_NAME);
+  await Promise.allSettled((urls || []).map(async url => {
+    const abs = absolute(url);
+    const u = new URL(abs);
+    if (u.origin !== self.location.origin || !LESSON_RE.test(u.pathname)) return;
+    const key = u.origin + u.pathname;
+    if (await cache.match(key)) return;        // already saved
+    const res = await fetch(key, { cache: 'no-cache' });
+    if (res && res.ok) await cache.put(key, res.clone());
+  }));
+}
+
 self.addEventListener('fetch', event => {
   const request = event.request;
 
@@ -166,6 +204,13 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   const pathname = url.pathname;
+
+  // Video lessons. Must come BEFORE the navigation branch below: an <iframe>
+  // load counts as a navigation and would otherwise be answered with index.html.
+  if (LESSON_RE.test(pathname)) {
+    event.respondWith(lessonResponse(request, event));
+    return;
+  }
 
   const isQuestionFile =
     /\.json$/i.test(pathname) &&
@@ -287,6 +332,8 @@ self.addEventListener('message', event => {
     self.skipWaiting();
   } else if (data.type === 'CHECK_UPDATE') {
     event.waitUntil(refreshShell());
+  } else if (data.type === 'CACHE_LESSONS') {
+    event.waitUntil(cacheLessons(data.urls));
   }
 });
 
