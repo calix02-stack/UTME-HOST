@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const CACHE_NAME = 'myutme-cache-v97';
+const CACHE_NAME = 'myutme-cache-v98';
 const CACHE_PREFIX = 'myutme-cache-';
 
 const APP_SHELL = [
@@ -17,7 +17,10 @@ const APP_SHELL = [
 
 const REQUIRED_SHELL = ['./index.html', './offline-db.js'];
 // Video lessons: lessons/*.html and their font/logo files (same-origin).
-const LESSON_RE = /\/lessons\/[^/]+\.(?:html|woff2|ttf|jpg|png)$/i;
+// The optional (?:[^/]+\/)? lets files in a sub-folder match too, e.g. lessons/fonts/PatrickHand-Regular.woff2
+const LESSON_RE = /\/lessons\/(?:[^/]+\/)?[^/]+\.(?:html|woff2|ttf|jpg|png)$/i;
+// Topic notes: notes-math.json, notes-phy.json, ... (these carry the "video" lines)
+const NOTES_RE = /\/notes-[a-z0-9_-]+\.json$/i;
 const FETCH_TIMEOUT_MS = 8000;
 const PAGE_TIMEOUT_MS = 12000;
 const QUESTION_TIMEOUT_MS = 15000;
@@ -159,6 +162,35 @@ async function networkThenCache(request, timeoutMs, cacheUrl) {
 }
 
 /*
+ * Topic notes (notes-<subject>.json): always try the network first so new lessons and
+ * "video" lines appear straight away, but keep a saved copy. If the network is slow or
+ * offline, the saved copy is used, so notes and video cards never disappear.
+ * The page adds ?v=<time> to the URL, so the saved copy is stored without the query.
+ */
+async function notesResponse(request) {
+  const u = new URL(request.url);
+  const key = u.origin + u.pathname;
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(key);
+
+  try {
+    // With a saved copy, give up quickly (4s). Without one, wait longer for the first download.
+    const res = await timedFetch(key, cached ? 4000 : 20000, 'no-store');
+
+    if (res && res.ok) {
+      await cache.put(key, res.clone());
+      return res;
+    }
+
+    if (cached) return cached;
+    return res;
+  } catch (error) {
+    if (cached) return cached;
+    throw error;
+  }
+}
+
+/*
  * Video lessons: open from the cache instantly (works offline), and quietly
  * refresh the saved copy when online. Lesson files are small, self-contained pages.
  */
@@ -209,6 +241,14 @@ self.addEventListener('fetch', event => {
   // load counts as a navigation and would otherwise be answered with index.html.
   if (LESSON_RE.test(pathname)) {
     event.respondWith(lessonResponse(request, event));
+    return;
+  }
+
+  // Topic notes. Must come BEFORE the question-file check below, because names like
+  // notes-math.json contain "math" and would otherwise be treated as question files
+  // (never cached), which made notes and video cards vanish on slow or offline connections.
+  if (NOTES_RE.test(pathname)) {
+    event.respondWith(notesResponse(request));
     return;
   }
 
