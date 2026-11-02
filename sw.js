@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const CACHE_NAME = 'myutme-cache-v98';
+const CACHE_NAME = 'myutme-cache-v99';
 const CACHE_PREFIX = 'myutme-cache-';
 
 const APP_SHELL = [
@@ -194,15 +194,29 @@ async function notesResponse(request) {
  * Video lessons: open from the cache instantly (works offline), and quietly
  * refresh the saved copy when online. Lesson files are small, self-contained pages.
  */
+// A real lesson page contains the "lesson-content" block. If a host answers a missing lesson with
+// the app's index.html (or an error page), that must never be shown or saved as the lesson.
+async function isRealLesson(res) {
+  try { return (await res.clone().text()).indexOf('lesson-content') !== -1; } catch (_) { return false; }
+}
+
 async function lessonResponse(request, event) {
   const u = new URL(request.url);
   const key = u.origin + u.pathname;          // ignore ?query so one copy is kept
+  const isHtml = /\.html$/i.test(u.pathname);
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(key);
 
   const refresh = (async () => {
     const res = await fetch(key, { cache: 'no-cache' });
-    if (res && res.ok) await cache.put(key, res.clone());
+    if (res && res.ok) {
+      if (!isHtml || await isRealLesson(res)) {
+        await cache.put(key, res.clone());
+        return res;
+      }
+      // Not a real lesson (for example index.html returned for a missing file).
+      return new Response('Lesson file not found', { status: 404, headers: { 'Content-Type': 'text/plain' } });
+    }
     return res;
   })();
 
@@ -222,7 +236,7 @@ async function cacheLessons(urls) {
     const key = u.origin + u.pathname;
     if (await cache.match(key)) return;        // already saved
     const res = await fetch(key, { cache: 'no-cache' });
-    if (res && res.ok) await cache.put(key, res.clone());
+    if (res && res.ok && (!/\.html$/i.test(u.pathname) || await isRealLesson(res))) await cache.put(key, res.clone());
   }));
 }
 
