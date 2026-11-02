@@ -1400,6 +1400,20 @@
     .nt-a { overflow-x: auto; margin: 6px 0 0 30px; padding: 8px 10px; background: color-mix(in srgb, var(--green) 9%, var(--card-bg)); border-radius: 10px; font-size: 14px; line-height: 1.5; }
     .nt-tip { background: color-mix(in srgb, #D9930A 12%, var(--card-bg)); border: 1.5px solid color-mix(in srgb, #D9930A 40%, transparent); border-radius: 14px; padding: 11px 14px; font-size: 14px; line-height: 1.5; margin-bottom: 8px; }
     .nt-tag { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 800; color: var(--green); }
+    /* ===== Video lesson card + full-screen player ===== */
+    .vl-card { display: flex; align-items: center; gap: 14px; width: 100%; margin: 0 0 26px; padding: 14px 16px; border: 0; border-radius: 18px; background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%); color: #fff; font-family: var(--font-sans); text-align: left; cursor: pointer; box-shadow: var(--shadow-md); -webkit-tap-highlight-color: transparent; }
+    .vl-card:active { transform: scale(0.985); }
+    .vl-play { flex: 0 0 46px; width: 46px; height: 46px; border-radius: 50%; background: #fff; color: var(--green); display: flex; align-items: center; justify-content: center; font-size: 18px; padding-left: 3px; }
+    .vl-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .vl-txt b { font-size: 16px; font-weight: 700; }
+    .vl-txt small { font-size: 12.5px; opacity: 0.85; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vl-go { font-size: 26px; opacity: 0.8; }
+    #vl-overlay { position: fixed; inset: 0; z-index: 100000; background: #000; display: flex; flex-direction: column; }
+    .vl-bar { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: calc(6px + env(safe-area-inset-top, 0px)) 8px 6px 14px; background: #0b0d10; color: #fff; font-family: var(--font-sans); }
+    .vl-bar span { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vl-close { flex: 0 0 auto; min-width: 44px; height: 40px; border: 0; border-radius: 12px; background: rgba(255,255,255,0.14); color: #fff; font-size: 20px; cursor: pointer; }
+    .vl-frame { flex: 1; width: 100%; border: 0; background: #000; display: block; }
+    html.vl-open, html.vl-open body { overflow: hidden; }
     /* ===== Textbook-style topic notes (nt2) ===== */
     .nt2 { padding: 8px 6px 56px; font-family: var(--font-sans); color: var(--ink); max-width: 720px; margin: 0 auto; }
     .nt2-title { font-size: 26px; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; margin: 10px 0 26px; color: var(--ink); }
@@ -19962,15 +19976,64 @@ function renderNoteBlocks(note) {
     });
     return h;
 }
+// ---------- Video lessons (lessons/<subject>-<topic>.html) ----------
+// A topic shows the "Watch video lesson" card only when its entry in
+// notes-<subject>.json has a  "video": "lessons/<file>.html"  line.
+var __vlWarmed = {};
+function warmVideoLesson(url) {
+    // Quietly ask the service worker to save the lesson (and its font) for offline use.
+    try {
+        if (__vlWarmed[url] || !navigator.onLine || !navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+        __vlWarmed[url] = true;
+        navigator.serviceWorker.controller.postMessage({
+            type: 'CACHE_LESSONS',
+            urls: [url, url.replace(/[^\/]+$/, 'fonts/PatrickHand-Regular.woff2')]
+        });
+    } catch (e) {}
+}
+function videoCardHtml(note, topicName) {
+    if (!note || !note.video) return '';
+    warmVideoLesson(note.video);
+    return '<button type="button" class="vl-card" data-action="open-video-lesson" data-video="' + esc(note.video) + '" data-title="' + esc(topicName) + '">' +
+        '<span class="vl-play">&#9654;</span>' +
+        '<span class="vl-txt"><b>Watch video lesson</b><small>Voice-guided whiteboard &middot; ' + esc(topicName) + '</small></span>' +
+        '<span class="vl-go">&rsaquo;</span></button>';
+}
+function openVideoLesson(url, title) {
+    if (!url || document.getElementById('vl-overlay')) return;
+    var ov = document.createElement('div');
+    ov.id = 'vl-overlay';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-label', 'Video lesson: ' + title);
+    ov.innerHTML = '<div class="vl-bar"><span>' + esc(title) + ' &middot; Video lesson</span>' +
+        '<button type="button" class="vl-close" data-action="close-video-lesson" aria-label="Close video lesson">&#10005;</button></div>' +
+        '<iframe class="vl-frame" src="' + esc(url) + '" title="' + esc(title) + '" allow="autoplay; fullscreen"></iframe>';
+    document.body.appendChild(ov);
+    document.documentElement.classList.add('vl-open');
+    try { history.pushState({ myutmeVideo: true }, ''); } catch (e) {}
+}
+function closeVideoLesson(fromPopstate) {
+    var ov = document.getElementById('vl-overlay');
+    if (!ov) return;
+    var f = ov.querySelector('iframe');
+    try { f.contentWindow.postMessage({ type: 'myutme-lesson-stop' }, '*'); } catch (e) {}
+    try { f.contentWindow.speechSynthesis.cancel(); } catch (e) {}
+    ov.remove();
+    document.documentElement.classList.remove('vl-open');
+    if (!fromPopstate) { try { history.back(); } catch (e) {} }
+}
+window.addEventListener('popstate', function() { if (document.getElementById('vl-overlay')) closeVideoLesson(true); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && document.getElementById('vl-overlay')) closeVideoLesson(); });
+
 function renderTopicNotes() {
     const topic = (state.topicsList || []).find(function(t) { return t.id === state.topicNotesId; });
     const note = topic ? getTopicNote(state.topicSubject, topic.name) : null;
     if (!topic || !note) { state.topicNotesId = null; return renderTopicsListPage(); }
     let h;
     if (note.blocks) {
-        h = '<div class="nt-wrap nt2"><h2 class="nt2-title">' + esc(topic.name) + '</h2>' + renderNoteBlocks(note);
+        h = '<div class="nt-wrap nt2"><h2 class="nt2-title">' + esc(topic.name) + '</h2>' + videoCardHtml(note, topic.name) + renderNoteBlocks(note);
     } else {
-        h = '<div class="nt-wrap"><h2 class="tp-h1">' + esc(topic.name) + '</h2>' +
+        h = '<div class="nt-wrap"><h2 class="tp-h1">' + esc(topic.name) + '</h2>' + videoCardHtml(note, topic.name) +
             '<p class="nt-intro">' + noteText(note.intro) + '</p>';
         if (note.svg) h += '<div class="nt-fig">' + note.svg + '</div>';
         (note.sections || []).forEach(function(sec) {
@@ -26877,6 +26940,10 @@ document.addEventListener('click', function(e) {
         });
         return;
     }
+
+    // VIDEO LESSONS
+    if (action === 'open-video-lesson') { openVideoLesson(el.getAttribute('data-video'), el.getAttribute('data-title') || 'Video lesson'); return; }
+    if (action === 'close-video-lesson') { closeVideoLesson(); return; }
 
     // TOPICS
     if (action === 'select-topic-subject') {

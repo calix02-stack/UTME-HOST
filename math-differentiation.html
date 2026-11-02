@@ -1,0 +1,411 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>MyUTME – Differentiation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'PatrickHandLocal';src:url('fonts/PatrickHand-Regular.woff2') format('woff2'),url('fonts/PatrickHand-Regular.ttf') format('truetype');font-display:swap}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#15181d;--tx:#eee}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:#000;overflow:hidden;font-family:system-ui,sans-serif}
+#v{position:fixed;left:0;top:0;transform-origin:0 0;container-type:size;display:flex;flex-direction:column;background:#222;overflow:hidden}
+#b{flex:1;min-height:0;position:relative;container-type:size;background:#f4f6f0;border:1.1cqw solid #8b5a2b;overflow:hidden;font-family:'PatrickHandLocal','Patrick Hand','Comic Sans MS',cursive;font-weight:400}
+#lg{position:absolute;top:1.4cqw;right:1.6cqw;width:8.5cqw;border-radius:1.2cqw;z-index:3;box-shadow:0 .2cqw .8cqw rgba(0,0,0,.25)}
+.w{position:absolute;white-space:nowrap;line-height:1.1;padding:0 .5cqw}
+.w.hl{background:#fff176;transition:background .4s}
+.ul{position:absolute;height:.55cqw;background:#c0261b;border-radius:1cqw}
+#er{position:absolute;left:0;top:0;height:100%;width:0;background:#f4f6f0;border-right:2cqw solid #d8d8d0;z-index:5}
+#h{position:absolute;left:0;top:0;z-index:9;pointer-events:none;width:9cqw;height:9cqw;opacity:0;filter:drop-shadow(.3cqw .3cqw .4cqw rgba(0,0,0,.35))}
+#sub{flex:0 0 var(--sh,14%);display:flex;align-items:center;justify-content:center;text-align:center;padding:0 28% 0 3%;background:#000;color:#fff;font-size:2.4cqw;line-height:1.3}
+#sub b{color:#ffd54f}
+#q{position:absolute;inset:0;background:#f4f6f0;z-index:7;padding:3cqw 5cqw;font-family:system-ui,sans-serif;color:#222;font-weight:600}
+#q h3{font-size:3cqw;margin:0 0 2cqw}#q small{color:#c0261b}
+.o{display:block;width:100%;text-align:left;margin:1.2cqw 0;padding:1.3cqw 2cqw;font-size:2.6cqw;border:.3cqw solid #8b5a2b;background:#fff;border-radius:1.2cqw;cursor:pointer;color:#222}
+.o.s{background:#cfe0ff}.o.ok{background:#b8f0c4;border-color:#11793a}.o.no{background:#ffc7c2;border-color:#c0261b}
+#tb{height:1.2cqw;background:#c0261b;margin-top:2cqw;border-radius:1cqw;width:100%}
+#st{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:12px}
+button.c{font-size:16px;padding:10px 20px;border-radius:8px;border:0;background:#2e7d32;color:#fff;cursor:pointer}
+#ct{position:absolute;bottom:4px;left:4px;right:4px;flex-wrap:wrap;justify-content:flex-end;z-index:15;display:flex;gap:4px;opacity:.75}#ct button{font-size:12px!important;padding:4px 8px!important}
+#v.p #sub{font-size:4.2cqw;padding:0 3%}#v.p #q{padding:5cqw}#v.p #q small{font-size:3.4cqw}#v.p #q h3{font-size:5.2cqw;margin-bottom:4cqw}#v.p .o{font-size:4.6cqw;padding:2.4cqw 3cqw;margin:2cqw 0}#v.p #ct{bottom:calc(20cqw + 6px)}#v.p #ct button{font-size:14px!important;padding:6px 12px!important}
+</style></head><body>
+<div id="v"><div id="b"><img id="lg" alt="MyUTME" src="data:image/jpeg;base64,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"><div id="er"></div>
+<svg id="h" viewBox="0 0 130 130"><line x1="4" y1="4" x2="66" y2="66" stroke="#222" stroke-width="9" stroke-linecap="round"/><line x1="4" y1="4" x2="20" y2="20" stroke="#1d3fbf" stroke-width="9" stroke-linecap="round"/><path d="M52 58C60 40 95 45 112 70C125 92 105 118 80 112C60 108 45 85 52 58Z" fill="#e3b08a" stroke="#b9835d" stroke-width="2"/><path d="M60 62q12-6 24 4M64 76q12-6 24 4M70 90q12-6 22 2" stroke="#b9835d" stroke-width="3" fill="none"/></svg></div>
+<div id="sub">MyUTME · Mathematics · Differentiation</div>
+<div id="st"><h2 style="margin:0">Differentiation – JAMB Mathematics</h2><p style="margin:0;max-width:420px">A voice-guided whiteboard lesson. Turn your sound on.</p><button class="c" onclick="start()">▶ Start Lesson</button><p style="margin:0;font-size:13px;opacity:.8">Best on a phone held upright, with your sound on.</p></div>
+<div id="ct"><button class="c" id="pb" onclick="tp()">⏸ Pause</button><button class="c" id="spb" onclick="sp()">⏩ 1x</button><button class="c" onclick="nx()">⏭ Next</button><button class="c" id="sk" onclick="jump(INTRO_END)">⏭ Skip intro</button><button class="c" onclick="start()">↻ Replay</button></div></div>
+<script id="lesson-content">
+/* =====================================================================
+   MyUTME VIDEO LESSON  —  CONTENT BLOCK
+   To make a NEW lesson: copy this whole file, then change ONLY this block
+   (LESSON, BODY, Q, SUMMARY). Do not touch the PLAYER ENGINE script below.
+
+   BODY is a list of steps. Each step is:
+     ['what the voice says', item, item, ...]
+   where an item is the board writing:
+     [x%, y, 'text', colour, size]     write text (x = 0-100 across, y = down)
+     ['u']                              underline the last text written
+     ['h']                              highlight the last text written
+   Put 'C' between topics: the board keeps writing downward and only
+   wipes when the next topic will not fit. Colours: N ink, U blue, R red, G green.
+   Keep each line of writing short (about 34 characters at size 5.6).
+   Q = classwork questions: [question, [4 options], correctIndex, '', [steps], 'spoken question'].
+   ===================================================================== */
+const K0='#222',U='#1d3fbf',R='#c0261b',G='#11793a',N=K0;
+const LESSON={subject:'Mathematics',topic:'Differentiation'};
+const fitSz=(t,mx)=>Math.min(mx,+(88/(t.length*.5)).toFixed(1));
+function INTRO(S){return [
+['Good day, students, and welcome to MyUTME, your JAMB CBT practice app.',[4,4,'Welcome to MyUTME!',G,7],['u']],
+['MyUTME is a free app that works offline. You can practise past questions and topic drills on your phone.',[4,26,'• Past questions & topic drills',N,5.6]],
+['You can also take full mock exams, and every answer comes with a simple explanation.',[4,40,'• Mock exams  • Simple explanations',N,5.6]],
+['Our slogan is Practice, Prepare, Pass. Practise often, and you will pass.',[4,58,'Practice • Prepare • Pass',U,6.8],['h']],
+'C',
+['Today, our subject is '+S.subject+'.',[4,8,'Subject: '+S.subject.toUpperCase(),R,fitSz('Subject: '+S.subject,7.4)],['u']],
+['And our topic is '+S.topic.toLowerCase()+'.',[4,38,'Topic: '+S.topic.toUpperCase(),U,fitSz('Topic: '+S.topic,7.4)],['u']],
+'C']}
+const BODY=[
+['Let us begin. Differentiation is one of the most important topics in JAMB Mathematics. I will teach it from the very beginning, so even if you have never seen it before, you will understand. Take your time, and follow every step with me.',[20,4,'DIFFERENTIATION',N,8],['u']],
+['First, a simple idea: change. Imagine a car travelling on a road. As time passes, the distance it has covered changes. How fast the distance is changing is called the rate of change.',[4,24,'Rate of change = how fast something changes',U,4.4],['h']],
+['Example: a car travels one hundred kilometres in two hours. To find how fast it goes, we divide the distance by the time. One hundred divided by two is fifty.',[4,40,'100 km in 2 hours',N,5.6],[4,54,'Speed = 100 ÷ 2 = 50 km/h',U,5.6]],
+['So fifty kilometres per hour is the rate of change of distance. Speed is a rate of change. Remember this, because differentiation is simply a method for finding rates of change.',[4,68,'Speed = rate of change of distance',G,5.2],['h']],
+'C',
+['Now let us see change on a graph. On a graph, we measure how steep a line is. The steepness is called the gradient, or slope. For a straight line, the gradient equals the rise divided by the run. Rise is how far you go up. Run is how far you go across.',[4,4,'GRADIENT OF A LINE',R,6],['u'],[4,20,'Gradient = rise ÷ run',N,6]],
+['Take the line y equals two x. When x is one, y is two. When x is two, y is four. So when x moves across by one, y moves up by two.',[4,36,'y = 2x:   x = 1 → y = 2',N,5.4],[4,50,'x = 2 → y = 4',N,5.4]],
+['The rise is four minus two, which is two. The run is two minus one, which is one. So the gradient is two divided by one, which is two.',[4,64,'rise = 4 − 2 = 2,   run = 2 − 1 = 1',U,5.2],[4,78,'Gradient = 2 ÷ 1 = 2',U,6],['h']],
+['Notice something important. On a straight line, the gradient is the same everywhere. It is two, wherever you measure it.',[4,92,'Straight line: same gradient everywhere',G,5]],
+'C',
+['But many graphs are not straight lines. A curve bends, so its steepness keeps changing. Let us test with y equals x squared. Squared means multiply the number by itself. So when x is one, y is one. When x is two, y is four. When x is three, y is nine.',[4,4,'A CURVE:  y = x²',R,6],['u'],[4,20,'x = 1 → y = 1',N,5.4],[4,32,'x = 2 → y = 4',N,5.4],[4,44,'x = 3 → y = 9',N,5.4]],
+['From one to two, y rises by three. From two to three, y rises by five, even though x moved across by one each time. The curve is getting steeper. So a curve has no single gradient.',[4,58,'rise 3, then rise 5  →  steeper',U,5.4]],
+['So we need a method that gives the gradient at any one point of a curve. That method is called differentiation.',[4,72,'Differentiation = gradient at any point',G,5.4],['h']],
+'C',
+['Before the rules, let us learn the words, so nothing confuses you. Look at five x cubed. The letter x is the variable, because its value can change. The small raised number is the power, or index. The number in front is the coefficient.',[4,4,'WORDS YOU MUST KNOW',R,6],['u'],[4,20,'5x³',N,7],[4,34,'5 = coefficient   x = variable   3 = power',U,4.6]],
+['A number on its own, with no x, like seven, is called a constant, because it never changes. Each part of an expression separated by a plus or minus sign is a term. So two x squared plus three x minus seven has three terms.',[4,50,'constant = a number alone, e.g. 7',N,5.2],[4,64,'2x² + 3x − 7   has 3 terms',N,5.4]],
+'C',
+['Now the notation. When y depends on x, we write the gradient as d y by d x. It means: how much y changes for every small change in x.',[4,4,'THE NOTATION  dy/dx',R,6],['u'],[4,20,'dy/dx = change in y per change in x',U,5.1]],
+['The word differentiate means: find d y by d x. The answer is called the derivative. So when a question says differentiate y with respect to x, it simply means find d y by d x.',[4,36,'differentiate = find dy/dx',N,5.6],[4,50,'dy/dx = derivative = gradient formula',G,5.3]],
+['It is also written f prime of x. When we are given f of x, f prime of x means exactly the same thing as d y by d x.',[4,64,'f ′(x)  means the same as  dy/dx',N,5.4]],
+'C',
+['Now, how do we find d y by d x? Mathematicians discovered a pattern. Look carefully. x squared has the derivative two x. x cubed has the derivative three x squared. x to the power four has the derivative four x cubed.',[4,4,'DISCOVER THE PATTERN',R,6],['u'],[4,20,'x² → 2x',N,6],[4,34,'x³ → 3x²',N,6],[4,48,'x⁴ → 4x³',N,6]],
+['What do you notice? First, the power comes down and becomes a number in front. Second, the power on x reduces by one: two becomes one, three becomes two, four becomes three. This is the power rule.',[4,62,'power comes down in front',G,5.4],['h'],[4,76,'power on x goes down by 1',G,5.4],['h']],
+'C',
+['Now we write this pattern as a formula. If y equals x to the power n, then d y by d x equals n times x to the power n minus one. Here n stands for any power, for example two, three or four.',[4,4,'THE POWER RULE',R,6],['u'],[4,20,'y = xⁿ',N,6.5],[4,34,'dy/dx = n·xⁿ⁻¹',N,6.5],['h']],
+['Let us read the formula slowly. The n in front says: bring the power down. The n minus one on top says: subtract one from the power. Both use the same n, which is the original power.',[4,50,'n in front → power comes down',U,5.2],[4,64,'n − 1 → take one away from the power',U,5.2]],
+'C',
+['Follow three steps every time. Step one: find the power. Step two: write it in front. Step three: subtract one from the power. Now try y equals x to the power five.',[4,4,'3 STEPS',R,6],['u'],[4,20,'1. Find the power n',N,5.4],[4,32,'2. Write n in front',N,5.4],[4,44,'3. New power = n − 1',N,5.4]],
+['Step one: the power is five. Step two: write five in front. Step three: five minus one is four. So d y by d x is five x to the power four.',[4,60,'y = x⁵:   n = 5',N,5.6],[4,74,'dy/dx = 5x⁴',U,6.4],['h']],
+['Another one. y equals x to the power seven. The power is seven. Write seven in front, then seven minus one is six. The answer is seven x to the power six.',[4,90,'y = x⁷  →  7x⁶',U,5.8]],
+'C',
+['What if there is a number in front, like six x squared? The six is a coefficient. It does not change in the power rule. It waits, and multiplies the answer at the end. First differentiate x squared alone.',[4,4,'NUMBER IN FRONT',R,6],['u'],[4,20,'y = 6x²',N,6]],
+['The power is two, so write two in front, and the power becomes one. That gives two x. Now multiply by the six that was waiting. Six times two x is twelve x.',[4,36,'x² → 2x',N,5.6],[4,50,'6 × 2x = 12x',U,6],['h']],
+['Another: y equals minus three x to the power five. The coefficient is minus three, and the negative sign stays with it. Five comes down, and the power becomes four. Minus three times five is minus fifteen.',[4,66,'y = −3x⁵',N,5.8],[4,80,'dy/dx = −3 × 5x⁴ = −15x⁴',U,5.6],['h']],
+'C',
+['Two special cases need extra care. First, x on its own. Remember, x is the same as x to the power one. So n is one. Write one in front, and subtract one from the power: one minus one is zero. And any number to the power zero is one. So the derivative of x is one.',[4,4,'SPECIAL CASES',R,6],['u'],[4,20,'y = x = x¹ → 1·x⁰ = 1',N,5.6]],
+['So five x gives five, and minus x gives minus one. The x disappears and only the number remains.',[4,36,'5x → 5      −x → −1',U,5.8],['h']],
+['Second, a constant, like seven. A constant does not change when x changes, so its rate of change is zero. We can see this another way: seven equals seven times x to the power zero. Bring zero down in front, and zero times seven is zero.',[4,52,'y = 7 = 7x⁰  →  0',N,5.8],[4,66,'constant → 0',U,6.2],['h']],
+['It works for any number. The derivative of minus four is zero, and the derivative of one hundred is zero.',[4,82,'−4 → 0      100 → 0',N,5.8]],
+'C',
+['Real questions have many terms, joined by plus and minus signs. The rule is kind: differentiate each term separately, keep the same sign between them, and join the answers. Think of it as solving several small questions instead of one big one.',[4,4,'MANY TERMS: one at a time',R,5.6],['u'],[4,20,'term 1  ±  term 2  ±  term 3',N,5.4],[4,34,'differentiate each, keep the signs',G,5.4]],
+'C',
+['When there are many terms, differentiate term by term. Example one.',[4,4,'3. MANY TERMS',R,6],['u'],[4,20,'y = 2x³ + 4x² − 5x + 7',N,5.6]],
+['Two times three is six x squared. Four times two is eight x. Five x gives five. Seven gives zero.',[4,34,'dy/dx = 6x² + 8x − 5',U,5.6],['h']],
+['But equations are not always set this way. Sometimes you must expand brackets first. Example two.',[4,50,'y = (x + 2)(x − 3)',N,5.6]],
+['Expand first to get x squared minus x minus six. Now differentiate: two x minus one.',[4,63,'= x² − x − 6  →  2x − 1',U,5.6],['h']],
+['Sometimes you divide first. Example three: x cubed plus two x, all over x. Divide each term by x, and differentiate.',[4,76,'(x³+2x)/x = x²+2 → 2x',G,5.4]],
+['Let us practise the bracket method together. y equals two x minus one, times x plus three. We cannot differentiate a bracket times a bracket directly, so we expand first.',[4,112,'WORK IT TOGETHER',R,5.8],['u'],[4,126,'y = (2x − 1)(x + 3)',N,5.6]],
+['Multiply every term in the first bracket by every term in the second. Two x times x is two x squared. Two x times three is six x. Minus one times x is minus x. Minus one times three is minus three.',[4,140,'= 2x² + 6x − x − 3',N,5.4]],
+['Now collect like terms. Six x minus x is five x. So we have two x squared plus five x minus three.',[4,154,'= 2x² + 5x − 3',N,5.4]],
+['Now differentiate term by term. Two times two is four x. Five x gives five. And minus three, a constant, gives zero.',[4,168,'dy/dx = 4x + 5',U,6],['h']],
+'C',
+['The power rule works on x with a power, like x squared or x cubed. But a square root, or a fraction like one over x, does not look like a power. So first we must rewrite it as a power of x. After that, the power rule works as usual.',[4,4,'4. ROOTS AND FRACTIONS',R,6],['u'],[4,20,'Step 1: rewrite as a power of x',G,5.2],[4,34,'Step 2: use the power rule',G,5.2]],
+['First, roots. A root is a power in disguise. The square root of x is x to the power one half. The cube root of x is x to the power one third. The number at the bottom of the fraction tells you which root it is.',[4,52,'√x = x<sup>½</sup>',N,6.4],[4,66,'∛x = x<sup>1/3</sup>',N,6.4],[4,80,'bottom number = type of root',U,5.2]],
+['Second, fractions with x at the bottom. One over x squared has x squared below. To move it to the top, we change the sign of the power. So one over x squared becomes x to the power minus two. A negative power only tells us that the x was at the bottom.',[4,96,'1/x² = x⁻²',N,6.4],[4,110,'1/x³ = x⁻³',N,6.4],[4,124,'bottom → top: sign flips',U,5.4]],
+'C',
+['Example one. Differentiate y equals the square root of x. Step one: rewrite it as a power. y equals x to the power one half.',[4,4,'Ex 1:  y = √x',R,6],['u'],[4,20,'y = x<sup>½</sup>',N,6]],
+['Step two: bring the power down in front. That is one half. Step three: subtract one from the power. One half minus one: think of one as two halves. One half minus two halves is minus one half.',[4,34,'½ x<sup>½ − 1</sup>',N,5.8],[4,48,'½ − 1 = ½ − 2/2 = −½',U,5.4]],
+['So d y by d x is one half, times x to the power minus one half. A negative power means one over, so we can also write it as one over two root x. Both forms are correct.',[4,62,'dy/dx = ½x<sup>−½</sup>',U,5.8],[4,76,'= 1 / (2√x)',U,6],['h']],
+['Example two. y equals one over x cubed. Step one: x cubed is at the bottom, so bring it up and flip the sign of the power. y equals x to the power minus three.',[4,94,'Ex 2:  y = 1/x³',R,6],['u'],[4,108,'y = x⁻³',N,6]],
+['Steps two and three: bring minus three down in front. Then minus three minus one is minus four. So d y by d x is minus three x to the power minus four, which is minus three over x to the power four.',[4,122,'dy/dx = −3x⁻⁴',U,6],[4,136,'= −3 / x⁴',U,6],['h']],
+'C',
+['Example three. y equals four over x squared. The four is a number, so it waits. Rewrite: y equals four x to the power minus two.',[4,4,'Ex 3:  y = 4/x²',R,6],['u'],[4,20,'y = 4x⁻²',N,6]],
+['Bring minus two down and multiply by the four that is waiting. Four times minus two is minus eight. The power becomes minus two minus one, which is minus three. The answer is minus eight x to the power minus three, or minus eight over x cubed.',[4,34,'4 × (−2) = −8',N,5.8],[4,48,'dy/dx = −8x⁻³ = −8/x³',U,5.8],['h']],
+['Example four. y equals the cube root of x. Rewrite it as x to the power one third. Bring one third down. Then one third minus one is one third minus three thirds, which is minus two thirds.',[4,66,'Ex 4:  y = ∛x = x<sup>1/3</sup>',R,5.4],['u'],[4,80,'dy/dx = ⅓ x<sup>−2/3</sup>',U,5.8],['h']],
+['Example five has two terms. y equals two root x plus three over x. Rewrite each term: two x to the power one half, plus three x to the power minus one. Then differentiate each term separately.',[4,98,'Ex 5:  y = 2√x + 3/x',R,5.6],['u'],[4,112,'= 2x<sup>½</sup> + 3x⁻¹',N,5.8]],
+['First term: two times one half is one, and the power is minus one half. Second term: three times minus one is minus three, and the power is minus two. So d y by d x is x to the power minus one half, minus three x to the power minus two.',[4,126,'dy/dx = x<sup>−½</sup> − 3x⁻²',U,5.4],[4,140,'= 1/√x − 3/x²',U,5.8],['h']],
+'C',
+['Let us work one together. y equals five over root x. Root x is at the bottom, and root x is x to the power one half. Moving it to the top flips the sign, so y equals five x to the power minus one half.',[4,4,'WORK IT TOGETHER',R,5.8],['u'],[4,20,'y = 5/√x = 5x<sup>−½</sup>',N,5.6]],
+['Bring the power down and multiply by the five. Five times minus one half is minus five over two. The new power is minus one half minus one, which is minus three halves.',[4,36,'5 × (−½) = −5/2',N,5.6],[4,50,'new power: −½ − 1 = −3/2',N,5.4]],
+['So d y by d x is minus five over two, times x to the power minus three halves. Always check that you have rewritten every root and every fraction before you differentiate.',[4,66,'dy/dx = −(5/2)x<sup>−3/2</sup>',U,5.4],['h'],[4,82,'Rewrite FIRST, then differentiate',G,5.4]],
+'C',
+['When two expressions with x are multiplied, you cannot just differentiate each and multiply. Test it: x times x is x squared, which gives two x. But the derivatives of each x are one and one, and multiplying gives only one. So we need the product rule. Call the first expression u and the second v.',[4,4,'PRODUCT RULE: why?',R,5.6],['u'],[4,20,'x · x = x² → 2x   (not 1)',N,5.4],[4,34,'y = uv:   dy/dx = u v′ + v u′',U,5.6],['h']],
+'C',
+['Product rule. When two expressions with x are multiplied, call them u and v.',[4,4,'5. PRODUCT RULE',R,6],['u'],[4,19,'dy/dx = u·v′ + v·u′',N,5.6]],
+['Example one. y equals x squared times x plus one. u is x squared, v is x plus one.',[4,34,'y = x²(x + 1)',N,5.6]],
+['Two x times x plus one, plus x squared. This simplifies to three x squared plus two x.',[4,47,'= 2x(x+1) + x² = 3x² + 2x',U,5.4],['h']],
+['Example two. y equals x sine x. The derivative of x is one, and of sine x is cosine x.',[4,62,'y = x sin x',N,5.6]],
+['So the answer is sine x plus x cosine x.',[4,75,'dy/dx = sin x + x cos x',U,5.6],['h']],
+['One more product rule, step by step. y equals x squared times cosine x. We name the parts: u is x squared, and v is cosine x.',[4,112,'WORK IT TOGETHER',R,5.8],['u'],[4,126,'y = x² cos x',N,5.6],[4,140,'u′ = 2x     v′ = −sin x',G,5.4]],
+['Now use the rule: u times v prime, plus v times u prime. That is x squared times minus sine x, plus cosine x times two x.',[4,154,'= x²(−sin x) + cos x(2x)',N,5.4]],
+['Tidy up: two x cosine x, minus x squared sine x. Always write the final answer neatly.',[4,168,'dy/dx = 2x cos x − x² sin x',U,5.6],['h']],
+'C',
+['When one expression is divided by another, we use the quotient rule. The top is u and the bottom is v. The formula is: v times u prime, minus u times v prime, all over v squared. The order matters because of the minus sign, so always write v u prime first.',[4,4,'QUOTIENT RULE: formula',R,5.6],['u'],[4,20,'y = u / v',N,5.8],[4,34,'dy/dx = (v u′ − u v′) / v²',U,5.4],['h'],[4,50,'bottom first:  v·u′ − u·v′',G,5.2]],
+'C',
+['Quotient rule. When one expression is divided by another, we use this rule.',[4,4,'6. QUOTIENT RULE',R,6],['u'],[4,19,'y = u/v → (v·u′ − u·v′) / v²',N,5.4]],
+['Example one. y equals x over x plus one. Here u is x, and v is x plus one.',[4,34,'y = x / (x + 1)',N,5.6]],
+['x plus one, minus x, all over x plus one squared. That is one over x plus one squared.',[4,47,'= [(x+1)·1 − x·1] / (x+1)² = 1/(x+1)²',U,4.8],['h']],
+['Example two. y equals x squared over x minus one.',[4,62,'y = x² / (x − 1)',N,5.6]],
+['Two x times x minus one, minus x squared, over x minus one squared. That is x squared minus two x, over x minus one squared.',[4,75,'= (x² − 2x) / (x − 1)²',U,5.6],['h']],
+['Quotient rule together. y equals x plus two, over x minus one. u is x plus two, so u prime is one. v is x minus one, so v prime is also one.',[4,112,'WORK IT TOGETHER',R,5.8],['u'],[4,126,'y = (x + 2)/(x − 1)',N,5.6]],
+['Put them in the rule. v times u prime: x minus one, times one. Then minus u times v prime: x plus two, times one. All over x minus one, squared.',[4,140,'= [(x−1)(1) − (x+2)(1)] / (x−1)²',N,4.9]],
+['Be careful with the minus sign. It affects the whole bracket. x minus one minus x minus two gives minus three.',[4,154,'= −3 / (x − 1)²',U,6],['h']],
+'C',
+['Sometimes one expression sits inside another. In two x plus one, all cubed, the inside is two x plus one, and the outside is the cube. Let u be the inside. The chain rule says: differentiate the outside as if u were just x, then multiply by the derivative of the inside, d u by d x.',[4,4,'CHAIN RULE: why?',R,5.6],['u'],[4,20,'y = (2x+1)³,   u = 2x + 1',N,5.4],[4,34,'dy/dx = dy/du × du/dx',U,5.8],['h']],
+['In words: derivative of the outside, times derivative of the inside. If you forget the second part, your answer will be wrong. Now watch it in action.',[4,50,'outside  ×  inside',G,5.8]],
+'C',
+['The chain rule is for a bracket with a power. Differentiate the outside, keep the bracket, then multiply by the derivative of the inside.',[4,4,'7. CHAIN RULE',R,6],['u'],[4,19,'power down × derivative of inside',G,5.2]],
+['Example one. y equals two x plus one, all cubed.',[4,34,'y = (2x + 1)³',N,5.6]],
+['Three comes down, power becomes two, then multiply by two, the derivative of the inside. Six times the bracket squared.',[4,47,'dy/dx = 3(2x+1)² × 2 = 6(2x+1)²',U,5.4],['h']],
+['Example two. y equals x squared plus three, all to the power four.',[4,62,'y = (x² + 3)⁴',N,5.6]],
+['Four comes down, the bracket stays with power three, multiply by two x. The answer is eight x times the bracket cubed.',[4,75,'= 4(x²+3)³ × 2x = 8x(x²+3)³',U,5.2],['h']],
+['Let us work a chain rule question together. y equals three x plus four, all to the power five. First, identify the outside and the inside. The outside is something to the power five. The inside is three x plus four.',[4,112,'WORK IT TOGETHER',R,5.8],['u'],[4,126,'y = (3x + 4)⁵',N,5.6],[4,140,'Inside = 3x + 4',G,5.4]],
+['Differentiate the outside: five comes down and the power becomes four. Keep the bracket exactly as it is.',[4,154,'5(3x + 4)⁴',U,5.6]],
+['Now differentiate the inside. Three x gives three, and four gives zero. So multiply by three. Five times three is fifteen.',[4,168,'dy/dx = 15(3x + 4)⁴',U,6],['h']],
+'C',
+['Now trigonometry. Sine x and cosine x are wave shapes. You do not need to work out their derivatives from scratch. You only need to remember these results, so let us write them clearly.',[4,4,'8. TRIGONOMETRY',R,6],['u'],[4,20,'Learn these 3 results',G,5.4]],
+['The derivative of sine x is cosine x. The derivative of cosine x is minus sine x. Notice the minus sign. A helpful memory: sine becomes cosine, and cosine becomes minus sine.',[4,34,'sin x → cos x',N,6.4],[4,48,'cos x → −sin x',N,6.4],[4,62,'the minus sign is for cos only',R,5.2]],
+['The third result is tan x. Its derivative is one over cosine squared x, which is also called secant squared x. In UTME, sine and cosine appear most often.',[4,78,'tan x → sec² x',N,6.2],[4,92,'(sec x = 1 / cos x)',U,5.2]],
+'C',
+['A number in front of the trig function waits, just like in the power rule. Example one: y equals five sine x. The five waits. Sine x becomes cosine x, so the answer is five cosine x.',[4,4,'Ex 1:  y = 5 sin x',R,6],['u'],[4,20,'dy/dx = 5cos x',U,6],['h']],
+['Example two: y equals three cosine x. The three waits. Cosine x becomes minus sine x, so we get three times minus sine x, which is minus three sine x. The minus sign stays.',[4,36,'Ex 2:  y = 3 cos x',R,6],['u'],[4,50,'dy/dx = 3(−sin x) = −3sin x',U,5.6],['h']],
+['Example three has two terms. y equals two sine x plus cosine x. Differentiate each term alone and keep the sign between them. We get two cosine x, then minus sine x.',[4,66,'Ex 3:  y = 2sin x + cos x',R,5.6],['u'],[4,80,'dy/dx = 2cos x − sin x',U,5.8],['h']],
+'C',
+['What if the angle is not just x, but something like three x? Then we use the chain rule idea: differentiate the trig function, keep the angle, then multiply by the derivative of the angle. The angle three x has derivative three.',[4,4,'ANGLE LIKE 3x',R,6],['u'],[4,20,'sin(ax) → a·cos(ax)',N,6],[4,34,'cos(ax) → −a·sin(ax)',N,6]],
+['Here a is just the number in front of x. Example four: y equals sine three x. The number is three. So d y by d x is three cosine three x.',[4,50,'Ex 4:  y = sin 3x',R,6],[4,64,'dy/dx = 3cos 3x',U,6],['h']],
+['Example five: y equals cosine two x. The number is two. Cosine becomes minus sine, and we multiply by two. So d y by d x is minus two sine two x.',[4,80,'Ex 5:  y = cos 2x',R,6],[4,94,'dy/dx = −2sin 2x',U,6],['h']],
+['Now together: y equals sine three x plus cosine two x. Sine three x gives three cosine three x. Cosine two x gives minus two sine two x. Join them with the signs between them.',[4,112,'WORK IT TOGETHER',R,5.8],['u'],[4,126,'y = sin 3x + cos 2x',N,5.8],[4,140,'dy/dx = 3cos 3x − 2sin 2x',U,5.6],['h']],
+'C',
+['One warning. In calculus, the angle must be in radians, not degrees. That is why questions use angles like pi over two. Remember: sine of pi over two is one, and cosine of pi over two is zero.',[4,4,'ANGLES IN RADIANS',R,6],['u'],[4,20,'sin(π/2) = 1',N,5.8],[4,34,'cos(π/2) = 0',N,5.8],[4,48,'use radians, not degrees',R,5.4]],
+'C',
+['Remember what d y by d x means: it is the gradient formula for the whole curve. It has x in it, because the gradient changes from point to point. To get the gradient at one particular point, we put that point x value into the formula. So there are always two stages: differentiate first, then substitute.',[4,4,'GRADIENT AT ONE POINT',R,5.6],['u'],[4,20,'Stage 1:  find dy/dx',N,5.6],[4,34,'Stage 2:  put in the value of x',N,5.6]],
+'C',
+['Gradient at a point. First differentiate, then substitute the value of x.',[4,4,'9. GRADIENT AT A POINT',R,6],['u']],
+['Example one. Find the gradient of y equals x squared plus three x, at x equals two.',[4,20,'y = x² + 3x,  x = 2',N,5.6]],
+['Differentiate to get two x plus three. Substitute two, and we get seven.',[4,33,'dy/dx = 2(2) + 3 = 7',U,5.6],['h']],
+['Example two. y equals two x cubed minus x, at x equals minus one. Be careful with negative numbers.',[4,48,'y = 2x³ − x,  x = −1',N,5.6]],
+['The derivative is six x squared minus one. Minus one squared is one, so six minus one is five.',[4,61,'6(−1)² − 1 = 5',U,5.6],['h']],
+['Sometimes the gradient is given, and you find x. If y equals x squared minus four x has gradient two, then two x minus four equals two, so x is three.',[4,75,'2x − 4 = 2  →  x = 3',G,5.6]],
+['Now let us find a gradient together. Find the gradient of y equals x cubed minus two x squared plus five, at x equals three. Step one: differentiate. Three x squared, minus four x, and the constant five disappears.',[4,112,'WORK IT TOGETHER',R,5.8],['u'],[4,126,'y = x³ − 2x² + 5',N,5.6],[4,140,'dy/dx = 3x² − 4x',U,5.6]],
+['Step two: put x equals three. Three squared is nine, and three times nine is twenty-seven. Four times three is twelve.',[4,154,'= 3(3)² − 4(3) = 27 − 12',N,5.4]],
+['Twenty-seven minus twelve is fifteen. So the gradient at x equals three is fifteen. Remember: the final answer is a number, not an expression with x.',[4,168,'gradient = 15',U,6.4],['h']],
+'C',
+['We have found the gradient at a point. Now we use it. A tangent is a straight line that just touches a curve at one point, like a ruler laid against a ball. At that point, the tangent has the same steepness as the curve.',[4,4,'10. TANGENT TO A CURVE',R,5.8],['u'],[4,20,'touches the curve at 1 point',N,5.4],[4,34,'gradient of tangent = dy/dx',G,5.4]],
+['To write the equation of any straight line, we need two things: its gradient m, and one point on the line, written x one, y one. Then we use this formula. It says: y minus y one equals m times x minus x one.',[4,52,'Equation of a line:',R,5.6],[4,66,'y − y₁ = m(x − x₁)',N,6.4],['h'],[4,80,'m = gradient,  (x₁, y₁) = a point',U,4.8]],
+['So there are three steps. Step one: find the gradient m by differentiating and putting in x. Step two: find y by putting x in the original equation. Step three: put m and the point into the formula.',[4,96,'1. m = dy/dx at the point',N,5.4],[4,110,'2. find y from the equation',N,5.4],[4,124,'3. y − y₁ = m(x − x₁)',N,5.4]],
+'C',
+['Example one. Find the tangent to y equals x squared, at x equals two. Step two first: when x is two, y is two squared, which is four. The point is two, four.',[4,4,'Ex 1:  y = x²,  x = 2',R,6],['u'],[4,20,'y = 2² = 4  →  (2, 4)',N,5.6]],
+['Step one: the gradient is d y by d x, which is two x. At x equals two, that is four. So m is four.',[4,34,'dy/dx = 2x = 4',U,5.8]],
+['Step three: put m equals four and the point two, four into the formula. Then open the bracket: four times x is four x, and four times minus two is minus eight. Add the four from the left side, and y equals four x minus four.',[4,50,'y − 4 = 4(x − 2)',N,5.8],[4,64,'y = 4x − 8 + 4',N,5.8],[4,78,'y = 4x − 4',U,6.4],['h']],
+['Example two. Tangent to y equals x squared plus three x, at x equals one. The y value is one plus three, which is four. The gradient is two x plus three, which is five. So y minus four equals five times x minus one, and y equals five x minus one.',[4,96,'Ex 2:  y = x² + 3x,  x = 1',R,5.4],['u'],[4,110,'(1, 4),   m = 2x + 3 = 5',N,5.4],[4,124,'y − 4 = 5(x − 1)',N,5.6],[4,138,'y = 5x − 1',U,6.2],['h']],
+'C',
+['Example three. Tangent to y equals x squared minus four x plus three, at x equals three. When x is three, y is nine minus twelve plus three, which is zero. The point is three, zero. The gradient is two x minus four, which is two at x equals three.',[4,4,'Ex 3:  y = x² − 4x + 3',R,5.6],['u'],[4,20,'x = 3:   y = 9 − 12 + 3 = 0',N,5.4],[4,34,'m = 2x − 4 = 2',N,5.6]],
+['Put it in the formula: y minus zero equals two times x minus three. That gives y equals two x minus six. Do not be afraid when y turns out to be zero. It is a perfectly good point.',[4,50,'y − 0 = 2(x − 3)',N,5.8],[4,64,'y = 2x − 6',U,6.4],['h']],
+'C',
+['Now the normal. The normal is the line at right angles to the tangent, at the same point. To get its gradient, flip the tangent gradient upside down and change its sign. This is called the negative reciprocal.',[4,4,'THE NORMAL',R,6],['u'],[4,20,'normal gradient = −1 / m',G,6],['h']],
+['For example, if the tangent gradient is four, the normal gradient is minus one over four. If the tangent gradient is minus two over three, the normal gradient is plus three over two. The two gradients always multiply to give minus one.',[4,38,'m = 4   →   −1/4',N,5.8],[4,52,'m = −2/3   →   3/2',N,5.8],[4,66,'m₁ × m₂ = −1',U,5.8]],
+['Go back to Example one: the tangent gradient was four at the point two, four. So the normal gradient is minus one quarter. Use the same formula with the same point. Multiply both sides by four to clear the fraction, and the normal is x plus four y equals eighteen.',[4,84,'normal:  m = −¼,  (2, 4)',N,5.6],[4,98,'y − 4 = −¼(x − 2)',N,5.8],[4,112,'x + 4y = 18',U,6.2],['h']],
+'C',
+['Work it together. Find the tangent and the normal to y equals x squared plus one, at x equals two. First, y is four plus one, which is five. The point is two, five. The gradient is two x, which is four.',[4,4,'WORK IT TOGETHER',R,5.8],['u'],[4,18,'y = x² + 1,  x = 2',N,5.6],[4,32,'(2, 5),   m = 2x = 4',N,5.6]],
+['Tangent: y minus five equals four times x minus two. Open the bracket and add five. That gives y equals four x minus three.',[4,48,'y − 5 = 4(x − 2)',N,5.6],[4,62,'tangent:  y = 4x − 3',U,6],['h']],
+['Normal: the gradient is minus one quarter. y minus five equals minus a quarter times x minus two. Multiply by four: four y minus twenty equals minus x plus two. So x plus four y equals twenty-two.',[4,80,'y − 5 = −¼(x − 2)',N,5.6],[4,94,'normal:  x + 4y = 22',U,6],['h']],
+'C',
+['Where does a curve turn? At the top of a hill or the bottom of a valley, the curve is flat for a moment, so its gradient is zero. That is why, to find a turning point, we set d y by d x equal to zero and solve for x. Then we put that x in the original equation to get y.',[4,4,'TURNING POINTS: the idea',R,5.6],['u'],[4,20,'top of hill / bottom of valley',N,5.4],[4,34,'gradient = 0  →  dy/dx = 0',U,5.8],['h']],
+['To know whether it is a hill or a valley, differentiate again. If the second derivative is positive, it is a valley, a minimum. If it is negative, it is a hill, a maximum.',[4,50,'d²y/dx² > 0  →  minimum (valley)',G,5.2],[4,64,'d²y/dx² < 0  →  maximum (hill)',G,5.2]],
+'C',
+['Turning points. At a maximum or minimum, the gradient is zero. Set d y by d x equal to zero.',[4,4,'11. TURNING POINTS',R,6],['u'],[4,19,'dy/dx = 0',N,5.8]],
+['Example one. y equals x squared minus six x plus five. Differentiate and set to zero: two x minus six equals zero, so x is three.',[4,34,'y = x² − 6x + 5',N,5.6],[4,47,'2x − 6 = 0  →  x = 3',U,5.6]],
+['When x is three, y is nine minus eighteen plus five, which is minus four. The point is three, minus four.',[4,61,'y = −4,  point (3, −4)',U,5.6]],
+['To know the type, find the second derivative. It is two, which is positive, so it is a minimum. Negative means maximum.',[4,75,'d²y/dx² = 2 > 0 → MINIMUM',G,5.6],['h']],
+'C',
+['Example two. y equals minus x squared plus four x. Set the derivative to zero: minus two x plus four, so x is two.',[4,4,'y = −x² + 4x',N,5.6],[4,17,'−2x + 4 = 0 → x = 2',U,5.6]],
+['The second derivative is minus two, which is negative. So it is a maximum, and y is four.',[4,32,'d²y/dx² = −2 < 0 → MAXIMUM (2, 4)',G,5.2],['h']],
+['Example three. y equals x cubed minus three x. The derivative is three x squared minus three. Set to zero.',[4,50,'y = x³ − 3x',N,5.6],[4,63,'3x² − 3 = 0 → x² = 1',U,5.6]],
+['So x is plus one or minus one. A cubic can have two turning points.',[4,76,'x = 1  or  x = −1',U,5.8],['h']],
+['Final turning point practice. y equals two x squared minus eight x plus one. Step one: differentiate. Four x minus eight. Step two: set it equal to zero and solve. Four x equals eight, so x equals two.',[4,112,'WORK IT TOGETHER',R,5.8],['u'],[4,126,'y = 2x² − 8x + 1',N,5.6],[4,140,'4x − 8 = 0  →  x = 2',U,5.6]],
+['Step three: find y by putting x equals two in the original equation. Two times four is eight, minus sixteen, plus one, is minus seven.',[4,154,'y = 8 − 16 + 1 = −7',N,5.6]],
+['Step four: the second derivative is four, which is positive. So it is a minimum point at two, minus seven.',[4,168,'d²y/dx² = 4 > 0 → MIN (2, −7)',G,5.6],['h']],
+'C',
+['Now back to where we started: a moving object. Let s be the distance travelled, after t seconds. How fast s changes with t is the velocity. In symbols, velocity v equals d s by d t. So to find the velocity, differentiate the distance.',[4,4,'12. MOTION',R,6],['u'],[4,20,'s = distance,   t = time',N,5.6],[4,34,'velocity  v = ds/dt',U,6]],
+['Acceleration is how fast the velocity changes. So differentiate again. Acceleration a equals d v by d t. That is the second derivative of s, written d two s by d t squared.',[4,50,'acceleration  a = dv/dt',U,5.8],[4,64,'= d²s/dt²',U,5.8],[4,78,'differentiate:  s → v → a',G,5.4]],
+['The units help you remember. If s is in metres and t is in seconds, then v is in metres per second, and a is in metres per second squared.',[4,94,'s: metres      t: seconds',N,5.4],[4,108,'v: m/s       a: m/s²',N,5.6]],
+'C',
+['Example one. s equals t squared plus two t. Differentiate once for velocity: two t plus two. At t equals three seconds, that is six plus two, which is eight metres per second.',[4,4,'Ex 1:  s = t² + 2t',R,6],['u'],[4,20,'v = 2t + 2',U,6],[4,34,'t = 3:  v = 6 + 2 = 8 m/s',U,5.6],['h']],
+['Differentiate again for the acceleration: the derivative of two t plus two is two. It is always two, so the acceleration is constant.',[4,50,'a = 2 m/s²  (constant)',U,5.8]],
+['Example two. s equals t cubed minus three t squared. Velocity is three t squared minus six t. Acceleration is six t minus six. At t equals two, the velocity is twelve minus twelve, which is zero. The acceleration is twelve minus six, which is six.',[4,68,'Ex 2:  s = t³ − 3t²',R,6],['u'],[4,82,'v = 3t² − 6t,   a = 6t − 6',U,5.4],[4,96,'t = 2:  v = 0,   a = 6',U,5.8],['h']],
+'C',
+['Sometimes the question says the particle is at rest. At rest means the velocity is zero. So set v equal to zero and solve for t. Example three: s equals t cubed minus six t squared plus nine t.',[4,4,'AT REST  means  v = 0',R,5.8],['u'],[4,20,'s = t³ − 6t² + 9t',N,5.8]],
+['Differentiate: v equals three t squared minus twelve t plus nine. Set it to zero. Divide everything by three to make it simpler: t squared minus four t plus three equals zero.',[4,36,'v = 3t² − 12t + 9 = 0',N,5.6],[4,50,'t² − 4t + 3 = 0',N,5.8]],
+['Factorise: t minus one, times t minus three, equals zero. So t equals one second or t equals three seconds. The particle is at rest at those two times.',[4,66,'(t − 1)(t − 3) = 0',N,5.8],[4,80,'t = 1 s   or   t = 3 s',U,6],['h']],
+'C',
+['Work it together. s equals four t squared minus t cubed. Differentiate for the velocity: four times two is eight t, and minus three t squared. So v equals eight t minus three t squared.',[4,4,'WORK IT TOGETHER',R,5.8],['u'],[4,18,'s = 4t² − t³',N,5.8],[4,32,'v = 8t − 3t²',U,5.8]],
+['Differentiate again for the acceleration: eight minus six t. Now find both at t equals two. Velocity: sixteen minus twelve is four. Acceleration: eight minus twelve is minus four.',[4,48,'a = 8 − 6t',U,5.8],[4,62,'t = 2:  v = 16 − 12 = 4',N,5.6],[4,76,'a = 8 − 12 = −4',U,5.8],['h']],
+['A negative acceleration means the particle is slowing down. It is moving forward, but its speed is dropping.',[4,92,'a < 0  →  slowing down',G,5.6]],
+'C',
+['The derivative is a rate of change of anything, not only distance. If a circle grows as time passes, its area changes with time. We link the rates by multiplying: the rate of the area with the radius, times the rate of the radius with time. This is the chain rule again.',[4,4,'13. RATES OF CHANGE',R,5.6],['u'],[4,20,'dA/dt = dA/dr × dr/dt',N,5.6],['h'],[4,34,'(link the rates by multiplying)',U,5]],
+['Example. The radius of a circle grows at two centimetres per second. How fast is the area growing when the radius is five centimetres? Write the facts, then the area formula: A equals pi r squared.',[4,52,'dr/dt = 2 cm/s',N,5.6],[4,66,'want dA/dt when r = 5',N,5.6],[4,80,'A = πr²',N,6.2]],
+'C',
+['Step one: differentiate A with respect to r. The pi is a constant that waits, and r squared gives two r. So d A by d r is two pi r.',[4,4,'dA/dr = 2πr',U,6.2]],
+['Step two: multiply by d r by d t, which is two. So d A by d t is two pi r times two. Only now put r equals five: two times pi times five times two is twenty pi.',[4,20,'dA/dt = 2πr × 2',N,5.6],[4,34,'= 2π(5)(2) = 20π cm²/s',U,5.6],['h']],
+['Important: put in the numbers at the very end. Differentiate first, substitute last. Twenty pi is about sixty-three square centimetres per second.',[4,50,'Substitute LAST',G,5.8],[4,64,'20π ≈ 63 cm²/s',U,5.8]],
+'C',
+['Finally, let us see where the power rule comes from. This is called first principles. Take y equals x squared. Pick a point x, and a second point a tiny step h further along, at x plus h. Their heights are x squared, and x plus h, all squared.',[4,4,'FIRST PRINCIPLES',R,6],['u'],[4,20,'y = x²',N,6],[4,34,'points:  x   and   x + h',N,5.6]],
+['The gradient between two points is rise divided by run. The rise is x plus h squared, minus x squared. Expand the bracket and the x squared cancels, leaving two x h plus h squared. The run is just h.',[4,50,'rise = (x+h)² − x²',N,5.6],[4,64,'= 2xh + h²',U,6],[4,78,'run = h',N,5.8]],
+['Divide the rise by the run. Both terms on top have h, so each divides by h. That leaves two x plus h. Now let the step h shrink to almost zero. The h vanishes, and we are left with two x. That is exactly the power rule answer.',[4,94,'gradient = (2xh + h²) / h',N,5.4],[4,108,'= 2x + h',U,6],[4,122,'h → 0   gives   dy/dx = 2x',G,5.6],['h']],
+'C',
+['Mixed example one. y equals two x squared plus one, all cubed. This is a bracket with a power, so use the chain rule. The inside is two x squared plus one, and its derivative is four x. The outside, cubed, gives three times the bracket squared.',[4,4,'MIXED PRACTICE',R,6],['u'],[4,20,'y = (2x² + 1)³',N,6],[4,34,'inside = 2x² + 1,  derivative 4x',G,5.2]],
+['Multiply the two parts: three times four x is twelve x. So d y by d x equals twelve x, times the bracket squared.',[4,50,'dy/dx = 3(2x²+1)² × 4x',N,5.4],[4,64,'= 12x(2x² + 1)²',U,6],['h']],
+['Mixed example two. y equals x squared plus one, all over x. You could use the quotient rule, but there is an easier way. Divide each top term by x first. x squared over x is x, and one over x is x to the power minus one.',[4,82,'y = (x² + 1) / x',R,6],['u'],[4,96,'= x + x⁻¹',N,6]],
+['Now differentiate term by term. x gives one. Minus one comes down, and the power becomes minus two. So d y by d x is one, minus one over x squared. Always look for an easier way before using a big rule.',[4,110,'dy/dx = 1 − x⁻²',U,6],[4,124,'= 1 − 1/x²',U,6],['h']],
+'C',
+['Let us finish with the common mistakes. First, forgetting to reduce the power by one. Second, keeping a constant instead of changing it to zero. Third, not rewriting roots and fractions as powers first.',[4,4,'COMMON MISTAKES',R,6],['u'],[4,22,'✗ forgetting power − 1',N,5.4],[4,36,'✗ constant must become 0',N,5.4],[4,50,'✗ not rewriting roots / fractions',N,5.2]],
+['Fourth, forgetting to substitute x in gradient questions. Fifth, forgetting to multiply by the inside derivative in the chain rule. Sixth, losing a minus sign in the quotient rule, or with cosine.',[4,68,'✗ no substitution for gradient',N,5.2],[4,82,'✗ chain rule: × inside derivative',N,5.2],[4,96,'✗ lost minus signs',N,5.4]],
+['Seventh, in tangent questions, putting the y value into the derivative instead of x. And eighth, forgetting to find the y value of the point first. Slow down, check each step, and you will avoid all of these.',[4,114,'✗ tangent: use x for m, not y',N,5.2],[4,128,'✗ forgetting to find y first',N,5.4]],
+'C',
+];
+const Q=[
+['If y = x² − 1/x, find dy/dx.',['2x − 1/x²','2x + x²','2x − x²','2x + 1/x²'],3,'',[
+['Question one. We have y equals x squared minus one over x. We cannot differentiate a fraction like one over x directly, so our first job is to rewrite it as a power of x.',[4,4,'Q1:  y = x² − 1/x',R,5.8],['u']],
+['One over x is the same as x to the power minus one. A power at the bottom becomes a negative power at the top. So minus one over x becomes minus x to the power minus one.',[4,20,'y = x² − x⁻¹',N,5.8]],
+['Now differentiate each term separately. The first term, x squared, gives two x.',[4,36,'d/dx (x²) = 2x',U,5.6]],
+['For the second term, bring down the power minus one and multiply it by the minus sign already there. Minus times minus one gives plus one. Then reduce the power: minus one minus one is minus two.',[4,50,'d/dx (−x⁻¹) = +x⁻²',U,5.6]],
+['A negative power means one over. So x to the minus two is one over x squared. The answer is two x plus one over x squared, option D.',[4,64,'dy/dx = 2x + 1/x²',U,6],['h']],
+['Watch the trap. Options A and C keep a minus sign. But minus times minus gives plus. Many students lose this mark by forgetting that.',[4,78,'⚠  − × − = +',R,5.6]]],
+'If y equals x squared minus one over x, find d y by d x.'],
+['The slope of the tangent to the curve y = 3x² − 2x + 5 at the point (1, 6) is',['4','1','6','5'],0,'',[
+['Question two. Find the slope of the tangent to y equals three x squared minus two x plus five, at the point one, six. The key idea: the slope of a tangent is simply the derivative at that point.',[4,4,'Q2:  y = 3x² − 2x + 5,  (1, 6)',R,5.2],['u']],
+['Step one: differentiate. Three x squared gives six x. Minus two x gives minus two. The constant five gives zero.',[4,20,'dy/dx = 6x − 2',U,5.8]],
+['Step two: decide which number to substitute. The point is one, six. The first number, one, is x. The second, six, is y. We substitute x only.',[4,36,'point (1, 6)  →  x = 1',N,5.6]],
+['Put x equals one. Six times one is six. Six minus two is four. So the slope is four, option A.',[4,50,'6(1) − 2 = 4',U,6],['h']],
+['The traps: six is the y value, and five is the constant. Always put the x value into the derivative, not y.',[4,64,'⚠  use x, not y',R,5.6]]],
+'The slope of the tangent to the curve y equals three x squared minus two x plus five, at the point one, six, is?'],
+['If y = (1 − 2x)³, find the value of dy/dx at x = −1.',['57','27','−6','−54'],3,'',[
+['Question three. y equals one minus two x, all cubed. We want d y by d x when x is minus one. This has a bracket with a power, so we use the chain rule.',[4,4,'Q3:  y = (1 − 2x)³,  x = −1',R,5.2],['u']],
+['Outside: something cubed. Inside: one minus two x. Differentiate the outside first. Three comes down, the power becomes two, and the bracket stays the same.',[4,20,'3(1 − 2x)²',U,5.8]],
+['Now differentiate the inside. One is a constant, so it gives zero. Minus two x gives minus two. So we multiply by minus two.',[4,34,'d/dx (1 − 2x) = −2',U,5.6]],
+['Combine them. Three times minus two is minus six. So d y by d x is minus six, times the bracket squared.',[4,48,'dy/dx = −6(1 − 2x)²',U,5.8]],
+['Now substitute x equals minus one. Two times minus one is minus two, and one minus minus two is one plus two, which is three. Three squared is nine.',[4,62,'1 − 2(−1) = 3,   3² = 9',N,5.6]],
+['Finally, minus six times nine is minus fifty-four. The answer is option D.',[4,76,'dy/dx = −6 × 9 = −54',U,6],['h']],
+['The traps: if you forget to multiply by the inside derivative, you get three times nine, which is twenty-seven. And take care with the signs when substituting a negative number.',[4,90,'⚠  × inside derivative!',R,5.6]]],
+'If y equals one minus two x, all cubed, find the value of d y by d x at x equals minus one.'],
+['If y = x sin x, find dy/dx when x = π/2.',['−π/2','−1','1','π/2'],2,'',[
+['Question four. y equals x times sine x. Two expressions with x are multiplied, so we use the product rule. Let u be x, and v be sine x.',[4,4,'Q4:  y = x sin x,  x = π/2',R,5.2],['u']],
+['Differentiate each part alone. The derivative of x is one. The derivative of sine x is cosine x.',[4,20,'u = x → u′ = 1',G,5.6],[4,34,'v = sin x → v′ = cos x',G,5.6]],
+['The product rule says: u times v prime, plus v times u prime. That is x times cosine x, plus sine x times one.',[4,48,'dy/dx = x cos x + sin x',U,5.8]],
+['Now substitute x equals pi over two. Remember, this is in radians. Sine of pi over two is one, and cosine of pi over two is zero.',[4,62,'sin(π/2) = 1,   cos(π/2) = 0',N,5.4]],
+['So we get pi over two times zero, plus one. Anything times zero is zero, so the answer is one, option C.',[4,76,'= (π/2)(0) + 1 = 1',U,6],['h']],
+['The trap is option D, pi over two. It comes from forgetting that cosine of pi over two is zero.',[4,90,'⚠  cos(π/2) = 0',R,5.6]]],
+'If y equals x sine x, find d y by d x when x equals pi by two.'],
+['Find the minimum value of y = x² − 2x − 3.',['4','1','−1','−4'],3,'',[
+['Question five. Find the minimum value of y equals x squared minus two x minus three. A minimum point is a turning point, where the gradient is zero. So we differentiate and set it equal to zero.',[4,4,'Q5:  min of y = x² − 2x − 3',R,5.4],['u']],
+['Differentiate. x squared gives two x. Minus two x gives minus two. The constant gives zero.',[4,20,'dy/dx = 2x − 2',U,5.8]],
+['Set it equal to zero. Two x minus two equals zero. Two x equals two, so x equals one.',[4,34,'2x − 2 = 0  →  x = 1',U,5.8]],
+['But the question asks for the minimum value, which is the y value, not x. So substitute x equals one into the original equation. One minus two minus three is minus four.',[4,48,'y = 1 − 2 − 3 = −4',U,6],['h']],
+['Check that it is a minimum. The second derivative is two, which is positive, so the curve is U-shaped. The minimum value is minus four, option D.',[4,62,'d²y/dx² = 2 > 0  →  MIN',G,5.8]],
+['The trap is option B, one. That is the x value of the minimum point, not the minimum value.',[4,76,'⚠  value = y, not x',R,5.6]]],
+'Find the minimum value of y equals x squared minus two x minus three.']];
+const SUMMARY={
+ say:'Let us summarise. Differentiation gives the gradient d y by d x. Use the power rule: bring the power down and reduce it by one. Constants become zero. Rewrite roots and fractions first. For a tangent, find the gradient and use y minus y one equals m times x minus x one. For turning points, set d y by d x to zero. Practise many questions on MyUTME.',
+ items:[[4,5,'SUMMARY',R,7],['u'],[4,26,'xⁿ → n·xⁿ⁻¹    constant → 0',N,5.4],[4,40,'rewrite roots & fractions first',N,5.4],[4,54,'Gradient: differentiate, then substitute',N,4.8],[4,68,'Tangent: y − y₁ = m(x − x₁)',N,5.2],[4,82,'Turning point: dy/dx = 0',N,5.6],[4,96,'Velocity = ds/dt    a = dv/dt',N,5.2],[4,112,'Practise more on MyUTME!',G,6]],
+ bye:'Well done! You have completed this lesson. Join us in the next video as we explore the next topic. Keep practising on MyUTME.'
+};
+</script>
+<script>
+/* ===== PLAYER ENGINE — do not edit below this line ===== */
+
+const B=document.getElementById('b'),H=document.getElementById('h'),SUB=document.getElementById('sub'),ER=document.getElementById('er');
+let run=0,paused=false,cx=0,cy=0,last=null;
+const INK='#222',BL='#1d3fbf',RD='#c0261b',GR='#11793a';
+function tw(ms,fn,id){return new Promise((r,j)=>{let t=0,l=null;(function f(n){if(id!=run)return j('x');if(l===null)l=n;if(!paused)t+=(n-l)*SP;l=n;fn(Math.min(1,t/ms));t>=ms?r():requestAnimationFrame(f)})(performance.now())})}
+const sl=(ms,id)=>tw(ms,()=>{},id);
+function mv(x,y,id,ms=350){const a=cx,b=cy;H.style.opacity=1;return tw(ms,p=>{cx=a+(x-a)*p;cy=b+(y-b)*p;H.style.transform=`translate(${cx}px,${cy}px)`},id)}
+async function wr(it,id){
+ if(id!=run)throw'x';
+ if(it[0]=='u'){const e=last,w=e.offsetWidth,l=e.offsetLeft,t=e.offsetTop+e.offsetHeight*.9;const d=document.createElement('div');d.className='ul';d.style.cssText=`left:${l}px;top:${t}px;width:0`;B.appendChild(d);await mv(l,t,id);return tw(700,p=>{d.style.width=w*p+'px';cx=l+w*p;H.style.transform=`translate(${cx}px,${t}px)`},id)}
+ if(it[0]=='h'){await mv(last.offsetLeft+last.offsetWidth*.5,last.offsetTop+last.offsetHeight*.7,id);last.classList.add('hl');return sl(500,id)}
+ const d=document.createElement('div');d.className='w';d.style.cssText=`left:${it[0]}%;top:${it[1]*.48+OFF}cqw;color:${it[3]};font-size:${it[4]}cqw;clip-path:inset(0 100% 0 0)`;d.innerHTML=it[2];B.appendChild(d);last=d;
+ const w=d.offsetWidth,l=d.offsetLeft,t=d.offsetTop+d.offsetHeight*.75;await mv(l,t,id,250);
+ return tw(Math.max(700,it[2].length*K),p=>{d.style.clipPath=`inset(0 ${(1-p)*100}% 0 0)`;cx=l+w*p;cy=t+Math.sin(p*30)*5;H.style.transform=`translate(${cx}px,${cy}px)`},id)}
+function speak(t,id,est){
+ return new Promise(resolve=>{
+  const synth=window.speechSynthesis;
+  if(!synth||!window.SpeechSynthesisUtterance){sl(est,id).then(resolve,resolve);return}
+  let finished=false,watchdog=null,resumeTimer=null;
+  const done=()=>{if(finished)return;finished=true;clearTimeout(watchdog);clearInterval(resumeTimer);resolve()};
+  try{
+   synth.cancel();
+   const u=new SpeechSynthesisUtterance(t.replace(/\*/g,''));
+   const voices=synth.getVoices();
+   u.voice=voices.find(v=>/^en[-_]US/i.test(v.lang))
+     ||voices.find(v=>/^en[-_]GB/i.test(v.lang))
+     ||voices.find(v=>/^en[-_](ZA|AU|CA|IN)/i.test(v.lang))
+     ||voices.find(v=>/^en/i.test(v.lang))||null;
+   u.lang=u.voice?u.voice.lang:'en-US';
+   u.rate=Math.max(.75,Math.min(1.5,.85*SP));
+   u.pitch=1;
+   u.onend=done;u.onerror=done;
+   watchdog=setTimeout(done,Math.max(12000,est*2.5+6000));
+   resumeTimer=setInterval(()=>{if(id!==run){done();return}if(synth.paused)synth.resume()},1000);
+   synth.resume();
+   synth.speak(u);
+  }catch(e){done()}
+ });
+}
+function say(t,id,extra){const tk=t.split(' ').map(w=>w.replace(/\*(.+?)\*/,'<b>$1</b>')),est=tk.length*470;
+ const sb=tw(est,p=>{SUB.innerHTML=tk.slice(0,Math.ceil(p*tk.length)).join(' ')},id).then(()=>SUB.innerHTML=tk.join(' '));
+ return Promise.all([speak(t,id,est),sb,extra?extra(est):0])}
+async function step(s,id){const its=s.slice(1);say(s[0],id,async est=>{const wt=its.map(i=>i.length>2?i[2].length:6),sum=wt.reduce((a,b)=>a+b,0)||1;for(const i of its)await wr(i,id)}).catch(()=>{});
+ await Promise.all([]);}
+async function runStep(s,id){const its=s.slice(1);const tc=its.reduce((a,i)=>a+(i.length>2?i[2].length:0),0)||1;K=Math.min(170,Math.max(80,s[0].split(' ').length*400*.8/tc));await say(s[0],id,async()=>{for(const i of its)await wr(i,id)});await sl(1300,id)}
+async function brk(id,blk){let need=0;for(const e of blk){if(typeof e==='string')continue;for(const i of e.slice(1))if(i.length>2)need=Math.max(need,i[1]*.48+9)}
+ const u=B.clientWidth/100,HH=B.clientHeight/u;let bot=0;B.querySelectorAll('.w').forEach(e=>bot=Math.max(bot,(e.offsetTop+e.offsetHeight)/u));
+ if(!bot){OFF=0;return}
+ if(bot+4+need>HH-3){await clr(id);OFF=0}else OFF=bot+1}
+async function clr(id){ER.style.width='0';await tw(900,p=>{ER.style.width=p*105+'%';cx=B.clientWidth*p;cy=B.clientHeight*.5+Math.sin(p*20)*30;H.style.transform=`translate(${cx}px,${cy}px)`;H.style.opacity=1},id);[...B.querySelectorAll('.w,.ul')].forEach(e=>e.remove());ER.style.width='0';await sl(200,id)}
+let OFF=0,K=90,SP=1,cur=0,qi=-1;
+const EMB=window.self!==window.top,NUMW=['zero','one','two','three','four','five','six','seven','eight','nine','ten'];
+const INTRO_LIST=INTRO(LESSON),INTRO_LEN=INTRO_LIST.length;
+const L=[...INTRO_LIST,...BODY,'C'];
+async function quiz(id,from=0){await clr(id);
+ if(!from)await say('Now let us do some classwork. These are '+(NUMW[Q.length]||Q.length)+' real past questions. You have about twelve seconds for each one. Pick your answer before the time runs out.',id);
+ for(let n=from;n<Q.length;n++){qi=n;const q=Q[n],d=document.createElement('div');d.id='q';let pick=-1;
+  d.innerHTML=`<small>CLASSWORK · Question ${n+1} of ${Q.length} · <span id="cd">12</span>s</small><h3>${q[0]}</h3>`+q[1].map((o,i)=>`<button class="o">${'ABCD'[i]}. ${o}</button>`).join('')+'<div id="tb"></div>';
+  B.appendChild(d);d.querySelectorAll('.o').forEach((b,i)=>b.onclick=()=>{if(d.dataset.l)return;pick=i;d.querySelectorAll('.o').forEach(x=>x.classList.remove('s'));b.classList.add('s')});
+  H.style.opacity=0;
+  await say('Question '+(n+1)+'. '+q[5],id);
+  await tw(12000,p=>{d.querySelector('#cd').textContent=Math.ceil(12*(1-p));d.querySelector('#tb').style.width=(1-p)*100+'%'},id);
+  d.dataset.l=1;const bs=d.querySelectorAll('.o');bs[q[2]].classList.add('ok');if(pick>=0&&pick!=q[2])bs[pick].classList.add('no');
+  await say('The correct answer is option '+'ABCD'[q[2]]+'. Now let us solve it together, step by step.',id);d.remove();await brk(id,q[4]);for(const st of q[4])await runStep(st,id);await sl(900,id)}}
+async function end(id){await clr(id);
+ await say(SUMMARY.say,id,async()=>{for(const i of SUMMARY.items)await wr(i,id)});
+ H.style.opacity=0;await say(SUMMARY.bye,id)}
+const INTRO_END=INTRO_LEN;
+async function play(from=0,qf=-1){const id=++run;qi=-1;OFF=0;try{if(qf<0){for(let i=from;i<L.length;i++){cur=i;document.getElementById('sk').style.display=i<INTRO_END?'':'none';const s=L[i];if(s==='C'){const nb=[];for(let k=i+1;k<L.length&&L[k]!=='C';k++)nb.push(L[k]);await brk(id,nb)}else await runStep(s,id)}qf=0}document.getElementById('sk').style.display='none';await quiz(id,qf);await end(id)}catch(e){}}
+function jump(f,q){try{window.speechSynthesis.cancel()}catch(e){}paused=false;document.getElementById('pb').textContent='⏸ Pause';B.querySelectorAll('.w,.ul,#q').forEach(e=>e.remove());ER.style.width='0';H.style.opacity=0;cx=cy=0;play(f,q)}
+function nx(){if(qi>=0)return jump(0,qi+1);const j=L.indexOf('C',cur+1);jump(j<0?L.length:j+1)}
+function sp(){SP=SP>=2?1:SP+.5;document.getElementById('spb').textContent='⏩ '+SP+'x'}
+function start(){if(!EMB&&!document.fullscreenElement)fs();document.getElementById('st').style.display='none';try{window.speechSynthesis&&window.speechSynthesis.cancel()}catch(e){}paused=false;document.getElementById('pb').textContent='⏸ Pause';B.querySelectorAll('.w,.ul,#q').forEach(e=>e.remove());ER.style.width='0';H.style.opacity=0;cx=cy=0;play()}
+function tp(){paused=!paused;document.getElementById('pb').textContent=paused?'▶ Resume':'⏸ Pause';try{if(window.speechSynthesis)paused?speechSynthesis.pause():speechSynthesis.resume()}catch(e){}}
+try{
+ if(window.speechSynthesis){
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();
+ }
+}catch(e){}
+function fit(){const h=innerHeight,w=Math.min(innerWidth,h*.56),V=document.getElementById('v');V.classList.add('p');V.style.setProperty('--sh','20cqw');V.style.width=w+'px';V.style.height=h+'px';V.style.transform=`translate(${(innerWidth-w)/2}px,0)`}
+function fs(){const V=document.getElementById('v');try{if(document.fullscreenElement){document.exitFullscreen();return}(V.requestFullscreen||V.webkitRequestFullscreen).call(V);}catch(e){}}
+addEventListener('resize',fit);document.addEventListener('fullscreenchange',fit);fit();
+/* ---------- init: titles, close/stop hooks ---------- */
+document.title='MyUTME – '+LESSON.topic;
+document.querySelector('#st h2').textContent=LESSON.topic+' – JAMB '+LESSON.subject;
+SUB.textContent='MyUTME · '+LESSON.subject+' · '+LESSON.topic;
+function stopAll(){run++;paused=false;try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}}
+addEventListener('message',e=>{const d=e.data;if(d&&d.type==='myutme-lesson-stop')stopAll()});
+addEventListener('pagehide',stopAll);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&!paused&&document.getElementById('st').style.display==='none')tp()});
+</script></body></html>
