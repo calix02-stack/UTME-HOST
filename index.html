@@ -31071,6 +31071,66 @@ function refreshApp() {
 })();
 
 // ============================================================
+//  DRAG-TO-REFRESH (works in the browser tab; fixes Chrome's stuck circle)
+//  The page body is fixed and the screens scroll inside .view, so Chrome's own
+//  pull-to-refresh circle shows up but never finishes. Native one is switched
+//  off here and a reliable one takes its place.
+// ============================================================
+(function () {
+    var st = document.createElement('style');
+    st.textContent = 'html,body,.view{overscroll-behavior-y:contain !important}' +
+        '#mw-ptr{position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);left:50%;width:40px;height:40px;margin-left:-20px;border-radius:50%;background:#fff;color:#0F6B3F;box-shadow:0 4px 14px rgba(0,0,0,.25);display:grid;place-items:center;z-index:2147481000;opacity:0;transform:translateY(-60px);pointer-events:none}' +
+        '#mw-ptr.s svg{animation:mwspin .7s linear infinite}@keyframes mwspin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(st);
+
+    var TH = 110, startY = 0, startX = 0, dy = 0, tracking = false, view = null, ind = null, busy = false;
+    var ARROW = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>';
+    var SPIN = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>';
+    function getInd() {
+        if (!ind || !ind.isConnected) { ind = document.getElementById('mw-ptr') || document.createElement('div'); ind.id = 'mw-ptr'; ind.innerHTML = ARROW; if (!ind.isConnected) document.body.appendChild(ind); }
+        return ind;
+    }
+    function hide() { var i = getInd(); i.classList.remove('s'); i.style.opacity = 0; i.style.transform = 'translateY(-60px)'; }
+    function atTop(el, v) {
+        for (; el && el !== v; el = el.parentElement) if (el.scrollTop > 0) return false;
+        return v.scrollTop <= 0;
+    }
+    document.addEventListener('touchstart', function (e) {
+        tracking = false; dy = 0;
+        if (busy || e.touches.length !== 1) return;
+        try { if (typeof isStandaloneApp === 'function' && isStandaloneApp()) return; } catch (x) {}
+        var t = e.target; if (!t || !t.closest) return;
+        view = t.closest('.view');
+        if (!view || view.classList.contains('view-chat') || view.classList.contains('view-exam') || view.classList.contains('view-nonav')) return;
+        if (t.closest('input, textarea, select, [contenteditable], .ai-history-overlay')) return;
+        if (!atTop(t, view)) return;
+        startY = e.touches[0].clientY; startX = e.touches[0].clientX; tracking = true;
+    }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+        if (!tracking) return;
+        var y = e.touches[0].clientY - startY, x = e.touches[0].clientX - startX;
+        if (y <= 0 || Math.abs(x) > Math.abs(y) || view.scrollTop > 0) { if (dy > 0) hide(); dy = 0; if (y <= 0 || view.scrollTop > 0) tracking = false; return; }
+        dy = y;
+        var i = getInd(), d = Math.min(y * 0.5, 80);
+        i.style.opacity = Math.min(y / TH, 1);
+        i.style.transform = 'translateY(' + d + 'px) rotate(' + (y * 3) + 'deg)';
+    }, { passive: true });
+    function end() {
+        if (!tracking) return;
+        tracking = false;
+        if (dy >= TH) {
+            busy = true;
+            var i = getInd(); i.innerHTML = SPIN; i.classList.add('s'); i.style.opacity = 1; i.style.transform = 'translateY(60px)';
+            if (typeof window.mwRefresh === 'function') window.mwRefresh(); else location.reload();
+            setTimeout(function () { busy = false; hide(); getInd().innerHTML = ARROW; }, 8000);
+        } else hide();
+        dy = 0;
+    }
+    document.addEventListener('touchend', end, { passive: true });
+    document.addEventListener('touchcancel', function () { tracking = false; dy = 0; hide(); }, { passive: true });
+})();
+
+// ============================================================
 //  COPY PROTECTION (JS layer)
 //  Backs up the CSS user-select rules with real event interception, so
 //  Ctrl+C / long-press "Copy" / right-click "Copy" can't pull protected
