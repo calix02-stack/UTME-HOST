@@ -13143,7 +13143,13 @@ var MOCK_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 //   /?mock=bio,gov&s=<start seconds, base36>&e=<end seconds, base36>
 // A user's list of Mocks (from links they opened) is kept in storage 'myMocks'.
 var MOCK_LINK_BASE = '';   // optional: e.g. 'https://join.myutme.com.ng' (a different domain opens in the browser, not the installed app)
-function mockLinkFor(ex) { return (MOCK_LINK_BASE || location.origin) + '/?mock=' + ex.subs.join(',') + '&s=' + Math.floor(ex.start / 1000).toString(36) + '&e=' + Math.floor(ex.end / 1000).toString(36); }
+function mockLinkFor(ex) {
+    var u = (MOCK_LINK_BASE || location.origin) + '/?mock=' + ex.subs.join(',') + '&s=' + Math.floor(ex.start / 1000).toString(36) + '&e=' + Math.floor(ex.end / 1000).toString(36);
+    if (ex.topics && ex.topics.length) u += '&t=' + encodeURIComponent(ex.topics.map(function(t) { return t.id; }).join(',')) + '&tn=' + encodeURIComponent(ex.topics.map(function(t) { return t.name || 'Topic'; }).join('|'));
+    if (ex.n) u += '&n=' + ex.n;
+    if (ex.free === false) u += '&u=0';
+    return u;
+}
 // A short, copyable Mock code, e.g. BIO-GOV-H5EW9-H5EXK (subjects, start minute, end minute). It carries everything, so it never expires or disappears.
 function mockCodeFor(ex) { return ex.subs.join('-').toUpperCase() + '-' + Math.floor(ex.start / 60000).toString(36).toUpperCase() + '-' + Math.floor(ex.end / 60000).toString(36).toUpperCase(); }
 function mockParseCode(txt) {
@@ -13157,7 +13163,28 @@ function mockParseCode(txt) {
         return mockMakeExam(subs, st, en);
     } catch (e) { return null; }
 }
-function mockMakeExam(subs, start, end) { return { id: subs.join('-') + '-' + Math.floor(start / 60000).toString(36), subs: subs, start: start, end: end }; }
+function mockHash(str) { var h = 0; str = String(str); for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; } return Math.abs(h).toString(36); }
+// opts (all optional): { topics: [{id, name}], n: number of questions, free: false = activated students only }
+function mockMakeExam(subs, start, end, opts) {
+    opts = opts || {};
+    var ex = { id: subs.join('-') + '-' + Math.floor(start / 60000).toString(36), subs: subs, start: start, end: end };
+    if (opts.topics && opts.topics.length) { ex.topics = opts.topics; ex.id += '-t' + mockHash(opts.topics.map(function(t) { return t.id; }).join(',')); }
+    if (opts.n) ex.n = opts.n;
+    ex.free = opts.free === false ? false : true;
+    return ex;
+}
+function mockQCount(ex) { return (ex && ex.n) || MOCK_Q_PER_SUBJECT; }
+function mockAllowsFree(ex) { return !ex || ex.free !== false; }
+function mockExamTitle(ex) {
+    if (ex.topics && ex.topics.length) return mockSubjectName(ex.subs[0]) + ' · ' + ex.topics.map(function(t) { return t.name || 'Topic'; }).join(', ');
+    return mockExamTitle(ex);
+}
+function mockExamMeta(ex) {
+    var bits = [mockQCount(ex) + ' questions' + (ex.subs.length > 1 ? ' per subject' : '')];
+    if (ex.topics && ex.topics.length) bits.unshift('Topic Mock');
+    bits.push(mockAllowsFree(ex) ? 'Open to all students' : 'Activated students only');
+    return bits.join(' · ');
+}
 function mockReadList(key) { try { var l = JSON.parse(storage.get(key) || '[]'); return Array.isArray(l) ? l.filter(function(x) { return x && Array.isArray(x.subs) && x.start && x.end; }) : []; } catch (e) { return []; } }
 function mockExams() {
     var cutoff = Date.now() - 36 * 3600 * 1000;
@@ -13187,7 +13214,15 @@ function captureMockLink() {
         subs = subs.slice(0, 2);
         var st = parseInt(p.get('s') || '', 36) * 1000, en = parseInt(p.get('e') || '', 36) * 1000;
         if (!subs.length || !st || !en || en <= st) return false;
-        var __gx = mockMakeExam(subs, st, en);
+        var __opts = { free: p.get('u') !== '0' };
+        var __n = parseInt(p.get('n') || '', 10); if (__n >= 5 && __n <= 100) __opts.n = __n;
+        var __tid = (p.get('t') || '').split(',').map(function(x) { return x.trim(); }).filter(Boolean);
+        if (__tid.length) {
+            var __tn = (p.get('tn') || '').split('|');
+            __opts.topics = __tid.map(function(id, k) { return { id: id, name: __tn[k] || 'Topic' }; });
+            subs = subs.slice(0, 1);
+        }
+        var __gx = mockMakeExam(subs, st, en, __opts);
         mockAddToMine(__gx);
         state.mockGate = __gx;
         storage.set('pendingMock', '1');
@@ -13212,9 +13247,10 @@ function renderMockGate() {
         '<div class="card" style="max-width:420px;width:100%;text-align:center;padding:26px 20px">' +
         '<p style="font-size:38px;margin:0 0 6px">📝</p>' +
         '<p style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--green);margin:0 0 4px">MYUTME MOCK EXAM</p>' +
-        '<h2 class="title" style="font-size:20px;margin:0 0 8px">' + esc(mockSubjectNames(ex.subs).join(' + ')) + '</h2>' +
+        '<h2 class="title" style="font-size:20px;margin:0 0 8px">' + esc(mockExamTitle(ex)) + '</h2>' +
         '<div style="margin-bottom:8px">' + badge + '</div>' +
         '<p style="font-size:12.5px;color:var(--muted);margin:0 0 16px;line-height:1.5">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
+        '<p style="font-size:11.5px;color:var(--muted);margin:0 0 12px">' + esc(mockExamMeta(ex)) + '</p>' +
         '<p style="font-size:13px;margin:0 0 16px;line-height:1.55">To start this exam you must be a MyUTME student.</p>' +
         '<button class="btn btn-green" style="width:100%;padding:13px;margin-bottom:8px" data-action="show-signup">Become a student</button>' +
         '<button class="btn btn-outline" style="width:100%;padding:13px" data-action="show-login">I\'m already a student</button>' +
@@ -13274,17 +13310,61 @@ function fridayLabel(w) {
     const p = w.split('-');
     return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
+async function adminMockLoadTopics(sid) {
+    state.adminMockTopics = state.adminMockTopics || {};
+    if (state.adminMockTopics[sid] && state.adminMockTopics[sid] !== 'loading') return;
+    state.adminMockTopics[sid] = 'loading'; render();
+    try {
+        const t = await window.OfflineDB.getTopicsOffline(sid);
+        state.adminMockTopics[sid] = (t || []).map(function(x) { return { id: x.id, name: x.name || x.title || 'Topic' }; });
+    } catch (e) { console.warn('Admin topics load error:', e); state.adminMockTopics[sid] = []; }
+    render();
+}
 function renderAdminMocks() {
     if (!isAdmin()) return '';
+    const mode = state.adminMockMode === 'topic' ? 'topic' : 'subject';
     const sel = state.adminMockSel || [];
+    const selTopics = state.adminMockTopicSel || [];
+    const nSel = state.adminMockN || 40;
+    const freeOn = state.adminMockFree !== false;
     const chip = function(on) { return 'padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;border:1.5px solid var(--green);cursor:pointer;margin:0 6px 8px 0;background:' + (on ? 'var(--green)' : 'transparent') + ';color:' + (on ? '#fff' : 'var(--green)'); };
     const field = 'width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;margin:4px 0 10px';
+    const lbl = 'font-size:12px;font-weight:700;display:block;margin:2px 0 6px';
     let h = '<div class="card"><p style="font-size:14px;font-weight:800;margin:0 0 4px">➕ Create a Mock</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Pick 1 or 2 subjects and set when it starts and ends. Each subject keeps the normal time (about 30 minutes).</p><div>';
-    SUBJECTS.filter(function(x) { return x.id !== 'lhm'; }).forEach(function(x) {
-        h += '<button style="' + chip(sel.indexOf(x.id) !== -1) + '" data-action="adminmock-toggle" data-subject="' + x.id + '">' + esc(x.name) + '</button>';
-    });
-    h += '</div><label style="font-size:12px;font-weight:700">Starts</label><input id="am-start" type="datetime-local" style="' + field + '" value="' + esc(state.adminMockStart || '') + '">' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Choose the type, the questions, who can attempt it, and when it starts and ends.</p>' +
+        '<label style="' + lbl + '">Mock type</label><div>' +
+        '<button style="' + chip(mode === 'subject') + '" data-action="adminmock-mode" data-mode="subject">By subject</button>' +
+        '<button style="' + chip(mode === 'topic') + '" data-action="adminmock-mode" data-mode="topic">By topic</button></div>';
+    if (mode === 'subject') {
+        h += '<label style="' + lbl + '">Subjects (1 or 2)</label><div>';
+        SUBJECTS.filter(function(x) { return x.id !== 'lhm'; }).forEach(function(x) {
+            h += '<button style="' + chip(sel.indexOf(x.id) !== -1) + '" data-action="adminmock-toggle" data-subject="' + x.id + '">' + esc(x.name) + '</button>';
+        });
+        h += '</div>';
+    } else {
+        const sid = sel[0];
+        h += '<label style="' + lbl + '">Subject</label><div>';
+        SUBJECTS.filter(function(x) { return x.id !== 'lhm'; }).forEach(function(x) {
+            h += '<button style="' + chip(sid === x.id) + '" data-action="adminmock-toggle" data-subject="' + x.id + '">' + esc(x.name) + '</button>';
+        });
+        h += '</div>';
+        if (sid) {
+            const tl = (state.adminMockTopics || {})[sid];
+            h += '<label style="' + lbl + '">Topics (questions come only from these)</label><div>';
+            if (tl === 'loading' || tl === undefined) h += '<p style="font-size:12px;color:var(--muted);margin:0 0 8px">Loading topics…</p>';
+            else if (!tl.length) h += '<p style="font-size:12px;color:var(--muted);margin:0 0 8px">No topics found for this subject.</p>';
+            else tl.forEach(function(t) { h += '<button style="' + chip(selTopics.indexOf(t.id) !== -1) + '" data-action="adminmock-topic" data-topic="' + esc(t.id) + '">' + esc(t.name) + '</button>'; });
+            h += '</div>';
+        } else h += '<p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick a subject to see its topics.</p>';
+    }
+    h += '<label style="' + lbl + '">Number of questions</label><div>';
+    [10, 20, 30, 40].forEach(function(n) { h += '<button style="' + chip(nSel === n) + '" data-action="adminmock-n" data-n="' + n + '">' + n + '</button>'; });
+    h += '</div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-radius:12px;background:var(--bg);margin:2px 0 12px">' +
+        '<div><p style="font-size:13px;font-weight:800;margin:0">Allow unactivated students</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:3px 0 0;line-height:1.45">' + (freeOn ? 'ON: anyone with an account can take the full Mock.' : 'OFF: only activated students can take it. Others are asked to activate.') + '</p></div>' +
+        '<button style="flex:0 0 auto;min-width:62px;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:0;cursor:pointer;background:' + (freeOn ? 'var(--green)' : '#9aa5a0') + ';color:#fff" data-action="adminmock-free">' + (freeOn ? 'ON' : 'OFF') + '</button></div>' +
+        '<label style="font-size:12px;font-weight:700">Starts</label><input id="am-start" type="datetime-local" style="' + field + '" value="' + esc(state.adminMockStart || '') + '">' +
         '<label style="font-size:12px;font-weight:700">Ends</label><input id="am-end" type="datetime-local" style="' + field + '" value="' + esc(state.adminMockEnd || '') + '">' +
         '<button class="btn btn-green" style="width:100%;padding:12px" data-action="adminmock-create">Create Mock</button></div>';
     const list = mockReadList('adminMocks').sort(function(a, b) { return b.start - a.start; });
@@ -13293,8 +13373,9 @@ function renderAdminMocks() {
     list.forEach(function(ex) {
         const st = mockExamStatus(ex);
         h += '<div style="border-top:1px solid var(--line);padding:12px 0">' +
-            '<div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:13px">' + esc(mockSubjectNames(ex.subs).join(' + ')) + '</b><span style="font-size:10px;font-weight:800;color:' + (st === 'open' ? 'var(--green)' : '#7a8580') + '">' + st.toUpperCase() + '</span></div>' +
-            '<p style="font-size:11.5px;color:var(--muted);margin:3px 0 6px">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
+            '<div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:13px">' + esc(mockExamTitle(ex)) + '</b><span style="font-size:10px;font-weight:800;color:' + (st === 'open' ? 'var(--green)' : '#7a8580') + '">' + st.toUpperCase() + '</span></div>' +
+            '<p style="font-size:11.5px;color:var(--muted);margin:3px 0 2px">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
+            '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">' + esc(mockExamMeta(ex)) + '</p>' +
             '<p style="font-size:10.5px;color:var(--muted);margin:0 0 4px">Mock link (takes them straight to the exam)</p>' +
             '<p style="font-size:11px;word-break:break-all;margin:0 0 10px;padding:10px;border-radius:10px;background:var(--bg);user-select:all;-webkit-user-select:all">' + esc(mockLinkFor(ex)) + '</p>' +
             '<div style="display:flex;gap:8px"><button class="btn btn-green" style="flex:2;padding:10px;font-size:12px" data-action="adminmock-copy" data-exam="' + esc(ex.id) + '">Copy link</button>' +
@@ -13338,8 +13419,9 @@ function renderMockExamPicker() {
         const badge = st === 'open' ? '<span style="background:#0F6B3F;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">OPEN NOW</span>'
             : st === 'upcoming' ? '<span style="background:#B7791F;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">UPCOMING</span>'
             : '<span style="background:#7a8580;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">CLOSED</span>';
-        let card = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><p style="font-size:14px;font-weight:800;margin:0">' + esc(mockSubjectNames(ex.subs).join(' + ')) + '</p>' + badge + '</div>' +
-            '<p style="font-size:11.5px;color:var(--muted);margin:0 0 10px">🕒 ' + esc(mockFmtRange(ex)) + '</p>';
+        let card = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><p style="font-size:14px;font-weight:800;margin:0">' + esc(mockExamTitle(ex)) + '</p>' + badge + '</div>' +
+            '<p style="font-size:11.5px;color:var(--muted);margin:0 0 4px">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
+            '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + esc(mockExamMeta(ex)) + '</p>';
         ex.subs.forEach(function(sid) {
             const taken = mockTaken(rec, sid, ex);
             if (taken) {
@@ -13348,13 +13430,15 @@ function renderMockExamPicker() {
                 card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span>' +
                     (rel ? '<b style="color:var(--green)">' + rec.scores[sid] + ' / 100</b>' : '<span style="color:var(--muted);font-size:11.5px">✓ Submitted</span>') + '</div>';
                 card += mockReviewRowHtml(rec, sid, st);
+            } else if (st === 'open' && !mockAllowsFree(ex) && !isPaidUser()) {
+                card += '<button class="btn btn-gold" style="width:100%;padding:12px;margin-top:6px" data-action="mock-activate-go">🔒 Activate to take ' + esc(ex.topics && ex.topics.length ? 'this Mock' : mockSubjectName(sid)) + '</button>';
             } else if (st === 'open') {
                 card += '<button class="btn btn-green" style="width:100%;padding:12px;margin-top:6px" data-action="friday-start" data-subject="' + sid + '" data-exam="' + esc(ex.id) + '">Start ' + esc(mockSubjectName(sid)) + '</button>';
             } else {
                 card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span><span style="color:var(--muted);font-size:11.5px">' + (st === 'upcoming' ? 'Opens ' + esc(mockFmtTime(ex.start)) : 'Closed') + '</span></div>';
             }
         });
-        if (st === 'open') card += '<p style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.5">' + MOCK_Q_PER_SUBJECT + ' questions per subject · each scored out of 100 · results show immediately after you submit' + (ex.subs.length > 1 ? ' · take one subject, then the other' : '') + '</p>';
+        if (st === 'open') card += '<p style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.5">' + mockQCount(ex) + ' questions' + (ex.subs.length > 1 ? ' per subject' : '') + ' · scored out of 100 · results show immediately after you submit' + (ex.subs.length > 1 ? ' · take one subject, then the other' : '') + '</p>';
         html += card + '</div>';
     });
     if (anyReleased) {
@@ -13568,16 +13652,34 @@ async function startMockExam(subjects, examId) {
     const __wk = mockExamWeek(__ex);
     const __rec = fridayRecords().find(function(r) { return r.week === __wk; });
     if (mockTaken(__rec, __sid, __ex)) { showToast('You have already taken ' + mockSubjectName(__sid) + '.', 'error'); return; }
+    if (!mockAllowsFree(__ex) && !isPaidUser()) { mockGoActivate('This Mock is only open to activated students. Activate to take it.'); return; }
     state.isLoading = true;
     render();
     try {
         let allQuestions = [];
-        const perSubject = MOCK_Q_PER_SUBJECT;
+        const perSubject = mockQCount(__ex);
         state.engMockPassage = null;
         state.engMockHasPassage = false;
         state.engMockPassageRead = false;
         state.engMockPassageId = null;
 for (const subjectId of subjects) {
+            if (__ex.topics && __ex.topics.length) {
+                // TOPIC MOCK: questions come only from the selected topics (same pool as Topic Practice)
+                let pool = [];
+                for (const t of __ex.topics) {
+                    let tq;
+                    try { tq = await withNetworkTimeout(window.OfflineDB.getTopicQuestionsOffline(t.id), 6000, 'Topic questions load'); }
+                    catch (dbErr) { tq = await withNetworkTimeout(loadTopicQuestionsFromFile(subjectId, t.id), 15000, 'Topic questions file load'); }
+                    pool = pool.concat(tq || []);
+                }
+                const seen = {};
+                pool = pool.filter(function(q) { const k = q.id; if (k == null) return true; if (seen[k]) return false; seen[k] = 1; return true; });
+                const sj = SUBJECTS.find(function(x) { return x.id === subjectId; });
+                allQuestions = allQuestions.concat(shuffleArray(pool).slice(0, perSubject).map(function(q) {
+                    return Object.assign({}, q, { subject_id: subjectId, subject_name: sj ? sj.name : subjectId });
+                }));
+                continue;
+            }
             const allSubjectQuestions = await window.OfflineDB.getQuestionsOffline('mock', subjectId);
             if (subjectId === 'eng') {
                 let engSet = __pickEnglishPaper(allSubjectQuestions, perSubject, true);
@@ -13598,7 +13700,7 @@ for (const subjectId of subjects) {
             }
         }
         if (!allQuestions.length) throw new Error('Could not load these questions. Check your internet connection and try again.');
-        if (!isPaidUser()) showToast('Free preview: the first ' + MOCK_FREE_QUESTIONS + ' questions are open. Activate to continue after that.', '');
+        if (__ex.topics && __ex.topics.length && allQuestions.length < perSubject) showToast('Only ' + allQuestions.length + ' questions are available for the selected topic(s).', '');
         state.mockExamSource = 'friday';
         state.mockExamRef = __ex.id;
         state.mockExamId = 'friday-' + __wk + '-' + subjects[0];
@@ -13667,7 +13769,7 @@ function doSubmitMock(autoSubmit, opts) {
     const answered = state.mockAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
     const wkKey = state.mockWeekKey || fridayKey();
     const histEntry = { mode: 'mock', subjects: names, subject_scores: subjectScores, total_score: totalScore, max_score: maxScore,
-        total_questions: state.mockQuestions.length, answered_count: answered, submitted_at: state.mockSubmittedAt, exam_title: 'Daily Mock' };
+        total_questions: state.mockQuestions.length, answered_count: answered, submitted_at: state.mockSubmittedAt, exam_title: (function() { var e = mockExamById(state.mockExamRef); return e && e.topics && e.topics.length ? 'Topic Mock · ' + mockExamTitle(e) : 'Daily Mock'; })() };
     if (state.authUser) saveAnalyticsTimeSample('mock', (state.mockTotalSeconds || 2 * 60 * 60) - state.mockTimeLeft, state.mockQuestions.length);
     // Score, history and missed questions are held back until the 24-hour Mock window closes.
     const prev = fridayRecords().find(function(r) { return r.week === wkKey; }) || null;
@@ -13678,7 +13780,7 @@ function doSubmitMock(autoSubmit, opts) {
     fridaySaveRecord({ week: wkKey, at: state.mockSubmittedAt, max: mIds.length * 100,
         total: mIds.reduce(function(a, sid) { return a + mScores[sid]; }, 0),
         names: mIds.map(function(sid) { return mockSubjectName(sid); }), scores: mScores,
-        limited: (function() { var l = Object.assign({}, prev && prev.limited ? prev.limited : {}); ids.forEach(function(s) { if (isPaidUser()) delete l[s]; else l[s] = true; }); return l; })(),
+        limited: (function() { var l = Object.assign({}, prev && prev.limited ? prev.limited : {}); ids.forEach(function(s) { delete l[s]; }); return l; })(),
         examIds: Object.assign({}, prev && prev.examIds ? prev.examIds : {}, ids.reduce(function(o, s) { o[s] = state.mockExamRef || ''; return o; }, {})),
         answered: (prev ? prev.answered || 0 : 0) + answered, questions: (prev ? prev.questions || 0 : 0) + state.mockQuestions.length,
         pending: { weak: (prevPend && prevPend.weak ? prevPend.weak : []).concat(weak), hists: prevHists.concat([histEntry]) } });
@@ -22764,7 +22866,8 @@ function isPaidUser() {
     if (!state.authUser) return false;
     return isUserActive() && !myFreePlan();
 }
-function isMockIndexLocked(localIndex) { return !isPaidUser() && localIndex >= MOCK_FREE_QUESTIONS; }
+// Mocks are either open to everyone (full attempt) or activated-only (blocked at start), so there is no mid-exam cap any more.
+function isMockIndexLocked(localIndex) { return false; }
 function renderMockLockCard() {
     return '<div class="exam-lock-card">' +
         '<p><b>You\'ve reached question ' + MOCK_FREE_QUESTIONS + '.</b><br>The first ' + MOCK_FREE_QUESTIONS + ' questions are free.</p>' +
@@ -27795,35 +27898,57 @@ document.addEventListener('click', function(e) {
     if (action === 'friday-share-board') { fridayShareText(fridayBoardText(state.fridayBoardWeek)); return; }
     if (action === 'friday-share-rec') { fridayShareRecord(el.getAttribute('data-week')); return; }
     if (action === 'exam-year-empty') { showToast('This year has no questions yet.', 'error'); return; }
-    if (action === 'adminmock-toggle' || action === 'adminmock-create' || action === 'adminmock-copy' || action === 'adminmock-copycode' || action === 'adminmock-share' || action === 'adminmock-delete') {
+    if (action === 'adminmock-toggle' || action === 'adminmock-mode' || action === 'adminmock-topic' || action === 'adminmock-n' || action === 'adminmock-free' || action === 'adminmock-create' || action === 'adminmock-copy' || action === 'adminmock-copycode' || action === 'adminmock-share' || action === 'adminmock-delete') {
         if (!isAdmin()) return;
         const sEl = document.getElementById('am-start'), eEl = document.getElementById('am-end');
         if (sEl) state.adminMockStart = sEl.value; if (eEl) state.adminMockEnd = eEl.value;
+        if (action === 'adminmock-mode') {
+            state.adminMockMode = el.getAttribute('data-mode') === 'topic' ? 'topic' : 'subject';
+            state.adminMockSel = []; state.adminMockTopicSel = []; render(); return;
+        }
+        if (action === 'adminmock-n') { state.adminMockN = parseInt(el.getAttribute('data-n'), 10) || 40; render(); return; }
+        if (action === 'adminmock-free') { state.adminMockFree = state.adminMockFree === false; render(); return; }
+        if (action === 'adminmock-topic') {
+            const tid = el.getAttribute('data-topic'); const cur = (state.adminMockTopicSel || []).slice(); const k = cur.indexOf(tid);
+            if (k !== -1) cur.splice(k, 1); else cur.push(tid);
+            state.adminMockTopicSel = cur; render(); return;
+        }
         if (action === 'adminmock-toggle') {
             const id = el.getAttribute('data-subject'); const cur = (state.adminMockSel || []).slice(); const i = cur.indexOf(id);
+            if (state.adminMockMode === 'topic') {
+                state.adminMockSel = (i !== -1) ? [] : [id]; state.adminMockTopicSel = [];
+                render(); if (i === -1) adminMockLoadTopics(id); return;
+            }
             if (i !== -1) cur.splice(i, 1); else if (cur.length >= 2) { showToast('Maximum of 2 subjects.', 'error'); return; } else cur.push(id);
             state.adminMockSel = cur; render(); return;
         }
         if (action === 'adminmock-create') {
-            const subs = (state.adminMockSel || []).slice(0, 2);
+            const topicMode = state.adminMockMode === 'topic';
+            const subs = (state.adminMockSel || []).slice(0, topicMode ? 1 : 2);
             const st = new Date(state.adminMockStart || '').getTime(), en = new Date(state.adminMockEnd || '').getTime();
             if (!subs.length) { showToast('Pick at least 1 subject.', 'error'); return; }
+            let topicObjs = [];
+            if (topicMode) {
+                const tl = (state.adminMockTopics || {})[subs[0]];
+                topicObjs = (Array.isArray(tl) ? tl : []).filter(function(t) { return (state.adminMockTopicSel || []).indexOf(t.id) !== -1; });
+                if (!topicObjs.length) { showToast('Pick at least 1 topic.', 'error'); return; }
+            }
             if (!st || !en) { showToast('Set the start time and the end time.', 'error'); return; }
             if (en <= st) { showToast('The end time must be after the start time.', 'error'); return; }
             if (en <= Date.now()) { showToast('The end time has already passed.', 'error'); return; }
-            const ex = mockMakeExam(subs, st, en);
+            const ex = mockMakeExam(subs, st, en, { topics: topicObjs, n: state.adminMockN || 40, free: state.adminMockFree !== false });
             const list = mockReadList('adminMocks').filter(function(x) { return x.id !== ex.id; });
             list.push(ex);
             try { storage.set('adminMocks', JSON.stringify(list)); } catch (e) {}
             mockAddToMine(ex);
-            state.adminMockSel = []; state.adminMockStart = ''; state.adminMockEnd = '';
+            state.adminMockSel = []; state.adminMockTopicSel = []; state.adminMockStart = ''; state.adminMockEnd = '';
             showToast('Mock created. Copy its link below.'); render(); return;
         }
         const exId = el.getAttribute('data-exam');
         const ex = mockReadList('adminMocks').find(function(x) { return x.id === exId; });
         if (!ex) return;
         if (action === 'adminmock-delete') {
-            if (!window.confirm('Delete this Mock (' + mockSubjectNames(ex.subs).join(' + ') + ')?')) return;
+            if (!window.confirm('Delete this Mock (' + mockExamTitle(ex) + ')?')) return;
             try { storage.set('adminMocks', JSON.stringify(mockReadList('adminMocks').filter(function(x) { return x.id !== exId; }))); } catch (e) {}
             try { storage.set('myMocks', JSON.stringify(mockReadList('myMocks').filter(function(x) { return x.id !== exId; }))); } catch (e) {}
             showToast('Mock deleted.'); render(); return;
@@ -27831,7 +27956,7 @@ document.addEventListener('click', function(e) {
         const link = mockLinkFor(ex);
         if (action === 'adminmock-copycode') { try { navigator.clipboard.writeText(mockCodeFor(ex)).then(function() { showToast('Code copied.'); }); } catch (e) { showToast('Could not copy.', 'error'); } return; }
         if (action === 'adminmock-copy') { try { navigator.clipboard.writeText(link).then(function() { showToast('Link copied.'); }); } catch (e) { showToast('Could not copy.', 'error'); } return; }
-        const txt = 'MyUTME Mock: ' + mockSubjectNames(ex.subs).join(' + ') + '\n' + mockFmtRange(ex) + '\nLog in and take it here:\n' + link;
+        const txt = 'MyUTME Mock: ' + mockExamTitle(ex) + '\n' + mockFmtRange(ex) + '\nLog in and take it here:\n' + link;
         if (navigator.share) { navigator.share({ text: txt }).catch(function() {}); } else { try { navigator.clipboard.writeText(txt); showToast('Copied. Paste it to share.'); } catch (e) {} }
         return;
     }
