@@ -9966,6 +9966,7 @@ function renderExamLockCard() {
         '<div class="exam-lock-card">' +
         '<p><b>Activate your account to continue.</b><br>The first ' + FREE_QUESTION_LIMIT + ' questions are free. Activate to unlock the rest of this paper.</p>' +
         '<button class="btn btn-gold" data-action="show-activate-popup" data-reason="Activate your account to continue.">Activate my account</button>' +
+        (state.authUser ? '<button class="btn btn-outline" style="margin-top:8px" data-action="pfm-open">🎁 Ask someone to pay for me</button>' : '') +
         '</div>'
     );
 }
@@ -12218,7 +12219,8 @@ function renderActivatePopup() {
         (guest
             ? '<button class="btn btn-green" style="padding:11px;margin-bottom:8px" data-action="guest-prompt-signup">Create account</button>' +
               '<button class="btn btn-outline" style="padding:11px;margin-bottom:6px" data-action="guest-prompt-login">Log in</button>'
-            : '<button class="btn btn-gold" style="padding:11px;margin-bottom:8px" data-action="activate-popup-go">Activate My Account</button>') +
+            : '<button class="btn btn-gold" style="padding:11px;margin-bottom:8px" data-action="activate-popup-go">Activate My Account</button>' +
+              '<button class="btn btn-outline" style="padding:11px;margin-bottom:8px" data-action="pfm-open">🎁 Ask someone to pay for me</button>') +
         '<button style="border:0;background:none;color:var(--faint);font-size:12px;padding:6px;cursor:pointer" data-action="activate-popup-close">Not now</button></div>';
 }
 function guestNeedsAccount(reason) {
@@ -18166,6 +18168,8 @@ function renderNow() {
     if (state.authUser) state.guestPrompt = null;
     if (state.guestPrompt) html += renderGuestPrompt();
     if (state.activatePopup) html += renderActivatePopup();
+    if (state.pfm && state.pfm.open && state.authUser) html += renderPfmSheet();
+    if (state.pfmPayer) html += renderPfmPayerPage();
     if (state.adminActSheet && isAdmin()) html += renderAdminActSheet();
     if (state.showGotoModal) {
         html += __modalWrap('goto', true, renderGotoModal());
@@ -22584,6 +22588,7 @@ function renderProfileCore() {
           : isActive
             ? { key: 'set-view|activate', icon: 'checkcircle', color: '#0F6B3F', title: 'Activated', sub: (expiry ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left · ' : '') + 'Renew activation', badge: 'RENEW' }
             : { key: 'set-view|activate', icon: 'key', color: '#E4A93A', title: 'Activate', sub: 'Unlock full CBT access & all features', badge: 'GO' });
+        if (!isActive) menuItems.splice(1, 0, { key: 'pfm-open', icon: 'share', color: '#7C3AED', title: 'Pay For Me', sub: 'Let someone pay for your activation', badge: 'NEW' });
     }
     
     if (state.authUser) {
@@ -22966,6 +22971,466 @@ function retryPendingPayments() {
     __payRetryDone = true;
     getPendingPayRefs().forEach(function(ref) { verifyPaystackPayment(ref, true); });
 }
+
+// ============================================================
+//  PAY FOR ME
+//  A student makes a personal link. Anyone can open it (no login), pay with
+//  Paystack or send a manual transfer, and the student gets activated.
+// ============================================================
+const PFM_SITE = "https://myutme.com.ng";
+const PFM_INIT_URL = SUPABASE_URL + "/functions/v1/payforme-init";
+const PFM_VERIFY_URL = SUPABASE_URL + "/functions/v1/payforme-verify";
+const PFM_PROMO_KEY = "myutme_pfm_promo";
+state.pfm = { open: false, planId: '', busy: false, loaded: false, loading: false, uid: null, list: [] };
+state.pfmPayer = null;
+state.adminPfm = { loaded: false, loading: false, rows: [] };
+let __pfmPoll = null, __pfmGuestShown = false;
+
+function pfmLink(token) { return PFM_SITE + '/?payforme=' + encodeURIComponent(token); }
+function pfmPromoLink() { return PFM_SITE + '/?payforme=1'; }
+function pfmNaira(n) { return '₦' + Number(n || 0).toLocaleString(); }
+function pfmShareText(r) {
+    return 'Hello 👋 please help me activate my MyUTME account so I can prepare for my UTME.\n\n' +
+        '📦 Plan: ' + r.plan_name + ' (' + pfmNaira(r.plan_price) + ')\n\n' +
+        'Tap this link to pay for me safely:\n' + pfmLink(r.token) + '\n\nThank you! 🙏';
+}
+function pfmPromoCaption() {
+    return '📢 Want to activate your MyUTME account but can\'t pay right now?\n\n' +
+        'This is the time! Let someone pay for you. Click this link, tap "Pay For Me", then share your own link with a parent, sibling or friend. When they pay, your account is activated automatically.\n\n' +
+        '👉 ' + pfmPromoLink();
+}
+function pfmShare(text) {
+    if (navigator.share) { navigator.share({ text: text }).catch(function() {}); }
+    else { try { copyToClipboard(text); } catch (e) {} showToast('Message copied. Paste it anywhere to share.', 'success'); }
+}
+function pfmWhatsApp(text) { openExternalUrl('https://wa.me/?text=' + encodeURIComponent(text)); }
+
+// ---------- student side ----------
+async function pfmLoadMine(quiet) {
+    if (!state.authUser) return;
+    const P = state.pfm;
+    if (P.uid !== state.authUser.id) { P.uid = state.authUser.id; P.list = []; P.loaded = false; }
+    if (P.loading) return;
+    P.loading = true;
+    try {
+        const { data, error } = await supabase.from('pay_requests').select('*')
+            .eq('user_id', state.authUser.id).order('created_at', { ascending: false }).limit(10);
+        if (error) throw error;
+        const prev = P.list || [];
+        P.list = data || [];
+        P.loaded = true;
+        const nowDone = P.list.find(function(r) {
+            if (r.status !== 'activated') return false;
+            const was = prev.find(function(x) { return x.id === r.id; });
+            return (was && was.status !== 'activated') || (!was && !isUserActive() && r.activated_at && Date.now() - Date.parse(r.activated_at) < 3 * 86400000);
+        });
+        if (nowDone) {
+            showToast('🎉 ' + (nowDone.payer_name ? nowDone.payer_name + ' paid for you! ' : '') + 'Your account is activated.', 'success');
+            await pfmRefreshProfile();
+        }
+    } catch (e) { console.warn('Pay For Me load error:', e); P.loaded = true; }
+    P.loading = false;
+    render();
+}
+async function pfmRefreshProfile() {
+    try {
+        const { data } = await supabase.from('profiles').select('is_active,activation_expiry').eq('id', state.authUser.id).maybeSingle();
+        if (data) {
+            state.profile.is_active = data.is_active !== false;
+            state.profile.activation_expiry = data.activation_expiry || null;
+            if (state.authProfile) { state.authProfile.is_active = data.is_active; state.authProfile.activation_expiry = data.activation_expiry; try { saveOfflineCache('profile_' + state.authUser.id, state.authProfile); } catch (e) {} }
+        }
+    } catch (e) {}
+    render();
+}
+async function pfmAskVerify(token, reference) {
+    try {
+        const res = await fetch(PFM_VERIFY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+            body: JSON.stringify({ token: token, reference: reference || undefined }),
+        });
+        const d = await res.json().catch(function() { return {}; });
+        return d || {};
+    } catch (e) { return {}; }
+}
+async function pfmPollOnce() {
+    if (!state.authUser) return;
+    const waiting = (state.pfm.list || []).filter(function(r) { return (r.status === 'open' || r.status === 'pending_manual') && r.paystack_ref; });
+    for (let i = 0; i < waiting.length; i++) await pfmAskVerify(waiting[i].token);
+    await pfmLoadMine(true);
+}
+function pfmStartPoll() { if (__pfmPoll) return; __pfmPoll = setInterval(function() { if (!state.pfm.open) { clearInterval(__pfmPoll); __pfmPoll = null; return; } pfmPollOnce(); }, 8000); }
+
+function pfmOpen() {
+    state.activatePopup = null;
+    if (!state.authUser) {
+        try { localStorage.setItem(PFM_PROMO_KEY, String(Date.now())); } catch (e) {}
+        guestNeedsAccount('ask someone to pay for you');
+        return;
+    }
+    if (isAdmin()) { showToast('Admin accounts are always active.', ''); return; }
+    state.pfm.open = true;
+    pfmLoadMine(true);
+    pfmStartPoll();
+    render();
+}
+async function pfmCreate() {
+    const P = state.pfm;
+    if (P.busy) return;
+    if (!P.planId) { showToast('Choose a plan first.', 'error'); return; }
+    P.busy = true; render();
+    try {
+        const { data, error } = await supabase.rpc('pfm_create_request', { p_plan_id: String(P.planId) });
+        if (error) throw error;
+        P.loaded = false; P.loading = false;
+        await pfmLoadMine(true);
+        showToast('Your link is ready. Share it! 🎁', 'success');
+    } catch (e) {
+        showToast((e && e.message) || 'Could not create the link.', 'error');
+    }
+    P.busy = false; render();
+}
+function pfmFind(id) { return (state.pfm.list || []).find(function(r) { return String(r.id) === String(id); }); }
+
+function renderPfmCard() {
+    if (!state.authUser || isAdmin() || isPaidUser()) return '';
+    return '<div class="card" style="margin:12px 0;text-align:center;padding:14px;border:1.5px dashed #7C3AED66">' +
+        '<p style="font-size:22px;margin:0 0 2px">🎁</p>' +
+        '<p style="font-size:13px;font-weight:700;margin:0 0 2px">Can\'t pay right now?</p>' +
+        '<p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.45">Let a parent, sibling or friend pay for you. You just share a link.</p>' +
+        '<button class="btn btn-outline" style="padding:10px" data-action="pfm-open">Pay For Me</button></div>';
+}
+
+function pfmStatusLine(r) {
+    if (r.status === 'activated') return '<span style="color:var(--green);font-weight:700">✅ Activated' + (r.payer_name ? ' by ' + esc(r.payer_name) : '') + '</span>';
+    if (r.status === 'pending_manual') return '<span style="color:#b9821f;font-weight:700">🕒 ' + esc(r.payer_name || 'Someone') + ' sent payment. Waiting for admin to confirm</span>';
+    if (r.status === 'rejected') return '<span style="color:#B23420;font-weight:700">❌ Payment not confirmed' + (r.admin_note ? ': ' + esc(r.admin_note) : '') + '</span>';
+    return '<span style="color:var(--muted)">' + (r.paystack_ref ? '⏳ Payment started, checking…' : '⏳ Waiting for someone to pay') + '</span>';
+}
+function renderPfmSheet() {
+    const P = state.pfm;
+    const plans = (state.activationPlans || []).slice().sort(function(a, b) { return (a.days || 0) - (b.days || 0); });
+    if (!state.activationPlansLoaded) loadActivationPlans().then(function() { render(); });
+    if ((!P.planId || !plans.find(function(p) { return String(p.id) === String(P.planId); })) && plans.length) {
+        const pre = plans.find(function(p) { return String(p.id) === String(state.selectedPlanId); }) || plans[0];
+        P.planId = String(pre.id);
+    }
+    const paid = isPaidUser();
+    const shown = (P.list || []).filter(function(r) {
+        if (r.status === 'cancelled' || r.status === 'expired') return false;
+        if (r.status === 'open' && new Date(r.expires_at) < new Date()) return false;
+        return true;
+    }).slice(0, 4);
+
+    let body = '';
+    if (paid) {
+        body += '<p style="font-size:13px;text-align:center;color:var(--green);font-weight:700;margin:6px 0 12px">✅ Your account is already activated.</p>';
+    } else {
+        body += '<p class="lp-section" style="margin:6px 0">1. Choose the plan</p>';
+        body += plans.length ? plans.map(function(p) {
+            const on = String(p.id) === String(P.planId);
+            return '<div class="lp-method' + (on ? ' selected' : '') + '" data-action="pfm-pick-plan" data-planid="' + esc(String(p.id)) + '">' +
+                '<span class="lp-radio' + (on ? ' on' : '') + '"></span>' +
+                '<div class="lp-mtxt"><p class="lp-mlabel">' + esc(p.name) + ' · ' + pfmNaira(p.price) + '</p><p class="lp-mdesc">⏱️ ' + esc(planDuration(p)) + '</p></div></div>';
+        }).join('') : '<p style="font-size:12px;color:var(--muted)">' + (state.activationPlansLoaded ? 'No plans available right now.' : 'Loading plans…') + '</p>';
+        body += '<button class="btn btn-gold" style="padding:11px;margin:10px 0 4px" data-action="pfm-create"' + (P.busy ? ' disabled' : '') + '>' + (P.busy ? 'Creating…' : 'Create my link') + '</button>';
+    }
+    if (shown.length) {
+        body += '<p class="lp-section" style="margin:12px 0 6px">Your links</p>';
+        body += shown.map(function(r) {
+            const live = r.status === 'open' || r.status === 'pending_manual';
+            return '<div class="card" style="padding:10px;margin-bottom:8px;text-align:left">' +
+                '<p style="font-size:13px;font-weight:700;margin:0">' + esc(r.plan_name) + ' · ' + pfmNaira(r.plan_price) + '</p>' +
+                '<p style="font-size:11.5px;margin:3px 0 6px">' + pfmStatusLine(r) + '</p>' +
+                (live ? '<p style="font-size:10.5px;color:var(--faint);word-break:break-all;margin:0 0 8px">' + esc(pfmLink(r.token)) + '</p>' +
+                    '<div style="display:flex;gap:6px">' +
+                    '<button class="btn btn-green" style="flex:1.4;padding:9px;font-size:12px" data-action="pfm-wa" data-id="' + esc(r.id) + '">WhatsApp</button>' +
+                    '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="pfm-share" data-id="' + esc(r.id) + '">Share</button>' +
+                    '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="pfm-copy" data-id="' + esc(r.id) + '">Copy</button></div>' +
+                    (r.status === 'open' ? '<button style="border:0;background:none;color:var(--faint);font-size:11px;padding:8px 0 0;cursor:pointer" data-action="pfm-cancel" data-id="' + esc(r.id) + '">Cancel this link</button>' : '') : '') +
+                '</div>';
+        }).join('');
+    }
+    return '<div class="nw-back" data-action="pfm-close"></div>' +
+        '<div class="nw-sheet" style="display:block;max-height:88vh;overflow:auto">' +
+        '<div style="text-align:center"><div style="font-size:32px">🎁</div>' +
+        '<h4 style="margin:2px 0 4px;font-size:17px">Ask someone to pay for you</h4>' +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 6px;line-height:1.5">Pick a plan, then share your link with a parent, sibling or friend. When they pay, your account activates by itself.</p></div>' +
+        body +
+        '<button style="border:0;background:none;color:var(--faint);font-size:12px;padding:10px;width:100%;cursor:pointer" data-action="pfm-close">Close</button></div>';
+}
+
+// ---------- payer side (public page, no login) ----------
+async function pfmPayerStart(token, ref) {
+    state.pfmPayer = { token: token, loading: true, data: null, error: '', name: '', email: '', username: '', note: '', mode: 'online', busy: false, done: null, checking: false, tries: 0 };
+    render();
+    try { await waitForSupabaseReady(6000); } catch (e) {}
+    try {
+        const { data, error } = await supabase.rpc('pfm_get_request', { p_token: token });
+        if (error) throw error;
+        state.pfmPayer.data = data;
+    } catch (e) { state.pfmPayer.error = 'Could not load this link. Check your internet and try again.'; }
+    state.pfmPayer.loading = false;
+    render();
+    if (ref && ref.indexOf('PFM-') === 0) pfmPayerVerify(ref);
+}
+async function pfmPayerVerify(ref) {
+    const P = state.pfmPayer; if (!P) return;
+    P.checking = true; render();
+    const d = await pfmAskVerify(P.token, ref);
+    if (d.status === 'activated' || d.status === 'already') { P.checking = false; P.done = { username: d.username || (P.data && P.data.username) || '' }; render(); return; }
+    P.tries++;
+    if (P.tries < 8 && !d.error) { setTimeout(function() { pfmPayerVerify(ref); }, 3500); return; }
+    P.checking = false; P.error = d.error || 'We have not seen the payment yet. If you already paid, do not pay again. It will activate automatically within a few minutes.';
+    render();
+}
+async function pfmPayerPay() {
+    const P = state.pfmPayer; if (!P || P.busy) return;
+    if ((P.name || '').trim().length < 2) { showToast('Enter your name.', 'error'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((P.email || '').trim())) { showToast('Enter a valid email (Paystack sends your receipt there).', 'error'); return; }
+    P.busy = true; P.error = ''; render();
+    try {
+        const res = await fetch(PFM_INIT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+            body: JSON.stringify({ token: P.token, payer_name: P.name.trim(), payer_email: P.email.trim(), callback_url: PFM_SITE + '/?payforme=' + encodeURIComponent(P.token) }),
+        });
+        const d = await res.json().catch(function() { return {}; });
+        if (!res.ok || !d.authorization_url) throw new Error(d.error || 'Could not start the payment.');
+        window.location.href = d.authorization_url;
+    } catch (e) { P.busy = false; P.error = (e && e.message) || 'Could not start the payment.'; render(); }
+}
+async function pfmPayerManual() {
+    const P = state.pfmPayer; if (!P || P.busy) return;
+    P.busy = true; P.error = ''; render();
+    try {
+        const { data, error } = await supabase.rpc('pfm_submit_manual', { p_token: P.token, p_payer_name: (P.name || '').trim(), p_username: (P.username || '').trim(), p_note: (P.note || '').trim() });
+        if (error) throw error;
+        P.manualSent = true;
+    } catch (e) { P.error = (e && e.message) || 'Could not send. Please try again.'; }
+    P.busy = false; render();
+}
+function pfmPayerClose() {
+    state.pfmPayer = null;
+    try { history.replaceState(null, '', '/'); } catch (e) {}
+    render();
+}
+function renderPfmPayerPage() {
+    const P = state.pfmPayer; if (!P) return '';
+    const d = P.data || {};
+    let inner = '';
+    const err = P.error ? '<div class="explanation-box" style="border-left-color:var(--danger);background:#fce4ec;margin:0 0 10px"><p style="margin:0;color:#B23420;font-weight:600;font-size:12.5px">' + esc(P.error) + '</p></div>' : '';
+    if (P.loading) inner = '<div class="loading-spinner"><div class="spinner"></div><p>Loading…</p></div>';
+    else if (P.done) {
+        inner = '<div style="text-align:center;padding:30px 6px"><div style="font-size:54px">🎉</div><h2 style="margin:6px 0">Thank you!</h2>' +
+            '<p style="font-size:13px;color:var(--muted);line-height:1.6">' + (P.done.username ? '<b>' + esc(P.done.username) + '</b>\'s' : 'The') + ' account has been activated. You just helped a student prepare for UTME. God bless you 🙏</p>' +
+            '<button class="btn btn-green" style="margin-top:14px" data-action="pfm-payer-close">Open MyUTME</button></div>';
+    } else if (P.checking) {
+        inner = '<div class="loading-spinner"><div class="spinner"></div><p>Confirming your payment…</p></div>' + err;
+    } else if (P.manualSent) {
+        inner = '<div style="text-align:center;padding:30px 6px"><div style="font-size:54px">✅</div><h2 style="margin:6px 0">Received</h2>' +
+            '<p style="font-size:13px;color:var(--muted);line-height:1.6">We will confirm your payment and activate <b>' + esc(d.username) + '</b> shortly. Thank you!</p>' +
+            '<button class="btn btn-green" style="margin-top:14px" data-action="pfm-payer-close">Open MyUTME</button></div>';
+    } else if (!d.found) {
+        inner = '<div style="text-align:center;padding:30px 6px"><div style="font-size:44px">🔗</div><h3>This link is not valid</h3><p style="font-size:12.5px;color:var(--muted)">Ask the student to send you the link again.</p>' + err + '<button class="btn btn-outline" data-action="pfm-payer-close">Open MyUTME</button></div>';
+    } else if (d.status === 'activated') {
+        inner = '<div style="text-align:center;padding:30px 6px"><div style="font-size:50px">✅</div><h3>Already paid</h3><p style="font-size:12.5px;color:var(--muted)"><b>' + esc(d.username) + '</b> is already activated. Thank you!</p><button class="btn btn-outline" data-action="pfm-payer-close">Open MyUTME</button></div>';
+    } else if (d.status !== 'open' && d.status !== 'pending_manual') {
+        inner = '<div style="text-align:center;padding:30px 6px"><div style="font-size:44px">⌛</div><h3>This link is no longer active</h3><p style="font-size:12.5px;color:var(--muted)">Ask the student to make a new link.</p><button class="btn btn-outline" data-action="pfm-payer-close">Open MyUTME</button></div>';
+    } else {
+        const online = P.mode !== 'manual';
+        const tab = function(key, label) { return '<button class="btn ' + ((online ? 'online' : 'manual') === key ? 'btn-green' : 'btn-outline') + '" style="flex:1;padding:9px;font-size:12px" data-action="pfm-mode" data-mode="' + key + '">' + label + '</button>'; };
+        const inp = function(id, label, val, ph, type) { return '<label class="field-label">' + label + '</label><input class="field" id="' + id + '" ' + (type ? 'type="' + type + '" ' : '') + 'maxlength="120" placeholder="' + ph + '" value="' + esc(val || '') + '" style="margin-bottom:8px;font-size:14px" />'; };
+        inner = '<div class="card" style="text-align:center;padding:16px;margin-bottom:12px">' +
+            '<p style="font-size:12px;color:var(--muted);margin:0 0 4px">You are paying for</p>' +
+            '<p style="font-size:20px;font-weight:800;margin:0;color:var(--green)">@' + esc(d.username || 'student') + '</p>' +
+            '<p style="font-size:13px;margin:8px 0 0"><b>' + esc(d.plan_name) + '</b> · ' + esc(String(d.plan_days)) + ' days</p>' +
+            '<p style="font-size:22px;font-weight:800;margin:4px 0 0">' + pfmNaira(d.price) + '</p></div>' +
+            '<div style="display:flex;gap:6px;margin-bottom:10px">' + tab('online', '💳 Pay online') + tab('manual', '🏦 Bank transfer') + '</div>' + err +
+            (online
+                ? inp('pfm-payer-name', 'Your name', P.name, 'e.g. Mrs. Johnson') + inp('pfm-payer-email', 'Your email', P.email, 'you@example.com', 'email') +
+                  '<button class="act-primary" data-action="pfm-payer-pay"' + (P.busy ? ' disabled' : '') + '>' + (P.busy ? 'Opening Paystack…' : 'Pay ' + pfmNaira(d.price) + ' with Paystack') + '</button>' +
+                  '<p style="font-size:11px;color:var(--faint);text-align:center;margin:8px 0 0">Card, bank transfer or USSD. Secured by Paystack.</p>'
+                : '<button class="man-wa" style="margin-bottom:10px" data-action="pfm-payer-wa"><span>💬 Chat admin for account details</span></button>' +
+                  '<p style="font-size:11.5px;color:var(--muted);margin:0 0 8px;line-height:1.5">After you pay, fill this form so admin can confirm and activate <b>' + esc(d.username) + '</b>.</p>' +
+                  inp('pfm-payer-name', 'Your name', P.name, 'e.g. Mrs. Johnson') +
+                  inp('pfm-payer-username', 'Username of the student (owner of this link)', P.username, 'type it exactly: ' + (d.username || '')) +
+                  inp('pfm-payer-note', 'Transfer details', P.note, 'Sender account name or reference') +
+                  '<button class="act-primary" data-action="pfm-payer-manual"' + (P.busy ? ' disabled' : '') + '>' + (P.busy ? 'Sending…' : 'I have paid, send for confirmation') + '</button>');
+    }
+    return '<div id="pfm-payer-page" style="position:fixed;inset:0;z-index:9000;overflow:auto;background:var(--bg);padding:18px 16px 40px;color:var(--ink)">' +
+        '<div style="max-width:440px;margin:0 auto"><div style="text-align:center;margin-bottom:12px"><p style="font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--green);margin:0">MYUTME</p>' +
+        '<h2 style="font-size:17px;margin:2px 0 0">Pay For Me 🎁</h2></div>' + inner +
+        '<button style="border:0;background:none;color:var(--faint);font-size:12px;padding:14px;width:100%;cursor:pointer" data-action="pfm-payer-close">Close</button></div></div>';
+}
+document.addEventListener('input', function(e) {
+    const t = e.target, P = state.pfmPayer;
+    if (!t || !P) return;
+    if (t.id === 'pfm-payer-name') P.name = t.value;
+    else if (t.id === 'pfm-payer-email') P.email = t.value;
+    else if (t.id === 'pfm-payer-username') P.username = t.value;
+    else if (t.id === 'pfm-payer-note') P.note = t.value;
+});
+
+// ---------- admin side ----------
+async function loadAdminPfm(quiet) {
+    if (!isAdmin() || state.adminPfm.loading) return;
+    state.adminPfm.loading = true;
+    if (!quiet) render();
+    try {
+        const { data, error } = await supabase.from('pay_requests').select('*').order('created_at', { ascending: false }).limit(150);
+        if (error) throw error;
+        state.adminPfm.rows = data || [];
+    } catch (e) { console.warn('Admin Pay For Me load error:', e); if (!quiet) showToast('Could not load Pay For Me. Did you run payforme.sql?', 'error'); }
+    state.adminPfm.loaded = true; state.adminPfm.loading = false;
+    render();
+}
+function adminPfmPending() { return (state.adminPfm.rows || []).filter(function(r) { return r.status === 'pending_manual'; }).length; }
+async function adminPfmConfirm(id) {
+    const r = (state.adminPfm.rows || []).find(function(x) { return String(x.id) === String(id); });
+    if (!r) return;
+    if (!confirm('Confirm you received ' + pfmNaira(r.plan_price) + ' from ' + (r.payer_name || 'the payer') + ' and activate @' + r.username + ' on ' + r.plan_name + '?')) return;
+    const { data, error } = await supabase.rpc('pfm_admin_confirm', { p_id: r.id });
+    if (error) { showToast(error.message || 'Could not confirm.', 'error'); return; }
+    showToast('@' + r.username + ' is now activated ✅', 'success');
+    try { state.allUsersLoaded = false; loadAllUsers(); } catch (e) {}
+    loadAdminPfm(true);
+}
+async function adminPfmReject(id) {
+    const r = (state.adminPfm.rows || []).find(function(x) { return String(x.id) === String(id); });
+    if (!r) return;
+    const reason = prompt('Reason shown to the student (e.g. "Payment not received"):', 'Payment not received');
+    if (reason === null) return;
+    const { error } = await supabase.rpc('pfm_admin_reject', { p_id: r.id, p_reason: reason.trim() });
+    if (error) { showToast(error.message || 'Could not reject.', 'error'); return; }
+    showToast('Rejected.', 'success');
+    loadAdminPfm(true);
+}
+function renderAdminPfm() {
+    if (!isAdmin()) return '';
+    const A = state.adminPfm;
+    if (!A.loaded) { loadAdminPfm(true); return '<div class="loading-spinner"><div class="spinner"></div><p>Loading…</p></div>'; }
+    const rows = A.rows || [];
+    const pending = rows.filter(function(r) { return r.status === 'pending_manual'; });
+    const done = rows.filter(function(r) { return r.status === 'activated'; }).slice(0, 25);
+    const openRows = rows.filter(function(r) { return r.status === 'open' && new Date(r.expires_at) > new Date(); }).slice(0, 15);
+    const when = function(t) { try { return new Date(t).toLocaleString(); } catch (e) { return ''; } };
+    const card = function(r, actions) {
+        return '<div class="card" style="padding:11px;margin-bottom:8px">' +
+            '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0">' +
+            '<p style="font-size:14px;font-weight:800;margin:0">@' + esc(r.username || '?') + ' <span style="font-size:10px;color:var(--faint);font-weight:500">link owner</span></p>' +
+            '<p style="font-size:12px;margin:2px 0 0">' + esc(r.plan_name || '') + ' · ' + esc(String(r.plan_days || '')) + ' days</p></div>' +
+            '<span style="font-size:13px;font-weight:800;color:var(--green);white-space:nowrap">' + pfmNaira(r.amount_paid || r.plan_price) + '</span></div>' +
+            (r.payer_name ? '<p style="font-size:12px;margin:6px 0 0">Paid by: <b>' + esc(r.payer_name) + '</b>' + (r.pay_method ? ' · ' + (r.pay_method === 'paystack' ? 'Paystack' : 'Bank transfer') : '') + '</p>' : '') +
+            (r.payer_username_typed ? '<p style="font-size:11.5px;margin:2px 0 0;color:var(--muted)">Username typed by payer: <b>' + esc(r.payer_username_typed) + '</b></p>' : '') +
+            (r.payer_note ? '<p style="font-size:11.5px;margin:2px 0 0;color:var(--muted)">Note: ' + esc(r.payer_note) + '</p>' : '') +
+            (r.paystack_ref && r.status === 'activated' ? '<p style="font-size:10.5px;margin:2px 0 0;color:var(--faint);word-break:break-all">Ref: ' + esc(r.paystack_ref) + '</p>' : '') +
+            '<p style="font-size:10.5px;margin:4px 0 0;color:var(--faint)">' + esc(when(r.activated_at || r.manual_submitted_at || r.created_at)) + '</p>' +
+            (actions || '') + '</div>';
+    };
+    const promo = pfmPromoCaption();
+    return '<div class="card" style="padding:12px;margin-bottom:12px">' +
+        '<p style="font-size:13px;font-weight:700;margin:0 0 2px">📢 Pay For Me link to share</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px;line-height:1.45">Post this in your channel or groups. Unactivated students who tap it see the Pay For Me option.</p>' +
+        '<div style="font-size:11.5px;line-height:1.5;white-space:pre-wrap;background:var(--green-light);color:var(--ink);border-radius:10px;padding:9px;margin-bottom:8px">' + esc(promo) + '</div>' +
+        '<div style="display:flex;gap:6px"><button class="btn btn-green" style="flex:1.4;padding:9px;font-size:12px" data-action="admin-pfm-wa">WhatsApp</button>' +
+        '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="admin-pfm-share">Share</button>' +
+        '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="admin-pfm-copy">Copy</button></div></div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><p class="section-label" style="margin:0">Waiting for your confirmation (' + pending.length + ')</p>' +
+        '<button class="mini-btn" style="font-size:10px" data-action="admin-pfm-refresh">↻ Refresh</button></div>' +
+        (pending.length ? pending.map(function(r) {
+            return card(r, '<div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-green" style="flex:2;padding:9px;font-size:12px" data-action="admin-pfm-confirm" data-id="' + esc(r.id) + '">Confirm &amp; activate</button>' +
+                '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="admin-pfm-reject" data-id="' + esc(r.id) + '">Reject</button></div>');
+        }).join('') : '<p style="font-size:12px;color:var(--faint);text-align:center;padding:10px 0">No manual payments waiting.</p>') +
+        '<p class="section-label" style="margin-top:12px">Activated through Pay For Me (' + done.length + ')</p>' +
+        (done.length ? done.map(function(r) { return card(r, ''); }).join('') : '<p style="font-size:12px;color:var(--faint);text-align:center;padding:10px 0">None yet.</p>') +
+        (openRows.length ? '<p class="section-label" style="margin-top:12px">Links waiting for payment (' + openRows.length + ')</p>' + openRows.map(function(r) {
+            return '<div class="card" style="padding:9px 11px;margin-bottom:6px;font-size:12px"><b>@' + esc(r.username || '?') + '</b> · ' + esc(r.plan_name || '') + ' · ' + pfmNaira(r.plan_price) + '<br><span style="font-size:10.5px;color:var(--faint)">' + esc(when(r.created_at)) + '</span></div>';
+        }).join('') : '');
+}
+
+// ---------- clicks ----------
+function pfmHandleClick(action, el) {
+    switch (action) {
+        case 'pfm-open': pfmOpen(); return true;
+        case 'pfm-close': state.pfm.open = false; render(); return true;
+        case 'pfm-pick-plan': state.pfm.planId = el.getAttribute('data-planid'); render(); return true;
+        case 'pfm-create': pfmCreate(); return true;
+        case 'pfm-wa': { const r = pfmFind(el.getAttribute('data-id')); if (r) pfmWhatsApp(pfmShareText(r)); return true; }
+        case 'pfm-share': { const r = pfmFind(el.getAttribute('data-id')); if (r) pfmShare(pfmShareText(r)); return true; }
+        case 'pfm-copy': { const r = pfmFind(el.getAttribute('data-id')); if (r) { try { copyToClipboard(pfmShareText(r)); } catch (e) {} showToast('Copied. Paste it in WhatsApp or anywhere.', 'success'); } return true; }
+        case 'pfm-cancel': {
+            const id = el.getAttribute('data-id');
+            if (!confirm('Cancel this link? Nobody will be able to pay with it.')) return true;
+            supabase.rpc('pfm_cancel_request', { p_id: id }).then(function(res) {
+                if (res.error) showToast(res.error.message || 'Could not cancel.', 'error');
+                pfmLoadMine(true);
+            });
+            return true;
+        }
+        case 'pfm-mode': if (state.pfmPayer) { state.pfmPayer.mode = el.getAttribute('data-mode'); state.pfmPayer.error = ''; render(); } return true;
+        case 'pfm-payer-pay': pfmPayerPay(); return true;
+        case 'pfm-payer-manual': pfmPayerManual(); return true;
+        case 'pfm-payer-close': pfmPayerClose(); return true;
+        case 'pfm-payer-wa': {
+            const d = (state.pfmPayer && state.pfmPayer.data) || {};
+            openWhatsAppChannel('Hello Admin, I want to pay for a student on MyUTME.\n\n👤 Student username: ' + (d.username || '') + '\n📦 Plan: ' + (d.plan_name || '') + '\n💰 Amount: ' + pfmNaira(d.price) + '\n\nPlease send me the payment details. Thank you!');
+            return true;
+        }
+        case 'admin-pfm-refresh': loadAdminPfm(false); return true;
+        case 'admin-pfm-confirm': adminPfmConfirm(el.getAttribute('data-id')); return true;
+        case 'admin-pfm-reject': adminPfmReject(el.getAttribute('data-id')); return true;
+        case 'admin-pfm-wa': pfmWhatsApp(pfmPromoCaption()); return true;
+        case 'admin-pfm-share': pfmShare(pfmPromoCaption()); return true;
+        case 'admin-pfm-copy': try { copyToClipboard(pfmPromoCaption()); } catch (e) {} showToast('Caption copied.', 'success'); return true;
+    }
+    return false;
+}
+
+// ---------- boot + background ----------
+function pfmBoot() {
+    try {
+        const u = new URL(location.href);
+        if (!u.searchParams.has('payforme')) return;
+        const v = (u.searchParams.get('payforme') || '').trim();
+        const ref = u.searchParams.get('reference') || u.searchParams.get('trxref') || '';
+        if (v.length >= 16) { pfmPayerStart(v, ref); return; }
+        // general share link: remember it, then open Pay For Me once the person is logged in
+        try { localStorage.setItem(PFM_PROMO_KEY, String(Date.now())); } catch (e) {}
+        history.replaceState(null, '', u.pathname + u.hash);
+    } catch (e) {}
+}
+function pfmPromoPending() {
+    try { const t = Number(localStorage.getItem(PFM_PROMO_KEY) || 0); return t && Date.now() - t < 24 * 3600 * 1000; } catch (e) { return false; }
+}
+setInterval(function() {
+    try {
+        if (state.pfmPayer) return;
+        if (pfmPromoPending()) {
+            if (state.authUser && state.profile && state.profile.id) {
+                try { localStorage.removeItem(PFM_PROMO_KEY); } catch (e) {}
+                if (isAdmin()) return;
+                if (isPaidUser()) { showToast('Your account is already activated 🎉', 'success'); return; }
+                pfmOpen();
+            } else if (state.authReady && !__pfmGuestShown) {
+                __pfmGuestShown = true;
+                guestNeedsAccount('ask someone to pay for you');
+            }
+            return;
+        }
+        if (state.authUser && !isAdmin() && (state.pfm.uid !== state.authUser.id)) pfmLoadMine(true);
+        if (isAdmin() && !state.adminPfm.loaded && !state.adminPfm.loading) loadAdminPfm(true);
+    } catch (e) {}
+}, 1500);
+setInterval(function() {
+    try {
+        if (document.visibilityState !== 'visible' || !state.authUser || isAdmin() || state.pfm.open) return;
+        const waiting = (state.pfm.list || []).some(function(r) { return r.status === 'pending_manual' || (r.status === 'open' && r.paystack_ref); });
+        if (waiting) pfmPollOnce();
+    } catch (e) {}
+}, 45000);
+
 
 // ============================================================
 //  MOCK EXAM
@@ -23555,6 +24020,7 @@ function renderActivateCore() {
             '<p class="lp-section">2. Choose how to pay</p>' + methodRows + detail + btn +
             renderPaidCard(plan)
             : '<div class="card"><p style="text-align:center;color:var(--muted);padding:12px 0;font-size:13px">No plans available right now. Please check back soon.</p></div>') +
+        renderPfmCard() +
         '<p class="lp-section" style="margin-top:16px">Have a key already?</p>' +
         keyStatusBox +
         '<div class="act-input-wrap"><input id="activate-code-input" class="act-input" placeholder="e.g. XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" value="' + esc(state.activateCode) + '" />' +
@@ -23735,6 +24201,7 @@ const ADMIN_TABS = [
     { key: "notifications", label: "🔔 Notify" },
     { key: "activation", label: "🔑 Activation" },
     { key: "payments", label: "💳 Payments" },
+    { key: "pfm", label: "🎁 Pay For Me" },
     { key: "flagged", label: "🚩 Flagged" },
     { key: "support", label: "💬 Support" },
     { key: "mocks", label: "📝 Mocks" },
@@ -23755,7 +24222,7 @@ function renderAdmin() {
     ADMIN_TABS.forEach(function(t) {
         const isFlagged = t.key === "flagged";
         const badge = isFlagged && state.flaggedCount > 0 ? ' <span class="flag-badge">' + state.flaggedCount + '</span>'
-            : (t.key === 'payments' && adminPendingClaimCount() > 0 ? ' <span class="flag-badge">' + adminPendingClaimCount() + '</span>' : '');
+            : (t.key === 'pfm' && adminPfmPending() > 0 ? ' <span class="flag-badge">' + adminPfmPending() + '</span>' : t.key === 'payments' && adminPendingClaimCount() > 0 ? ' <span class="flag-badge">' + adminPendingClaimCount() + '</span>' : '');
         tabBar += '<button class="admin-tab' + (state.adminTab === t.key ? ' active' : '') +
             '" data-action="admin-tab" data-tab="' + t.key + '">' + t.label + badge + '</button>';
     });
@@ -23771,6 +24238,7 @@ function renderAdmin() {
     else if (state.adminTab === "notifications") body = renderAdminNotifications();
     else if (state.adminTab === "activation") body = renderAdminActivation();
     else if (state.adminTab === "payments") body = renderAdminPayments();
+    else if (state.adminTab === "pfm") body = renderAdminPfm();
     else if (state.adminTab === "flagged") body = renderAdminFlagged();
     else if (state.adminTab === "support") body = renderAdminSupport();
     else if (state.adminTab === "mocks") body = renderAdminMocks();
@@ -25100,6 +25568,33 @@ function renderAdminSettings() {
 // ============================================================
 //  ADMIN USERS - Updated with full_name and avatar
 // ============================================================
+// ---- Admin users: live search by username, name or email ----
+state.adminUserQuery = '';
+function adminUserHay(u) { return ((u.username || '') + ' ' + (u.full_name || '') + ' ' + (u.email || '')).toLowerCase(); }
+function adminUserMatches(u, q) {
+    q = (q || '').toLowerCase().replace(/^@/, '').trim();
+    if (!q) return true;
+    const hay = adminUserHay(u);
+    return q.split(/\s+/).every(function(t) { return hay.indexOf(t.replace(/^@/, '')) !== -1; });
+}
+document.addEventListener('input', function(e) {
+    if (!e.target || e.target.id !== 'admin-user-search') return;
+    state.adminUserQuery = e.target.value;
+    const q = state.adminUserQuery.toLowerCase().replace(/^@/, '').trim();
+    const toks = q ? q.split(/\s+/).map(function(t) { return t.replace(/^@/, ''); }) : [];
+    let shown = 0;
+    const rows = document.querySelectorAll('.admin-user-row[data-hay]');
+    rows.forEach(function(r) {
+        const hay = r.getAttribute('data-hay') || '';
+        const ok = toks.every(function(t) { return hay.indexOf(t) !== -1; });
+        r.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+    });
+    const c = document.getElementById('admin-user-count');
+    if (c) c.textContent = q ? ('Showing ' + shown + ' of ' + rows.length + ' users') : ('👥 Total registered users: ' + rows.length);
+    const n = document.getElementById('admin-user-none');
+    if (n) n.style.display = shown ? 'none' : '';
+});
 function renderAdminUsers() {
     if (state.adminSelectedUserId) return renderAdminUserDetail();
 
@@ -25138,7 +25633,7 @@ function renderAdminUsers() {
         
         const isSelected = (state.admin.selectedUserIds || []).indexOf(user.id) !== -1;
         rows += (
-            '<div class="admin-user-row" data-action="admin-view-user" data-userid="' + user.id + '" style="cursor:pointer">' +
+            '<div class="admin-user-row" data-action="admin-view-user" data-userid="' + user.id + '" data-hay="' + esc(adminUserHay(user)) + '" style="cursor:pointer' + (adminUserMatches(user, state.adminUserQuery) ? '' : ';display:none') + '">' +
             '<div style="display:flex;align-items:center;gap:8px">' +
             '<input type="checkbox" data-action="admin-toggle-user-select" data-userid="' + user.id + '"' +
             (isSelected ? ' checked' : '') +
@@ -25184,17 +25679,20 @@ function renderAdminUsers() {
         );
     }
 
-    const allSelected = users.length > 0 && selCount >= users.length;
+    const __shownIds = users.filter(function(u) { return adminUserMatches(u, state.adminUserQuery); }).map(function(u) { return u.id; });
+    const allSelected = __shownIds.length > 0 && __shownIds.every(function(id) { return (state.admin.selectedUserIds || []).indexOf(id) !== -1; });
     const selectAllBar = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
-        '<button class="mini-btn' + (allSelected ? '' : ' primary') + '" data-action="admin-select-all-users" style="font-size:11px">' + (allSelected ? '☑ Unselect all' : '☐ Select all (' + users.length + ')') + '</button></div>';
+        '<button class="mini-btn' + (allSelected ? '' : ' primary') + '" data-action="admin-select-all-users" style="font-size:11px">' + (allSelected ? '☑ Unselect all' : '☐ Select all' + (state.adminUserQuery ? ' shown (' + __shownIds.length + ')' : ' (' + users.length + ')')) + '</button></div>';
 
     return (
         generalCard +
         selectionBar +
         selectAllBar +
-        '<div style="font-weight:700;font-size:14px;margin-bottom:10px;color:var(--ink)">👥 Total registered users: ' + users.length + '</div>' +
+        '<div style="position:relative;margin-bottom:8px"><input id="admin-user-search" class="field" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="🔍 Search username, name or email" value="' + esc(state.adminUserQuery || '') + '" style="margin:0;font-size:14px" /></div>' +
+        '<div id="admin-user-count" style="font-weight:700;font-size:14px;margin-bottom:10px;color:var(--ink)">' + (state.adminUserQuery ? 'Showing ' + users.filter(function(u) { return adminUserMatches(u, state.adminUserQuery); }).length + ' of ' + users.length + ' users' : '👥 Total registered users: ' + users.length) + '</div>' +
         '<p style="font-size:11px;color:var(--faint);margin:-6px 0 10px">Tap a user to see their full profile. Use the checkbox to select multiple users for a targeted push.</p>' +
-        rows
+        rows +
+        '<p id="admin-user-none" style="font-size:13px;color:var(--faint);text-align:center;padding:18px 0;display:' + (users.some(function(u) { return adminUserMatches(u, state.adminUserQuery); }) ? 'none' : 'block') + '">No user matches that search.</p>'
     );
 }
 
@@ -25893,6 +26391,7 @@ document.addEventListener('click', function(e) {
     if (!el) return;
     const action = el.getAttribute('data-action');
 
+    if (pfmHandleClick(action, el)) return;
     if (action === 'show-activate-popup') { showActivatePopup(el.getAttribute('data-reason') || 'You have reached the free limit.'); return; }
     if (action === 'activate-popup-close') { state.activatePopup = null; render(); return; }
     if (action === 'activate-popup-go') { state.activatePopup = null; setView('activate'); return; }
@@ -28243,6 +28742,7 @@ document.addEventListener('click', function(e) {
         state.admin.viewingMockAttempts = null;
         if (state.adminTab === 'analytics' && !state.analyticsLoading) { state.analyticsLoaded = false; loadAnalyticsData(); }
         if (state.adminTab === 'payments') loadAdminClaims(false, true);
+        if (state.adminTab === 'pfm') loadAdminPfm(true);
         if (state.adminTab === 'guestai') loadGuestAiChats();
         if (state.adminTab === 'notifications') state.notifsLoaded = false;
         else if (state.adminTab === 'settings') {
@@ -29042,9 +29542,10 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'admin-select-all-users') {
-        const all = (state.allUsers || []).map(function(u) { return u.id; });
+        const all = (state.allUsers || []).filter(function(u) { return adminUserMatches(u, state.adminUserQuery); }).map(function(u) { return u.id; });
         const cur = state.admin.selectedUserIds || [];
-        state.admin.selectedUserIds = (all.length && cur.length >= all.length) ? [] : all;
+        const allOn = all.length && all.every(function(id) { return cur.indexOf(id) !== -1; });
+        state.admin.selectedUserIds = allOn ? cur.filter(function(id) { return all.indexOf(id) === -1; }) : cur.concat(all.filter(function(id) { return cur.indexOf(id) === -1; }));
         render();
         return;
     }
@@ -30894,6 +31395,7 @@ async function init() {
     render();
     handlePaystackReturn(); // back from Paystack's payment page
     resumePaySession(); // reopen the Pay page if a payment was in progress
+    pfmBoot(); // Pay For Me links (?payforme=...)
 
     
     
