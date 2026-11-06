@@ -22990,9 +22990,13 @@ function pfmLink(token) { return PFM_SITE + '/?payforme=' + encodeURIComponent(t
 function pfmPromoLink() { return PFM_SITE + '/?payforme=1'; }
 function pfmNaira(n) { return '₦' + Number(n || 0).toLocaleString(); }
 function pfmShareText(r) {
-    return 'Hello 👋 please help me activate my MyUTME account so I can prepare for my UTME.\n\n' +
-        '📦 Plan: ' + r.plan_name + ' (' + pfmNaira(r.plan_price) + ')\n\n' +
-        'Tap this link to pay for me safely:\n' + pfmLink(r.token) + '\n\nThank you! 🙏';
+    const days = r.plan_days ? ' (' + r.plan_days + ' Days)' : '';
+    return 'Hello 👋 Please help me activate my MyUTME account so I can start practising for JAMB 2027.\n\n' +
+        'MyUTME is a CBT practice platform where I can practise JAMB past questions, take mock exams and prepare effectively for the upcoming UTME.\n\n' +
+        '📦 Plan: ' + r.plan_name + days + '\n' +
+        '💰 Amount: ' + pfmNaira(r.plan_price) + '\n\n' +
+        'Please use the secure payment link below to activate:\n' + pfmLink(r.token) + '\n\n' +
+        'Thank you so much for helping me prepare for JAMB 2027! 🙏';
 }
 function pfmPromoCaption() {
     return '📢 Want to activate your MyUTME account but can\'t pay right now?\n\n' +
