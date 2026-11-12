@@ -465,7 +465,7 @@
        normal drag-to-refresh in the browser tab did nothing — which is not
        what was wanted. Leaving this as the default (auto) lets the real
        native pull-to-refresh work. */
-    overscroll-behavior-y: auto; /* let Chrome's own pull-to-refresh work */
+    overscroll-behavior-y: none; /* never let the browser pull-to-refresh the app */
     height: 100%;
     overflow: hidden;
 }
@@ -784,7 +784,7 @@
            html/body rule above — swallowed the drag-down-at-the-top gesture
            so it could never reach the browser's native reload action. Set
            to auto so a real drag-to-refresh works, same as any normal site. */
-        overscroll-behavior-y: auto; /* let Chrome's own pull-to-refresh work */
+        overscroll-behavior-y: none; /* never let the browser pull-to-refresh the app */
     }
     .view::-webkit-scrollbar { display: none; }
 
@@ -7022,7 +7022,7 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
 #ptr-ind{position:fixed;top:0;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;background:var(--card-bg,#fff);box-shadow:0 3px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;z-index:9999;pointer-events:none;opacity:0;transform:translateY(-50px)}
 #ptr-ind svg{width:18px;height:18px;stroke:#0F6B3F}
 #ptr-ind.spin svg{animation:spin .7s linear infinite}
-.view{overscroll-behavior-y:auto}
+.view{overscroll-behavior-y:contain}
 /* Account page: tighter sizing */
 .acct-hero{padding:10px 12px;margin-bottom:6px}
 .acct-hero-name{font-size:14px}
@@ -7056,7 +7056,7 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
 }
 .typing-indicator .dots span { animation: typingDot 1.4s infinite !important; }
 #ptr-ind { display: none !important; }
-html, body { overscroll-behavior: auto !important; }
+html, body { overscroll-behavior: none !important; }
 </style>
 <style>
 /* ===== Manual payment card ===== */
@@ -8071,7 +8071,7 @@ u.q-u { text-decoration: underline; text-decoration-thickness: 2px; text-underli
 </style>
 <style id="myutme-v4-fixes">
 /* page never scrolls itself — keeps the top icons in place */
-html, body { overflow: hidden !important; overscroll-behavior: auto; }
+html, body { overflow: hidden !important; overscroll-behavior: none; }
 body { position: fixed; inset: 0; width: 100%; }
 #app-shell { height: 100%; overflow: hidden; }
 
@@ -8865,35 +8865,6 @@ async function subscribeToPush() {
 // the "send-bulk-email" Supabase Edge Function, which looks up addresses in
 // `profiles` and relays through Resend. See the deploy instructions for that
 // function — it must be created in the Supabase project before this works.
-
-// Works out which user ids a message should go to. audience: 'all' | 'activated' | 'inactive'.
-// Returns null for 'all' (everyone), otherwise an array of profile ids.
-async function resolveAudienceIds(audience) {
-    if (!audience || audience === 'all') return null;
-    const now = Date.now();
-    let ids = [], from = 0;
-    for (;;) {
-        const r = await supabase.from('profiles').select('id,is_active,activation_expiry').range(from, from + 999);
-        if (r.error) throw r.error;
-        (r.data || []).forEach(function(p) {
-            const on = !!p.is_active && (!p.activation_expiry || new Date(p.activation_expiry).getTime() > now);
-            if ((audience === 'activated') === on) ids.push(p.id);
-        });
-        if (!r.data || r.data.length < 1000) break;
-        from += 1000;
-    }
-    return ids;
-}
-function audienceLabel(a) { return a === 'activated' ? 'activated users' : a === 'inactive' ? 'non-activated users' : 'ALL users'; }
-function audienceSelectHtml(id) {
-    return '<label class="field-label">Send to</label>' +
-        '<select class="field" id="' + id + '" style="margin-bottom:10px;font-size:13px">' +
-        '<option value="all">Everyone</option>' +
-        '<option value="activated">Activated users only</option>' +
-        '<option value="inactive">Non-activated users only</option>' +
-        '</select>';
-}
-
 async function sendBulkEmail(subject, message, userIds) {
     try {
         const res = await fetch(SEND_EMAIL_URL, {
@@ -9001,44 +8972,6 @@ function openTelegram() {
         if (!left) openExternalUrl(TELEGRAM_URL);
     }, 2500);
 }
-
-// ===== TELEGRAM NOTIFICATIONS =====
-// A user taps "Telegram alerts", Telegram opens our bot with a one-time code, and the bot saves their chat.
-// Table: telegram_links (see telegram-setup/telegram.sql). Messages are sent by the telegram-notify function.
-async function loadTelegramStatus(force) {
-    if (!state.authUser || state.tgLoading) return;
-    state.tgLoading = true;
-    try {
-        const r = await supabase.from('telegram_links').select('chat_id').eq('user_id', state.authUser.id).maybeSingle();
-        const linked = !!(r && r.data && r.data.chat_id);
-        const changed = state.tgLinked !== linked || state.tgLoaded === undefined;
-        state.tgLinked = linked;
-        state.tgLoaded = true;
-        if (changed && state.view === 'account') render();
-    } catch (e) { state.tgLoaded = true; }
-    state.tgLoading = false;
-}
-function tgNewToken() {
-    const a = new Uint8Array(16); crypto.getRandomValues(a);
-    return Array.prototype.map.call(a, function(b) { return b.toString(16).padStart(2, '0'); }).join('');
-}
-async function startTelegramLink() {
-    if (!state.authUser) { showToast('Please log in first.', 'error'); return; }
-    try {
-        await supabase.from('telegram_links').delete().eq('user_id', state.authUser.id);
-        const token = tgNewToken();
-        const r = await supabase.from('telegram_links').insert([{ user_id: state.authUser.id, link_token: token }]);
-        if (r && r.error) { showNetworkAwareError('Could not start the Telegram link.', r.error); return; }
-        state.tgLinked = false; state.tgAwaiting = true;
-        showToast('Tap START in Telegram to finish.', '');
-        const url = TELEGRAM_URL + '?start=' + token;
-        var a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener';
-        document.body.appendChild(a); a.click(); a.remove();
-    } catch (e) { showNetworkAwareError('Could not start the Telegram link.', e); }
-}
-document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && state.tgAwaiting) { state.tgLoading = false; loadTelegramStatus(true).then(function() { if (state.tgLinked) { state.tgAwaiting = false; showToast('Telegram connected ✅', 'success'); } }); }
-});
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
 const AI_NAME = "AI";
@@ -9966,7 +9899,6 @@ function renderExamLockCard() {
         '<div class="exam-lock-card">' +
         '<p><b>Activate your account to continue.</b><br>The first ' + FREE_QUESTION_LIMIT + ' questions are free. Activate to unlock the rest of this paper.</p>' +
         '<button class="btn btn-gold" data-action="show-activate-popup" data-reason="Activate your account to continue.">Activate my account</button>' +
-        (state.authUser ? '<button class="btn btn-outline" style="margin-top:8px" data-action="pfm-open">🎁 Ask someone to pay for me</button>' : '') +
         '</div>'
     );
 }
@@ -12219,8 +12151,7 @@ function renderActivatePopup() {
         (guest
             ? '<button class="btn btn-green" style="padding:11px;margin-bottom:8px" data-action="guest-prompt-signup">Create account</button>' +
               '<button class="btn btn-outline" style="padding:11px;margin-bottom:6px" data-action="guest-prompt-login">Log in</button>'
-            : '<button class="btn btn-gold" style="padding:11px;margin-bottom:8px" data-action="activate-popup-go">Activate My Account</button>' +
-              '<button class="btn btn-outline" style="padding:11px;margin-bottom:8px" data-action="pfm-open">🎁 Ask someone to pay for me</button>') +
+            : '<button class="btn btn-gold" style="padding:11px;margin-bottom:8px" data-action="activate-popup-go">Activate My Account</button>') +
         '<button style="border:0;background:none;color:var(--faint);font-size:12px;padding:6px;cursor:pointer" data-action="activate-popup-close">Not now</button></div>';
 }
 function guestNeedsAccount(reason) {
@@ -13212,19 +13143,13 @@ var MOCK_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 //   /?mock=bio,gov&s=<start seconds, base36>&e=<end seconds, base36>
 // A user's list of Mocks (from links they opened) is kept in storage 'myMocks'.
 var MOCK_LINK_BASE = '';   // optional: e.g. 'https://join.myutme.com.ng' (a different domain opens in the browser, not the installed app)
-function mockLinkFor(ex) {
-    var u = (MOCK_LINK_BASE || location.origin) + '/?mock=' + ex.subs.join(',') + '&s=' + Math.floor(ex.start / 1000).toString(36) + '&e=' + Math.floor(ex.end / 1000).toString(36);
-    if (ex.topics && ex.topics.length) u += '&t=' + encodeURIComponent(ex.topics.map(function(t) { return t.id; }).join(',')) + '&tn=' + encodeURIComponent(ex.topics.map(function(t) { return t.name || 'Topic'; }).join('|'));
-    if (ex.n) u += '&n=' + ex.n;
-    if (ex.free === false) u += '&u=0';
-    return u;
-}
+function mockLinkFor(ex) { return (MOCK_LINK_BASE || location.origin) + '/?mock=' + ex.subs.join(',') + '&s=' + Math.floor(ex.start / 1000).toString(36) + '&e=' + Math.floor(ex.end / 1000).toString(36); }
 // A short, copyable Mock code, e.g. BIO-GOV-H5EW9-H5EXK (subjects, start minute, end minute). It carries everything, so it never expires or disappears.
 function mockCodeFor(ex) { return ex.subs.join('-').toUpperCase() + '-' + Math.floor(ex.start / 60000).toString(36).toUpperCase() + '-' + Math.floor(ex.end / 60000).toString(36).toUpperCase(); }
 function mockParseCode(txt) {
     try {
         var t = String(txt || '').trim().toLowerCase().split(/[\s\-._]+/).filter(Boolean);
-        if (t.length < 3 || t.length > 6) return null;
+        if (t.length < 3 || t.length > 4) return null;
         var en = parseInt(t[t.length - 1], 36) * 60000, st = parseInt(t[t.length - 2], 36) * 60000;
         var subs = t.slice(0, t.length - 2);
         if (!st || !en || en <= st) return null;
@@ -13232,29 +13157,7 @@ function mockParseCode(txt) {
         return mockMakeExam(subs, st, en);
     } catch (e) { return null; }
 }
-function mockHash(str) { var h = 0; str = String(str); for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; } return Math.abs(h).toString(36); }
-// opts (all optional): { topics: [{id, name}], n: number of questions, free: false = activated students only }
-function mockMakeExam(subs, start, end, opts) {
-    opts = opts || {};
-    var ex = { id: subs.join('-') + '-' + Math.floor(start / 60000).toString(36), subs: subs, start: start, end: end };
-    if (opts.topics && opts.topics.length) { ex.topics = opts.topics; ex.id += '-t' + mockHash(opts.topics.map(function(t) { return t.id; }).join(',')); }
-    if (opts.n) ex.n = opts.n;
-    ex.free = opts.free === false ? false : true;
-    return ex;
-}
-function mockQCount(ex) { return (ex && ex.n) || MOCK_Q_PER_SUBJECT; }
-function mockAllowsFree(ex) { return !ex || ex.free !== false; }
-function mockExamTitle(ex) {
-    if (ex.topics && ex.topics.length) return mockSubjectName(ex.subs[0]) + ' · ' + ex.topics.map(function(t) { return t.name || 'Topic'; }).join(', ');
-    var __nm = mockSubjectNames(ex.subs).join(' + ');
-    return ex.subs.length >= 3 ? 'Full Mock · ' + __nm : __nm;
-}
-function mockExamMeta(ex) {
-    var bits = [mockQCount(ex) + ' questions' + (ex.subs.length > 1 ? ' per subject' : '')];
-    if (ex.topics && ex.topics.length) bits.unshift('Topic Mock');
-    bits.push(mockAllowsFree(ex) ? 'Open to all students' : 'Activated students only');
-    return bits.join(' · ');
-}
+function mockMakeExam(subs, start, end) { return { id: subs.join('-') + '-' + Math.floor(start / 60000).toString(36), subs: subs, start: start, end: end }; }
 function mockReadList(key) { try { var l = JSON.parse(storage.get(key) || '[]'); return Array.isArray(l) ? l.filter(function(x) { return x && Array.isArray(x.subs) && x.start && x.end; }) : []; } catch (e) { return []; } }
 function mockExams() {
     var cutoff = Date.now() - 36 * 3600 * 1000;
@@ -13281,18 +13184,10 @@ function captureMockLink() {
         if (!raw) return false;
         var subs = [];
         raw.split(',').forEach(function(id) { id = id.trim(); if (id && id !== 'lhm' && SUBJECTS.some(function(x) { return x.id === id; }) && subs.indexOf(id) === -1) subs.push(id); });
-        subs = subs.slice(0, 4);
+        subs = subs.slice(0, 2);
         var st = parseInt(p.get('s') || '', 36) * 1000, en = parseInt(p.get('e') || '', 36) * 1000;
         if (!subs.length || !st || !en || en <= st) return false;
-        var __opts = { free: p.get('u') !== '0' };
-        var __n = parseInt(p.get('n') || '', 10); if (__n >= 5 && __n <= 100) __opts.n = __n;
-        var __tid = (p.get('t') || '').split(',').map(function(x) { return x.trim(); }).filter(Boolean);
-        if (__tid.length) {
-            var __tn = (p.get('tn') || '').split('|');
-            __opts.topics = __tid.map(function(id, k) { return { id: id, name: __tn[k] || 'Topic' }; });
-            subs = subs.slice(0, 1);
-        }
-        var __gx = mockMakeExam(subs, st, en, __opts);
+        var __gx = mockMakeExam(subs, st, en);
         mockAddToMine(__gx);
         state.mockGate = __gx;
         storage.set('pendingMock', '1');
@@ -13317,10 +13212,9 @@ function renderMockGate() {
         '<div class="card" style="max-width:420px;width:100%;text-align:center;padding:26px 20px">' +
         '<p style="font-size:38px;margin:0 0 6px">📝</p>' +
         '<p style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--green);margin:0 0 4px">MYUTME MOCK EXAM</p>' +
-        '<h2 class="title" style="font-size:20px;margin:0 0 8px">' + esc(mockExamTitle(ex)) + '</h2>' +
+        '<h2 class="title" style="font-size:20px;margin:0 0 8px">' + esc(mockSubjectNames(ex.subs).join(' + ')) + '</h2>' +
         '<div style="margin-bottom:8px">' + badge + '</div>' +
         '<p style="font-size:12.5px;color:var(--muted);margin:0 0 16px;line-height:1.5">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
-        '<p style="font-size:11.5px;color:var(--muted);margin:0 0 12px">' + esc(mockExamMeta(ex)) + '</p>' +
         '<p style="font-size:13px;margin:0 0 16px;line-height:1.55">To start this exam you must be a MyUTME student.</p>' +
         '<button class="btn btn-green" style="width:100%;padding:13px;margin-bottom:8px" data-action="show-signup">Become a student</button>' +
         '<button class="btn btn-outline" style="width:100%;padding:13px" data-action="show-login">I\'m already a student</button>' +
@@ -13380,61 +13274,17 @@ function fridayLabel(w) {
     const p = w.split('-');
     return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
-async function adminMockLoadTopics(sid) {
-    state.adminMockTopics = state.adminMockTopics || {};
-    if (state.adminMockTopics[sid] && state.adminMockTopics[sid] !== 'loading') return;
-    state.adminMockTopics[sid] = 'loading'; render();
-    try {
-        const t = await window.OfflineDB.getTopicsOffline(sid);
-        state.adminMockTopics[sid] = (t || []).map(function(x) { return { id: x.id, name: x.name || x.title || 'Topic' }; });
-    } catch (e) { console.warn('Admin topics load error:', e); state.adminMockTopics[sid] = []; }
-    render();
-}
 function renderAdminMocks() {
     if (!isAdmin()) return '';
-    const mode = state.adminMockMode === 'topic' ? 'topic' : 'subject';
     const sel = state.adminMockSel || [];
-    const selTopics = state.adminMockTopicSel || [];
-    const nSel = state.adminMockN || 40;
-    const freeOn = state.adminMockFree !== false;
     const chip = function(on) { return 'padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;border:1.5px solid var(--green);cursor:pointer;margin:0 6px 8px 0;background:' + (on ? 'var(--green)' : 'transparent') + ';color:' + (on ? '#fff' : 'var(--green)'); };
     const field = 'width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;margin:4px 0 10px';
-    const lbl = 'font-size:12px;font-weight:700;display:block;margin:2px 0 6px';
     let h = '<div class="card"><p style="font-size:14px;font-weight:800;margin:0 0 4px">➕ Create a Mock</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Choose the type, the questions, who can attempt it, and when it starts and ends.</p>' +
-        '<label style="' + lbl + '">Mock type</label><div>' +
-        '<button style="' + chip(mode === 'subject') + '" data-action="adminmock-mode" data-mode="subject">By subject</button>' +
-        '<button style="' + chip(mode === 'topic') + '" data-action="adminmock-mode" data-mode="topic">By topic</button></div>';
-    if (mode === 'subject') {
-        h += '<label style="' + lbl + '">Subjects (1 to 4 — pick 4 for the Saturday full mock)</label><div>';
-        SUBJECTS.filter(function(x) { return x.id !== 'lhm'; }).forEach(function(x) {
-            h += '<button style="' + chip(sel.indexOf(x.id) !== -1) + '" data-action="adminmock-toggle" data-subject="' + x.id + '">' + esc(x.name) + '</button>';
-        });
-        h += '</div>';
-    } else {
-        const sid = sel[0];
-        h += '<label style="' + lbl + '">Subject</label><div>';
-        SUBJECTS.filter(function(x) { return x.id !== 'lhm'; }).forEach(function(x) {
-            h += '<button style="' + chip(sid === x.id) + '" data-action="adminmock-toggle" data-subject="' + x.id + '">' + esc(x.name) + '</button>';
-        });
-        h += '</div>';
-        if (sid) {
-            const tl = (state.adminMockTopics || {})[sid];
-            h += '<label style="' + lbl + '">Topics (questions come only from these)</label><div>';
-            if (tl === 'loading' || tl === undefined) h += '<p style="font-size:12px;color:var(--muted);margin:0 0 8px">Loading topics…</p>';
-            else if (!tl.length) h += '<p style="font-size:12px;color:var(--muted);margin:0 0 8px">No topics found for this subject.</p>';
-            else tl.forEach(function(t) { h += '<button style="' + chip(selTopics.indexOf(t.id) !== -1) + '" data-action="adminmock-topic" data-topic="' + esc(t.id) + '">' + esc(t.name) + '</button>'; });
-            h += '</div>';
-        } else h += '<p style="font-size:12px;color:var(--muted);margin:0 0 8px">Pick a subject to see its topics.</p>';
-    }
-    h += '<label style="' + lbl + '">Number of questions</label><div>';
-    [10, 20, 30, 40].forEach(function(n) { h += '<button style="' + chip(nSel === n) + '" data-action="adminmock-n" data-n="' + n + '">' + n + '</button>'; });
-    h += '</div>' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-radius:12px;background:var(--bg);margin:2px 0 12px">' +
-        '<div><p style="font-size:13px;font-weight:800;margin:0">Allow unactivated students</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:3px 0 0;line-height:1.45">' + (freeOn ? 'ON: anyone with an account can take the full Mock.' : 'OFF: only activated students can take it. Others are asked to activate.') + '</p></div>' +
-        '<button style="flex:0 0 auto;min-width:62px;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:0;cursor:pointer;background:' + (freeOn ? 'var(--green)' : '#9aa5a0') + ';color:#fff" data-action="adminmock-free">' + (freeOn ? 'ON' : 'OFF') + '</button></div>' +
-        '<label style="font-size:12px;font-weight:700">Starts</label><input id="am-start" type="datetime-local" style="' + field + '" value="' + esc(state.adminMockStart || '') + '">' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">Pick 1 or 2 subjects and set when it starts and ends. Each subject keeps the normal time (about 30 minutes).</p><div>';
+    SUBJECTS.filter(function(x) { return x.id !== 'lhm'; }).forEach(function(x) {
+        h += '<button style="' + chip(sel.indexOf(x.id) !== -1) + '" data-action="adminmock-toggle" data-subject="' + x.id + '">' + esc(x.name) + '</button>';
+    });
+    h += '</div><label style="font-size:12px;font-weight:700">Starts</label><input id="am-start" type="datetime-local" style="' + field + '" value="' + esc(state.adminMockStart || '') + '">' +
         '<label style="font-size:12px;font-weight:700">Ends</label><input id="am-end" type="datetime-local" style="' + field + '" value="' + esc(state.adminMockEnd || '') + '">' +
         '<button class="btn btn-green" style="width:100%;padding:12px" data-action="adminmock-create">Create Mock</button></div>';
     const list = mockReadList('adminMocks').sort(function(a, b) { return b.start - a.start; });
@@ -13443,9 +13293,8 @@ function renderAdminMocks() {
     list.forEach(function(ex) {
         const st = mockExamStatus(ex);
         h += '<div style="border-top:1px solid var(--line);padding:12px 0">' +
-            '<div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:13px">' + esc(mockExamTitle(ex)) + '</b><span style="font-size:10px;font-weight:800;color:' + (st === 'open' ? 'var(--green)' : '#7a8580') + '">' + st.toUpperCase() + '</span></div>' +
-            '<p style="font-size:11.5px;color:var(--muted);margin:3px 0 2px">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
-            '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">' + esc(mockExamMeta(ex)) + '</p>' +
+            '<div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:13px">' + esc(mockSubjectNames(ex.subs).join(' + ')) + '</b><span style="font-size:10px;font-weight:800;color:' + (st === 'open' ? 'var(--green)' : '#7a8580') + '">' + st.toUpperCase() + '</span></div>' +
+            '<p style="font-size:11.5px;color:var(--muted);margin:3px 0 6px">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
             '<p style="font-size:10.5px;color:var(--muted);margin:0 0 4px">Mock link (takes them straight to the exam)</p>' +
             '<p style="font-size:11px;word-break:break-all;margin:0 0 10px;padding:10px;border-radius:10px;background:var(--bg);user-select:all;-webkit-user-select:all">' + esc(mockLinkFor(ex)) + '</p>' +
             '<div style="display:flex;gap:8px"><button class="btn btn-green" style="flex:2;padding:10px;font-size:12px" data-action="adminmock-copy" data-exam="' + esc(ex.id) + '">Copy link</button>' +
@@ -13454,48 +13303,6 @@ function renderAdminMocks() {
             '<button class="btn btn-outline" style="width:100%;padding:9px;font-size:11.5px;margin-top:8px" data-action="adminmock-reset-mine" data-exam="' + esc(ex.id) + '">Reset my own attempt on this phone</button></div>';
     });
     return h + '</div>';
-}
-
-// ---------- Weekly Mock timetable (Mon–Sat) ----------
-var MOCK_TIMETABLE = [
-    { d: 1, day: 'Monday',    subs: ['eng'] },
-    { d: 2, day: 'Tuesday',   subs: ['math', 'eco'] },
-    { d: 3, day: 'Wednesday', subs: ['bio', 'gov'] },
-    { d: 4, day: 'Thursday',  subs: ['phy', 'acc'] },
-    { d: 5, day: 'Friday',    subs: ['crs', 'chem'] },
-    { d: 6, day: 'Saturday',  subs: [], full: true }   // all subjects: your 4-subject combination
-];
-function renderMockTimetable() {
-    var recs = fridayRecords();
-    var now = new Date(), todayKey = fridayKey(now);
-    var mon = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));   // Monday of this week
-    var tick = '<span style="flex:0 0 auto;font-size:10px;font-weight:800;color:#fff;background:var(--green);border-radius:99px;padding:2px 8px">✓ Done</span>';
-    var rows = '', doneCount = 0, total = 0;
-    MOCK_TIMETABLE.forEach(function(r) {
-        var dt = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + (r.d - 1));
-        var key = fridayKey(dt), rec = recs.find(function(x) { return x.week === key; });
-        var isToday = key === todayKey, past = key < todayKey;
-        var body = '';
-        if (r.full) {
-            var n = rec && rec.scores ? Object.keys(rec.scores).length : 0;
-            var fullDone = n >= 4;
-            total++; if (fullDone) doneCount++;
-            body = '<span style="font-size:12px;line-height:1.5">All subjects Mock (your 4 subjects)</span>' +
-                (fullDone ? tick : (n ? '<span style="flex:0 0 auto;font-size:10px;font-weight:700;color:var(--muted)">' + n + '/4 done</span>' : (past ? '<span style="flex:0 0 auto;font-size:10px;font-weight:700;color:#B7791F">Not taken</span>' : '')));
-        } else {
-            var subsHtml = r.subs.map(function(sid) {
-                var d = !!(rec && rec.scores && (sid in rec.scores));
-                total++; if (d) doneCount++;
-                return '<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 2px 0;font-size:12px;' + (d ? 'color:var(--green);font-weight:800' : '') + '">' + (d ? '✓ ' : '○ ') + esc(mockSubjectName(sid)) + '</span>';
-            }).join('');
-            body = '<div style="flex:1;min-width:0">' + subsHtml + '</div>';
-        }
-        rows += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:12px;margin-bottom:6px;background:' + (isToday ? 'rgba(15,107,63,.12)' : 'var(--bg)') + ';' + (isToday ? 'border:1.5px solid var(--green)' : 'border:1.5px solid transparent') + '">' +
-            '<div style="flex:0 0 78px"><b style="font-size:12px">' + r.day + '</b>' + (isToday ? '<div style="font-size:9.5px;font-weight:800;color:var(--green)">TODAY</div>' : '') + '</div>' + body + '</div>';
-    });
-    return '<div class="card"><p style="font-size:14px;font-weight:800;margin:0 0 2px">🗓️ Weekly Mock timetable</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + doneCount + ' of ' + total + ' done this week · Sunday is rest day</p>' + rows + '</div>';
 }
 function renderMockExamPicker() {
     fridayFlushReleased();
@@ -13517,7 +13324,6 @@ function renderMockExamPicker() {
         '<button class="leaderboard-tab' + (__tab === 'mock' ? ' active' : '') + '" data-action="friday-tab" data-tab="mock">📝 Mock</button>' +
         '<button class="leaderboard-tab' + (__tab === 'board' ? ' active' : '') + '" data-action="friday-tab" data-tab="board">🏆 Leaderboard</button></div>';
     if (__tab === 'board') return html + renderFridayBoard();
-    html += renderMockTimetable();
 
     const exams = mockExams();
     if (!exams.length) {
@@ -13532,9 +13338,8 @@ function renderMockExamPicker() {
         const badge = st === 'open' ? '<span style="background:#0F6B3F;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">OPEN NOW</span>'
             : st === 'upcoming' ? '<span style="background:#B7791F;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">UPCOMING</span>'
             : '<span style="background:#7a8580;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">CLOSED</span>';
-        let card = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><p style="font-size:14px;font-weight:800;margin:0">' + esc(mockExamTitle(ex)) + '</p>' + badge + '</div>' +
-            '<p style="font-size:11.5px;color:var(--muted);margin:0 0 4px">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
-            '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + esc(mockExamMeta(ex)) + '</p>';
+        let card = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><p style="font-size:14px;font-weight:800;margin:0">' + esc(mockSubjectNames(ex.subs).join(' + ')) + '</p>' + badge + '</div>' +
+            '<p style="font-size:11.5px;color:var(--muted);margin:0 0 10px">🕒 ' + esc(mockFmtRange(ex)) + '</p>';
         ex.subs.forEach(function(sid) {
             const taken = mockTaken(rec, sid, ex);
             if (taken) {
@@ -13543,15 +13348,13 @@ function renderMockExamPicker() {
                 card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span>' +
                     (rel ? '<b style="color:var(--green)">' + rec.scores[sid] + ' / 100</b>' : '<span style="color:var(--muted);font-size:11.5px">✓ Submitted</span>') + '</div>';
                 card += mockReviewRowHtml(rec, sid, st);
-            } else if (st === 'open' && !mockAllowsFree(ex) && !isPaidUser()) {
-                card += '<button class="btn btn-gold" style="width:100%;padding:12px;margin-top:6px" data-action="mock-activate-go">🔒 Activate to take ' + esc(ex.topics && ex.topics.length ? 'this Mock' : mockSubjectName(sid)) + '</button>';
             } else if (st === 'open') {
                 card += '<button class="btn btn-green" style="width:100%;padding:12px;margin-top:6px" data-action="friday-start" data-subject="' + sid + '" data-exam="' + esc(ex.id) + '">Start ' + esc(mockSubjectName(sid)) + '</button>';
             } else {
                 card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span><span style="color:var(--muted);font-size:11.5px">' + (st === 'upcoming' ? 'Opens ' + esc(mockFmtTime(ex.start)) : 'Closed') + '</span></div>';
             }
         });
-        if (st === 'open') card += '<p style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.5">' + mockQCount(ex) + ' questions' + (ex.subs.length > 1 ? ' per subject' : '') + ' · scored out of 100 · results show immediately after you submit' + (ex.subs.length > 1 ? ' · take one subject, then the other' : '') + '</p>';
+        if (st === 'open') card += '<p style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.5">' + MOCK_Q_PER_SUBJECT + ' questions per subject · each scored out of 100 · results show immediately after you submit' + (ex.subs.length > 1 ? ' · take one subject, then the other' : '') + '</p>';
         html += card + '</div>';
     });
     if (anyReleased) {
@@ -13765,34 +13568,16 @@ async function startMockExam(subjects, examId) {
     const __wk = mockExamWeek(__ex);
     const __rec = fridayRecords().find(function(r) { return r.week === __wk; });
     if (mockTaken(__rec, __sid, __ex)) { showToast('You have already taken ' + mockSubjectName(__sid) + '.', 'error'); return; }
-    if (!mockAllowsFree(__ex) && !isPaidUser()) { mockGoActivate('This Mock is only open to activated students. Activate to take it.'); return; }
     state.isLoading = true;
     render();
     try {
         let allQuestions = [];
-        const perSubject = mockQCount(__ex);
+        const perSubject = MOCK_Q_PER_SUBJECT;
         state.engMockPassage = null;
         state.engMockHasPassage = false;
         state.engMockPassageRead = false;
         state.engMockPassageId = null;
 for (const subjectId of subjects) {
-            if (__ex.topics && __ex.topics.length) {
-                // TOPIC MOCK: questions come only from the selected topics (same pool as Topic Practice)
-                let pool = [];
-                for (const t of __ex.topics) {
-                    let tq;
-                    try { tq = await withNetworkTimeout(window.OfflineDB.getTopicQuestionsOffline(t.id), 6000, 'Topic questions load'); }
-                    catch (dbErr) { tq = await withNetworkTimeout(loadTopicQuestionsFromFile(subjectId, t.id), 15000, 'Topic questions file load'); }
-                    pool = pool.concat(tq || []);
-                }
-                const seen = {};
-                pool = pool.filter(function(q) { const k = q.id; if (k == null) return true; if (seen[k]) return false; seen[k] = 1; return true; });
-                const sj = SUBJECTS.find(function(x) { return x.id === subjectId; });
-                allQuestions = allQuestions.concat(shuffleArray(pool).slice(0, perSubject).map(function(q) {
-                    return Object.assign({}, q, { subject_id: subjectId, subject_name: sj ? sj.name : subjectId });
-                }));
-                continue;
-            }
             const allSubjectQuestions = await window.OfflineDB.getQuestionsOffline('mock', subjectId);
             if (subjectId === 'eng') {
                 let engSet = __pickEnglishPaper(allSubjectQuestions, perSubject, true);
@@ -13813,7 +13598,7 @@ for (const subjectId of subjects) {
             }
         }
         if (!allQuestions.length) throw new Error('Could not load these questions. Check your internet connection and try again.');
-        if (__ex.topics && __ex.topics.length && allQuestions.length < perSubject) showToast('Only ' + allQuestions.length + ' questions are available for the selected topic(s).', '');
+        if (!isPaidUser()) showToast('Free preview: the first ' + MOCK_FREE_QUESTIONS + ' questions are open. Activate to continue after that.', '');
         state.mockExamSource = 'friday';
         state.mockExamRef = __ex.id;
         state.mockExamId = 'friday-' + __wk + '-' + subjects[0];
@@ -13882,7 +13667,7 @@ function doSubmitMock(autoSubmit, opts) {
     const answered = state.mockAnswers.filter(function(a) { return a !== null && a !== undefined; }).length;
     const wkKey = state.mockWeekKey || fridayKey();
     const histEntry = { mode: 'mock', subjects: names, subject_scores: subjectScores, total_score: totalScore, max_score: maxScore,
-        total_questions: state.mockQuestions.length, answered_count: answered, submitted_at: state.mockSubmittedAt, exam_title: (function() { var e = mockExamById(state.mockExamRef); return e && e.topics && e.topics.length ? 'Topic Mock · ' + mockExamTitle(e) : 'Daily Mock'; })() };
+        total_questions: state.mockQuestions.length, answered_count: answered, submitted_at: state.mockSubmittedAt, exam_title: 'Daily Mock' };
     if (state.authUser) saveAnalyticsTimeSample('mock', (state.mockTotalSeconds || 2 * 60 * 60) - state.mockTimeLeft, state.mockQuestions.length);
     // Score, history and missed questions are held back until the 24-hour Mock window closes.
     const prev = fridayRecords().find(function(r) { return r.week === wkKey; }) || null;
@@ -13893,7 +13678,7 @@ function doSubmitMock(autoSubmit, opts) {
     fridaySaveRecord({ week: wkKey, at: state.mockSubmittedAt, max: mIds.length * 100,
         total: mIds.reduce(function(a, sid) { return a + mScores[sid]; }, 0),
         names: mIds.map(function(sid) { return mockSubjectName(sid); }), scores: mScores,
-        limited: (function() { var l = Object.assign({}, prev && prev.limited ? prev.limited : {}); ids.forEach(function(s) { delete l[s]; }); return l; })(),
+        limited: (function() { var l = Object.assign({}, prev && prev.limited ? prev.limited : {}); ids.forEach(function(s) { if (isPaidUser()) delete l[s]; else l[s] = true; }); return l; })(),
         examIds: Object.assign({}, prev && prev.examIds ? prev.examIds : {}, ids.reduce(function(o, s) { o[s] = state.mockExamRef || ''; return o; }, {})),
         answered: (prev ? prev.answered || 0 : 0) + answered, questions: (prev ? prev.questions || 0 : 0) + state.mockQuestions.length,
         pending: { weak: (prevPend && prevPend.weak ? prevPend.weak : []).concat(weak), hists: prevHists.concat([histEntry]) } });
@@ -18168,8 +17953,6 @@ function renderNow() {
     if (state.authUser) state.guestPrompt = null;
     if (state.guestPrompt) html += renderGuestPrompt();
     if (state.activatePopup) html += renderActivatePopup();
-    if (state.pfm && state.pfm.open && state.authUser) html += renderPfmSheet();
-    if (state.pfmPayer) html += renderPfmPayerPage();
     if (state.adminActSheet && isAdmin()) html += renderAdminActSheet();
     if (state.showGotoModal) {
         html += __modalWrap('goto', true, renderGotoModal());
@@ -18559,6 +18342,7 @@ function renderFaqImageUploadModal() {
 // except Home. Home keeps its own colored brand header separately.
 const PAGE_TITLES = {
     'mysubjects': 'Practice Hub',
+    'exam-soon': 'Coming Soon',
     'browse-subjects': 'Browse Subjects',
     'ai-assistant': 'AI',
     'mockexam': 'Mock Arena',
@@ -18793,6 +18577,7 @@ function renderView() {
     if (v === "admin" && isAdmin()) return renderAdmin();
     if (v === "cbt") return renderCbtMode();
     if (v === "exam") return renderExamMode();
+    if (v === "exam-soon") return renderExamSoon();
     if (v === "mockexam") return renderMockExamPicker();
     if (v === "mysubjects") return renderMyCourses();
     if (v === "browse-subjects") return renderBrowseSubjects();
@@ -18803,7 +18588,7 @@ if (v === "subject-modes") return renderSubjectModes();
     if (v === "revise") return renderReviseWeak();
     if (v === "review") return renderReviewPage();
     if (v === "flashcards") return renderFlashcards();
-    if (v === "videos") return renderVideoLessonsPage();
+    if (v === "videos") return renderHome();
     if (v === "topic") return renderTopicsPicker();
     if (v === "topic-list") return renderTopicsListPage();
     if (v === "topic-exam") return renderTopicExam();
@@ -18858,6 +18643,7 @@ function renderBrowseSubjects() {
         (hasSavedSubjects() ? '<button class="btn btn-outline" style="width:100%;margin-top:8px;padding:10px" data-action="browse-clear-subjects">Clear and show all subjects</button>' : '');
 }
 function renderMyCoursesCore() {
+    return renderPracticeHubV2();
     // Local/offline: state.myElectives is loaded from localStorage the moment
     // we know who's logged in (see loadMyElectivesLocal()), so this page has
     // real data on first paint whether or not there's a connection — nothing
@@ -19015,6 +18801,136 @@ const atMax = mySubjectIds.length === 4;
         '<p>Pick a mode, then choose your subjects. For full-exam modes, English is compulsory and you pick the rest.</p></section>' +
         modeGrid
     );
+}
+
+// ============================================================
+//  PRACTICE HUB v2: exam switcher (JAMB / WAEC / NECO)
+//  - Topic Practice, Missed and Marked are general (every exam).
+//  - CBT, Past Questions and Flashcards belong to the chosen exam.
+//  - Mock Arena and Novel (CBT) are JAMB only.
+//  - WAEC and NECO show every subject with "Coming soon".
+// ============================================================
+var PH_EXAMS = [
+    { key: 'jamb', label: 'JAMB', full: 'JAMB UTME', live: true },
+    { key: 'waec', label: 'WAEC', full: 'WAEC', live: false },
+    { key: 'neco', label: 'NECO', full: 'NECO', live: false }
+];
+function phExamInfo(k) {
+    return PH_EXAMS.filter(function(e) { return e.key === k; })[0] || PH_EXAMS[0];
+}
+function phCurrentExam() {
+    var k = state.phExam || storage.get('phExam') || 'jamb';
+    return phExamInfo(k).key;
+}
+(function() {
+    if (document.getElementById('px-style')) return;
+    var css = [
+        '.px-h{margin:4px 0 4px;font-size:22px;font-weight:800;letter-spacing:-.03em;color:var(--ink)}',
+        '.px-sub{margin:0 0 14px;font-size:12px;line-height:1.5;color:var(--muted)}',
+        '.px-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border:1px solid var(--line);border-radius:14px;background:var(--bg);margin-bottom:12px}',
+        '.px-seg-b{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;font-weight:800;padding:11px 0;border-radius:10px;cursor:pointer}',
+        '.px-seg-b.on{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(15,107,63,.25)}',
+        '.px-note{margin:0 0 4px;padding:11px 13px;border-radius:12px;background:var(--green-light);color:var(--ink);font-size:12px;line-height:1.5}',
+        '.px-gt{margin:20px 2px 8px;font-size:13px;font-weight:800;color:var(--ink)}',
+        '.px-gs{margin:-4px 2px 8px;font-size:11px;color:var(--muted)}',
+        '.px-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}',
+        '.px-tool{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--card-bg);color:var(--ink);font:inherit;text-align:left;cursor:pointer}',
+        '.px-tool b{font-size:12px;font-weight:800;line-height:1.25}',
+        '.px-ic{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;flex:0 0 auto}',
+        '.px-list{border:1px solid var(--line);border-radius:16px;background:var(--card-bg);overflow:hidden}',
+        '.px-row{display:flex;align-items:center;gap:12px;width:100%;padding:13px 14px;border:0;border-top:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;text-align:left;cursor:pointer}',
+        '.px-row:first-child{border-top:0}',
+        '.px-rt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}',
+        '.px-rt b{font-size:14px;font-weight:800}',
+        '.px-rt small{font-size:11px;color:var(--muted)}',
+        '.px-chip{flex:0 0 auto;padding:4px 9px;border-radius:99px;background:var(--bg);border:1px solid var(--line);color:var(--muted);font-size:10px;font-weight:800}',
+        '.px-go{flex:0 0 auto;color:var(--faint);display:flex}',
+        '.px-subj{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--line)}',
+        '.px-subj:first-child{border-top:0}',
+        '.px-subj-n{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--ink)}',
+        '.px-tool:focus-visible,.px-row:focus-visible,.px-seg-b:focus-visible{outline:2px solid var(--green);outline-offset:2px}'
+    ].join('');
+    var st = document.createElement('style');
+    st.id = 'px-style';
+    st.textContent = css;
+    document.head.appendChild(st);
+})();
+function phChevron() {
+    return '<span class="px-go">' + svg('chevleft', 16).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>';
+}
+function phRowHtml(r, examKey) {
+    var attrs = r.soon
+        ? 'data-action="ph-soon" data-exam="' + examKey + '" data-mode="' + r.mode + '"'
+        : 'data-action="set-view" data-view="' + r.view + '"';
+    return '<button type="button" class="px-row" ' + attrs + '>' +
+        '<span class="px-ic" style="background:' + r.tint + '1F;color:' + r.tint + '">' + svg(r.icon, 20) + '</span>' +
+        '<span class="px-rt"><b>' + esc(r.label) + '</b><small>' + esc(r.sub) + '</small></span>' +
+        (r.soon ? '<span class="px-chip">Soon</span>' : phChevron()) +
+        '</button>';
+}
+function renderPracticeHubV2() {
+    var ex = phCurrentExam(), info = phExamInfo(ex), soon = !info.live;
+
+    var seg = '<div class="px-seg" role="tablist" aria-label="Choose exam">' +
+        PH_EXAMS.map(function(e) {
+            return '<button type="button" role="tab" aria-selected="' + (e.key === ex) + '" class="px-seg-b' + (e.key === ex ? ' on' : '') + '" data-action="ph-set-exam" data-exam="' + e.key + '">' + e.label + '</button>';
+        }).join('') + '</div>';
+
+    var note = soon
+        ? '<p class="px-note">' + esc(info.full) + ' questions are coming soon. Every subject is already listed, and we will switch them on as the questions are ready.</p>'
+        : '';
+
+    var tools = [
+        { view: 'topic', label: 'Topic Practice', icon: 'list', tint: '#8B5CF6' },
+        { view: 'revise', label: 'Missed questions', icon: 'rotate', tint: '#0A7B63' },
+        { view: 'marked', label: 'Marked questions', icon: 'bookmark', tint: '#F59E0B' }
+    ];
+    var toolsHtml = '<p class="px-gt">For every exam</p><div class="px-tools">' + tools.map(function(t) {
+        return '<button type="button" class="px-tool" data-action="set-view" data-view="' + t.view + '">' +
+            '<span class="px-ic" style="background:' + t.tint + '1F;color:' + t.tint + '">' + svg(t.icon, 20) + '</span>' +
+            '<b>' + esc(t.label) + '</b></button>';
+    }).join('') + '</div>';
+
+    var examRows = [
+        { mode: 'cbt', view: 'cbt', label: 'CBT Practice', sub: 'Timed, exam-style practice', icon: 'monitor', tint: '#2F6BFF', soon: soon },
+        { mode: 'past', view: 'exam', label: 'Past Questions', sub: ex === 'jamb' ? 'Pick a year, 2000 \u2013 2026' : 'Year by year, subject by subject', icon: 'clipboard', tint: '#F0662B', soon: soon },
+        { mode: 'flash', view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#E04C8E', soon: soon }
+    ];
+    var examHtml = '<p class="px-gt">' + esc(info.label) + ' practice</p><div class="px-list">' +
+        examRows.map(function(r) { return phRowHtml(r, ex); }).join('') + '</div>';
+
+    var jambOnly = '';
+    if (ex === 'jamb') {
+        jambOnly = '<p class="px-gt">JAMB only</p><div class="px-list">' +
+            phRowHtml({ view: 'mockexam', label: 'Mock Arena', sub: 'Scheduled, timed UTME mock exams', icon: 'target', tint: '#6E5296' }, ex) +
+            phRowHtml({ view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#14A3A3' }, ex) +
+            '</div>';
+    } else {
+        jambOnly = '<p class="px-gs" style="margin-top:14px">Mock Arena and Novel (CBT) are for JAMB only.</p>';
+    }
+
+    return '<section style="padding-bottom:12px">' +
+        '<h1 class="px-h">Practice</h1>' +
+        '<p class="px-sub">Choose your exam, then how you want to practise.</p>' +
+        seg + note + toolsHtml + examHtml + jambOnly +
+        '</section>';
+}
+
+function renderExamSoon() {
+    var ex = state.soonExam || phCurrentExam(), info = phExamInfo(ex);
+    var names = { cbt: 'CBT Practice', past: 'Past Questions', flash: 'Flashcards' };
+    var mode = names[state.soonMode] || 'Practice';
+    var list = SUBJECTS.filter(function(s) { return s.id !== 'lhm'; });
+    var rows = list.map(function(s) {
+        return '<div class="px-subj">' + subjectBadge(s) +
+            '<span class="px-subj-n">' + esc(s.name) + '</span>' +
+            '<span class="px-chip">Coming soon</span></div>';
+    }).join('');
+    return '<button class="back-link" data-action="set-view" data-view="mysubjects">' + svg('chevleft', 14) + ' Practice Hub</button>' +
+        '<h2 class="px-h" style="font-size:19px">' + esc(info.label) + ' \u00b7 ' + esc(mode) + '</h2>' +
+        '<p class="px-note" style="margin-top:8px">' + esc(info.full) + ' questions are coming soon. These are the subjects we are preparing for you.</p>' +
+        '<p class="px-gt">Subjects</p><div class="px-list">' + rows + '</div>' +
+        '<button class="btn btn-outline" style="width:100%;margin-top:14px;padding:12px" data-action="set-view" data-view="mysubjects">Back to Practice Hub</button>';
 }
 
 function renderSubjectModes() {
@@ -20216,6 +20132,7 @@ function __vlDiscover(subjectId, topics) {
     });
 }
 function allVideoLessons() {
+    return []; // video lessons removed
     var out = [], seen = {};
     VIDEO_LESSONS.concat(Object.keys(__vlFound).map(function(k) { return __vlFound[k]; })).forEach(function(v) {
         if (seen[v.url]) return;
@@ -20227,6 +20144,7 @@ function videoLessonsForSubject(subjectId) {
     return allVideoLessons().filter(function(v) { return v.subject === subjectId; });
 }
 function videoForTopic(subjectId, topicName) {
+    return null; // video lessons removed
     var note = getTopicNote(subjectId, topicName);
     if (note && note.video) return note.video;
     var nk = __noteKey(topicName), hit = null;
@@ -20352,6 +20270,7 @@ function warmVideoLesson(url) {
     } catch (e) {}
 }
 function videoCardHtml(note, topicName) {
+    return ''; // video lessons removed
     var vurl = (note && note.video) || videoForTopic(state.topicSubject, topicName);
     if (!vurl) return '';
     if (VIDEO_LESSONS_LOCKED) {
@@ -20468,6 +20387,7 @@ function subjectNameOf(id) {
     return s ? s.name : id;
 }
 function vlTag(text) {
+    return ''; // video lessons removed
     return VIDEO_LESSONS_LOCKED ? '<span class="nt-tag vl-tag">\ud83d\udd12 Video &middot; Coming soon</span>' : '<span class="nt-tag vl-tag">&#9654; ' + text + '</span>';
 }
 function vlRowHtml(v, withSubject) {
@@ -20483,6 +20403,7 @@ function vlRowHtml(v, withSubject) {
 }
 // Strip shown at the top of a subject's topic list: video lessons are visible without opening a topic.
 function renderVideoStrip(subjectId) {
+    return ''; // video lessons removed
     var list = videoLessonsForSubject(subjectId);
     if (!list.length) return '';
     list.forEach(function(v) { warmVideoLesson(v.url); });
@@ -20492,6 +20413,7 @@ function renderVideoStrip(subjectId) {
 }
 // Home screen section.
 function renderHomeVideos() {
+    return ''; // video lessons removed
     var list = allVideoLessons();
     if (!list.length) return '';
     list.forEach(function(v) { warmVideoLesson(v.url); });
@@ -22588,14 +22510,8 @@ function renderProfileCore() {
           : isActive
             ? { key: 'set-view|activate', icon: 'checkcircle', color: '#0F6B3F', title: 'Activated', sub: (expiry ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left · ' : '') + 'Renew activation', badge: 'RENEW' }
             : { key: 'set-view|activate', icon: 'key', color: '#E4A93A', title: 'Activate', sub: 'Unlock full CBT access & all features', badge: 'GO' });
-        if (!isActive) menuItems.splice(1, 0, { key: 'pfm-open', icon: 'share', color: '#7C3AED', title: 'Pay For Me', sub: 'Let someone pay for your activation', badge: 'NEW' });
     }
     
-    if (state.authUser) {
-        if (state.tgLoaded === undefined && !state.tgLoading) { try { loadTelegramStatus(); } catch (e) {} }
-        menuItems.push({ key: 'telegram-link', icon: 'telegram', color: '#229ED9', title: 'Telegram alerts',
-            sub: state.tgLinked ? 'Connected. Tap to reconnect' : 'Get MyUTME notifications in Telegram', badge: state.tgLinked ? 'ON' : '' });
-    }
     let menuHtml = '<div class="ph-mode-list">';
     menuItems.forEach(function(item) {
         const parts = item.key.split('|');
@@ -22973,470 +22889,6 @@ function retryPendingPayments() {
 }
 
 // ============================================================
-//  PAY FOR ME
-//  A student makes a personal link. Anyone can open it (no login), pay with
-//  Paystack or send a manual transfer, and the student gets activated.
-// ============================================================
-const PFM_SITE = "https://myutme.com.ng";
-const PFM_INIT_URL = SUPABASE_URL + "/functions/v1/payforme-init";
-const PFM_VERIFY_URL = SUPABASE_URL + "/functions/v1/payforme-verify";
-const PFM_PROMO_KEY = "myutme_pfm_promo";
-state.pfm = { open: false, planId: '', busy: false, loaded: false, loading: false, uid: null, list: [] };
-state.pfmPayer = null;
-state.adminPfm = { loaded: false, loading: false, rows: [] };
-let __pfmPoll = null, __pfmGuestShown = false;
-
-function pfmLink(token) { return PFM_SITE + '/?payforme=' + encodeURIComponent(token); }
-function pfmPromoLink() { return PFM_SITE + '/?payforme=1'; }
-function pfmNaira(n) { return '₦' + Number(n || 0).toLocaleString(); }
-function pfmShareText(r) {
-    const days = r.plan_days ? ' (' + r.plan_days + ' Days)' : '';
-    return 'Hello 👋 Please help me activate my MyUTME account so I can start practising for JAMB 2027.\n\n' +
-        'MyUTME is a CBT practice platform where I can practise JAMB past questions, take mock exams and prepare effectively for the upcoming UTME.\n\n' +
-        '📦 Plan: ' + r.plan_name + days + '\n' +
-        '💰 Amount: ' + pfmNaira(r.plan_price) + '\n\n' +
-        'Please use the secure payment link below to activate:\n' + pfmLink(r.token) + '\n\n' +
-        'Thank you so much for helping me prepare for JAMB 2027! 🙏';
-}
-function pfmPromoCaption() {
-    return '📢 Want to activate your MyUTME account but can\'t pay right now?\n\n' +
-        'This is the time! Let someone pay for you. Click this link, tap "Pay For Me", then share your own link with a parent, sibling or friend. When they pay, your account is activated automatically.\n\n' +
-        '👉 ' + pfmPromoLink();
-}
-function pfmShare(text) {
-    if (navigator.share) { navigator.share({ text: text }).catch(function() {}); }
-    else { try { copyToClipboard(text); } catch (e) {} showToast('Message copied. Paste it anywhere to share.', 'success'); }
-}
-function pfmWhatsApp(text) { openExternalUrl('https://wa.me/?text=' + encodeURIComponent(text)); }
-
-// ---------- student side ----------
-async function pfmLoadMine(quiet) {
-    if (!state.authUser) return;
-    const P = state.pfm;
-    if (P.uid !== state.authUser.id) { P.uid = state.authUser.id; P.list = []; P.loaded = false; }
-    if (P.loading) return;
-    P.loading = true;
-    try {
-        const { data, error } = await supabase.from('pay_requests').select('*')
-            .eq('user_id', state.authUser.id).order('created_at', { ascending: false }).limit(10);
-        if (error) throw error;
-        const prev = P.list || [];
-        P.list = data || [];
-        P.loaded = true;
-        const nowDone = P.list.find(function(r) {
-            if (r.status !== 'activated') return false;
-            const was = prev.find(function(x) { return x.id === r.id; });
-            return (was && was.status !== 'activated') || (!was && !isUserActive() && r.activated_at && Date.now() - Date.parse(r.activated_at) < 3 * 86400000);
-        });
-        if (nowDone) {
-            showToast('🎉 ' + (nowDone.payer_name ? nowDone.payer_name + ' paid for you! ' : '') + 'Your account is activated.', 'success');
-            await pfmRefreshProfile();
-        }
-    } catch (e) { console.warn('Pay For Me load error:', e); P.loaded = true; }
-    P.loading = false;
-    render();
-}
-async function pfmRefreshProfile() {
-    try {
-        const { data } = await supabase.from('profiles').select('is_active,activation_expiry').eq('id', state.authUser.id).maybeSingle();
-        if (data) {
-            state.profile.is_active = data.is_active !== false;
-            state.profile.activation_expiry = data.activation_expiry || null;
-            if (state.authProfile) { state.authProfile.is_active = data.is_active; state.authProfile.activation_expiry = data.activation_expiry; try { saveOfflineCache('profile_' + state.authUser.id, state.authProfile); } catch (e) {} }
-        }
-    } catch (e) {}
-    render();
-}
-async function pfmAskVerify(token, reference) {
-    try {
-        const res = await fetch(PFM_VERIFY_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-            body: JSON.stringify({ token: token, reference: reference || undefined }),
-        });
-        const d = await res.json().catch(function() { return {}; });
-        return d || {};
-    } catch (e) { return {}; }
-}
-async function pfmPollOnce() {
-    if (!state.authUser) return;
-    const waiting = (state.pfm.list || []).filter(function(r) { return (r.status === 'open' || r.status === 'pending_manual') && r.paystack_ref; });
-    for (let i = 0; i < waiting.length; i++) await pfmAskVerify(waiting[i].token);
-    await pfmLoadMine(true);
-}
-function pfmStartPoll() { if (__pfmPoll) return; __pfmPoll = setInterval(function() { if (!state.pfm.open) { clearInterval(__pfmPoll); __pfmPoll = null; return; } pfmPollOnce(); }, 8000); }
-
-function pfmOpen() {
-    state.activatePopup = null;
-    if (!state.authUser) {
-        try { localStorage.setItem(PFM_PROMO_KEY, String(Date.now())); } catch (e) {}
-        guestNeedsAccount('ask someone to pay for you');
-        return;
-    }
-    if (isAdmin()) { showToast('Admin accounts are always active.', ''); return; }
-    state.pfm.open = true;
-    pfmLoadMine(true);
-    pfmStartPoll();
-    render();
-}
-async function pfmCreate() {
-    const P = state.pfm;
-    if (P.busy) return;
-    if (!P.planId) { showToast('Choose a plan first.', 'error'); return; }
-    P.busy = true; render();
-    try {
-        const { data, error } = await supabase.rpc('pfm_create_request', { p_plan_id: String(P.planId) });
-        if (error) throw error;
-        P.loaded = false; P.loading = false;
-        await pfmLoadMine(true);
-        showToast('Your link is ready. Share it! 🎁', 'success');
-    } catch (e) {
-        showToast((e && e.message) || 'Could not create the link.', 'error');
-    }
-    P.busy = false; render();
-}
-function pfmFind(id) { return (state.pfm.list || []).find(function(r) { return String(r.id) === String(id); }); }
-
-function renderPfmCard() {
-    if (!state.authUser || isAdmin() || isPaidUser()) return '';
-    return '<div class="card" style="margin:12px 0;text-align:center;padding:14px;border:1.5px dashed #7C3AED66">' +
-        '<p style="font-size:22px;margin:0 0 2px">🎁</p>' +
-        '<p style="font-size:13px;font-weight:700;margin:0 0 2px">Can\'t pay right now?</p>' +
-        '<p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.45">Let a parent, sibling or friend pay for you. You just share a link.</p>' +
-        '<button class="btn btn-outline" style="padding:10px" data-action="pfm-open">Pay For Me</button></div>';
-}
-
-function pfmStatusLine(r) {
-    if (r.status === 'activated') return '<span style="color:var(--green);font-weight:700">✅ Activated' + (r.payer_name ? ' by ' + esc(r.payer_name) : '') + '</span>';
-    if (r.status === 'pending_manual') return '<span style="color:#b9821f;font-weight:700">🕒 ' + esc(r.payer_name || 'Someone') + ' sent payment. Waiting for admin to confirm</span>';
-    if (r.status === 'rejected') return '<span style="color:#B23420;font-weight:700">❌ Payment not confirmed' + (r.admin_note ? ': ' + esc(r.admin_note) : '') + '</span>';
-    return '<span style="color:var(--muted)">' + (r.paystack_ref ? '⏳ Payment started, checking…' : '⏳ Waiting for someone to pay') + '</span>';
-}
-function renderPfmSheet() {
-    const P = state.pfm;
-    const plans = (state.activationPlans || []).slice().sort(function(a, b) { return (a.days || 0) - (b.days || 0); });
-    if (!state.activationPlansLoaded) loadActivationPlans().then(function() { render(); });
-    if ((!P.planId || !plans.find(function(p) { return String(p.id) === String(P.planId); })) && plans.length) {
-        const pre = plans.find(function(p) { return String(p.id) === String(state.selectedPlanId); }) || plans[0];
-        P.planId = String(pre.id);
-    }
-    const paid = isPaidUser();
-    const shown = (P.list || []).filter(function(r) {
-        if (r.status === 'cancelled' || r.status === 'expired') return false;
-        if (r.status === 'open' && new Date(r.expires_at) < new Date()) return false;
-        return true;
-    }).slice(0, 4);
-
-    let body = '';
-    if (paid) {
-        body += '<p style="font-size:13px;text-align:center;color:var(--green);font-weight:700;margin:6px 0 12px">✅ Your account is already activated.</p>';
-    } else {
-        body += '<p class="lp-section" style="margin:6px 0">1. Choose the plan</p>';
-        body += plans.length ? plans.map(function(p) {
-            const on = String(p.id) === String(P.planId);
-            return '<div class="lp-method' + (on ? ' selected' : '') + '" data-action="pfm-pick-plan" data-planid="' + esc(String(p.id)) + '">' +
-                '<span class="lp-radio' + (on ? ' on' : '') + '"></span>' +
-                '<div class="lp-mtxt"><p class="lp-mlabel">' + esc(p.name) + ' · ' + pfmNaira(p.price) + '</p><p class="lp-mdesc">⏱️ ' + esc(planDuration(p)) + '</p></div></div>';
-        }).join('') : '<p style="font-size:12px;color:var(--muted)">' + (state.activationPlansLoaded ? 'No plans available right now.' : 'Loading plans…') + '</p>';
-        body += '<button class="btn btn-gold" style="padding:11px;margin:10px 0 4px" data-action="pfm-create"' + (P.busy ? ' disabled' : '') + '>' + (P.busy ? 'Creating…' : 'Create my link') + '</button>';
-    }
-    if (shown.length) {
-        body += '<p class="lp-section" style="margin:12px 0 6px">Your links</p>';
-        body += shown.map(function(r) {
-            const live = r.status === 'open' || r.status === 'pending_manual';
-            return '<div class="card" style="padding:10px;margin-bottom:8px;text-align:left">' +
-                '<p style="font-size:13px;font-weight:700;margin:0">' + esc(r.plan_name) + ' · ' + pfmNaira(r.plan_price) + '</p>' +
-                '<p style="font-size:11.5px;margin:3px 0 6px">' + pfmStatusLine(r) + '</p>' +
-                (live ? '<p style="font-size:10.5px;color:var(--faint);word-break:break-all;margin:0 0 8px">' + esc(pfmLink(r.token)) + '</p>' +
-                    '<div style="display:flex;gap:6px">' +
-                    '<button class="btn btn-green" style="flex:1.4;padding:9px;font-size:12px" data-action="pfm-wa" data-id="' + esc(r.id) + '">WhatsApp</button>' +
-                    '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="pfm-share" data-id="' + esc(r.id) + '">Share</button>' +
-                    '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="pfm-copy" data-id="' + esc(r.id) + '">Copy</button></div>' +
-                    (r.status === 'open' ? '<button style="border:0;background:none;color:var(--faint);font-size:11px;padding:8px 0 0;cursor:pointer" data-action="pfm-cancel" data-id="' + esc(r.id) + '">Cancel this link</button>' : '') : '') +
-                '</div>';
-        }).join('');
-    }
-    return '<div class="nw-back" data-action="pfm-close"></div>' +
-        '<div class="nw-sheet" style="display:block;max-height:88vh;overflow:auto">' +
-        '<div style="text-align:center"><div style="font-size:32px">🎁</div>' +
-        '<h4 style="margin:2px 0 4px;font-size:17px">Ask someone to pay for you</h4>' +
-        '<p style="font-size:12px;color:var(--muted);margin:0 0 6px;line-height:1.5">Pick a plan, then share your link with a parent, sibling or friend. When they pay, your account activates by itself.</p></div>' +
-        body +
-        '<button style="border:0;background:none;color:var(--faint);font-size:12px;padding:10px;width:100%;cursor:pointer" data-action="pfm-close">Close</button></div>';
-}
-
-// ---------- payer side (public page, no login) ----------
-async function pfmPayerStart(token, ref) {
-    state.pfmPayer = { token: token, loading: true, data: null, error: '', name: '', email: '', username: '', note: '', mode: 'online', busy: false, done: null, checking: false, tries: 0 };
-    render();
-    try { await waitForSupabaseReady(6000); } catch (e) {}
-    try {
-        const { data, error } = await supabase.rpc('pfm_get_request', { p_token: token });
-        if (error) throw error;
-        state.pfmPayer.data = data;
-    } catch (e) { state.pfmPayer.error = 'Could not load this link. Check your internet and try again.'; }
-    state.pfmPayer.loading = false;
-    render();
-    if (ref && ref.indexOf('PFM-') === 0) pfmPayerVerify(ref);
-}
-async function pfmPayerVerify(ref) {
-    const P = state.pfmPayer; if (!P) return;
-    P.checking = true; render();
-    const d = await pfmAskVerify(P.token, ref);
-    if (d.status === 'activated' || d.status === 'already') { P.checking = false; P.done = { username: d.username || (P.data && P.data.username) || '' }; render(); return; }
-    P.tries++;
-    if (P.tries < 8 && !d.error) { setTimeout(function() { pfmPayerVerify(ref); }, 3500); return; }
-    P.checking = false; P.error = d.error || 'We have not seen the payment yet. If you already paid, do not pay again. It will activate automatically within a few minutes.';
-    render();
-}
-async function pfmPayerPay() {
-    const P = state.pfmPayer; if (!P || P.busy) return;
-    if ((P.name || '').trim().length < 2) { showToast('Enter your name.', 'error'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((P.email || '').trim())) { showToast('Enter a valid email (Paystack sends your receipt there).', 'error'); return; }
-    P.busy = true; P.error = ''; render();
-    try {
-        const res = await fetch(PFM_INIT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-            body: JSON.stringify({ token: P.token, payer_name: P.name.trim(), payer_email: P.email.trim(), callback_url: PFM_SITE + '/?payforme=' + encodeURIComponent(P.token) }),
-        });
-        const d = await res.json().catch(function() { return {}; });
-        if (!res.ok || !d.authorization_url) throw new Error(d.error || 'Could not start the payment.');
-        window.location.href = d.authorization_url;
-    } catch (e) { P.busy = false; P.error = (e && e.message) || 'Could not start the payment.'; render(); }
-}
-async function pfmPayerManual() {
-    const P = state.pfmPayer; if (!P || P.busy) return;
-    P.busy = true; P.error = ''; render();
-    try {
-        const { data, error } = await supabase.rpc('pfm_submit_manual', { p_token: P.token, p_payer_name: (P.name || '').trim(), p_username: (P.username || '').trim(), p_note: (P.note || '').trim() });
-        if (error) throw error;
-        P.manualSent = true;
-    } catch (e) { P.error = (e && e.message) || 'Could not send. Please try again.'; }
-    P.busy = false; render();
-}
-function pfmPayerClose() {
-    state.pfmPayer = null;
-    try { history.replaceState(null, '', '/'); } catch (e) {}
-    render();
-}
-function renderPfmPayerPage() {
-    const P = state.pfmPayer; if (!P) return '';
-    const d = P.data || {};
-    let inner = '';
-    const err = P.error ? '<div class="explanation-box" style="border-left-color:var(--danger);background:#fce4ec;margin:0 0 10px"><p style="margin:0;color:#B23420;font-weight:600;font-size:12.5px">' + esc(P.error) + '</p></div>' : '';
-    if (P.loading) inner = '<div class="loading-spinner"><div class="spinner"></div><p>Loading…</p></div>';
-    else if (P.done) {
-        inner = '<div style="text-align:center;padding:30px 6px"><div style="font-size:54px">🎉</div><h2 style="margin:6px 0">Thank you!</h2>' +
-            '<p style="font-size:13px;color:var(--muted);line-height:1.6">' + (P.done.username ? '<b>' + esc(P.done.username) + '</b>\'s' : 'The') + ' account has been activated. You just helped a student prepare for UTME. God bless you 🙏</p>' +
-            '<button class="btn btn-green" style="margin-top:14px" data-action="pfm-payer-close">Open MyUTME</button></div>';
-    } else if (P.checking) {
-        inner = '<div class="loading-spinner"><div class="spinner"></div><p>Confirming your payment…</p></div>' + err;
-    } else if (P.manualSent) {
-        inner = '<div style="text-align:center;padding:30px 6px"><div style="font-size:54px">✅</div><h2 style="margin:6px 0">Received</h2>' +
-            '<p style="font-size:13px;color:var(--muted);line-height:1.6">We will confirm your payment and activate <b>' + esc(d.username) + '</b> shortly. Thank you!</p>' +
-            '<button class="btn btn-green" style="margin-top:14px" data-action="pfm-payer-close">Open MyUTME</button></div>';
-    } else if (!d.found) {
-        inner = '<div style="text-align:center;padding:30px 6px"><div style="font-size:44px">🔗</div><h3>This link is not valid</h3><p style="font-size:12.5px;color:var(--muted)">Ask the student to send you the link again.</p>' + err + '<button class="btn btn-outline" data-action="pfm-payer-close">Open MyUTME</button></div>';
-    } else if (d.status === 'activated') {
-        inner = '<div style="text-align:center;padding:30px 6px"><div style="font-size:50px">✅</div><h3>Already paid</h3><p style="font-size:12.5px;color:var(--muted)"><b>' + esc(d.username) + '</b> is already activated. Thank you!</p><button class="btn btn-outline" data-action="pfm-payer-close">Open MyUTME</button></div>';
-    } else if (d.status !== 'open' && d.status !== 'pending_manual') {
-        inner = '<div style="text-align:center;padding:30px 6px"><div style="font-size:44px">⌛</div><h3>This link is no longer active</h3><p style="font-size:12.5px;color:var(--muted)">Ask the student to make a new link.</p><button class="btn btn-outline" data-action="pfm-payer-close">Open MyUTME</button></div>';
-    } else {
-        const online = P.mode !== 'manual';
-        const tab = function(key, label) { return '<button class="btn ' + ((online ? 'online' : 'manual') === key ? 'btn-green' : 'btn-outline') + '" style="flex:1;padding:9px;font-size:12px" data-action="pfm-mode" data-mode="' + key + '">' + label + '</button>'; };
-        const inp = function(id, label, val, ph, type) { return '<label class="field-label">' + label + '</label><input class="field" id="' + id + '" ' + (type ? 'type="' + type + '" ' : '') + 'maxlength="120" placeholder="' + ph + '" value="' + esc(val || '') + '" style="margin-bottom:8px;font-size:14px" />'; };
-        inner = '<div class="card" style="text-align:center;padding:16px;margin-bottom:12px">' +
-            '<p style="font-size:12px;color:var(--muted);margin:0 0 4px">You are paying for</p>' +
-            '<p style="font-size:20px;font-weight:800;margin:0;color:var(--green)">@' + esc(d.username || 'student') + '</p>' +
-            '<p style="font-size:13px;margin:8px 0 0"><b>' + esc(d.plan_name) + '</b> · ' + esc(String(d.plan_days)) + ' days</p>' +
-            '<p style="font-size:22px;font-weight:800;margin:4px 0 0">' + pfmNaira(d.price) + '</p></div>' +
-            '<div style="display:flex;gap:6px;margin-bottom:10px">' + tab('online', '💳 Pay online') + tab('manual', '🏦 Bank transfer') + '</div>' + err +
-            (online
-                ? inp('pfm-payer-name', 'Your name', P.name, 'e.g. Mrs. Johnson') + inp('pfm-payer-email', 'Your email', P.email, 'you@example.com', 'email') +
-                  '<button class="act-primary" data-action="pfm-payer-pay"' + (P.busy ? ' disabled' : '') + '>' + (P.busy ? 'Opening Paystack…' : 'Pay ' + pfmNaira(d.price) + ' with Paystack') + '</button>' +
-                  '<p style="font-size:11px;color:var(--faint);text-align:center;margin:8px 0 0">Card, bank transfer or USSD. Secured by Paystack.</p>'
-                : '<button class="man-wa" style="margin-bottom:10px" data-action="pfm-payer-wa"><span>💬 Chat admin for account details</span></button>' +
-                  '<p style="font-size:11.5px;color:var(--muted);margin:0 0 8px;line-height:1.5">After you pay, fill this form so admin can confirm and activate <b>' + esc(d.username) + '</b>.</p>' +
-                  inp('pfm-payer-name', 'Your name', P.name, 'e.g. Mrs. Johnson') +
-                  inp('pfm-payer-username', 'Username of the student (owner of this link)', P.username, 'type it exactly: ' + (d.username || '')) +
-                  inp('pfm-payer-note', 'Transfer details', P.note, 'Sender account name or reference') +
-                  '<button class="act-primary" data-action="pfm-payer-manual"' + (P.busy ? ' disabled' : '') + '>' + (P.busy ? 'Sending…' : 'I have paid, send for confirmation') + '</button>');
-    }
-    return '<div id="pfm-payer-page" style="position:fixed;inset:0;z-index:9000;overflow:auto;background:var(--bg);padding:18px 16px 40px;color:var(--ink)">' +
-        '<div style="max-width:440px;margin:0 auto"><div style="text-align:center;margin-bottom:12px"><p style="font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--green);margin:0">MYUTME</p>' +
-        '<h2 style="font-size:17px;margin:2px 0 0">Pay For Me 🎁</h2></div>' + inner +
-        '<button style="border:0;background:none;color:var(--faint);font-size:12px;padding:14px;width:100%;cursor:pointer" data-action="pfm-payer-close">Close</button></div></div>';
-}
-document.addEventListener('input', function(e) {
-    const t = e.target, P = state.pfmPayer;
-    if (!t || !P) return;
-    if (t.id === 'pfm-payer-name') P.name = t.value;
-    else if (t.id === 'pfm-payer-email') P.email = t.value;
-    else if (t.id === 'pfm-payer-username') P.username = t.value;
-    else if (t.id === 'pfm-payer-note') P.note = t.value;
-});
-
-// ---------- admin side ----------
-async function loadAdminPfm(quiet) {
-    if (!isAdmin() || state.adminPfm.loading) return;
-    state.adminPfm.loading = true;
-    if (!quiet) render();
-    try {
-        const { data, error } = await supabase.from('pay_requests').select('*').order('created_at', { ascending: false }).limit(150);
-        if (error) throw error;
-        state.adminPfm.rows = data || [];
-    } catch (e) { console.warn('Admin Pay For Me load error:', e); if (!quiet) showToast('Could not load Pay For Me. Did you run payforme.sql?', 'error'); }
-    state.adminPfm.loaded = true; state.adminPfm.loading = false;
-    render();
-}
-function adminPfmPending() { return (state.adminPfm.rows || []).filter(function(r) { return r.status === 'pending_manual'; }).length; }
-async function adminPfmConfirm(id) {
-    const r = (state.adminPfm.rows || []).find(function(x) { return String(x.id) === String(id); });
-    if (!r) return;
-    if (!confirm('Confirm you received ' + pfmNaira(r.plan_price) + ' from ' + (r.payer_name || 'the payer') + ' and activate @' + r.username + ' on ' + r.plan_name + '?')) return;
-    const { data, error } = await supabase.rpc('pfm_admin_confirm', { p_id: r.id });
-    if (error) { showToast(error.message || 'Could not confirm.', 'error'); return; }
-    showToast('@' + r.username + ' is now activated ✅', 'success');
-    try { state.allUsersLoaded = false; loadAllUsers(); } catch (e) {}
-    loadAdminPfm(true);
-}
-async function adminPfmReject(id) {
-    const r = (state.adminPfm.rows || []).find(function(x) { return String(x.id) === String(id); });
-    if (!r) return;
-    const reason = prompt('Reason shown to the student (e.g. "Payment not received"):', 'Payment not received');
-    if (reason === null) return;
-    const { error } = await supabase.rpc('pfm_admin_reject', { p_id: r.id, p_reason: reason.trim() });
-    if (error) { showToast(error.message || 'Could not reject.', 'error'); return; }
-    showToast('Rejected.', 'success');
-    loadAdminPfm(true);
-}
-function renderAdminPfm() {
-    if (!isAdmin()) return '';
-    const A = state.adminPfm;
-    if (!A.loaded) { loadAdminPfm(true); return '<div class="loading-spinner"><div class="spinner"></div><p>Loading…</p></div>'; }
-    const rows = A.rows || [];
-    const pending = rows.filter(function(r) { return r.status === 'pending_manual'; });
-    const done = rows.filter(function(r) { return r.status === 'activated'; }).slice(0, 25);
-    const openRows = rows.filter(function(r) { return r.status === 'open' && new Date(r.expires_at) > new Date(); }).slice(0, 15);
-    const when = function(t) { try { return new Date(t).toLocaleString(); } catch (e) { return ''; } };
-    const card = function(r, actions) {
-        return '<div class="card" style="padding:11px;margin-bottom:8px">' +
-            '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0">' +
-            '<p style="font-size:14px;font-weight:800;margin:0">@' + esc(r.username || '?') + ' <span style="font-size:10px;color:var(--faint);font-weight:500">link owner</span></p>' +
-            '<p style="font-size:12px;margin:2px 0 0">' + esc(r.plan_name || '') + ' · ' + esc(String(r.plan_days || '')) + ' days</p></div>' +
-            '<span style="font-size:13px;font-weight:800;color:var(--green);white-space:nowrap">' + pfmNaira(r.amount_paid || r.plan_price) + '</span></div>' +
-            (r.payer_name ? '<p style="font-size:12px;margin:6px 0 0">Paid by: <b>' + esc(r.payer_name) + '</b>' + (r.pay_method ? ' · ' + (r.pay_method === 'paystack' ? 'Paystack' : 'Bank transfer') : '') + '</p>' : '') +
-            (r.payer_username_typed ? '<p style="font-size:11.5px;margin:2px 0 0;color:var(--muted)">Username typed by payer: <b>' + esc(r.payer_username_typed) + '</b></p>' : '') +
-            (r.payer_note ? '<p style="font-size:11.5px;margin:2px 0 0;color:var(--muted)">Note: ' + esc(r.payer_note) + '</p>' : '') +
-            (r.paystack_ref && r.status === 'activated' ? '<p style="font-size:10.5px;margin:2px 0 0;color:var(--faint);word-break:break-all">Ref: ' + esc(r.paystack_ref) + '</p>' : '') +
-            '<p style="font-size:10.5px;margin:4px 0 0;color:var(--faint)">' + esc(when(r.activated_at || r.manual_submitted_at || r.created_at)) + '</p>' +
-            (actions || '') + '</div>';
-    };
-    const promo = pfmPromoCaption();
-    return '<div class="card" style="padding:12px;margin-bottom:12px">' +
-        '<p style="font-size:13px;font-weight:700;margin:0 0 2px">📢 Pay For Me link to share</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px;line-height:1.45">Post this in your channel or groups. Unactivated students who tap it see the Pay For Me option.</p>' +
-        '<div style="font-size:11.5px;line-height:1.5;white-space:pre-wrap;background:var(--green-light);color:var(--ink);border-radius:10px;padding:9px;margin-bottom:8px">' + esc(promo) + '</div>' +
-        '<div style="display:flex;gap:6px"><button class="btn btn-green" style="flex:1.4;padding:9px;font-size:12px" data-action="admin-pfm-wa">WhatsApp</button>' +
-        '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="admin-pfm-share">Share</button>' +
-        '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="admin-pfm-copy">Copy</button></div></div>' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><p class="section-label" style="margin:0">Waiting for your confirmation (' + pending.length + ')</p>' +
-        '<button class="mini-btn" style="font-size:10px" data-action="admin-pfm-refresh">↻ Refresh</button></div>' +
-        (pending.length ? pending.map(function(r) {
-            return card(r, '<div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-green" style="flex:2;padding:9px;font-size:12px" data-action="admin-pfm-confirm" data-id="' + esc(r.id) + '">Confirm &amp; activate</button>' +
-                '<button class="btn btn-outline" style="flex:1;padding:9px;font-size:12px" data-action="admin-pfm-reject" data-id="' + esc(r.id) + '">Reject</button></div>');
-        }).join('') : '<p style="font-size:12px;color:var(--faint);text-align:center;padding:10px 0">No manual payments waiting.</p>') +
-        '<p class="section-label" style="margin-top:12px">Activated through Pay For Me (' + done.length + ')</p>' +
-        (done.length ? done.map(function(r) { return card(r, ''); }).join('') : '<p style="font-size:12px;color:var(--faint);text-align:center;padding:10px 0">None yet.</p>') +
-        (openRows.length ? '<p class="section-label" style="margin-top:12px">Links waiting for payment (' + openRows.length + ')</p>' + openRows.map(function(r) {
-            return '<div class="card" style="padding:9px 11px;margin-bottom:6px;font-size:12px"><b>@' + esc(r.username || '?') + '</b> · ' + esc(r.plan_name || '') + ' · ' + pfmNaira(r.plan_price) + '<br><span style="font-size:10.5px;color:var(--faint)">' + esc(when(r.created_at)) + '</span></div>';
-        }).join('') : '');
-}
-
-// ---------- clicks ----------
-function pfmHandleClick(action, el) {
-    switch (action) {
-        case 'pfm-open': pfmOpen(); return true;
-        case 'pfm-close': state.pfm.open = false; render(); return true;
-        case 'pfm-pick-plan': state.pfm.planId = el.getAttribute('data-planid'); render(); return true;
-        case 'pfm-create': pfmCreate(); return true;
-        case 'pfm-wa': { const r = pfmFind(el.getAttribute('data-id')); if (r) pfmWhatsApp(pfmShareText(r)); return true; }
-        case 'pfm-share': { const r = pfmFind(el.getAttribute('data-id')); if (r) pfmShare(pfmShareText(r)); return true; }
-        case 'pfm-copy': { const r = pfmFind(el.getAttribute('data-id')); if (r) { try { copyToClipboard(pfmShareText(r)); } catch (e) {} showToast('Copied. Paste it in WhatsApp or anywhere.', 'success'); } return true; }
-        case 'pfm-cancel': {
-            const id = el.getAttribute('data-id');
-            if (!confirm('Cancel this link? Nobody will be able to pay with it.')) return true;
-            supabase.rpc('pfm_cancel_request', { p_id: id }).then(function(res) {
-                if (res.error) showToast(res.error.message || 'Could not cancel.', 'error');
-                pfmLoadMine(true);
-            });
-            return true;
-        }
-        case 'pfm-mode': if (state.pfmPayer) { state.pfmPayer.mode = el.getAttribute('data-mode'); state.pfmPayer.error = ''; render(); } return true;
-        case 'pfm-payer-pay': pfmPayerPay(); return true;
-        case 'pfm-payer-manual': pfmPayerManual(); return true;
-        case 'pfm-payer-close': pfmPayerClose(); return true;
-        case 'pfm-payer-wa': {
-            const d = (state.pfmPayer && state.pfmPayer.data) || {};
-            openWhatsAppChannel('Hello Admin, I want to pay for a student on MyUTME.\n\n👤 Student username: ' + (d.username || '') + '\n📦 Plan: ' + (d.plan_name || '') + '\n💰 Amount: ' + pfmNaira(d.price) + '\n\nPlease send me the payment details. Thank you!');
-            return true;
-        }
-        case 'admin-pfm-refresh': loadAdminPfm(false); return true;
-        case 'admin-pfm-confirm': adminPfmConfirm(el.getAttribute('data-id')); return true;
-        case 'admin-pfm-reject': adminPfmReject(el.getAttribute('data-id')); return true;
-        case 'admin-pfm-wa': pfmWhatsApp(pfmPromoCaption()); return true;
-        case 'admin-pfm-share': pfmShare(pfmPromoCaption()); return true;
-        case 'admin-pfm-copy': try { copyToClipboard(pfmPromoCaption()); } catch (e) {} showToast('Caption copied.', 'success'); return true;
-    }
-    return false;
-}
-
-// ---------- boot + background ----------
-function pfmBoot() {
-    try {
-        const u = new URL(location.href);
-        if (!u.searchParams.has('payforme')) return;
-        const v = (u.searchParams.get('payforme') || '').trim();
-        const ref = u.searchParams.get('reference') || u.searchParams.get('trxref') || '';
-        if (v.length >= 16) { pfmPayerStart(v, ref); return; }
-        // general share link: remember it, then open Pay For Me once the person is logged in
-        try { localStorage.setItem(PFM_PROMO_KEY, String(Date.now())); } catch (e) {}
-        history.replaceState(null, '', u.pathname + u.hash);
-    } catch (e) {}
-}
-function pfmPromoPending() {
-    try { const t = Number(localStorage.getItem(PFM_PROMO_KEY) || 0); return t && Date.now() - t < 24 * 3600 * 1000; } catch (e) { return false; }
-}
-setInterval(function() {
-    try {
-        if (state.pfmPayer) return;
-        if (pfmPromoPending()) {
-            if (state.authUser && state.profile && state.profile.id) {
-                try { localStorage.removeItem(PFM_PROMO_KEY); } catch (e) {}
-                if (isAdmin()) return;
-                if (isPaidUser()) { showToast('Your account is already activated 🎉', 'success'); return; }
-                pfmOpen();
-            } else if (state.authReady && !__pfmGuestShown) {
-                __pfmGuestShown = true;
-                guestNeedsAccount('ask someone to pay for you');
-            }
-            return;
-        }
-        if (state.authUser && !isAdmin() && (state.pfm.uid !== state.authUser.id)) pfmLoadMine(true);
-        if (isAdmin() && !state.adminPfm.loaded && !state.adminPfm.loading) loadAdminPfm(true);
-    } catch (e) {}
-}, 1500);
-setInterval(function() {
-    try {
-        if (document.visibilityState !== 'visible' || !state.authUser || isAdmin() || state.pfm.open) return;
-        const waiting = (state.pfm.list || []).some(function(r) { return r.status === 'pending_manual' || (r.status === 'open' && r.paystack_ref); });
-        if (waiting) pfmPollOnce();
-    } catch (e) {}
-}, 45000);
-
-
-// ============================================================
 //  MOCK EXAM
 // ============================================================
 
@@ -23451,8 +22903,7 @@ function isPaidUser() {
     if (!state.authUser) return false;
     return isUserActive() && !myFreePlan();
 }
-// Mocks are either open to everyone (full attempt) or activated-only (blocked at start), so there is no mid-exam cap any more.
-function isMockIndexLocked(localIndex) { return false; }
+function isMockIndexLocked(localIndex) { return !isPaidUser() && localIndex >= MOCK_FREE_QUESTIONS; }
 function renderMockLockCard() {
     return '<div class="exam-lock-card">' +
         '<p><b>You\'ve reached question ' + MOCK_FREE_QUESTIONS + '.</b><br>The first ' + MOCK_FREE_QUESTIONS + ' questions are free.</p>' +
@@ -24024,7 +23475,6 @@ function renderActivateCore() {
             '<p class="lp-section">2. Choose how to pay</p>' + methodRows + detail + btn +
             renderPaidCard(plan)
             : '<div class="card"><p style="text-align:center;color:var(--muted);padding:12px 0;font-size:13px">No plans available right now. Please check back soon.</p></div>') +
-        renderPfmCard() +
         '<p class="lp-section" style="margin-top:16px">Have a key already?</p>' +
         keyStatusBox +
         '<div class="act-input-wrap"><input id="activate-code-input" class="act-input" placeholder="e.g. XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" value="' + esc(state.activateCode) + '" />' +
@@ -24205,7 +23655,6 @@ const ADMIN_TABS = [
     { key: "notifications", label: "🔔 Notify" },
     { key: "activation", label: "🔑 Activation" },
     { key: "payments", label: "💳 Payments" },
-    { key: "pfm", label: "🎁 Pay For Me" },
     { key: "flagged", label: "🚩 Flagged" },
     { key: "support", label: "💬 Support" },
     { key: "mocks", label: "📝 Mocks" },
@@ -24226,7 +23675,7 @@ function renderAdmin() {
     ADMIN_TABS.forEach(function(t) {
         const isFlagged = t.key === "flagged";
         const badge = isFlagged && state.flaggedCount > 0 ? ' <span class="flag-badge">' + state.flaggedCount + '</span>'
-            : (t.key === 'pfm' && adminPfmPending() > 0 ? ' <span class="flag-badge">' + adminPfmPending() + '</span>' : t.key === 'payments' && adminPendingClaimCount() > 0 ? ' <span class="flag-badge">' + adminPendingClaimCount() + '</span>' : '');
+            : (t.key === 'payments' && adminPendingClaimCount() > 0 ? ' <span class="flag-badge">' + adminPendingClaimCount() + '</span>' : '');
         tabBar += '<button class="admin-tab' + (state.adminTab === t.key ? ' active' : '') +
             '" data-action="admin-tab" data-tab="' + t.key + '">' + t.label + badge + '</button>';
     });
@@ -24242,7 +23691,6 @@ function renderAdmin() {
     else if (state.adminTab === "notifications") body = renderAdminNotifications();
     else if (state.adminTab === "activation") body = renderAdminActivation();
     else if (state.adminTab === "payments") body = renderAdminPayments();
-    else if (state.adminTab === "pfm") body = renderAdminPfm();
     else if (state.adminTab === "flagged") body = renderAdminFlagged();
     else if (state.adminTab === "support") body = renderAdminSupport();
     else if (state.adminTab === "mocks") body = renderAdminMocks();
@@ -25572,33 +25020,6 @@ function renderAdminSettings() {
 // ============================================================
 //  ADMIN USERS - Updated with full_name and avatar
 // ============================================================
-// ---- Admin users: live search by username, name or email ----
-state.adminUserQuery = '';
-function adminUserHay(u) { return ((u.username || '') + ' ' + (u.full_name || '') + ' ' + (u.email || '')).toLowerCase(); }
-function adminUserMatches(u, q) {
-    q = (q || '').toLowerCase().replace(/^@/, '').trim();
-    if (!q) return true;
-    const hay = adminUserHay(u);
-    return q.split(/\s+/).every(function(t) { return hay.indexOf(t.replace(/^@/, '')) !== -1; });
-}
-document.addEventListener('input', function(e) {
-    if (!e.target || e.target.id !== 'admin-user-search') return;
-    state.adminUserQuery = e.target.value;
-    const q = state.adminUserQuery.toLowerCase().replace(/^@/, '').trim();
-    const toks = q ? q.split(/\s+/).map(function(t) { return t.replace(/^@/, ''); }) : [];
-    let shown = 0;
-    const rows = document.querySelectorAll('.admin-user-row[data-hay]');
-    rows.forEach(function(r) {
-        const hay = r.getAttribute('data-hay') || '';
-        const ok = toks.every(function(t) { return hay.indexOf(t) !== -1; });
-        r.style.display = ok ? '' : 'none';
-        if (ok) shown++;
-    });
-    const c = document.getElementById('admin-user-count');
-    if (c) c.textContent = q ? ('Showing ' + shown + ' of ' + rows.length + ' users') : ('👥 Total registered users: ' + rows.length);
-    const n = document.getElementById('admin-user-none');
-    if (n) n.style.display = shown ? 'none' : '';
-});
 function renderAdminUsers() {
     if (state.adminSelectedUserId) return renderAdminUserDetail();
 
@@ -25637,7 +25058,7 @@ function renderAdminUsers() {
         
         const isSelected = (state.admin.selectedUserIds || []).indexOf(user.id) !== -1;
         rows += (
-            '<div class="admin-user-row" data-action="admin-view-user" data-userid="' + user.id + '" data-hay="' + esc(adminUserHay(user)) + '" style="cursor:pointer' + (adminUserMatches(user, state.adminUserQuery) ? '' : ';display:none') + '">' +
+            '<div class="admin-user-row" data-action="admin-view-user" data-userid="' + user.id + '" style="cursor:pointer">' +
             '<div style="display:flex;align-items:center;gap:8px">' +
             '<input type="checkbox" data-action="admin-toggle-user-select" data-userid="' + user.id + '"' +
             (isSelected ? ' checked' : '') +
@@ -25683,20 +25104,17 @@ function renderAdminUsers() {
         );
     }
 
-    const __shownIds = users.filter(function(u) { return adminUserMatches(u, state.adminUserQuery); }).map(function(u) { return u.id; });
-    const allSelected = __shownIds.length > 0 && __shownIds.every(function(id) { return (state.admin.selectedUserIds || []).indexOf(id) !== -1; });
+    const allSelected = users.length > 0 && selCount >= users.length;
     const selectAllBar = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
-        '<button class="mini-btn' + (allSelected ? '' : ' primary') + '" data-action="admin-select-all-users" style="font-size:11px">' + (allSelected ? '☑ Unselect all' : '☐ Select all' + (state.adminUserQuery ? ' shown (' + __shownIds.length + ')' : ' (' + users.length + ')')) + '</button></div>';
+        '<button class="mini-btn' + (allSelected ? '' : ' primary') + '" data-action="admin-select-all-users" style="font-size:11px">' + (allSelected ? '☑ Unselect all' : '☐ Select all (' + users.length + ')') + '</button></div>';
 
     return (
         generalCard +
         selectionBar +
         selectAllBar +
-        '<div style="position:relative;margin-bottom:8px"><input id="admin-user-search" class="field" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="🔍 Search username, name or email" value="' + esc(state.adminUserQuery || '') + '" style="margin:0;font-size:14px" /></div>' +
-        '<div id="admin-user-count" style="font-weight:700;font-size:14px;margin-bottom:10px;color:var(--ink)">' + (state.adminUserQuery ? 'Showing ' + users.filter(function(u) { return adminUserMatches(u, state.adminUserQuery); }).length + ' of ' + users.length + ' users' : '👥 Total registered users: ' + users.length) + '</div>' +
+        '<div style="font-weight:700;font-size:14px;margin-bottom:10px;color:var(--ink)">👥 Total registered users: ' + users.length + '</div>' +
         '<p style="font-size:11px;color:var(--faint);margin:-6px 0 10px">Tap a user to see their full profile. Use the checkbox to select multiple users for a targeted push.</p>' +
-        rows +
-        '<p id="admin-user-none" style="font-size:13px;color:var(--faint);text-align:center;padding:18px 0;display:' + (users.some(function(u) { return adminUserMatches(u, state.adminUserQuery); }) ? 'none' : 'block') + '">No user matches that search.</p>'
+        rows
     );
 }
 
@@ -25883,24 +25301,22 @@ function renderAdminNotifications() {
 
     return (
         '<div class="card" style="margin-bottom:10px">' +
-        '<p style="font-size:13px;font-weight:600;margin:0 0 4px">📢 Message users</p>' +
-        '<p style="font-size:10px;color:var(--muted);margin:0 0 10px">Write it once and choose who gets it: everyone, activated users only, or non-activated users only. It goes out as an in-app notification and phone push.</p>' +
-        audienceSelectHtml('admin-notif-audience') +
+        '<p style="font-size:13px;font-weight:600;margin:0 0 4px">📢 Message all users</p>' +
+        '<p style="font-size:10px;color:var(--muted);margin:0 0 10px">Write it once and every user gets it as an in-app notification and phone push. No need to message each person separately.</p>' +
         '<label class="field-label">Title</label>' +
         '<input class="field" id="admin-notif-title" maxlength="80" placeholder="e.g. Friday Mock starts at 4pm" style="margin-bottom:10px;font-size:13px" />' +
         '<label class="field-label">Message</label>' +
         '<textarea class="field" id="admin-notif-body" rows="4" placeholder="Write your message here..." style="margin-bottom:10px;font-size:13px"></textarea>' +
-        '<button class="btn btn-green" data-action="admin-send-notification" style="padding:10px">Send notification</button>' +
+        '<button class="btn btn-green" data-action="admin-send-notification" style="padding:10px">Send to all users</button>' +
         '</div>' +
         '<div class="card" style="margin-bottom:10px">' +
         '<p style="font-size:13px;font-weight:600;margin:0 0 10px">📧 Send Broadcast Email</p>' +
         '<p style="font-size:10px;color:var(--muted);margin:-2px 0 10px">Sends an actual email to every registered user\'s address on file. Separate from the in-app/push notification above.</p>' +
-        audienceSelectHtml('admin-email-audience') +
         '<label class="field-label">Subject</label>' +
         '<input class="field" id="admin-email-subject" placeholder="Email subject" style="margin-bottom:10px;font-size:13px" />' +
         '<label class="field-label">Message</label>' +
         '<textarea class="field" id="admin-email-body" rows="5" placeholder="Write your message here... (plain text or simple HTML)" style="margin-bottom:10px;font-size:13px"></textarea>' +
-        '<button class="btn btn-green" data-action="admin-send-email" style="padding:10px">Send Email</button>' +
+        '<button class="btn btn-green" data-action="admin-send-email" style="padding:10px">Send Email to All Users</button>' +
         '</div>' +
 
         '<p class="section-label">Sent Notifications</p>' +
@@ -26395,7 +25811,6 @@ document.addEventListener('click', function(e) {
     if (!el) return;
     const action = el.getAttribute('data-action');
 
-    if (pfmHandleClick(action, el)) return;
     if (action === 'show-activate-popup') { showActivatePopup(el.getAttribute('data-reason') || 'You have reached the free limit.'); return; }
     if (action === 'activate-popup-close') { state.activatePopup = null; render(); return; }
     if (action === 'activate-popup-go') { state.activatePopup = null; setView('activate'); return; }
@@ -26428,6 +25843,19 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'ph-set-exam') {
+        var _pe = el.getAttribute('data-exam') || 'jamb';
+        state.phExam = phExamInfo(_pe).key;
+        storage.set('phExam', state.phExam);
+        render();
+        return;
+    }
+    if (action === 'ph-soon') {
+        state.soonExam = el.getAttribute('data-exam') || phCurrentExam();
+        state.soonMode = el.getAttribute('data-mode') || '';
+        setView('exam-soon');
+        return;
+    }
     if (action === 'set-view') {
         setView(el.getAttribute('data-view'));
         return;
@@ -28519,57 +27947,35 @@ document.addEventListener('click', function(e) {
     if (action === 'friday-share-board') { fridayShareText(fridayBoardText(state.fridayBoardWeek)); return; }
     if (action === 'friday-share-rec') { fridayShareRecord(el.getAttribute('data-week')); return; }
     if (action === 'exam-year-empty') { showToast('This year has no questions yet.', 'error'); return; }
-    if (action === 'adminmock-toggle' || action === 'adminmock-mode' || action === 'adminmock-topic' || action === 'adminmock-n' || action === 'adminmock-free' || action === 'adminmock-create' || action === 'adminmock-copy' || action === 'adminmock-copycode' || action === 'adminmock-share' || action === 'adminmock-delete') {
+    if (action === 'adminmock-toggle' || action === 'adminmock-create' || action === 'adminmock-copy' || action === 'adminmock-copycode' || action === 'adminmock-share' || action === 'adminmock-delete') {
         if (!isAdmin()) return;
         const sEl = document.getElementById('am-start'), eEl = document.getElementById('am-end');
         if (sEl) state.adminMockStart = sEl.value; if (eEl) state.adminMockEnd = eEl.value;
-        if (action === 'adminmock-mode') {
-            state.adminMockMode = el.getAttribute('data-mode') === 'topic' ? 'topic' : 'subject';
-            state.adminMockSel = []; state.adminMockTopicSel = []; render(); return;
-        }
-        if (action === 'adminmock-n') { state.adminMockN = parseInt(el.getAttribute('data-n'), 10) || 40; render(); return; }
-        if (action === 'adminmock-free') { state.adminMockFree = state.adminMockFree === false; render(); return; }
-        if (action === 'adminmock-topic') {
-            const tid = el.getAttribute('data-topic'); const cur = (state.adminMockTopicSel || []).slice(); const k = cur.indexOf(tid);
-            if (k !== -1) cur.splice(k, 1); else cur.push(tid);
-            state.adminMockTopicSel = cur; render(); return;
-        }
         if (action === 'adminmock-toggle') {
             const id = el.getAttribute('data-subject'); const cur = (state.adminMockSel || []).slice(); const i = cur.indexOf(id);
-            if (state.adminMockMode === 'topic') {
-                state.adminMockSel = (i !== -1) ? [] : [id]; state.adminMockTopicSel = [];
-                render(); if (i === -1) adminMockLoadTopics(id); return;
-            }
-            if (i !== -1) cur.splice(i, 1); else if (cur.length >= 4) { showToast('Maximum of 4 subjects.', 'error'); return; } else cur.push(id);
+            if (i !== -1) cur.splice(i, 1); else if (cur.length >= 2) { showToast('Maximum of 2 subjects.', 'error'); return; } else cur.push(id);
             state.adminMockSel = cur; render(); return;
         }
         if (action === 'adminmock-create') {
-            const topicMode = state.adminMockMode === 'topic';
-            const subs = (state.adminMockSel || []).slice(0, topicMode ? 1 : 4);
+            const subs = (state.adminMockSel || []).slice(0, 2);
             const st = new Date(state.adminMockStart || '').getTime(), en = new Date(state.adminMockEnd || '').getTime();
             if (!subs.length) { showToast('Pick at least 1 subject.', 'error'); return; }
-            let topicObjs = [];
-            if (topicMode) {
-                const tl = (state.adminMockTopics || {})[subs[0]];
-                topicObjs = (Array.isArray(tl) ? tl : []).filter(function(t) { return (state.adminMockTopicSel || []).indexOf(t.id) !== -1; });
-                if (!topicObjs.length) { showToast('Pick at least 1 topic.', 'error'); return; }
-            }
             if (!st || !en) { showToast('Set the start time and the end time.', 'error'); return; }
             if (en <= st) { showToast('The end time must be after the start time.', 'error'); return; }
             if (en <= Date.now()) { showToast('The end time has already passed.', 'error'); return; }
-            const ex = mockMakeExam(subs, st, en, { topics: topicObjs, n: state.adminMockN || 40, free: state.adminMockFree !== false });
+            const ex = mockMakeExam(subs, st, en);
             const list = mockReadList('adminMocks').filter(function(x) { return x.id !== ex.id; });
             list.push(ex);
             try { storage.set('adminMocks', JSON.stringify(list)); } catch (e) {}
             mockAddToMine(ex);
-            state.adminMockSel = []; state.adminMockTopicSel = []; state.adminMockStart = ''; state.adminMockEnd = '';
+            state.adminMockSel = []; state.adminMockStart = ''; state.adminMockEnd = '';
             showToast('Mock created. Copy its link below.'); render(); return;
         }
         const exId = el.getAttribute('data-exam');
         const ex = mockReadList('adminMocks').find(function(x) { return x.id === exId; });
         if (!ex) return;
         if (action === 'adminmock-delete') {
-            if (!window.confirm('Delete this Mock (' + mockExamTitle(ex) + ')?')) return;
+            if (!window.confirm('Delete this Mock (' + mockSubjectNames(ex.subs).join(' + ') + ')?')) return;
             try { storage.set('adminMocks', JSON.stringify(mockReadList('adminMocks').filter(function(x) { return x.id !== exId; }))); } catch (e) {}
             try { storage.set('myMocks', JSON.stringify(mockReadList('myMocks').filter(function(x) { return x.id !== exId; }))); } catch (e) {}
             showToast('Mock deleted.'); render(); return;
@@ -28577,7 +27983,7 @@ document.addEventListener('click', function(e) {
         const link = mockLinkFor(ex);
         if (action === 'adminmock-copycode') { try { navigator.clipboard.writeText(mockCodeFor(ex)).then(function() { showToast('Code copied.'); }); } catch (e) { showToast('Could not copy.', 'error'); } return; }
         if (action === 'adminmock-copy') { try { navigator.clipboard.writeText(link).then(function() { showToast('Link copied.'); }); } catch (e) { showToast('Could not copy.', 'error'); } return; }
-        const txt = 'MyUTME Mock: ' + mockExamTitle(ex) + '\n' + mockFmtRange(ex) + '\nLog in and take it here:\n' + link;
+        const txt = 'MyUTME Mock: ' + mockSubjectNames(ex.subs).join(' + ') + '\n' + mockFmtRange(ex) + '\nLog in and take it here:\n' + link;
         if (navigator.share) { navigator.share({ text: txt }).catch(function() {}); } else { try { navigator.clipboard.writeText(txt); showToast('Copied. Paste it to share.'); } catch (e) {} }
         return;
     }
@@ -28746,7 +28152,6 @@ document.addEventListener('click', function(e) {
         state.admin.viewingMockAttempts = null;
         if (state.adminTab === 'analytics' && !state.analyticsLoading) { state.analyticsLoaded = false; loadAnalyticsData(); }
         if (state.adminTab === 'payments') loadAdminClaims(false, true);
-        if (state.adminTab === 'pfm') loadAdminPfm(true);
         if (state.adminTab === 'guestai') loadGuestAiChats();
         if (state.adminTab === 'notifications') state.notifsLoaded = false;
         else if (state.adminTab === 'settings') {
@@ -29440,51 +28845,48 @@ document.addEventListener('click', function(e) {
     if (action === 'admin-send-notification') {
         const title = document.getElementById('admin-notif-title')?.value?.trim() || '';
         const body = document.getElementById('admin-notif-body')?.value?.trim() || '';
-        const audience = document.getElementById('admin-notif-audience')?.value || 'all';
         const imageData = state.admin.notifImageData || null;
 
         if (!title || !body) {
             showToast('Fill in both title and body.', 'error');
             return;
         }
+        if (!window.confirm('Send this message to ALL users now? This can\'t be undone.')) return;
 
-        (async function() {
-            let ids = null;
-            try { ids = await resolveAudienceIds(audience); }
-            catch (err) { showNetworkAwareError('Could not load the user list.', err); return; }
-            if (ids && !ids.length) { showToast('No ' + audienceLabel(audience) + ' found.', 'error'); return; }
-            if (!window.confirm('Send this message to ' + (ids ? ids.length + ' ' + audienceLabel(audience) : 'ALL users') + ' now? This can\'t be undone.')) return;
+        const insertData = { 
+            title: title, 
+            body: body, 
+            target_user_id: null,
+            created_at: new Date().toISOString()
+        };
+        if (imageData) insertData.image_url = imageData;
 
-            const nowIso = new Date().toISOString();
-            // everyone = one shared row; a group = one private row per user
-            const rows = ids
-                ? ids.map(function(id) { const r = { title: title, body: body, target_user_id: id, created_at: nowIso }; if (imageData) r.image_url = imageData; return r; })
-                : [(function() { const r = { title: title, body: body, target_user_id: null, created_at: nowIso }; if (imageData) r.image_url = imageData; return r; })()];
-
-            try {
-                for (let i = 0; i < rows.length; i += 200) {
-                    const res = await supabase.from('notifications').insert(rows.slice(i, i + 200));
-                    if (res && res.error) { showNetworkAwareError('Could not send the notification.', res.error); return; }
-                }
-            } catch (err) {
-                console.error('Send notification error:', err);
-                showNetworkAwareError('Error sending notification: ' + (err.message || 'unknown'), err);
-                return;
-            }
-
-            showToast('✅ Sent to ' + (ids ? ids.length + ' ' + audienceLabel(audience) : 'all users') + '!', 'success');
-            const t = document.getElementById('admin-notif-title'); if (t) t.value = '';
-            const bd = document.getElementById('admin-notif-body'); if (bd) bd.value = '';
+        supabase.from('notifications').insert([insertData]).then(function(res) {
+            if (res && res.error) { showNetworkAwareError('Could not send the notification.', res.error); return; }
+            showToast('✅ Broadcast notification sent!', 'success');
+            
+            document.getElementById('admin-notif-title').value = '';
+            document.getElementById('admin-notif-body').value = '';
             state.admin.notifImage = null;
             state.admin.notifImageData = null;
+            
             state.notifsLoaded = false;
             state.notifsList = [];
             state.notifs = [];
+            
             loadNotifications();
             render();
-            setTimeout(function() { render(); }, 1000);
+            
+            setTimeout(function() {
+                render();
+            }, 1000);
+
             // the phone push goes out automatically from the database when the notification is saved
-        })();
+            
+        }).catch(function(err) { 
+            console.error('Send notification error:', err);
+            showNetworkAwareError('Error sending notification: ' + (err.message || 'unknown'), err); 
+        });
         return;
     }
 
@@ -29496,18 +28898,13 @@ document.addEventListener('click', function(e) {
             showToast('Fill in both subject and message.', 'error');
             return;
         }
-        const emailAudience = document.getElementById('admin-email-audience')?.value || 'all';
-        (async function() {
-            let ids = null;
-            try { ids = await resolveAudienceIds(emailAudience); }
-            catch (err) { showNetworkAwareError('Could not load the user list.', err); return; }
-            if (ids && !ids.length) { showToast('No ' + audienceLabel(emailAudience) + ' found.', 'error'); return; }
-            if (!window.confirm('Send this email to ' + (ids ? ids.length + ' ' + audienceLabel(emailAudience) : 'every registered user') + '? This can\'t be undone.')) return;
-            showToast('Sending email…', '');
-            await sendBulkEmail(subject, message, ids);
-            const e1 = document.getElementById('admin-email-subject'); if (e1) e1.value = '';
-            const e2 = document.getElementById('admin-email-body'); if (e2) e2.value = '';
-        })();
+        if (!window.confirm('Send this email to every registered user? This can\'t be undone.')) return;
+
+        showToast('Sending email…', '');
+        sendBulkEmail(subject, message, null).then(function() {
+            document.getElementById('admin-email-subject').value = '';
+            document.getElementById('admin-email-body').value = '';
+        });
         return;
     }
 
@@ -29546,10 +28943,9 @@ document.addEventListener('click', function(e) {
     }
 
     if (action === 'admin-select-all-users') {
-        const all = (state.allUsers || []).filter(function(u) { return adminUserMatches(u, state.adminUserQuery); }).map(function(u) { return u.id; });
+        const all = (state.allUsers || []).map(function(u) { return u.id; });
         const cur = state.admin.selectedUserIds || [];
-        const allOn = all.length && all.every(function(id) { return cur.indexOf(id) !== -1; });
-        state.admin.selectedUserIds = allOn ? cur.filter(function(id) { return all.indexOf(id) === -1; }) : cur.concat(all.filter(function(id) { return cur.indexOf(id) === -1; }));
+        state.admin.selectedUserIds = (all.length && cur.length >= all.length) ? [] : all;
         render();
         return;
     }
@@ -29770,7 +29166,6 @@ if (action === 'browse-filter') {
         openExternalUrl(WHATSAPP_CHANNEL_URL);
         return;
     }
-    if (action === 'telegram-link') { startTelegramLink(); return; }
     if (action === 'open-social-telegram') {
         openTelegram();
         return;
@@ -31161,7 +30556,22 @@ window.mwInstallFlow = async function () {
         try { localStorage.setItem('myutme_forced_refresh', String(Date.now())); } catch (e) {}
         busy = false; location.reload();
     };
-    // Custom drag-to-refresh removed: Chrome's own pull-to-refresh handles it now.
+    document.addEventListener('touchstart', function (e) {
+        act = false; ok = false;
+        if (busy || e.touches.length !== 1 || MW_EXAMS.indexOf(state.view) !== -1 || !e.target.closest || e.target.closest('input,textarea,select,canvas,[role=dialog],#mw-refresh,#mw-inst,.modal')) return;
+        sy = e.touches[0].clientY; sx = e.touches[0].clientX; dy = 0; ok = atTop(e.target);
+    }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+        if (!ok || busy) return;
+        var t = e.touches[0]; dy = t.clientY - sy;
+        if (!act) { if (dy > 10 && Math.abs(t.clientX - sx) < dy) act = true; else if (dy < -4) ok = false; }
+        if (act) { if (e.cancelable) e.preventDefault(); var y = Math.min(dy * 0.5, 100); pos(y, y * 3); el().innerHTML = ARROW; }
+    }, { passive: false });
+    document.addEventListener('touchend', function () {
+        if (!act) return; act = false;
+        if (Math.min(dy * 0.5, 100) >= 60) { busy = true; var i = el(); i.innerHTML = SPIN; i.className = 's'; pos(70, 0); window.mwRefresh(); }
+        else pos(0, 0);
+    }, { passive: true });
 })();
 
 // ---------- Coming back after a while: start fresh at Home ----------
@@ -31399,7 +30809,6 @@ async function init() {
     render();
     handlePaystackReturn(); // back from Paystack's payment page
     resumePaySession(); // reopen the Pay page if a payment was in progress
-    pfmBoot(); // Pay For Me links (?payforme=...)
 
     
     
@@ -31574,66 +30983,6 @@ function refreshApp() {
         }
         dy = 0;
     }, { passive: true });
-})();
-
-// ============================================================
-//  DRAG-TO-REFRESH (works in the browser tab; fixes Chrome's stuck circle)
-//  The page body is fixed and the screens scroll inside .view, so Chrome's own
-//  pull-to-refresh circle shows up but never finishes. Native one is switched
-//  off here and a reliable one takes its place.
-// ============================================================
-(function () {
-    var st = document.createElement('style');
-    st.textContent = 'html,body,.view{overscroll-behavior-y:contain !important}' +
-        '#mw-ptr{position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);left:50%;width:40px;height:40px;margin-left:-20px;border-radius:50%;background:#fff;color:#0F6B3F;box-shadow:0 4px 14px rgba(0,0,0,.25);display:grid;place-items:center;z-index:2147481000;opacity:0;transform:translateY(-60px);pointer-events:none}' +
-        '#mw-ptr.s svg{animation:mwspin .7s linear infinite}@keyframes mwspin{to{transform:rotate(360deg)}}';
-    document.head.appendChild(st);
-
-    var TH = 110, startY = 0, startX = 0, dy = 0, tracking = false, view = null, ind = null, busy = false;
-    var ARROW = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>';
-    var SPIN = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>';
-    function getInd() {
-        if (!ind || !ind.isConnected) { ind = document.getElementById('mw-ptr') || document.createElement('div'); ind.id = 'mw-ptr'; ind.innerHTML = ARROW; if (!ind.isConnected) document.body.appendChild(ind); }
-        return ind;
-    }
-    function hide() { var i = getInd(); i.classList.remove('s'); i.style.opacity = 0; i.style.transform = 'translateY(-60px)'; }
-    function atTop(el, v) {
-        for (; el && el !== v; el = el.parentElement) if (el.scrollTop > 0) return false;
-        return v.scrollTop <= 0;
-    }
-    document.addEventListener('touchstart', function (e) {
-        tracking = false; dy = 0;
-        if (busy || e.touches.length !== 1) return;
-        try { if (typeof isStandaloneApp === 'function' && isStandaloneApp()) return; } catch (x) {}
-        var t = e.target; if (!t || !t.closest) return;
-        view = t.closest('.view');
-        if (!view || view.classList.contains('view-chat') || view.classList.contains('view-exam') || view.classList.contains('view-nonav')) return;
-        if (t.closest('input, textarea, select, [contenteditable], .ai-history-overlay')) return;
-        if (!atTop(t, view)) return;
-        startY = e.touches[0].clientY; startX = e.touches[0].clientX; tracking = true;
-    }, { passive: true });
-    document.addEventListener('touchmove', function (e) {
-        if (!tracking) return;
-        var y = e.touches[0].clientY - startY, x = e.touches[0].clientX - startX;
-        if (y <= 0 || Math.abs(x) > Math.abs(y) || view.scrollTop > 0) { if (dy > 0) hide(); dy = 0; if (y <= 0 || view.scrollTop > 0) tracking = false; return; }
-        dy = y;
-        var i = getInd(), d = Math.min(y * 0.5, 80);
-        i.style.opacity = Math.min(y / TH, 1);
-        i.style.transform = 'translateY(' + d + 'px) rotate(' + (y * 3) + 'deg)';
-    }, { passive: true });
-    function end() {
-        if (!tracking) return;
-        tracking = false;
-        if (dy >= TH) {
-            busy = true;
-            var i = getInd(); i.innerHTML = SPIN; i.classList.add('s'); i.style.opacity = 1; i.style.transform = 'translateY(60px)';
-            if (typeof window.mwRefresh === 'function') window.mwRefresh(); else location.reload();
-            setTimeout(function () { busy = false; hide(); getInd().innerHTML = ARROW; }, 8000);
-        } else hide();
-        dy = 0;
-    }
-    document.addEventListener('touchend', end, { passive: true });
-    document.addEventListener('touchcancel', function () { tracking = false; dy = 0; hide(); }, { passive: true });
 })();
 
 // ============================================================
