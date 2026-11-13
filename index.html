@@ -16438,8 +16438,20 @@ async function startLiteratureCbt() {
     saveSessionSnapshot();
 }
 
+// ---- Past Questions: which exam body is being practised (JAMB or WAEC) ----
+// Each exam keeps its own question files so the JAMB file stays small:
+//   JAMB -> questions-<subject>.json        (e.g. questions-eng.json)
+//   WAEC -> questions-waec-<subject>.json   (e.g. questions-waec-eng.json)
+// Add a subject id to WAEC_SUBJECTS once its questions-waec-<id>.json is uploaded.
+var WAEC_SUBJECTS = ['eng'];
+var WAEC_FIRST_YEAR = 2015;
+function examBody() { return state.examBody === 'waec' ? 'waec' : 'jamb'; }
+function examBodyLabel() { return examBody() === 'waec' ? 'WAEC' : 'JAMB'; }
+function examFileName(subjectId) { return 'questions-' + (examBody() === 'waec' ? 'waec-' : '') + subjectId + '.json'; }
+function examFirstYear() { return examBody() === 'waec' ? WAEC_FIRST_YEAR : 2000; }
+
 async function loadExamQuestionsFromFile(subjectId, yearStr) {
-    const res = await fetch('questions-' + subjectId + '.json?v=' + Date.now());
+    const res = await fetch(examFileName(subjectId) + '?v=' + Date.now());
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     return ((data && data.questions) || []).filter(function(q) {
@@ -16659,15 +16671,17 @@ async function startExam() {
     let questions = [];
     const yearStr = String(state.examYear);
     const sameYear = function(q) { return q.year == null || String(q.year) === yearStr; };
+    const __waec = examBody() === 'waec';
     try {
         try {
+            if (__waec) throw new Error('WAEC papers are read straight from their own file');
             questions = await withNetworkTimeout(
                 window.OfflineDB.loadQuestionsOffline('exam', state.examSubject, yearStr),
                 12000, 'Exam questions load'
             );
             questions = (questions || []).filter(sameYear);
         } catch (dbErr) {
-            console.warn('IndexedDB exam load failed, using subject file:', dbErr);
+            if (!__waec) console.warn('IndexedDB exam load failed, using subject file:', dbErr);
             questions = [];
         }
         if (!questions || questions.length === 0) {
@@ -16699,7 +16713,10 @@ async function startExam() {
 
     // Exam mode: simply shuffle and select questions, no passage grouping
     const examQCount = 40;
-    const qsAll = (state.examSubject === 'eng' ? __pickEnglishPaper(questions, examQCount) : __pickExamFresh(questions, examQCount, 'exam_' + state.examSubject + '_' + yearStr)).map(function(q) {
+    // WAEC: the full paper in its printed order (all 80 for English), not a 40-question sample.
+    const qsAll = (__waec
+        ? questions.slice().sort(function(a, b) { return (a.display_order || 0) - (b.display_order || 0); })
+        : (state.examSubject === 'eng' ? __pickEnglishPaper(questions, examQCount) : __pickExamFresh(questions, examQCount, 'exam_' + state.examSubject + '_' + yearStr))).map(function(q) {
         return Object.assign({}, q, { subject_name: s.name });
     });
     
@@ -19142,7 +19159,7 @@ const atMax = mySubjectIds.length === 4;
 // ============================================================
 var PH_EXAMS = [
     { key: 'jamb', label: 'JAMB', full: 'JAMB UTME', live: true },
-    { key: 'waec', label: 'WAEC', full: 'WAEC', live: false },
+    { key: 'waec', label: 'WAEC', full: 'WAEC', live: false, pastLive: true },
     { key: 'neco', label: 'NECO', full: 'NECO', live: false }
 ];
 function phExamInfo(k) {
@@ -19191,7 +19208,9 @@ function phChevron() {
 function phRowHtml(r, examKey) {
     var attrs = r.soon
         ? 'data-action="ph-soon" data-exam="' + examKey + '" data-mode="' + r.mode + '"'
-        : 'data-action="set-view" data-view="' + r.view + '"';
+        : (r.mode === 'past'
+            ? 'data-action="ph-open-past" data-exam="' + examKey + '"'
+            : 'data-action="set-view" data-view="' + r.view + '"');
     return '<button type="button" class="px-row" ' + attrs + '>' +
         '<span class="px-ic" style="background:' + r.tint + '1F;color:' + r.tint + '">' + svg(r.icon, 20) + '</span>' +
         '<span class="px-rt"><b>' + esc(r.label) + '</b><small>' + esc(r.sub) + '</small></span>' +
@@ -19207,7 +19226,9 @@ function renderPracticeHubV2() {
         }).join('') + '</div>';
 
     var note = soon
-        ? '<p class="px-note">' + esc(info.full) + ' questions are coming soon. Every subject is already listed, and we will switch them on as the questions are ready.</p>'
+        ? (info.pastLive
+            ? '<p class="px-note">WAEC Past Questions are now open, starting with English (2015). More subjects and years are being added. CBT Practice and Flashcards for WAEC are coming soon.</p>'
+            : '<p class="px-note">' + esc(info.full) + ' questions are coming soon. Every subject is already listed, and we will switch them on as the questions are ready.</p>')
         : '';
 
     var tools = [
@@ -19223,7 +19244,7 @@ function renderPracticeHubV2() {
 
     var examRows = [
         { mode: 'cbt', view: 'cbt', label: 'CBT Practice', sub: 'Timed, exam-style practice', icon: 'monitor', tint: '#2F6BFF', soon: soon },
-        { mode: 'past', view: 'exam', label: 'Past Questions', sub: ex === 'jamb' ? 'Pick a year, 2000 \u2013 2026' : 'Year by year, subject by subject', icon: 'clipboard', tint: '#F0662B', soon: soon },
+        { mode: 'past', view: 'exam', label: 'Past Questions', sub: ex === 'jamb' ? 'Pick a year, 2000 \u2013 2026' : (info.pastLive ? 'English 2015 is ready' : 'Year by year, subject by subject'), icon: 'clipboard', tint: '#F0662B', soon: soon && !info.pastLive },
         { mode: 'flash', view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#E04C8E', soon: soon }
     ];
     var examHtml = '<p class="px-gt">' + esc(info.label) + ' practice</p><div class="px-list">' +
@@ -20136,14 +20157,17 @@ var __yearCountLoading = {};
 // Works out which years have questions for a subject BEFORE the student taps one.
 // counts[sid] = { "2019": 40, ... }   or null when we can't tell (then nothing is disabled).
 function loadExamYearCounts(sid) {
-    if (!sid || state.examYearCounts[sid] !== undefined || __yearCountLoading[sid]) return;
-    __yearCountLoading[sid] = true;
+    const ck = examBody() + ':' + sid;
+    if (!sid || state.examYearCounts[ck] !== undefined || __yearCountLoading[ck]) return;
+    __yearCountLoading[ck] = true;
+    const waec = examBody() === 'waec';
+    const fileUrl = examFileName(sid);
     (async function() {
         let rows = [];
-        try { rows = await window.OfflineDB.getQuestionsOffline('exam', sid); } catch (e) { rows = []; }
+        if (!waec) { try { rows = await window.OfflineDB.getQuestionsOffline('exam', sid); } catch (e) { rows = []; } }
         if (!rows || !rows.length) {
             try {
-                const res = await fetch('questions-' + sid + '.json');
+                const res = await fetch(fileUrl);
                 if (res.ok) { const d = await res.json(); rows = ((d && d.questions) || []).filter(function(q) { return q.type === 'exam' && q.subject_id === sid; }); }
             } catch (e) { rows = []; }
         }
@@ -20151,10 +20175,12 @@ function loadExamYearCounts(sid) {
         if (rows && rows.length && !rows.some(function(q) { return q.year == null; })) {
             c = {};
             rows.forEach(function(q) { const y = String(q.year); c[y] = (c[y] || 0) + 1; });
+        } else if (waec && (!rows || !rows.length)) {
+            c = {};   // no WAEC file for this subject yet: every year shows "No questions yet"
         }
-        state.examYearCounts[sid] = c;
-        __yearCountLoading[sid] = false;
-        if (state.examSubject === sid && state.examStep === 2) render();
+        state.examYearCounts[ck] = c;
+        __yearCountLoading[ck] = false;
+        if (state.examSubject === sid && state.examStep === 2 && examBody() === (waec ? 'waec' : 'jamb')) render();
     })();
 }
 function renderExamMode() {
@@ -20178,7 +20204,7 @@ function renderExamMode() {
     // hands off to the OS's own picker wheel/dropdown, which looks out of
     // place next to the rest of this screen's custom-styled controls.
     let yearChips = "";
-    for (let y = 2026; y >= 2000; y--) {
+    for (let y = 2026; y >= examFirstYear(); y--) {
         const sel = state.examYear === y;
         yearChips += '<button type="button" class="year-chip' + (sel ? ' selected' : '') + '" data-action="select-exam-year" data-year="' + y + '">' + y + '</button>';
     }
@@ -20199,6 +20225,13 @@ function renderExamMode() {
         let list = '';
         SUBJECTS.filter(function(x) { return x.type !== 'literature'; }).forEach(function(x) {
             const sel = state.examSubject === x.id;
+            if (examBody() === 'waec' && WAEC_SUBJECTS.indexOf(x.id) === -1) {
+                list += '<button type="button" class="ex-card ex-subj ex-empty" style="--c:' + x.color + '" data-action="waec-subject-soon" data-subject="' + x.id + '">' +
+                    '<span class="ex-badge">' + esc(x.code) + '</span>' +
+                    '<span class="ex-name">' + esc(x.name) + '<small>Coming soon</small></span>' +
+                    '<span class="ex-check"></span></button>';
+                return;
+            }
             list += '<button type="button" class="ex-card ex-subj' + (sel ? ' sel' : '') + '" style="--c:' + x.color + '" data-action="select-exam-subject" data-subject="' + x.id + '">' +
                 '<span class="ex-badge">' + esc(x.code) + '</span>' +
                 '<span class="ex-name">' + esc(x.name) + (x.compulsory ? '<small>Compulsory for everyone</small>' : '<small>Past questions</small>') + '</span>' +
@@ -20209,22 +20242,22 @@ function renderExamMode() {
     } else {
         let list = '';
         loadExamYearCounts(state.examSubject);
-        const yc = state.examYearCounts[state.examSubject];   // undefined = checking, null = unknown
-        for (let y = 2026; y >= 2000; y--) {
+        const yc = state.examYearCounts[examBody() + ':' + state.examSubject];   // undefined = checking, null = unknown
+        for (let y = 2026; y >= examFirstYear(); y--) {
             const sel = state.examYearPicked && state.examYear === y;
             const c = SUBJECT_PALETTE[(2026 - y) % SUBJECT_PALETTE.length];
             const n = yc ? (yc[String(y)] || 0) : null;
             if (yc && n === 0) {
                 list += '<button type="button" class="ex-card ex-year ex-empty" style="--c:' + c + '" data-action="exam-year-empty" data-year="' + y + '">' +
                     '<span class="ex-badge ex-yrbadge">' + y + '</span>' +
-                    '<span class="ex-name">JAMB ' + y + '<small>No questions yet</small></span>' +
+                    '<span class="ex-name">' + examBodyLabel() + ' ' + y + '<small>No questions yet</small></span>' +
                     '<span class="ex-check"></span></button>';
                 continue;
             }
             const sub = yc === undefined ? 'Checking…' : (yc ? n + ' question' + (n === 1 ? '' : 's') : 'Timed paper');
             list += '<button type="button" class="ex-card ex-year' + (sel ? ' sel' : '') + '" style="--c:' + c + '" data-action="select-exam-year" data-year="' + y + '">' +
                 '<span class="ex-badge ex-yrbadge">' + y + '</span>' +
-                '<span class="ex-name">JAMB ' + y + '<small>' + sub + '</small></span>' +
+                '<span class="ex-name">' + examBodyLabel() + ' ' + y + '<small>' + sub + '</small></span>' +
                 '<span class="ex-check">' + (sel ? '✓' : '') + '</span></button>';
         }
         body = modeHtml + '<div class="ex-list">' + list + '</div>';
@@ -20235,8 +20268,10 @@ function renderExamMode() {
     return (
         '<div class="picker-scroll">' +
         (step === 1
-            ? plainModeHead('data-action="set-view" data-view="home"', 'Home', 'Past Questions')
-            : plainModeHead('data-action="exam-wiz-back"', 'Change subject', esc(selectedSubject ? selectedSubject.name : 'Past Questions') + ' \u00B7 Choose year')) +
+            ? (examBody() === 'waec'
+                ? plainModeHead('data-action="set-view" data-view="mysubjects"', 'Practice Hub', 'WAEC Past Questions')
+                : plainModeHead('data-action="set-view" data-view="home"', 'Home', 'Past Questions'))
+            : plainModeHead('data-action="exam-wiz-back"', 'Change subject', esc(selectedSubject ? selectedSubject.name : 'Past Questions') + ' \u00B7 ' + (examBody() === 'waec' ? 'WAEC \u00B7 ' : '') + 'Choose year')) +
         body + '</div>' +
         (footer ? '<div class="picker-footer ex-foot">' + footer + '</div>' : '')
     );
@@ -20284,7 +20319,7 @@ function renderExamExam() {
                 total_questions: state.examQuestions.length,
                 answered_count: state.examAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
                 submitted_at: new Date().toISOString(),
-                exam_title: subjName + ' Exam ' + state.examYear,
+                exam_title: subjName + (examBody() === 'waec' ? ' WAEC Exam ' : ' Exam ') + state.examYear,
             });
             
             
@@ -26697,6 +26732,14 @@ document.addEventListener('click', function(e) {
         render();
         return;
     }
+    if (action === 'ph-open-past') {
+        state.examBody = (el.getAttribute('data-exam') === 'waec') ? 'waec' : 'jamb';
+        state.examSubject = null; state.examYearPicked = false;
+        setView('exam');
+        state.examStep = 1; render();
+        return;
+    }
+    if (action === 'waec-subject-soon') { showToast('WAEC questions for this subject are coming soon.', 'error'); return; }
     if (action === 'ph-soon') {
         state.soonExam = el.getAttribute('data-exam') || phCurrentExam();
         state.soonMode = el.getAttribute('data-mode') || '';
@@ -26704,6 +26747,7 @@ document.addEventListener('click', function(e) {
         return;
     }
     if (action === 'set-view') {
+        if (el.getAttribute('data-view') === 'exam') state.examBody = 'jamb';
         setView(el.getAttribute('data-view'));
         return;
     }
@@ -26925,6 +26969,7 @@ document.addEventListener('click', function(e) {
     }
     if (action === 'subj-start-exam') {
         const sid = el.getAttribute('data-subjectid');
+        state.examBody = 'jamb';
         state.examSubject = sid;
         setView('exam');
         state.examStep = 2; state.examYearPicked = false; render();
@@ -28174,7 +28219,7 @@ document.addEventListener('click', function(e) {
         });
         const subjName = state.examQuestions[0]?.subject_name || 'Subject';
         downloadResultBreakdownPdf({
-            title: subjName + ' Past Questions ' + state.examYear + ' — Result',
+            title: subjName + (examBody() === 'waec' ? ' WAEC' : '') + ' Past Questions ' + state.examYear + ' — Result',
             modeLabel: 'Past Questions · ' + state.examYear,
             totalScore: totalScore,
             maxScore: state.examQuestions.length,
@@ -28793,7 +28838,7 @@ document.addEventListener('click', function(e) {
     if (action === 'friday-board-retry') { loadSubjAll(true); return; }
     if (action === 'friday-share-board') { fridayShareText(fridayBoardText(state.fridayBoardWeek)); return; }
     if (action === 'friday-share-rec') { fridayShareRecord(el.getAttribute('data-week')); return; }
-    if (action === 'exam-year-empty') { showToast('This year has no questions yet.', 'error'); return; }
+    if (action === 'exam-year-empty') { showToast(examBody() === 'waec' ? 'This WAEC year has no questions yet.' : 'This year has no questions yet.', 'error'); return; }
     if (action === 'adminmock-toggle' || action === 'adminmock-mode' || action === 'adminmock-topic' || action === 'adminmock-n' || action === 'adminmock-free' || action === 'adminmock-create' || action === 'adminmock-copy' || action === 'adminmock-copycode' || action === 'adminmock-share' || action === 'adminmock-delete') {
         if (!isAdmin()) return;
         const sEl = document.getElementById('am-start'), eEl = document.getElementById('am-end');
