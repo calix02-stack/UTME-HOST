@@ -8071,7 +8071,8 @@ u.q-u { text-decoration: underline; text-decoration-thickness: 2px; text-underli
 </style>
 <style id="myutme-v4-fixes">
 /* page never scrolls itself — keeps the top icons in place */
-html, body { overflow: hidden !important; overscroll-behavior: auto; }
+html { overflow: auto !important; overscroll-behavior-y: auto !important; height: 100%; }
+body { overflow: hidden !important; overscroll-behavior-y: auto !important; }
 body { position: fixed; inset: 0; width: 100%; }
 #app-shell { height: 100%; overflow: hidden; }
 
@@ -16443,7 +16444,7 @@ async function startLiteratureCbt() {
 //   JAMB -> questions-<subject>.json        (e.g. questions-eng.json)
 //   WAEC -> questions-waec-<subject>.json   (e.g. questions-waec-eng.json)
 // Add a subject id to WAEC_SUBJECTS once its questions-waec-<id>.json is uploaded.
-var WAEC_SUBJECTS = ['eng'];
+var WAEC_SUBJECTS = ['eng', 'math'];
 var WAEC_FIRST_YEAR = 2015;
 function examBody() { return state.examBody === 'waec' ? 'waec' : 'jamb'; }
 function examBodyLabel() { return examBody() === 'waec' ? 'WAEC' : 'JAMB'; }
@@ -16451,7 +16452,7 @@ function examFileName(subjectId) { return 'questions-' + (examBody() === 'waec' 
 function examFirstYear() { return examBody() === 'waec' ? WAEC_FIRST_YEAR : 2000; }
 
 async function loadExamQuestionsFromFile(subjectId, yearStr) {
-    const res = await fetch(examFileName(subjectId) + '?v=' + Date.now());
+    const res = await fetch(examFileName(subjectId) + '?v=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     return ((data && data.questions) || []).filter(function(q) {
@@ -18726,6 +18727,20 @@ const PAGE_TITLES = {
     'lit-exam': 'Novel (CBT) Result',
 };
 
+function examTag(view) {
+    if (view === 'exam' || view === 'exam-exam') return examBodyLabel();
+    if (view === 'exam-soon') return phExamInfo(state.soonExam || phCurrentExam()).label;
+    if (['cbt','cbt-exam','flashcards','mockexam','literature','lit-exam','mock-exam'].indexOf(view) !== -1) return 'JAMB';
+    return '';
+}
+function pageTitleFor(view) {
+    var base = PAGE_TITLES[view] || 'MyUTME';
+    var tag = examTag(view);
+    if (!tag) return base;
+    if (base.indexOf(tag) === 0) return base;
+    if (base === 'Coming Soon') return tag + ' \u00B7 Coming Soon';
+    return tag + ' ' + base;
+}
 function renderApp() {
     const unread = unreadCount();
     const isLoggedIn = !!state.authUser;
@@ -18793,7 +18808,7 @@ function renderApp() {
         }
         // Natural, plain page title instead of the old colored brand bar —
         // shown on every page except Home.
-        leftContent += '<span class="page-name">' + esc(PAGE_TITLES[state.view] || 'MyUTME') + '</span>';
+        leftContent += '<span class="page-name">' + esc(pageTitleFor(state.view)) + '</span>';
     }
 
     let rightContent = '';
@@ -18824,7 +18839,7 @@ function renderApp() {
         renderWebNav(isExamTaking) +
         '<div class="topbar' + (isHome ? '' : ' topbar-plain') + '">' +
         (isExamTaking
-            ? '<div class="topbar-left"><span class="page-name">MyUTME</span></div>' +
+            ? '<div class="topbar-left"><span class="page-name">' + esc(examTag(state.view) ? examTag(state.view) + ' Exam' : 'MyUTME') + '</span></div>' +
               '<div class="topbar-center"></div><div class="topbar-right"><button class="topbar-exit" data-action="exam-manual-exit" data-exitmode="' + state.view + '">Exit</button>' + examTopbarTime() + '</div>'
             : isAiAssistant
             ? '<div class="topbar-left">' +
@@ -19225,11 +19240,7 @@ function renderPracticeHubV2() {
             return '<button type="button" role="tab" aria-selected="' + (e.key === ex) + '" class="px-seg-b' + (e.key === ex ? ' on' : '') + '" data-action="ph-set-exam" data-exam="' + e.key + '">' + e.label + '</button>';
         }).join('') + '</div>';
 
-    var note = soon
-        ? (info.pastLive
-            ? '<p class="px-note">WAEC Past Questions are now open, starting with English (2015). More subjects and years are being added. CBT Practice and Flashcards for WAEC are coming soon.</p>'
-            : '<p class="px-note">' + esc(info.full) + ' questions are coming soon. Every subject is already listed, and we will switch them on as the questions are ready.</p>')
-        : '';
+    var note = '';
 
     var tools = [
         { view: 'topic', label: 'Topic Practice', icon: 'list', tint: '#8B5CF6' },
@@ -19244,7 +19255,7 @@ function renderPracticeHubV2() {
 
     var examRows = [
         { mode: 'cbt', view: 'cbt', label: 'CBT Practice', sub: 'Timed, exam-style practice', icon: 'monitor', tint: '#2F6BFF', soon: soon },
-        { mode: 'past', view: 'exam', label: 'Past Questions', sub: ex === 'jamb' ? 'Pick a year, 2000 \u2013 2026' : (info.pastLive ? 'English 2015 is ready' : 'Year by year, subject by subject'), icon: 'clipboard', tint: '#F0662B', soon: soon && !info.pastLive },
+        { mode: 'past', view: 'exam', label: 'Past Questions', sub: ex === 'jamb' ? 'Pick a year, 2000 \u2013 2026' : 'Pick a year', icon: 'clipboard', tint: '#F0662B', soon: soon && !info.pastLive },
         { mode: 'flash', view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#E04C8E', soon: soon }
     ];
     var examHtml = '<p class="px-gt">' + esc(info.label) + ' practice</p><div class="px-list">' +
@@ -19257,7 +19268,7 @@ function renderPracticeHubV2() {
             phRowHtml({ view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#14A3A3' }, ex) +
             '</div>';
     } else {
-        jambOnly = '<p class="px-gs" style="margin-top:14px">Mock Arena and Novel (CBT) are for JAMB only.</p>';
+        jambOnly = '';
     }
 
     return '<section style="padding-bottom:12px">' +
@@ -20167,7 +20178,7 @@ function loadExamYearCounts(sid) {
         if (!waec) { try { rows = await window.OfflineDB.getQuestionsOffline('exam', sid); } catch (e) { rows = []; } }
         if (!rows || !rows.length) {
             try {
-                const res = await fetch(fileUrl);
+                const res = await fetch(fileUrl + '?v=' + Date.now(), { cache: 'no-store' });
                 if (res.ok) { const d = await res.json(); rows = ((d && d.questions) || []).filter(function(q) { return q.type === 'exam' && q.subject_id === sid; }); }
             } catch (e) { rows = []; }
         }
