@@ -8800,15 +8800,17 @@ function localTableBuilder(table, dead) {
         var rows = read(), out;
         function match(r) { return st.filters.every(function (f) { return f(r); }); }
         if (st.op === 'insert') {
-            st.payload.forEach(function (p) { rows.push(Object.assign({ id: 'l_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), created_at: new Date().toISOString() }, p)); });
-            write(rows); out = st.payload;
+            var __made = [];
+            st.payload.forEach(function (p) { var __row = Object.assign({ id: 'l_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, p); rows.push(__row); __made.push(__row); });
+            write(rows); out = __made;
         } else if (st.op === 'upsert') {
             var ks = (st.conflict || 'id').split(',');
+            var __ups = [];
             st.payload.forEach(function (p) {
                 var i = rows.findIndex(function (r) { return ks.every(function (k) { return r[k] === p[k]; }); });
-                if (i >= 0) rows[i] = Object.assign({}, rows[i], p); else rows.push(Object.assign({ id: 'l_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) }, p));
+                if (i >= 0) { rows[i] = Object.assign({}, rows[i], p); __ups.push(rows[i]); } else { var __r = Object.assign({ id: 'l_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) }, p); rows.push(__r); __ups.push(__r); }
             });
-            write(rows); out = st.payload;
+            write(rows); out = __ups;
         } else if (st.op === 'update') {
             rows = rows.map(function (r) { return match(r) ? Object.assign({}, r, st.payload) : r; }); write(rows); out = [];
         } else if (st.op === 'delete') {
@@ -10010,7 +10012,7 @@ function __syncMarked(q, mode, on) {
             else if (mode === 'mock' && state.engMockPassage) passage = state.engMockPassage.passage_text || '';
         }
         list.push({
-            h: h, subject_id: q.subject_id || '', subject_name: q.subject_name || '', mode: mode, year: q.year || null,
+            h: h, exam: (mode === 'exam' && examBody() === 'waec') ? 'waec' : 'jamb', subject_id: q.subject_id || '', subject_name: q.subject_name || '', mode: mode, year: q.year || null,
             text: q.text || q.question || '', options: q.options || [], correct_answer: q.correct_answer,
             explanation: q.explanation || '',
             image: (typeof q.image === 'string' && q.image.indexOf('data:image/') === 0 && q.image.length < 60000) ? q.image : '',
@@ -10030,7 +10032,10 @@ function __markedCorrectIndex(it) {
     return -1;
 }
 function renderMarkedQuestions() {
-    const all = __getMarked().slice().reverse();
+    const __allM = __getMarked().slice().reverse();
+    const __mc = {}; __allM.forEach(function(it) { const k = it.exam || 'jamb'; __mc[k] = (__mc[k] || 0) + 1; });
+    const __ex = state.markedExam || 'jamb';
+    const all = __allM.filter(function(it) { return (it.exam || 'jamb') === __ex; });
     const sids = [], names = {};
     all.forEach(function(it) { if (it.subject_id && sids.indexOf(it.subject_id) === -1) { sids.push(it.subject_id); names[it.subject_id] = it.subject_name || it.subject_id; } });
     const f = (state.markedFilter && sids.indexOf(state.markedFilter) !== -1) ? state.markedFilter : '';
@@ -10045,7 +10050,7 @@ function renderMarkedQuestions() {
     }
     let body = '';
     if (!list.length) {
-        body = '<div class="mk-empty"><div class="mk-empty-ico">🔖</div><h3>No marked questions yet</h3>' +
+        body = '<div class="mk-empty"><div class="mk-empty-ico">🔖</div><h3>' + (__ex === 'neco' ? 'NECO is coming soon' : 'No marked questions yet') + '</h3>' +
             '<p>During any exam, tap <b>Mark</b> on a question you want to come back to. It will be saved here so you can review it with the answer and explanation, even after the exam.</p></div>';
     } else {
         list.forEach(function(it) {
@@ -10065,7 +10070,7 @@ function renderMarkedQuestions() {
         });
     }
     return '<div class="mk-wrap"><div class="mk-head"><div><h2>Marked Questions</h2><p>' + all.length + ' saved on this device</p></div>' +
-        (all.length ? '<button type="button" class="mk-clear" data-action="marked-clear">Clear all</button>' : '') + '</div>' + chips + body + '</div>';
+        (all.length ? '<button type="button" class="mk-clear" data-action="marked-clear">Clear all</button>' : '') + '</div>' + examTabsHtml(__ex, 'marked-exam', __mc) + chips + body + '</div>';
 }
 
 function renderExamIconRow(cfg) {
@@ -12041,6 +12046,7 @@ async function saveWeakQuestion(userId, questionId, subjectId, mode, userAnswer,
             id: 'w_' + questionId,
             question_id: questionId,
             subject_id: subjectId || '',
+            exam: (mode === 'exam' && examBody() === 'waec') ? 'waec' : 'jamb',
             mode: mode || 'unknown',
             user_answer: uAns,
             correct_answer: cAns,
@@ -13782,7 +13788,7 @@ function renderMockExamPicker() {
             (__panel === 'tt' ? renderMockTimetable() : __panel === 'rec' ? renderMockRecords(recs, wk) : nfMock());
     }
     const __ib = function(k, ic, lb) { return '<button type="button" data-action="mock-panel" data-panel="' + k + '" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;border:1.5px solid var(--line);background:var(--card-bg);color:var(--ink);font:inherit;font-size:11px;font-weight:700;cursor:pointer"><span style="font-size:20px;line-height:1">' + ic + '</span>' + lb + '</button>'; };
-    html += '<div style="display:flex;gap:8px;margin:0 0 12px">' + __ib('tt', '🗓️', 'Timetable') + __ib('rec', '🕘', 'My records') + __ib('ana', '📈', 'Analytics') + '</div>';
+    html += '<div style="display:flex;gap:8px;margin:0 0 12px">' + __ib('tt', '🗓️', 'Timetable') + __ib('rec', '🕘', 'My records') + __ib('ana', '📈', 'Analytics') + '</div>' + toolsRow('mock');
     const exams = mockExams();
     if (!exams.length) {
         html += '<div class="card" style="text-align:center;padding:24px"><p style="font-size:34px;margin:0">📝</p>' +
@@ -13796,7 +13802,7 @@ function renderMockExamPicker() {
         const badge = st === 'open' ? '<span style="background:#0B8A55;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">OPEN NOW</span>'
             : st === 'upcoming' ? '<span style="background:#B7791F;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">UPCOMING</span>'
             : '<span style="background:#7a8580;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">CLOSED</span>';
-        let card = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><p style="font-size:14px;font-weight:800;margin:0">' + esc(mockExamTitle(ex)) + '</p>' + badge + '</div>' +
+        let card = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><p style="font-size:14px;font-weight:800;margin:0">' + esc(mockExamTitle(ex)) + '</p><span style="display:flex;align-items:center;gap:6px">' + badge + '<button type="button" aria-label="Copy Mock link" data-action="mock-copy-link" data-exam="' + esc(ex.id) + '" style="width:30px;height:30px;border-radius:10px;border:1.5px solid var(--line);background:var(--card-bg);color:var(--green);cursor:pointer;display:flex;align-items:center;justify-content:center">' + svg('copy', 14) + '</button><button type="button" aria-label="Share this Mock" data-action="mock-share" data-exam="' + esc(ex.id) + '" style="width:30px;height:30px;border-radius:10px;border:1.5px solid var(--line);background:var(--card-bg);color:var(--green);cursor:pointer;display:flex;align-items:center;justify-content:center">' + svg('share', 14) + '</button></span></div>' + (mockAllowsFree(ex) ? '' : '<p style="font-size:11px;font-weight:800;color:#B7791F;margin:0 0 6px">\uD83D\uDD12 Activated students only</p>') +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg);border-radius:12px;padding:9px 12px;margin:2px 0 8px"><span style="font-size:11.5px;color:var(--muted)">🕒 ' + esc(new Date(ex.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + ' to ' + esc(new Date(ex.end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + '</span>' +
             '<span style="font-size:11px;color:var(--muted);text-align:right">' + (st === 'open' ? 'Closes in' : 'Opens in') + ' <b data-mk-t="' + (st === 'open' ? ex.end : ex.start) + '" style="font-size:15px;color:' + (st === 'open' ? 'var(--green)' : '#B7791F') + ';font-variant-numeric:tabular-nums">' + mockClockText((st === 'open' ? ex.end : ex.start) - Date.now()) + '</b></span></div>' +
             '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + esc(mockExamMeta(ex)) + '</p>';
@@ -15133,8 +15139,9 @@ async function sendAiMessage(text, questionContext) {
     let sessionId = state.aiCurrentSessionId;
     if (!sessionId) {
         const session = await createNewAiSession(true);
-        if (!session) return;
+        if (!session || !session.id) return;
         sessionId = session.id;
+        state.aiCurrentSessionId = sessionId;
     }
     state.aiInput = '';
     state.aiPendingImage = null;
@@ -15207,7 +15214,7 @@ async function sendAiMessage(text, questionContext) {
                             render(); lastDraw = Date.now();
                         } else {
                             msgObj.message = full;
-                            if (Date.now() - lastDraw > 140) { lastDraw = Date.now(); render(); }
+                            if (Date.now() - lastDraw > 90) { lastDraw = Date.now(); render(); }
                         }
                     }
                 }
@@ -15609,7 +15616,7 @@ async function fetchAiAssistant(init) {
             res = await fetch(AI_ASSISTANT_URL, ini);
             if (res.status < 500) return res;
         } catch (e) { lastErr = e; res = null; }
-        if (i < 2) await new Promise(function(r) { setTimeout(r, 400); });
+        if (i < 2) await new Promise(function(r) { setTimeout(r, 120); });
     }
     if (res) return res;
     throw lastErr || new Error('AI request failed');
@@ -18281,6 +18288,7 @@ function setView(v, navOpts) {
         state.aiShowAttachMenu = false;
         state.aiEditingMessageId = null;
         state.showAiHistoryPanel = false;
+        try { warmAiAssistant(); } catch (e) {}
         if (!state.aiSessionsLoaded) loadAiSessions();
     }
     if (v === "revise") {
@@ -19470,6 +19478,16 @@ function phRowHtml(r, examKey) {
         (r.soon ? '<span class="px-chip">Soon</span>' : phChevron()) +
         '</button>';
 }
+function phIconRow(ex) {
+    if (ex !== 'jamb') return '';
+    var p = state.phPanel || '';
+    var items = [['daily', '\uD83C\uDFAF', 'Daily'], ['weak', '\uD83D\uDCC9', 'Weak spot'], ['recent', '\uD83D\uDD58', 'Recent']];
+    var row = '<div style="display:flex;gap:8px;margin:0 0 12px">' + items.map(function(it) {
+        var on = p === it[0];
+        return '<button type="button" data-action="ph-panel" data-panel="' + (on ? '' : it[0]) + '" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;border:1.5px solid ' + (on ? 'var(--green)' : 'var(--line)') + ';background:' + (on ? 'var(--green)' : 'var(--card-bg)') + ';color:' + (on ? '#fff' : 'var(--ink)') + ';font:inherit;font-size:11px;font-weight:700;cursor:pointer"><span style="font-size:20px;line-height:1">' + it[1] + '</span>' + it[2] + '</button>';
+    }).join('') + '</div>';
+    return row + (p ? nfHub(ex, p) : '');
+}
 function renderPracticeHubV2() {
     var ex = phCurrentExam(), info = phExamInfo(ex), soon = !info.live;
 
@@ -19509,7 +19527,7 @@ function renderPracticeHubV2() {
     return '<section style="padding-bottom:12px">' +
         '<h1 class="px-h">Practice</h1>' +
         '<p class="px-sub">Choose your exam, then how you want to practise.</p>' +
-        sbEntry() + seg + note + nfHub(ex) + toolsHtml + examHtml + jambOnly +
+        sbEntry() + seg + note + phIconRow(ex) + toolsRow('practice') + toolsHtml + examHtml + jambOnly +
         '</section>';
 }
 
@@ -19885,6 +19903,7 @@ function renderHome() {
         '</div>' +
         '<button class="mwt-chip" data-tour="start">' + svg('sparkles', 18) + ' New here? Take the 30-second app tour<b>Start \u2192</b></button>' +
         renderHomeNextStep(metrics) +
+        toolsRow('home') +
         nfHome() +
         renderHomeVideos() +
         renderHomeFeatures() +
@@ -21517,23 +21536,35 @@ const REVISE_MODE_META = {
 // Missed Questions screens. "Due" means either never reviewed yet (no
 // schedule entry — matches the app's original all-missed-questions
 // behavior) or its next-due date has arrived.
+function examTabsHtml(cur, action, counts) {
+    return '<div class="revise-filter-tabs" style="margin-bottom:10px">' + PH_EXAMS.map(function(e) {
+        return '<button class="revise-filter-tab' + (cur === e.key ? ' active' : '') + '" data-action="' + action + '" data-exam="' + e.key + '">' + e.label + (counts && counts[e.key] ? ' (' + counts[e.key] + ')' : '') + '</button>';
+    }).join('') + '</div>';
+}
+function reviseExamKey() { return state.reviseExam || 'jamb'; }
+function weakForExam() { const k = reviseExamKey(); return state.weakQuestions.filter(function(wq) { return (wq.exam || 'jamb') === k; }); }
 function getFilteredWeakQuestions() {
-    if (state.reviseFilter !== 'due') return state.weakQuestions;
+    const base = weakForExam();
+    if (state.reviseFilter !== 'due') return base;
     const schedule = getReviewSchedule();
-    return state.weakQuestions.filter(function(wq) {
+    return base.filter(function(wq) {
         return isQuestionDueForReview(wq.question_id, schedule);
     });
 }
 
 function renderReviseFilterTabs() {
     const schedule = getReviewSchedule();
-    const dueCount = state.weakQuestions.filter(function(wq) {
+    const __cnt = {}; state.weakQuestions.forEach(function(wq) { const k = wq.exam || 'jamb'; __cnt[k] = (__cnt[k] || 0) + 1; });
+    const __mine = weakForExam();
+    const dueCount = __mine.filter(function(wq) {
         return isQuestionDueForReview(wq.question_id, schedule);
     }).length;
     return (
+        examTabsHtml(reviseExamKey(), 'revise-exam', __cnt) +
+        (reviseExamKey() === 'neco' ? '<p class="px-note">NECO practice is coming soon. Missed NECO questions will appear here once it is live.</p>' : '') +
         '<div class="revise-filter-tabs">' +
         '<button class="revise-filter-tab' + (state.reviseFilter === 'due' ? ' active' : '') + '" data-action="revise-set-filter" data-filter="due">Due Now (' + dueCount + ')</button>' +
-        '<button class="revise-filter-tab' + (state.reviseFilter === 'all' ? ' active' : '') + '" data-action="revise-set-filter" data-filter="all">All (' + state.weakQuestions.length + ')</button>' +
+        '<button class="revise-filter-tab' + (state.reviseFilter === 'all' ? ' active' : '') + '" data-action="revise-set-filter" data-filter="all">All (' + __mine.length + ')</button>' +
         '</div>'
     );
 }
@@ -23212,6 +23243,7 @@ function renderProfileCore() {
         menuHtml +
         settingsRowHtml +
         socialHtml +
+        toolsRow('account') +
         nfAccount() +
         editHtml +
         '<div class="profile-bottom-pin">' + bottomHtml + '</div>' +
@@ -25586,6 +25618,8 @@ function renderAdminQuestions() {
     }
 
     modeCounts.topic = state.topicQCount || 0;
+    adminEnsureLiveCounts();
+    const __waecN = Math.max(state.waecQCount || 0, (state.liveQ && state.liveQ.waec) || 0);
     const modes = [
         { key: 'cbt', label: '💻 JAMB CBT', count: modeCounts.cbt },
         { key: 'exam', label: '📝 Past Questions', count: modeCounts.exam },
@@ -25610,6 +25644,15 @@ function renderAdminQuestions() {
         );
     });
 
+    const __by = state.waecBySubject || {};
+    const __tags = Object.keys(__by).map(function(id) {
+        const sj = SUBJECTS.find(function(x) { return x.id === id; });
+        return '<span class="subj-tag">' + esc(sj ? sj.code || sj.name : id) + ' <span class="count">' + __by[id] + '</span></span>';
+    }).join('');
+    cards += '<div class="admin-mode-card"><div class="mode-info"><span class="mode-name">🎓 WAEC Questions</span>' +
+        '<span class="mode-count">' + (state.waecLoaded ? __waecN + ' questions' : 'Counting…') + '</span>' +
+        (__tags ? '<div class="admin-subject-breakdown">' + __tags + '</div>' : '') +
+        '</div><div class="mode-actions"><span class="count-badge">' + __waecN + '</span></div></div>';
     return (
         '<p class="section-label">Select a mode to manage questions</p>' +
         cards
@@ -29189,6 +29232,23 @@ document.addEventListener('click', function(e) {
 
     if (action === 'friday-toggle-subject') { return; }
     if (action === 'mock-need-3') { showToast('Choose 3 subjects first. English is already included.', 'error'); return; }
+    if (typeof toolAction === 'function' && action.indexOf('tool-') === 0 && toolAction(action, el)) return;
+    if (action === 'revise-exam') { state.reviseExam = el.getAttribute('data-exam') || 'jamb'; state.reviseView = 'subjects'; state.reviseSubject = null; state.reviseCurrentWid = null; render(); return; }
+    if (action === 'marked-exam') { state.markedExam = el.getAttribute('data-exam') || 'jamb'; state.markedFilter = ''; render(); return; }
+    if (action === 'ph-panel') { state.phPanel = el.getAttribute('data-panel') || ''; render(); return; }
+    if (action === 'mock-copy-link') {
+        const __cx = mockExamById(el.getAttribute('data-exam'));
+        if (!__cx) return;
+        copyTextSafe(mockLinkFor(__cx), 'Link copied.');
+        return;
+    }
+    if (action === 'mock-share') {
+        const __ex = mockExamById(el.getAttribute('data-exam'));
+        if (!__ex) return;
+        const __txt = 'MyUTME Mock: ' + mockExamTitle(__ex) + '\n' + mockFmtRange(__ex) + (mockAllowsFree(__ex) ? '' : '\n(Activated students only)') + '\nLog in and take it here:\n' + mockLinkFor(__ex);
+        if (navigator.share) { navigator.share({ text: __txt }).catch(function() {}); } else { try { navigator.clipboard.writeText(__txt); showToast('Link copied. Paste it to share.'); } catch (e) { showToast('Could not copy.', 'error'); } }
+        return;
+    }
     if (action === 'mock-panel') { state.mockPanel = el.getAttribute('data-panel') || ''; render(); return; }
     if (action === 'mock-full-pick') {
         const __fx = mockExamById(el.getAttribute('data-exam')), __sj = el.getAttribute('data-subject');
@@ -31840,7 +31900,7 @@ function renderAdminDeptCard() {
 }
 
 var AI_CHAT_HINT = '\n\n[Reply format: answer the question directly in the first line, then explain briefly. Short paragraphs, simple words, use steps or a short list when helpful, one quick example if it helps. Keep it concise (about 120 words at most) and fast; go deeper only if the student asks.]';
-var AI_STYLE_HINT = '\n\n[Reply format: explain like clear study notes. Use short headed sections, simple steps, one worked example, and short paragraphs with a blank line between them. Be thorough but get to the point fast.]';
+var AI_STYLE_HINT = '\n\n[Reply format: explain like clear study notes. Use short headed sections, simple steps, one worked example, and short paragraphs with a blank line between them. Be thorough but get to the point fast. Answer from your own knowledge; do not use web search or external tools.]';
 function renderHomeFeatures() {
     var f = [
         ['analytics', 'chart', 'My insights', 'Spot your weak topics early', '#35618C'],
@@ -33237,9 +33297,9 @@ function nfHome() {
 }
 
 /* ---------------- PRACTICE ---------------- */
-function nfHub(ex) {
+function nfHub(ex, which) {
     if (ex !== 'jamb') return '';
-    var out = '', ents = nfEntries();
+    var parts = {}, out = '', ents = nfEntries();
     // 1. Daily challenge (same subject for everyone each day)
     var pool = SUBJECTS.filter(function (x) { return x.id !== 'lhm' && x.id !== 'lit'; });
     var dayN = Math.floor(new Date(homeDateKey(new Date()) + 'T00:00:00').getTime() / 86400000);
@@ -33248,14 +33308,14 @@ function nfHub(ex) {
         if (homeDateKey(e.submitted_at) !== todayKey) return false;
         return (e.subjects || []).indexOf(today.name) !== -1 || String(e.exam_title || '').indexOf(today.name) === 0;
     });
-    out += '<div class="nf-card" style="border-color:var(--green)"><div class="nf-h"><b>🎯 Daily challenge</b><small>' + (done ? 'Done ✓' : 'Resets at midnight') + '</small></div>' +
+    parts.daily = '<div class="nf-card" style="border-color:var(--green)"><div class="nf-h"><b>🎯 Daily challenge</b><small>' + (done ? 'Done ✓' : 'Resets at midnight') + '</small></div>' +
         '<p class="nf-p" style="margin-bottom:10px">Today\u2019s subject is <b style="color:var(--ink)">' + esc(today.name) + '</b>. ' + (done ? 'You have already practised it today. Great work!' : 'Do one practice on it to keep your streak alive.') + '</p>' +
         '<button type="button" class="nf-btn' + (done ? ' alt' : '') + '" data-action="open-subject-modes" data-subjectid="' + today.id + '">' + (done ? 'Practise again' : 'Start ' + esc(today.name)) + '</button></div>';
     // 2. Weak subject spotlight
     var stats = nfSubjectStats().filter(function (x) { return nfSubj(x.id) && x.id !== 'lhm'; }).sort(function (a, b) { return a.avg - b.avg; });
     if (stats.length) {
         var w = stats[0], ws = nfSubj(w.id), strong = stats[stats.length - 1];
-        out += '<div class="nf-card"><div class="nf-h"><b>📉 Weak spot</b><small>from your results</small></div>' +
+        parts.weak = '<div class="nf-card"><div class="nf-h"><b>📉 Weak spot</b><small>from your results</small></div>' +
             '<p class="nf-p" style="margin-bottom:8px"><b style="color:var(--ink)">' + esc(ws.name) + '</b> is your lowest subject at <b style="color:var(--ink)">' + w.avg + '%</b> over ' + w.n + ' test' + (w.n === 1 ? '' : 's') + '.' +
             (stats.length > 1 && strong.id !== w.id ? ' Strongest: ' + esc(nfSubj(strong.id).name) + ' (' + strong.avg + '%).' : '') + '</p>' +
             '<div class="nf-bar" style="margin-bottom:10px"><i style="width:' + w.avg + '%;background:' + (w.avg >= 60 ? 'var(--green)' : '#E5484D') + '"></i></div>' +
@@ -33264,12 +33324,119 @@ function nfHub(ex) {
     // 3. Recent practice
     var rec = ents.slice(0, 3);
     if (rec.length) {
-        out += '<div class="nf-card"><div class="nf-h"><b>🕘 Recent practice</b></div>' + rec.map(function (e) {
+        parts.recent = '<div class="nf-card"><div class="nf-h"><b>🕘 Recent practice</b></div>' + rec.map(function (e) {
             var p = nfPct(e), nm = e.exam_title || e.mode || 'Practice';
             return '<div class="nf-rec"><span class="t">' + esc(nm) + '</span><span class="d">' + esc(nfAgo(e.submitted_at)) + '</span><span class="s" style="color:' + (p === null ? 'var(--muted)' : p >= 60 ? 'var(--green)' : '#E5484D') + '">' + (p === null ? '--' : Math.round(p) + '%') + '</span></div>';
         }).join('') + '</div>';
     }
+    if (which) return parts[which] || '<div class="nf-card"><p class="nf-p">Nothing here yet. Do a practice and it will show up.</p></div>';
     return out;
+}
+
+/* ================= NEW STUDY TOOLS (icon rows: Home, Practice, Mock, Account) ================= */
+function copyTextSafe(t, msg) {
+    function ok() { showToast(msg || 'Copied.'); }
+    function fb() { try { var a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); document.execCommand('copy'); document.body.removeChild(a); ok(); } catch (e) { showToast('Could not copy.', 'error'); } }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fb); else fb(); } catch (e) { fb(); }
+}
+var TOOL_META = {
+    streak: ['\uD83D\uDD25', 'Streak'], timer: ['\u23F1\uFE0F', 'Focus'], predictor: ['\uD83D\uDCCA', 'Predictor'],
+    planner: ['\uD83D\uDDD3\uFE0F', 'Planner'], calendar: ['\uD83D\uDCC5', 'Calendar'], checklist: ['\u2705', 'Exam-day'],
+    notes: ['\uD83D\uDCDD', 'Notes'], invite: ['\uD83D\uDC8C', 'Invite']
+};
+var TOOL_PLACES = { home: ['streak', 'timer', 'predictor'], practice: ['planner', 'predictor', 'timer'], mock: ['calendar', 'checklist', 'timer'], account: ['notes', 'invite', 'streak'] };
+function toolUid() { return state.authUser ? state.authUser.id : 'guest'; }
+function toolGet(k, d) { try { var v = storage.get('tool_' + k + '_' + toolUid()); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+function toolSet(k, v) { try { storage.set('tool_' + k + '_' + toolUid(), JSON.stringify(v)); } catch (e) {} }
+function toolsRow(place) {
+    var keys = TOOL_PLACES[place] || [], open = (state.toolOpen && state.toolOpen[place]) || '';
+    var row = '<div style="display:flex;gap:8px;margin:0 0 12px">' + keys.map(function (k) {
+        var on = open === k, m = TOOL_META[k];
+        return '<button type="button" aria-label="' + m[1] + '" data-action="tool-open" data-place="' + place + '" data-tool="' + (on ? '' : k) + '" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px;border-radius:14px;border:1.5px solid ' + (on ? 'var(--green)' : 'var(--line)') + ';background:' + (on ? 'var(--green)' : 'var(--card-bg)') + ';color:' + (on ? '#fff' : 'var(--ink)') + ';font:inherit;font-size:10.5px;font-weight:700;cursor:pointer"><span style="font-size:19px;line-height:1">' + m[0] + '</span>' + m[1] + '</button>';
+    }).join('') + '</div>';
+    return row + (open ? '<div class="card" style="margin-bottom:12px">' + toolPanel(open) + '</div>' : '');
+}
+function toolBtn(label, action, attrs, alt) { return '<button type="button" class="btn ' + (alt ? 'btn-outline' : 'btn-green') + '" style="padding:9px 12px;font-size:12px;margin:0 6px 6px 0" data-action="' + action + '" ' + (attrs || '') + '>' + label + '</button>'; }
+function toolDaysSet() { var o = {}; nfEntries().forEach(function (e) { o[homeDateKey(e.submitted_at)] = (o[homeDateKey(e.submitted_at)] || 0) + 1; }); return o; }
+function toolPanel(k) {
+    var h = '<p style="font-size:14px;font-weight:800;margin:0 0 8px">' + TOOL_META[k][0] + ' ' + ({ streak: 'Streak & daily goal', timer: 'Focus timer', predictor: 'JAMB score predictor', planner: 'Weekly study planner', calendar: 'Add Mocks to your calendar', checklist: 'Exam-day checklist', notes: 'My study notes', invite: 'Invite friends' }[k]) + '</p>';
+    if (k === 'streak') {
+        var days = toolDaysSet(), d = new Date(), streak = 0, today = homeDateKey(d);
+        if (!days[today]) d.setDate(d.getDate() - 1);
+        while (days[homeDateKey(d)]) { streak++; d.setDate(d.getDate() - 1); }
+        var goal = toolGet('goal', 2), done = days[today] || 0, pct = Math.min(100, Math.round(done / goal * 100));
+        return h + '<p style="font-size:26px;font-weight:800;margin:0">' + streak + ' day' + (streak === 1 ? '' : 's') + ' \uD83D\uDD25</p><p class="nf-p" style="margin:2px 0 10px">Practise every day to keep it alive.</p>' +
+            '<p style="font-size:12px;margin:0 0 4px">Today: <b>' + done + '</b> / ' + goal + ' practice sessions</p><div class="nf-bar" style="margin-bottom:10px"><i style="width:' + pct + '%;background:var(--green)"></i></div>' +
+            '<p style="font-size:11px;color:var(--muted);margin:0 0 6px">Daily goal</p>' + [1, 2, 3, 4, 5].map(function (n) { return toolBtn(String(n), 'tool-goal', 'data-n="' + n + '"', n !== goal); }).join('');
+    }
+    if (k === 'timer') {
+        var f = state.focus, run = f && f.end > Date.now();
+        return h + '<p id="focus-clock" style="font-size:34px;font-weight:800;margin:0 0 8px;font-variant-numeric:tabular-nums">' + (run ? toolClock(f.end - Date.now()) : '00:00') + '</p>' +
+            '<p class="nf-p" style="margin:0 0 8px">Study with no distractions, then take a short break.</p>' +
+            toolBtn('25 min', 'tool-focus', 'data-min="25"') + toolBtn('45 min', 'tool-focus', 'data-min="45"') + toolBtn('5 min break', 'tool-focus', 'data-min="5"', true) + (run ? toolBtn('Stop', 'tool-focus', 'data-min="0"', true) : '');
+    }
+    if (k === 'predictor') {
+        var es = nfEntries().map(nfPct).filter(function (x) { return x !== null; }).slice(0, 10);
+        if (!es.length) return h + '<p class="nf-p">Do a few practice tests and your estimated JAMB score (out of 400) will show here.</p>';
+        var avg = es.reduce(function (a, b) { return a + b; }, 0) / es.length, sc = Math.round(avg * 4);
+        return h + '<p style="font-size:30px;font-weight:800;margin:0">' + Math.max(0, sc - 15) + ' \u2013 ' + Math.min(400, sc + 15) + '<span style="font-size:13px;color:var(--muted)"> / 400</span></p>' +
+            '<p class="nf-p" style="margin:6px 0 8px">Based on your last ' + es.length + ' practice result' + (es.length === 1 ? '' : 's') + ' (average ' + Math.round(avg) + '%). ' + (sc >= 300 ? 'Excellent. Keep it up!' : sc >= 200 ? 'Good progress. Work on your weak subjects.' : 'Keep practising daily and it will climb.') + '</p><p style="font-size:10.5px;color:var(--muted);margin:0">This is only an estimate to guide your study.</p>';
+    }
+    if (k === 'planner') {
+        var plan = toolGet('planner', {}), pool = SUBJECTS.filter(function (x) { return x.id !== 'lhm'; }), names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], td = new Date().getDay();
+        return h + '<p class="nf-p" style="margin:0 0 8px">Tap a day to choose its subject.</p>' + names.map(function (n, i) {
+            var sj = pool.filter(function (x) { return x.id === plan[i]; })[0];
+            return '<button type="button" data-action="tool-plan" data-day="' + i + '" style="display:flex;justify-content:space-between;width:100%;padding:9px 12px;margin-bottom:6px;border-radius:12px;border:1.5px solid ' + (i === td ? 'var(--green)' : 'var(--line)') + ';background:var(--card-bg);color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer"><b>' + n + (i === td ? ' \u00B7 today' : '') + '</b><span style="color:var(--muted)">' + (sj ? esc(sj.name) : 'Rest / free') + '</span></button>';
+        }).join('');
+    }
+    if (k === 'calendar') {
+        var ex = typeof mockExams === 'function' ? mockExams() : [];
+        if (!ex.length) return h + '<p class="nf-p">No Mock is scheduled right now. Check back soon.</p>';
+        return h + ex.map(function (e) { return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px"><span style="font-size:12.5px"><b>' + esc(mockExamTitle(e)) + '</b><br><span style="color:var(--muted);font-size:11px">' + esc(mockFmtRange(e)) + '</span></span>' + toolBtn('Add', 'tool-ics', 'data-exam="' + esc(e.id) + '"') + '</div>'; }).join('');
+    }
+    if (k === 'checklist') {
+        var items = ['Phone charged and data on', 'Quiet place with good network', 'Pen and paper ready', 'Read the exam rules', 'Log in 10 minutes early', 'Calculator ready (Maths)'], cl = toolGet('checklist', {});
+        return h + items.map(function (t, i) { return '<button type="button" data-action="tool-check" data-i="' + i + '" style="display:flex;gap:10px;align-items:center;width:100%;padding:9px 4px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font:inherit;font-size:12.5px;text-align:left;cursor:pointer"><span style="width:20px;height:20px;border-radius:6px;border:2px solid var(--green);display:flex;align-items:center;justify-content:center;background:' + (cl[i] ? 'var(--green)' : 'transparent') + ';color:#fff;font-size:12px">' + (cl[i] ? '\u2713' : '') + '</span><span style="' + (cl[i] ? 'opacity:.55;text-decoration:line-through' : '') + '">' + t + '</span></button>'; }).join('');
+    }
+    if (k === 'notes') {
+        return h + '<textarea id="tool-notes-input" rows="6" placeholder="Write formulas, tips, anything to remember\u2026" style="width:100%;box-sizing:border-box;padding:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--card-bg);color:var(--ink);font:inherit;font-size:13px;resize:vertical">' + esc(toolGet('notes', '')) + '</textarea><p style="font-size:10.5px;color:var(--muted);margin:6px 0 0">Saved on this device as you type.</p>';
+    }
+    if (k === 'invite') {
+        return h + '<p class="nf-p" style="margin:0 0 8px">Share MyUTME with your friends and prepare together.</p>' + toolBtn('Share', 'tool-invite', 'data-mode="share"') + toolBtn('Copy link', 'tool-invite', 'data-mode="copy"', true);
+    }
+    return h;
+}
+function toolClock(ms) { var s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+setInterval(function () {
+    var f = state.focus; if (!f || !f.end) return;
+    var el = document.getElementById('focus-clock');
+    if (f.end <= Date.now()) { state.focus = null; showToast('\u23F1\uFE0F Time is up! Great focus.'); if (el) el.textContent = '00:00'; return; }
+    if (el) el.textContent = toolClock(f.end - Date.now());
+}, 1000);
+document.addEventListener('input', function (e) { if (e.target && e.target.id === 'tool-notes-input') toolSet('notes', e.target.value); });
+function toolAction(action, el) {
+    if (action === 'tool-open') { state.toolOpen = state.toolOpen || {}; state.toolOpen[el.getAttribute('data-place')] = el.getAttribute('data-tool') || ''; render(); return true; }
+    if (action === 'tool-goal') { toolSet('goal', parseInt(el.getAttribute('data-n'), 10) || 2); render(); return true; }
+    if (action === 'tool-focus') { var m = parseInt(el.getAttribute('data-min'), 10) || 0; state.focus = m ? { end: Date.now() + m * 60000 } : null; render(); return true; }
+    if (action === 'tool-plan') {
+        var pool = SUBJECTS.filter(function (x) { return x.id !== 'lhm'; }).map(function (x) { return x.id; }), p = toolGet('planner', {}), d = el.getAttribute('data-day'), i = pool.indexOf(p[d]);
+        if (i + 1 >= pool.length) delete p[d]; else p[d] = pool[i + 1];
+        toolSet('planner', p); render(); return true;
+    }
+    if (action === 'tool-check') { var c = toolGet('checklist', {}), n = el.getAttribute('data-i'); c[n] = !c[n]; toolSet('checklist', c); render(); return true; }
+    if (action === 'tool-ics') {
+        var ex = mockExamById(el.getAttribute('data-exam')); if (!ex) return true;
+        function z(t) { return new Date(t).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, ''); }
+        var ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//MyUTME//Mock//EN\r\nBEGIN:VEVENT\r\nUID:' + ex.id + '@myutme\r\nDTSTAMP:' + z(Date.now()) + '\r\nDTSTART:' + z(ex.start) + '\r\nDTEND:' + z(ex.end) + '\r\nSUMMARY:MyUTME Mock: ' + mockExamTitle(ex).replace(/[,;\n]/g, ' ') + '\r\nBEGIN:VALARM\r\nTRIGGER:-PT15M\r\nACTION:DISPLAY\r\nDESCRIPTION:Mock starts in 15 minutes\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR';
+        try { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' })); a.download = 'myutme-mock.ics'; document.body.appendChild(a); a.click(); document.body.removeChild(a); showToast('Open the file to add it to your calendar.'); } catch (e) { showToast('Could not create the calendar file.', 'error'); }
+        return true;
+    }
+    if (action === 'tool-invite') {
+        var link = location.origin, txt = 'Prepare for JAMB with me on MyUTME. Practice questions, past questions and mock exams: ' + link;
+        if (el.getAttribute('data-mode') === 'share' && navigator.share) navigator.share({ text: txt }).catch(function () {}); else copyTextSafe(txt, 'Invite copied. Paste it to share.');
+        return true;
+    }
+    return false;
 }
 
 /* ---------------- MOCK ARENA ---------------- */
