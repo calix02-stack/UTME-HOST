@@ -180,6 +180,52 @@
     }
 }(window.location));
 </script>
+<script id="install-page">
+/* /install page, built into the app. Visiting yoursite/install shows a one-tap Install screen. */
+(function () {
+  var path = location.pathname.replace(/\/+$/, '').toLowerCase();
+  if (path !== '/install' && path !== '/install.html') return;
+  var deferred = null;
+  var ua = navigator.userAgent;
+  var isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  var ui = {};
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; });
+  window.addEventListener('appinstalled', function () { done(); });
+  function done() {
+    if (!ui.btn) return;
+    ui.btn.style.display = 'none'; ui.open.style.display = 'block';
+    ui.msg.textContent = 'MyUTME is installed on this device.';
+  }
+  function mount() {
+    var d = document.createElement('div');
+    d.id = 'install-page';
+    d.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:#F4F7F3;display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#10241A';
+    d.innerHTML =
+      '<div style="width:100%;max-width:400px;background:#fff;border-radius:20px;padding:32px 24px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.08)">' +
+      '<img src="/icon-192.png" alt="MyUTME" style="width:84px;height:84px;border-radius:20px;margin-bottom:16px">' +
+      '<h1 style="font-size:24px;margin:0 0 6px">MyUTME</h1>' +
+      '<p style="font-size:15px;color:#4A5F53;line-height:1.5;margin:0">Install the app on your phone. Free, fast and works offline.</p>' +
+      '<button id="ip-btn" style="display:block;width:100%;margin-top:22px;padding:15px;border:0;border-radius:12px;background:#0A7B63;color:#fff;font-size:17px;font-weight:700;cursor:pointer">Install</button>' +
+      '<a id="ip-open" href="/" style="display:none;margin-top:22px;padding:15px;border-radius:12px;background:#0A7B63;color:#fff;font-size:17px;font-weight:700;text-decoration:none">Open App</a>' +
+      '<div id="ip-msg" style="margin-top:14px;font-size:14px;color:#4A5F53;min-height:20px"></div>' +
+      '<div id="ip-ios" style="display:none;margin-top:16px;text-align:left;font-size:14.5px;line-height:1.6;background:#F4F7F3;border-radius:12px;padding:14px 16px"><b>On iPhone / iPad:</b><br>1. Tap the <b>Share</b> button in Safari<br>2. Tap <b>Add to Home Screen</b><br>3. Tap <b>Add</b></div>' +
+      '<div id="ip-man" style="display:none;margin-top:16px;text-align:left;font-size:14.5px;line-height:1.6;background:#F4F7F3;border-radius:12px;padding:14px 16px"><b>To install:</b><br>1. Open this page in <b>Chrome</b><br>2. Tap the <b>\u22EE</b> menu<br>3. Tap <b>Install app</b> or <b>Add to Home screen</b></div>' +
+      '</div>';
+    document.body.appendChild(d);
+    ui.btn = d.querySelector('#ip-btn'); ui.open = d.querySelector('#ip-open'); ui.msg = d.querySelector('#ip-msg');
+    if (standalone) { done(); return; }
+    ui.btn.addEventListener('click', function () {
+      if (deferred) {
+        deferred.prompt();
+        deferred.userChoice.then(function (c) { if (c.outcome === 'accepted') done(); deferred = null; });
+      } else if (isIOS) { d.querySelector('#ip-ios').style.display = 'block'; }
+      else { d.querySelector('#ip-man').style.display = 'block'; }
+    });
+  }
+  if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
+})();
+</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
 <link rel="manifest" href="manifest.json" />            
@@ -8071,8 +8117,7 @@ u.q-u { text-decoration: underline; text-decoration-thickness: 2px; text-underli
 </style>
 <style id="myutme-v4-fixes">
 /* page never scrolls itself — keeps the top icons in place */
-html { overflow: auto !important; overscroll-behavior-y: auto !important; height: 100%; }
-body { overflow: hidden !important; overscroll-behavior-y: auto !important; }
+html, body { overflow: hidden !important; overscroll-behavior: auto; }
 body { position: fixed; inset: 0; width: 100%; }
 #app-shell { height: 100%; overflow: hidden; }
 
@@ -9155,7 +9200,7 @@ document.addEventListener('visibilitychange', function() {
 });
 const WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/LN5pxCsiYIi3a4JXJQCAHM?s=cl&p=a&mlu=4&ilr=4";
 const AI_ASSISTANT_URL = SUPABASE_URL + "/functions/v1/ai-assistant";
-const AI_NAME = "AI";
+const AI_NAME = "Study Buddy";
 const AI_CREATOR = "Enzo";
 const AI_SHARE_URL = "https://myutme.com.ng/enzo-ai";
 const SEND_EMAIL_URL = SUPABASE_URL + "/functions/v1/Send-bulk-email";
@@ -11356,7 +11401,7 @@ async function adminLoadTopicCounts() {
 }
 // One source of truth for the admin's question totals.
 function adminQuestionTotals() {
-    const c = { cbt: 0, exam: 0, mock: 0, topic: state.topicQCount || 0, novel: 0 };
+    const c = { cbt: 0, exam: 0, mock: 0, topic: state.topicQCount || 0, novel: 0, waec: state.waecQCount || 0 };
     (state.allQuestions || []).forEach(function(q) {
         const t = q.type || '';
         if (t === 'cbt') c.cbt++;
@@ -11364,7 +11409,7 @@ function adminQuestionTotals() {
         else if (t === 'mock') c.mock++;
         else if (t === 'NOVEL (CBT)') c.novel++;
     });
-    c.total = c.cbt + c.exam + c.mock + c.topic + c.novel;
+    c.total = c.cbt + c.exam + c.mock + c.topic + c.novel + c.waec;
     return c;
 }
 function fmtNum(n) { try { return Number(n).toLocaleString('en-US'); } catch (e) { return String(n); } }
@@ -12154,7 +12199,24 @@ function applyNotifRows(data) {
         return isForThisUser && hasContent;
     });
     state.notifsLoaded = true;
-    state.notifsUnreadCount = state.notifsList.filter(function(n) {
+    // The saved "already read" list can still be empty if this ran before the app finished starting.
+    if (!state.readNotifs.length) {
+        try { state.readNotifs = (JSON.parse(storage.get("readNotifications") || "[]") || []).map(String); } catch (e) { state.readNotifs = []; }
+    }
+    // First time on this device (new account, or the app was deleted and installed again):
+    // everything that already exists counts as old news, so only messages sent AFTER this point show as new.
+    if (userId && state.notifsList.length) {
+        const baseKey = 'notifBase_' + userId;
+        if (!storage.get(baseKey)) {
+            state.notifsList.forEach(function(n) {
+                if (state.readNotifs.indexOf(String(n.id)) === -1) state.readNotifs.push(String(n.id));
+            });
+            storage.set("readNotifications", JSON.stringify(state.readNotifs));
+            storage.set(baseKey, '1');
+        }
+    }
+    // Guests (not logged in) never get a red number.
+    state.notifsUnreadCount = !userId ? 0 : state.notifsList.filter(function(n) {
         return state.readNotifs.indexOf(String(n.id)) === -1;
     }).length;
     state.notifs = state.notifsList.map(function(n) {
@@ -12167,6 +12229,7 @@ function applyNotifRows(data) {
             unread: state.readNotifs.indexOf(String(n.id)) === -1,
         };
     });
+    updateAppBadge();   // keep the number on the app icon in step with the list, not only when a message is tapped
     render();
 }
 function notifCacheKey() { return 'notifs_' + (state.authUser ? state.authUser.id : 'guest'); }
@@ -12876,6 +12939,7 @@ async function signIn(emailOrUsername, password) {
 }
 
 async function signOut() {
+    try { if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch (e) {}
     try {
         if (state.authUser) {
             await endDeviceSession();
@@ -13632,6 +13696,7 @@ function renderMockExamPicker() {
         '<button class="leaderboard-tab' + (__tab === 'board' ? ' active' : '') + '" data-action="friday-tab" data-tab="board">🏆 Leaderboard</button></div>';
     if (__tab === 'board') return html + renderFridayBoard();
     html += renderMockTimetable();
+    html += nfMock();
 
     const exams = mockExams();
     if (!exams.length) {
@@ -14906,8 +14971,6 @@ async function editAiMessage(msgId) {
 
 function guestAiId() { let g = storage.get('guestAiId'); if (!g) { g = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'guest-' + Date.now() + '-' + Math.random().toString(16).slice(2); storage.set('guestAiId', g); } return g; }
 async function sendAiMessage(text, questionContext) {
-    // AI is only for question explanations (plus a 'Continue' follow-up). No free chat.
-    if (!questionContext && !/^continue\.?$/i.test(String(text || '').trim())) { showToast('AI explains questions. Tap "Better explanation" on any question.', ''); return; }
     const msg = (text || '').trim();
     const pendingImage = state.aiPendingImage;
     const pendingDocument = state.aiPendingDocument;
@@ -14963,7 +15026,7 @@ async function sendAiMessage(text, questionContext) {
             },
             body: JSON.stringify({
                 userId: state.authUser ? state.authUser.id : guestAiId(),
-                message: msg ? msg + AI_STYLE_HINT : msg,
+                message: msg ? msg + (questionContext ? AI_STYLE_HINT : AI_CHAT_HINT) : msg,
                 questionContext: questionContext || null,
                 imageBase64: pendingImage || null,
                 documentBase64: pendingDocument ? pendingDocument.data : null,
@@ -16444,7 +16507,7 @@ async function startLiteratureCbt() {
 //   JAMB -> questions-<subject>.json        (e.g. questions-eng.json)
 //   WAEC -> questions-waec-<subject>.json   (e.g. questions-waec-eng.json)
 // Add a subject id to WAEC_SUBJECTS once its questions-waec-<id>.json is uploaded.
-var WAEC_SUBJECTS = ['eng', 'math'];
+var WAEC_SUBJECTS = ['eng'];
 var WAEC_FIRST_YEAR = 2015;
 function examBody() { return state.examBody === 'waec' ? 'waec' : 'jamb'; }
 function examBodyLabel() { return examBody() === 'waec' ? 'WAEC' : 'JAMB'; }
@@ -16452,7 +16515,7 @@ function examFileName(subjectId) { return 'questions-' + (examBody() === 'waec' 
 function examFirstYear() { return examBody() === 'waec' ? WAEC_FIRST_YEAR : 2000; }
 
 async function loadExamQuestionsFromFile(subjectId, yearStr) {
-    const res = await fetch(examFileName(subjectId) + '?v=' + Date.now(), { cache: 'no-store' });
+    const res = await fetch(examFileName(subjectId) + '?v=' + Date.now());
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     return ((data && data.questions) || []).filter(function(q) {
@@ -18692,7 +18755,7 @@ const PAGE_TITLES = {
     'mysubjects': 'Practice Hub',
     'exam-soon': 'Coming Soon',
     'browse-subjects': 'Browse Subjects',
-    'ai-assistant': 'AI',
+    'ai-assistant': 'Study Buddy',
     'mockexam': 'Mock Arena',
     'profile': 'Account',
     'profile-edit': 'Edit Profile',
@@ -18727,20 +18790,6 @@ const PAGE_TITLES = {
     'lit-exam': 'Novel (CBT) Result',
 };
 
-function examTag(view) {
-    if (view === 'exam' || view === 'exam-exam') return examBodyLabel();
-    if (view === 'exam-soon') return phExamInfo(state.soonExam || phCurrentExam()).label;
-    if (['cbt','cbt-exam','flashcards','mockexam','literature','lit-exam','mock-exam'].indexOf(view) !== -1) return 'JAMB';
-    return '';
-}
-function pageTitleFor(view) {
-    var base = PAGE_TITLES[view] || 'MyUTME';
-    var tag = examTag(view);
-    if (!tag) return base;
-    if (base.indexOf(tag) === 0) return base;
-    if (base === 'Coming Soon') return tag + ' \u00B7 Coming Soon';
-    return tag + ' ' + base;
-}
 function renderApp() {
     const unread = unreadCount();
     const isLoggedIn = !!state.authUser;
@@ -18808,7 +18857,7 @@ function renderApp() {
         }
         // Natural, plain page title instead of the old colored brand bar —
         // shown on every page except Home.
-        leftContent += '<span class="page-name">' + esc(pageTitleFor(state.view)) + '</span>';
+        leftContent += '<span class="page-name">' + esc(PAGE_TITLES[state.view] || 'MyUTME') + '</span>';
     }
 
     let rightContent = '';
@@ -18839,7 +18888,7 @@ function renderApp() {
         renderWebNav(isExamTaking) +
         '<div class="topbar' + (isHome ? '' : ' topbar-plain') + '">' +
         (isExamTaking
-            ? '<div class="topbar-left"><span class="page-name">' + esc(examTag(state.view) ? examTag(state.view) + ' Exam' : 'MyUTME') + '</span></div>' +
+            ? '<div class="topbar-left"><span class="page-name">MyUTME</span></div>' +
               '<div class="topbar-center"></div><div class="topbar-right"><button class="topbar-exit" data-action="exam-manual-exit" data-exitmode="' + state.view + '">Exit</button>' + examTopbarTime() + '</div>'
             : isAiAssistant
             ? '<div class="topbar-left">' +
@@ -19166,7 +19215,7 @@ const atMax = mySubjectIds.length === 4;
 }
 
 // ============================================================
-//  PRACTICE HUB v2: exam switcher (JAMB / WAEC / NECO)
+//  PRACTICE HUB v2: exam switcher (JAMB / WAEC; NECO hidden for now)
 //  - Topic Practice, Missed and Marked are general (every exam).
 //  - CBT, Past Questions and Flashcards belong to the chosen exam.
 //  - Mock Arena and Novel (CBT) are JAMB only.
@@ -19237,10 +19286,14 @@ function renderPracticeHubV2() {
 
     var seg = '<div class="px-seg" role="tablist" aria-label="Choose exam">' +
         PH_EXAMS.map(function(e) {
-            return '<button type="button" role="tab" aria-selected="' + (e.key === ex) + '" class="px-seg-b' + (e.key === ex ? ' on' : '') + '" data-action="ph-set-exam" data-exam="' + e.key + '">' + e.label + '</button>';
+            return '<button type="button" role="tab" aria-selected="' + (e.key === ex) + '" class="px-seg-b' + (e.key === ex ? ' on' : '') + '" data-action="ph-set-exam" data-exam="' + e.key + '">' + e.label + (!e.live && !e.pastLive ? '<span style="display:block;font-size:9px;font-weight:700;opacity:.8;margin-top:1px">Coming soon</span>' : '') + '</button>';
         }).join('') + '</div>';
 
-    var note = '';
+    var note = soon
+        ? (info.pastLive
+            ? '<p class="px-note">WAEC Past Questions are now open, starting with English (2015). More subjects and years are being added. CBT Practice and Flashcards for WAEC are coming soon.</p>'
+            : '<p class="px-note"><b>' + esc(info.full) + ' is coming soon.</b> It is not available yet. Every subject is already listed, and we will switch them on as the questions are ready.</p>')
+        : '';
 
     var tools = [
         { view: 'topic', label: 'Topic Practice', icon: 'list', tint: '#8B5CF6' },
@@ -19255,7 +19308,7 @@ function renderPracticeHubV2() {
 
     var examRows = [
         { mode: 'cbt', view: 'cbt', label: 'CBT Practice', sub: 'Timed, exam-style practice', icon: 'monitor', tint: '#2F6BFF', soon: soon },
-        { mode: 'past', view: 'exam', label: 'Past Questions', sub: ex === 'jamb' ? 'Pick a year, 2000 \u2013 2026' : 'Pick a year', icon: 'clipboard', tint: '#F0662B', soon: soon && !info.pastLive },
+        { mode: 'past', view: 'exam', label: 'Past Questions', sub: ex === 'jamb' ? 'Pick a year, 2000 \u2013 2026' : (info.pastLive ? 'English 2015 is ready' : 'Year by year, subject by subject'), icon: 'clipboard', tint: '#F0662B', soon: soon && !info.pastLive },
         { mode: 'flash', view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#E04C8E', soon: soon }
     ];
     var examHtml = '<p class="px-gt">' + esc(info.label) + ' practice</p><div class="px-list">' +
@@ -19268,13 +19321,13 @@ function renderPracticeHubV2() {
             phRowHtml({ view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#14A3A3' }, ex) +
             '</div>';
     } else {
-        jambOnly = '';
+        jambOnly = '<p class="px-gs" style="margin-top:14px">Mock Arena and Novel (CBT) are for JAMB only.</p>';
     }
 
     return '<section style="padding-bottom:12px">' +
         '<h1 class="px-h">Practice</h1>' +
         '<p class="px-sub">Choose your exam, then how you want to practise.</p>' +
-        seg + note + toolsHtml + examHtml + jambOnly +
+        sbEntry() + seg + note + nfHub(ex) + toolsHtml + examHtml + jambOnly +
         '</section>';
 }
 
@@ -19650,6 +19703,7 @@ function renderHome() {
         '</div>' +
         '<button class="mwt-chip" data-tour="start">' + svg('sparkles', 18) + ' New here? Take the 30-second app tour<b>Start \u2192</b></button>' +
         renderHomeNextStep(metrics) +
+        nfHome() +
         renderHomeVideos() +
         renderHomeFeatures() +
         renderHomeStudyStudio(metrics) +
@@ -20178,7 +20232,7 @@ function loadExamYearCounts(sid) {
         if (!waec) { try { rows = await window.OfflineDB.getQuestionsOffline('exam', sid); } catch (e) { rows = []; } }
         if (!rows || !rows.length) {
             try {
-                const res = await fetch(fileUrl + '?v=' + Date.now(), { cache: 'no-store' });
+                const res = await fetch(fileUrl);
                 if (res.ok) { const d = await res.json(); rows = ((d && d.questions) || []).filter(function(q) { return q.type === 'exam' && q.subject_id === sid; }); }
             } catch (e) { rows = []; }
         }
@@ -22093,35 +22147,35 @@ function renderAiAssistant() {
     // no longer duplicated here — that reclaims vertical space for the
     // conversation instead of a second, bigger title block.
     let headerHtml = (
-        state.aiReturnView ? '<button class="ai-back-to-q" data-action="ai-back-to-question">' + svg('chevleft', 14) + ' Back to your question</button>' : ''
+        '<div class="sb-top"><span class="sb-title"><i class="sb-dot"></i>' + AI_NAME + '</span>' +
+        '<button type="button" class="sb-pill" data-action="ai-new-chat">' + svg('plus', 14) + ' New chat</button></div>' +
+        (state.aiReturnView ? '<button class="ai-back-to-q" data-action="ai-back-to-question">' + svg('chevleft', 14) + ' Back to your question</button>' : '')
     );
-
     let bubbles = '';
     if (!state.aiMessagesLoaded) {
         bubbles = '<div class="loading-spinner" style="padding:30px 0"><div class="spinner"></div></div>';
     } else if (state.aiMessages.length === 0) {
         const suggestionPool = [
-            'Explain photosynthesis simply', 'Why is my Chemistry score low?', 'Give me a Maths shortcut',
-            'Quiz me on English idioms', 'Make me a 7-day revision plan', 'Explain it like I\'m 10',
-            'Test me on Physics formulas', 'How do I beat exam fear?', 'Summarise The Lekki Headmaster',
-            'Give me 5 tricky Biology questions'
+            ['\uD83E\uDDEA', 'Explain photosynthesis simply'], ['\uD83D\uDCD0', 'Give me a Maths shortcut I can use in JAMB'],
+            ['\uD83D\uDCC5', 'Make me a 7-day revision plan'], ['\uD83E\uDDE0', 'Quiz me on English idioms'],
+            ['\u26A1', 'Test me on Physics formulas'], ['\uD83D\uDE0C', 'How do I beat exam fear?'],
+            ['\uD83E\uDDEC', 'Give me 5 tricky Biology questions'], ['\uD83D\uDCDA', 'Summarise The Lekki Headmaster']
         ];
         const suggestions = shuffleArray(suggestionPool.slice()).slice(0, 4);
         let chips = '';
-        suggestions.forEach(function(s) {
-            chips += '<button class="ai-suggestion-chip" data-action="ai-suggestion" data-text="' + esc(s) + '">' + esc(s) + '</button>';
+        suggestions.forEach(function(sg) {
+            chips += '<button class="sb-sug" data-action="ai-suggestion" data-text="' + esc(sg[1]) + '"><span>' + sg[0] + '</span>' + esc(sg[1]) + '</button>';
         });
         const hr = new Date().getHours();
         const hello = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
         const fn = ((state.profile && state.profile.name) || '').trim().split(' ')[0];
         const who = (fn && fn !== 'Guest') ? ', ' + esc(fn) : '';
         bubbles = (
-            '<div class="ai-empty-state" data-mw-empty="1">' +
-            '<div class="aie-icon enzo-orb"><span>e</span></div>' +
-            '<h3>' + hello + who + ' \uD83D\uDC4B</h3>' +
-            '<p class="enzo-tag">I\'m <b>' + AI_NAME + '</b>, your free UTME study partner. Ask me to explain a topic, fix a question you missed, or plan your revision.</p>' +
-            '<div class="ai-suggestions-row">' + chips + '</div>' +
-            '<span class="enzo-made">Crafted by ' + AI_CREATOR + ' \u2726 ' + AI_NAME + '</span>' +
+            '<div class="sb-empty" data-mw-empty="1">' +
+            '<div class="sb-orb">\u2726</div>' +
+            '<h3>' + hello + who + '</h3>' +
+            '<p>How can I help you study today? Ask me anything about your JAMB subjects.</p>' +
+            '<div class="sb-sugs">' + chips + '</div>' +
             '</div>'
         );
     } else {
@@ -22136,7 +22190,7 @@ function renderAiAssistant() {
             );
             bubbles += (
                 '<div class="chat-row ' + (isUser ? 'me' : 'them') + '">' +
-                (!isUser ? '<span class="chat-sender"><span class="chat-avatar ai enzo-av">e</span>' + AI_NAME + '</span>' : '') +
+                (!isUser ? '<span class="chat-sender"><span class="chat-avatar ai enzo-av">✦</span>' + AI_NAME + '</span>' : '') +
                 '<div class="chat-bubble ' + (isUser ? 'me' : 'ai') + '">' +
                 renderChatBubbleContent(m.message) +
                 '<span class="chat-time">' + formatTimeAgo(m.created_at) + '</span>' +
@@ -22234,7 +22288,19 @@ function renderAiAssistant() {
         listeningBanner +
         editingBanner +
         attachPreview +
-        '<div class="chat-input-row" style="justify-content:center;text-align:center"><p style="margin:0;font-size:13px;color:var(--muted);line-height:1.5">\u2728 AI explains questions. Open any question and tap <b>Better explanation</b>.</p></div>' +
+        '<div class="sb-composer-wrap">' +
+        '<div class="sb-composer">' +
+        '<textarea id="ai-chat-input" class="ai-chat-textarea sb-ta" rows="1" placeholder="Ask ' + AI_NAME + ' anything\u2026" autocomplete="off" autocapitalize="sentences" enterkeyhint="send">' + esc(state.aiInput || '') + '</textarea>' +
+        '<div class="sb-tools">' +
+        '<button type="button" class="sb-ic" data-action="ai-toggle-attach-menu" aria-label="Attach photo or document">' + svg('plus', 20) + '</button>' +
+        '<button type="button" class="sb-ic' + (state.aiRecording ? ' rec' : '') + '" data-action="ai-toggle-voice" aria-label="Voice input">' + svg('mic', 18) + '</button>' +
+        '<span style="flex:1"></span>' +
+        '<button type="button" class="sb-send" data-action="send-ai-message" aria-label="Send" ' + (state.aiSending ? 'disabled' : '') + '>' + svg('send', 17) + '</button>' +
+        '</div></div>' +
+        '<input type="file" id="ai-image-input" accept="image/*" hidden>' +
+        '<input type="file" id="ai-document-input" accept=".pdf,.doc,.docx,.txt" hidden>' +
+        '<p class="sb-note">' + AI_NAME + ' can make mistakes. Double-check important answers.</p>' +
+        '</div>' +
         historyPanel
     );
 }
@@ -22959,6 +23025,7 @@ function renderProfileCore() {
         '<div class="profile-fill">' +
         '<h2 class="title" style="margin-bottom:6px;font-size:14px">Account</h2>' +
         heroHtml +
+        nfAccount() +
         activateCardHtml +
         socialHtml +
         settingsRowHtml +
@@ -24745,6 +24812,13 @@ function renderAdminAnalytics() {
     }
     if (state.analyticsLoading) return '<div class="loading-spinner"><div class="spinner"></div><p>Loading analytics...</p></div>';
     if (!state.allQuestionsLoaded && !state.__aqLoading) { state.__aqLoading = true; loadAllQuestionsForAdmin(); }
+    if (!state.waecLoaded && !state.__waecLoading) {
+        state.__waecLoading = true;
+        loadLiveQuestionCounts({ waecOnly: true, fresh: true }).then(function (w) {
+            state.waecQCount = w.waec || 0; state.waecBySubject = w.waecBySubject || {};
+            state.waecLoaded = true; state.__waecLoading = false; render();
+        }).catch(function () { state.waecLoaded = true; state.__waecLoading = false; });
+    }
     const qt = adminQuestionTotals();
     const d = state.analyticsData;
     if (!d) return adashCard('Analytics', '<p style="font-size:12px;color:#6b7280;margin:0">No data available.</p>');
@@ -24824,14 +24898,22 @@ function renderAdminAnalytics() {
         '<div style="display:flex;gap:8px">' + att('Pending payments', d.pendingClaims, 'payments', '#d97706') + att('Unread support', d.unreadSupport, 'support', '#2563eb') + att('Open flags', d.flagged, 'flagged', '#dc2626') + '</div></div>';
 
     // question bank: stacked bar
-    const parts = [['JAMB CBT', qt.cbt, '#0B8A55'], ['Past Qs', qt.exam, '#2563eb'], ['Mock', qt.mock, '#d97706'], ['Topic', qt.topic, '#7c3aed'], ['Novel', qt.novel, '#db2777']];
+    const parts = [['JAMB CBT', qt.cbt, '#0B8A55'], ['Past Qs', qt.exam, '#2563eb'], ['Mock', qt.mock, '#d97706'], ['Topic', qt.topic, '#7c3aed'], ['Novel', qt.novel, '#db2777'], ['WAEC', qt.waec, '#0891b2']];
     const qSum = parts.reduce(function(t, x) { return t + (Number(x[1]) || 0); }, 0) || 1;
     html += '<div style="' + CARD + 'margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><p style="font-size:13px;font-weight:800;margin:0">Question bank</p>' +
-        '<p style="font-size:11px;color:#6b7280;margin:0"><b style="color:#111827;font-size:14px">' + (state.allQuestionsLoaded ? fmtNum(qt.total) : '…') + '</b> questions · ' + SUBJECTS.length + ' subjects</p></div>' +
+        '<p style="font-size:11px;color:#6b7280;margin:0"><b style="color:#111827;font-size:14px">' + (state.allQuestionsLoaded && state.waecLoaded ? fmtNum(qt.total) : '…') + '</b> questions · ' + SUBJECTS.length + ' subjects</p></div>' +
         '<div style="display:flex;height:10px;border-radius:99px;overflow:hidden;background:#eef0f2">' + parts.map(function(x) { return '<div style="width:' + ((Number(x[1]) || 0) / qSum * 100) + '%;background:' + x[2] + '"></div>'; }).join('') + '</div>' +
         '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 8px;margin-top:10px">' + parts.map(function(x) {
             return '<div style="font-size:10px;color:#6b7280;display:flex;align-items:center;gap:5px;min-width:0"><span style="width:8px;height:8px;border-radius:99px;background:' + x[2] + ';flex-shrink:0"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + x[0] + ' <b style="color:#111827">' + fmtNum(x[1]) + '</b></span></div>';
-        }).join('') + '</div></div>';
+        }).join('') + '</div>' +
+        (function () {
+            var by = state.waecBySubject || {}, ids = Object.keys(by);
+            if (!ids.length) return '<p style="font-size:10px;color:#6b7280;margin:8px 0 0">WAEC: no question files found yet.</p>';
+            return '<p style="font-size:10px;color:#6b7280;margin:8px 0 0">WAEC by subject: ' + ids.map(function (id) {
+                var sj = SUBJECTS.filter(function (x) { return x.id === id; })[0];
+                return (sj ? sj.name : id) + ' <b style="color:#111827">' + fmtNum(by[id]) + '</b>';
+            }).join(' · ') + '</p>';
+        })() + '</div>';
     return html;
 }
 
@@ -29178,6 +29260,7 @@ document.addEventListener('click', function(e) {
     
     if (action === 'analytics-refresh') {
         state.analyticsLoaded = false;
+        state.waecLoaded = false;
         loadAnalyticsData();
         return;
     }
@@ -31066,7 +31149,7 @@ function lpInstalled() { return isStandaloneApp() || mwVerified; }
 function shouldShowLanding() {
     if (isStandaloneApp() || state.authUser || state.lpEntered || state.legal || state.showLogin || state.showSignup || state.showFaq || state.showReset) return false;
     if (location.pathname === '/login' || location.pathname === '/signup') return false;
-    if (location.search || location.hash) return false; // deep links (exam links, password reset) keep working
+    if ((location.search && !/^\?install=1$/.test(location.search)) || location.hash) return false; // deep links (exam links, password reset) keep working
     if (typeof MW_EXAMS !== 'undefined' && MW_EXAMS.indexOf(state.view) !== -1) return false;
     if (state.isGuestMock) return false;
     if (state.view !== 'home') { state.view = 'home'; }
@@ -31074,21 +31157,83 @@ function shouldShowLanding() {
     return true;
 }
 function lpInstallBtn() {
-    return '';   // Install App option removed
     if (lpInstalled()) return '<button class="mw-btn mw-ok" data-lp="hint"><span class="mw-tick">' + svg('checkcircle', 18) + '</span>Installed</button>';
     return '<button class="mw-btn mw-gold" data-lp="install">' + svg('download', 18) + 'Install app</button>';
 }
 // Hard-coded public numbers for the landing page (safe, rounded DOWN from the real totals).
-var MW_STATS = { questions: '50,000+' };
+var MW_STATS = { questions: '50,000+' };   // fallback until the real count is read from the question files
+var MW_COUNTS = null;
+var QCOUNT_KEY = 'myutme_qcounts_v1';
+// Reads the real number of questions straight from the question files
+// (questions-<subject>.json for JAMB, questions-waec-<subject>.json for WAEC).
+// opts.waecOnly: only the WAEC files. opts.fresh: skip the 6-hour saved copy.
+async function loadLiveQuestionCounts(opts) {
+    opts = opts || {};
+    if (!opts.fresh && !opts.waecOnly) {
+        try {
+            var saved = JSON.parse(localStorage.getItem(QCOUNT_KEY) || 'null');
+            if (saved && saved.counts && Date.now() - saved.ts < 6 * 3600 * 1000) return saved.counts;
+        } catch (e) {}
+    }
+    var c = { cbt: 0, exam: 0, mock: 0, novel: 0, other: 0, topic: 0, waec: 0, waecBySubject: {}, ok: 0 };
+    var jobs = [];
+    if (!opts.waecOnly) SUBJECTS.forEach(function (x) { jobs.push({ id: x.id, waec: false, url: 'questions-' + x.id + '.json' }); });
+    WAEC_SUBJECTS.forEach(function (id) { jobs.push({ id: id, waec: true, url: 'questions-waec-' + id + '.json' }); });
+    var next = 0;
+    async function worker() {
+        while (next < jobs.length) {
+            var j = jobs[next++];
+            try {
+                var r = await fetch(j.url + (opts.fresh ? '?v=' + Date.now() : ''));
+                if (!r.ok) continue;
+                var d = await r.json();
+                var qs = Array.isArray(d) ? d : ((d && d.questions) || []);
+                c.ok++;
+                if (j.waec) { c.waec += qs.length; c.waecBySubject[j.id] = qs.length; continue; }
+                qs.forEach(function (q) {
+                    var t = (q && q.type) || '';
+                    if (t === 'cbt') c.cbt++; else if (t === 'exam') c.exam++; else if (t === 'mock') c.mock++;
+                    else if (t === 'NOVEL (CBT)') c.novel++; else c.other++;
+                });
+                c.topic += ((d && d.topic_questions) || []).length;
+            } catch (e) {}
+        }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    c.total = c.cbt + c.exam + c.mock + c.novel + c.other + c.topic + c.waec;
+    if (!opts.waecOnly && c.ok > 0) { try { localStorage.setItem(QCOUNT_KEY, JSON.stringify({ ts: Date.now(), counts: c })); } catch (e) {} }
+    return c;
+}
+// "52,300+" (rounded DOWN to the nearest 100, so the public number is always true); small numbers stay exact.
+function mwFmtCount(n) { n = Number(n) || 0; return n >= 1000 ? fmtNum(Math.floor(n / 100) * 100) + '+' : String(n); }
+function mwApplyCounts(c) {
+    if (!c || !c.total) return false;
+    MW_COUNTS = c;
+    MW_STATS.questions = mwFmtCount(c.total);
+    return true;
+}
+(function () {   // show the last saved real number instantly, then refresh it quietly in the background
+    try { var sv = JSON.parse(localStorage.getItem(QCOUNT_KEY) || 'null'); if (sv && sv.counts) mwApplyCounts(sv.counts); } catch (e) {}
+    function refresh() {
+        loadLiveQuestionCounts().then(function (c) {
+            if (!mwApplyCounts(c)) return;
+            var m = document.querySelector('.mw');
+            if (m && typeof render === 'function') { var top = m.scrollTop; render(); var m2 = document.querySelector('.mw'); if (m2) m2.scrollTop = top; }
+        }).catch(function () {});
+    }
+    if (document.readyState === 'complete') setTimeout(refresh, 1200); else window.addEventListener('load', function () { setTimeout(refresh, 1200); });
+})();
 // Set this to a real, verifiable number (e.g. '1,000+') once it is true. Left empty on purpose.
 var MW_TRUSTED_BY = '';
 function mwModeCards() {
+    var K = MW_COUNTS;
+    var cnt = function (n, fallback) { return (K && n > 0 ? mwFmtCount(n) : fallback) + ' questions'; };
     var m = [
-        ['monitor', 'JAMB CBT', 'Full timed CBT or one subject at a time, in the real exam format.', '11,000+ questions'],
-        ['clipboard', 'Past Questions', 'Real questions from previous JAMB years, marked as you go.', '16,000+ questions'],
-        ['target', 'Mock Arena', 'Scheduled live mock exams with a UTME-style score.', '10,000+ questions'],
-        ['list', 'Topic Practice', 'Read the notes, then drill one topic until it sticks.', '14,000+ questions'],
-        ['book', 'Novel (CBT)', 'Practice questions on the JAMB novel.', '195 questions']
+        ['monitor', 'JAMB CBT', 'Full timed CBT or one subject at a time, in the real exam format.', cnt(K && K.cbt, '11,000+')],
+        ['clipboard', 'Past Questions', 'Real questions from previous JAMB and WAEC years, marked as you go.', cnt(K && (K.exam + K.waec), '16,000+')],
+        ['target', 'Mock Arena', 'Scheduled live mock exams with a UTME-style score.', cnt(K && K.mock, '10,000+')],
+        ['list', 'Topic Practice', 'Read the notes, then drill one topic until it sticks.', cnt(K && K.topic, '14,000+')],
+        ['book', 'Novel (CBT)', 'Practice questions on the JAMB novel.', cnt(K && K.novel, '195')]
     ];
     return m.map(function (x) { return '<div class="mw-mode"><div class="mw-ic">' + svg(x[0], 22) + '</div><div><h3>' + x[1] + '</h3><p>' + x[2] + '</p><em>' + x[3] + '</em></div></div>'; }).join('');
 }
@@ -31190,7 +31335,7 @@ document.addEventListener('click', function (e) {
     }
     if (a === 'web') { state.lpEntered = true; try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} if (lpInstalled() && !isStandaloneApp()) showToast('Open MyUTME from your home screen for the full app experience.', ''); return render(); }
     if (a === 'login') { try { sessionStorage.setItem('mw_entered', '1'); } catch (e) {} state.lpEntered = true; state.showLogin = true; state.showSignup = false; syncUrlForAuth('login'); return render(); }
-    if (a === 'install') { if (tryApkInstall()) return; if (mwPrompt) mwInstallFlow(); else if (window.triggerPWAInstall) window.triggerPWAInstall(); return; }
+    if (a === 'install') { if (tryApkInstall()) return; if (mwPrompt) mwInstallFlow(); else mwInstallHelp(false); return; }
     if (a === 'opt') {
         var i = +t.getAttribute('data-i'), box = t.parentNode, fb = document.getElementById('mw-fb');
         [].forEach.call(box.children, function (b, n) { b.className = n === 2 ? 'ok' : (n === i ? 'bad' : ''); if (n !== 2 && n !== i) b.className = ''; });
@@ -31393,6 +31538,7 @@ function renderAdminDeptCard() {
         (seen ? '' : '<p style="font-size:11px;color:#B7791F;margin:6px 0 0">Department is not coming through yet. Run admin_general_activation_and_department.sql in the Supabase SQL Editor, then reload this page.' + (state.deptFixError ? ' (' + String(state.deptFixError).replace(/[<>&]/g, '') + ')' : '') + '</p>') + '</div>';
 }
 
+var AI_CHAT_HINT = '\n\n[Reply format: answer the question directly in the first line, then explain briefly. Short paragraphs, simple words, use steps or a short list when helpful, one quick example if it helps. Keep it concise and fast; go deeper only if the student asks.]';
 var AI_STYLE_HINT = '\n\n[Reply format: explain like clear study notes. Use short headed sections, simple steps, one worked example, and short paragraphs with a blank line between them. Be thorough but get to the point fast.]';
 function renderHomeFeatures() {
     var f = [
@@ -31471,6 +31617,73 @@ window.mwInstallFlow = async function () {
     try { mwVerify(); } catch (e) {}
     render();
 };
+
+
+// ---------- Install help sheet (iPhone, in-app browsers, browsers with no install dialog) ----------
+(function () {
+    var css = '#mw-ih{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}' +
+      '#mw-ih .b{background:#fff;color:#1B1405;width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 40px rgba(0,0,0,.25)}' +
+      '#mw-ih h3{margin:0 0 6px;font-size:18px}#mw-ih p{margin:0 0 12px;font-size:14px;line-height:1.5;color:#4a4a4a}' +
+      '#mw-ih ol{margin:0 0 14px;padding-left:20px;font-size:14px;line-height:1.7}#mw-ih li b{color:#0B8A55}' +
+      '#mw-ih button{display:block;width:100%;padding:13px;border:0;border-radius:12px;font-size:15px;font-weight:700;margin-top:8px;cursor:pointer}' +
+      '#mw-ih .go{background:#0B8A55;color:#fff}#mw-ih .x{background:#F1EEE6;color:#1B1405}';
+    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+})();
+function mwEnv() {
+    var ua = navigator.userAgent || '';
+    var ios = /iphone|ipad|ipod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    var inapp = /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|TikTok|Snapchat|Twitter|Line\/|MicroMessenger|; wv\)/i.test(ua);
+    var safari = /safari/i.test(ua) && !/crios|fxios|edgios|chrome|android/i.test(ua);
+    return { ios: ios, inapp: inapp, safari: safari, android: /android/i.test(ua) };
+}
+window.mwInstallHelp = function (auto) {
+    if (isStandaloneApp()) { showToast('MyUTME is already installed. Open it from your home screen.', ''); return; }
+    var old = document.getElementById('mw-ih'); if (old) old.remove();
+    var e = mwEnv(), title, body, primary = '', copy = false;
+    if (auto && mwPrompt) {
+        title = 'Install MyUTME'; body = '<p>Add MyUTME to your home screen. It opens full-screen and works offline.</p>'; primary = 'Install now';
+    } else if (e.inapp) {
+        title = 'Open in your browser first';
+        body = '<p>This app\u2019s built-in browser cannot install apps. Tap the <b>\u22EE</b> or <b>\u2022\u2022\u2022</b> menu and choose <b>Open in browser</b> (' + (e.ios ? 'Safari' : 'Chrome') + '), then tap Install again.</p>'; copy = true;
+    } else if (e.ios) {
+        title = 'Install on iPhone / iPad';
+        body = '<ol><li>Tap the <b>Share</b> button (square with an arrow)</li><li>Scroll and tap <b>Add to Home Screen</b></li><li>Tap <b>Add</b></li></ol>' +
+               (e.safari ? '' : '<p>Can\u2019t see it? Open this page in <b>Safari</b> and try again.</p>'); copy = !e.safari;
+    } else if (e.android) {
+        title = 'Install on Android';
+        body = '<ol><li>Tap the <b>\u22EE</b> menu in your browser</li><li>Tap <b>Install app</b> or <b>Add to Home screen</b></li></ol>';
+    } else {
+        title = 'Install on your computer';
+        body = '<p>Click the <b>install icon</b> at the right end of the address bar, or open the browser menu and choose <b>Install MyUTME</b>.</p>';
+    }
+    var d = document.createElement('div'); d.id = 'mw-ih';
+    d.innerHTML = '<div class="b" role="dialog" aria-modal="true"><h3>' + title + '</h3>' + body +
+        (primary ? '<button class="go" id="mw-ih-go">' + primary + '</button>' : '') +
+        (copy ? '<button class="go" id="mw-ih-copy">Copy link</button>' : '') +
+        '<button class="x" id="mw-ih-x">' + (primary ? 'Not now' : 'Got it') + '</button></div>';
+    document.body.appendChild(d);
+    function close() { var n = document.getElementById('mw-ih'); if (n) n.remove(); }
+    d.addEventListener('click', function (ev) { if (ev.target === d) close(); });
+    document.getElementById('mw-ih-x').addEventListener('click', close);
+    var g = document.getElementById('mw-ih-go'); if (g) g.addEventListener('click', function () { close(); mwInstallFlow(); });
+    var c = document.getElementById('mw-ih-copy'); if (c) c.addEventListener('click', function () {
+        var u = location.origin + '/';
+        try { navigator.clipboard.writeText(u).then(function () { showToast('Link copied. Paste it in your browser.', 'success'); }); } catch (x) { showToast(u, ''); }
+    });
+};
+// Link to share:  https://myutme.com.ng/install   (also works as /?install=1)
+(function () {
+    if (!(/[?&]install=1(&|$)/.test(location.search) || location.pathname === '/install') || isStandaloneApp()) return;
+    var tries = 0;
+    var iv = setInterval(function () {
+        tries++;
+        if (mwPrompt || tries > 8) {
+            clearInterval(iv);
+            try { history.replaceState({}, '', '/'); } catch (e) {}
+            mwInstallHelp(true);
+        }
+    }, 400);
+})();
 
 // ---------- Drag down to refresh (website + app) ----------
 (function () {
@@ -32586,5 +32799,327 @@ function deleteQuestionOffline(questionId) {
 })();
 </script>
 
+<style id="nav-flat-fix">
+/* Bottom nav: plain, full-width bar like a normal app (overrides earlier floating-pill styles) */
+.bottom-nav,
+:root:not([data-theme="dark"]) .bottom-nav,
+:root[data-theme="dark"] .bottom-nav {
+  display: flex !important;
+  width: 100% !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+  background: var(--card-bg) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  justify-content: space-between !important;
+  gap: 0 !important;
+  min-height: 58px !important;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+}
+.bottom-nav .bottom-nav-item {
+  flex: 1 1 0 !important;
+  max-width: none !important;
+  min-height: 46px !important;
+  padding: 4px 2px !important;
+  gap: 3px !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--faint) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+}
+.bottom-nav .bottom-nav-item svg { stroke: currentColor !important; transform: none !important; }
+.bottom-nav .bottom-nav-item.active { background: transparent !important; color: var(--green) !important; box-shadow: none !important; }
+.bottom-nav .bottom-nav-item.active svg { stroke: currentColor !important; color: var(--green) !important; }
+.bottom-nav .bottom-nav-item.active::before { display: none !important; }
+</style>
+<style id="nf-style">
+.nf-card{background:var(--card-bg);border:1px solid var(--line);border-radius:18px;padding:14px;margin:0 0 12px;color:var(--ink)}
+.nf-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
+.nf-h b{font-size:14px;font-weight:800}
+.nf-h small{font-size:11px;color:var(--muted)}
+.nf-p{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+.nf-big{font-size:30px;font-weight:800;line-height:1;margin:0}
+.nf-bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.nf-bar i{display:block;height:100%;border-radius:99px;background:var(--green)}
+.nf-btn{border:0;border-radius:12px;background:var(--green);color:#fff;font:inherit;font-size:13px;font-weight:700;padding:10px 14px;cursor:pointer}
+.nf-btn.alt{background:var(--green-light);color:var(--green)}
+.nf-row{display:flex;gap:8px;align-items:center}
+.nf-week{display:flex;align-items:flex-end;gap:6px;height:70px;margin-top:8px}
+.nf-week div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:9px;color:var(--muted)}
+.nf-week i{display:block;width:100%;border-radius:5px;background:var(--green);min-height:3px}
+.nf-badges{display:flex;flex-wrap:wrap;gap:6px}
+.nf-badge{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:99px;font-size:11px;font-weight:700;background:var(--green-light);color:var(--green)}
+.nf-badge.off{background:var(--bg);color:var(--faint);border:1px solid var(--line)}
+.nf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.nf-tile{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+.nf-tile b{display:block;font-size:20px;font-weight:800}
+.nf-tile span{font-size:11px;color:var(--muted)}
+.nf-chips{display:flex;flex-wrap:wrap;gap:6px}
+.nf-chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;font:inherit;font-size:12px;font-weight:700;padding:7px 12px;cursor:pointer}
+.nf-chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.nf-chk{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;color:var(--ink);font:inherit;font-size:13px;text-align:left;padding:8px 0;cursor:pointer}
+.nf-chk span.bx{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);display:grid;place-items:center;flex:0 0 auto;font-size:12px;color:#fff}
+.nf-chk.on span.bx{background:var(--green);border-color:var(--green)}
+.nf-chk.on span.tx{text-decoration:line-through;color:var(--muted)}
+.nf-rec{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
+.nf-rec:first-of-type{border-top:0}
+.nf-rec .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.nf-rec .d{font-size:11px;color:var(--muted)}
+.nf-rec .s{font-weight:800}
+</style>
+<script id="nf-features">
+/* 12 extra features: Home (activity, readiness, badges), Practice (daily challenge, weak spot, recent),
+   Mock Arena (trend, target, checklist), Account (stats, export, share). All use data already on the device. */
+function nfEntries() { return (state.historyEntries || []).filter(function (e) { return e && e.submitted_at; }); }
+function nfPct(e) { var m = Number(e.max_score) || 0; return m > 0 ? Math.max(0, Math.min(100, (Number(e.total_score) || 0) / m * 100)) : null; }
+function nfQs(e) { var a = Number(e.answered_count), t = Number(e.total_questions); return Number.isFinite(a) && e.answered_count !== '' && e.answered_count != null ? Math.max(0, a) : (Number.isFinite(t) ? t : 0); }
+function nfAgo(iso) {
+    var d = new Date(iso); if (isNaN(d)) return '';
+    var days = Math.floor((new Date(homeDateKey(new Date()) + 'T00:00:00') - new Date(homeDateKey(d) + 'T00:00:00')) / 86400000);
+    return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : days < 7 ? days + ' days ago' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+function nfSubjectStats() {
+    var by = {};
+    nfEntries().forEach(function (e) {
+        var sc = e.subject_scores || {};
+        Object.keys(sc).forEach(function (id) {
+            var v = Number(sc[id]); if (!Number.isFinite(v)) return;
+            (by[id] = by[id] || { sum: 0, n: 0 }); by[id].sum += v; by[id].n++;
+        });
+    });
+    return Object.keys(by).map(function (id) { return { id: id, avg: Math.round(by[id].sum / by[id].n), n: by[id].n }; });
+}
+function nfSubj(id) { return SUBJECTS.filter(function (x) { return x.id === id; })[0]; }
+
+/* ---------------- HOME ---------------- */
+function nfHome() {
+    var out = '';
+    var logged = !!state.authUser, ents = nfEntries();
+    // 1. Weekly activity
+    var days = [], map = {}, i;
+    for (i = 6; i >= 0; i--) { var d = new Date(); d.setDate(d.getDate() - i); var k = homeDateKey(d); days.push({ k: k, l: d.toLocaleDateString('en-US', { weekday: 'short' }).charAt(0), n: 0 }); map[k] = days[days.length - 1]; }
+    ents.forEach(function (e) { var r = map[homeDateKey(e.submitted_at)]; if (r) r.n += nfQs(e); });
+    var wk = days.reduce(function (t, x) { return t + x.n; }, 0), mx = Math.max.apply(null, days.map(function (x) { return x.n; }).concat([1]));
+    out += '<div class="nf-card"><div class="nf-h"><b>This week</b><small>' + wk + ' questions</small></div>' +
+        (logged ? '<div class="nf-week">' + days.map(function (x) { return '<div><i style="height:' + (x.n ? Math.max(8, Math.round(x.n / mx * 52)) : 3) + 'px;' + (x.n ? '' : 'opacity:.25') + '"></i><span style="margin-top:4px">' + x.l + '</span></div>'; }).join('') + '</div>'
+            : '<p class="nf-p">Log in to see your daily activity for the week.</p>') + '</div>';
+    // 2. Readiness score
+    var recent = ents.slice(0, 10).map(nfPct).filter(function (x) { return x !== null; });
+    var acc = recent.length ? recent.reduce(function (a, b) { return a + b; }, 0) / recent.length : 0;
+    var cut = Date.now() - 14 * 86400000, vol = ents.filter(function (e) { return new Date(e.submitted_at).getTime() >= cut; }).reduce(function (t, e) { return t + nfQs(e); }, 0);
+    var volPct = Math.min(100, vol / 150 * 100), stk = logged ? Math.min(7, getLocalStreak()) / 7 * 100 : 0;
+    var score = Math.round(acc * 0.55 + volPct * 0.30 + stk * 0.15);
+    var label = score >= 80 ? 'Exam ready' : score >= 60 ? 'Getting strong' : score >= 35 ? 'Building up' : 'Just starting';
+    var tip = !recent.length ? 'Finish one practice test to unlock your score.' : (volPct <= acc && volPct < 60) ? 'Practise more questions to raise it.' : (acc < 60 ? 'Review your wrong answers to lift accuracy.' : (stk < 60 ? 'Practise on more days in a row.' : 'Keep this up until exam day.'));
+    out += '<div class="nf-card"><div class="nf-h"><b>Exam readiness</b><small>' + (recent.length ? label : '') + '</small></div>' +
+        '<div class="nf-row" style="gap:14px"><p class="nf-big">' + (recent.length ? score : '--') + '<span style="font-size:14px;color:var(--muted)">%</span></p>' +
+        '<div style="flex:1"><div class="nf-bar"><i style="width:' + (recent.length ? score : 0) + '%"></i></div><p class="nf-p" style="margin-top:6px">' + tip + '</p></div></div>' +
+        '<p class="nf-p" style="margin-top:8px;font-size:10.5px;opacity:.8">An estimate from your accuracy, recent practice and streak.</p></div>';
+    // 3. Achievements
+    var totalQ = ents.reduce(function (t, e) { return t + nfQs(e); }, 0), best = ents.reduce(function (m, e) { var p = nfPct(e); return p !== null && p > m ? p : m; }, 0), st = logged ? getLocalStreak() : 0;
+    var badges = [
+        ['🚀', 'First test', ents.length >= 1], ['📚', '5 tests', ents.length >= 5], ['🏅', '20 tests', ents.length >= 20],
+        ['🔥', '3-day streak', st >= 3], ['⚡', '7-day streak', st >= 7], ['🎯', '500 questions', totalQ >= 500],
+        ['🧠', '2,000 questions', totalQ >= 2000], ['⭐', 'Scored 70%+', best >= 70], ['👑', 'Scored 90%+', best >= 90]
+    ];
+    var got = badges.filter(function (b) { return b[2]; }).length;
+    out += '<div class="nf-card"><div class="nf-h"><b>Achievements</b><small>' + got + ' of ' + badges.length + '</small></div><div class="nf-badges">' +
+        badges.map(function (b) { return '<span class="nf-badge' + (b[2] ? '' : ' off') + '">' + (b[2] ? b[0] : '🔒') + ' ' + b[1] + '</span>'; }).join('') + '</div></div>';
+    return out;
+}
+
+/* ---------------- PRACTICE ---------------- */
+function nfHub(ex) {
+    if (ex !== 'jamb') return '';
+    var out = '', ents = nfEntries();
+    // 1. Daily challenge (same subject for everyone each day)
+    var pool = SUBJECTS.filter(function (x) { return x.id !== 'lhm' && x.id !== 'lit'; });
+    var dayN = Math.floor(new Date(homeDateKey(new Date()) + 'T00:00:00').getTime() / 86400000);
+    var today = pool[dayN % pool.length], todayKey = homeDateKey(new Date());
+    var done = ents.some(function (e) {
+        if (homeDateKey(e.submitted_at) !== todayKey) return false;
+        return (e.subjects || []).indexOf(today.name) !== -1 || String(e.exam_title || '').indexOf(today.name) === 0;
+    });
+    out += '<div class="nf-card" style="border-color:var(--green)"><div class="nf-h"><b>🎯 Daily challenge</b><small>' + (done ? 'Done ✓' : 'Resets at midnight') + '</small></div>' +
+        '<p class="nf-p" style="margin-bottom:10px">Today\u2019s subject is <b style="color:var(--ink)">' + esc(today.name) + '</b>. ' + (done ? 'You have already practised it today. Great work!' : 'Do one practice on it to keep your streak alive.') + '</p>' +
+        '<button type="button" class="nf-btn' + (done ? ' alt' : '') + '" data-action="open-subject-modes" data-subjectid="' + today.id + '">' + (done ? 'Practise again' : 'Start ' + esc(today.name)) + '</button></div>';
+    // 2. Weak subject spotlight
+    var stats = nfSubjectStats().filter(function (x) { return nfSubj(x.id) && x.id !== 'lhm'; }).sort(function (a, b) { return a.avg - b.avg; });
+    if (stats.length) {
+        var w = stats[0], ws = nfSubj(w.id), strong = stats[stats.length - 1];
+        out += '<div class="nf-card"><div class="nf-h"><b>📉 Weak spot</b><small>from your results</small></div>' +
+            '<p class="nf-p" style="margin-bottom:8px"><b style="color:var(--ink)">' + esc(ws.name) + '</b> is your lowest subject at <b style="color:var(--ink)">' + w.avg + '%</b> over ' + w.n + ' test' + (w.n === 1 ? '' : 's') + '.' +
+            (stats.length > 1 && strong.id !== w.id ? ' Strongest: ' + esc(nfSubj(strong.id).name) + ' (' + strong.avg + '%).' : '') + '</p>' +
+            '<div class="nf-bar" style="margin-bottom:10px"><i style="width:' + w.avg + '%;background:' + (w.avg >= 60 ? 'var(--green)' : '#E5484D') + '"></i></div>' +
+            '<button type="button" class="nf-btn" data-action="open-subject-modes" data-subjectid="' + w.id + '">Practise ' + esc(ws.name) + '</button></div>';
+    }
+    // 3. Recent practice
+    var rec = ents.slice(0, 3);
+    if (rec.length) {
+        out += '<div class="nf-card"><div class="nf-h"><b>🕘 Recent practice</b></div>' + rec.map(function (e) {
+            var p = nfPct(e), nm = e.exam_title || e.mode || 'Practice';
+            return '<div class="nf-rec"><span class="t">' + esc(nm) + '</span><span class="d">' + esc(nfAgo(e.submitted_at)) + '</span><span class="s" style="color:' + (p === null ? 'var(--muted)' : p >= 60 ? 'var(--green)' : '#E5484D') + '">' + (p === null ? '--' : Math.round(p) + '%') + '</span></div>';
+        }).join('') + '</div>';
+    }
+    return out;
+}
+
+/* ---------------- MOCK ARENA ---------------- */
+function nfMock() {
+    var out = '', recs = [];
+    try { recs = fridayRecords().filter(function (r) { return r && r.max > 0; }).sort(function (a, b) { return String(a.week) < String(b.week) ? -1 : 1; }); } catch (e) {}
+    var sc = recs.map(function (r) { return Math.round(r.total / r.max * 400); });
+    // 1. Score trend
+    var body;
+    if (!sc.length) body = '<p class="nf-p">No mock taken yet. Your scores will be charted here after your first one.</p>';
+    else {
+        var last = sc[sc.length - 1], bestS = Math.max.apply(null, sc), avg = Math.round(sc.reduce(function (a, b) { return a + b; }, 0) / sc.length);
+        var W = 280, H = 56, pts = sc.slice(-8).map(function (v, i, a) { return [a.length === 1 ? W / 2 : i / (a.length - 1) * W, H - 6 - (v / 400) * (H - 12)]; });
+        body = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:56px;display:block" preserveAspectRatio="none"><polyline fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '"/>' +
+            pts.map(function (p) { return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.5" fill="var(--green)"/>'; }).join('') + '</svg>' +
+            '<div class="nf-grid" style="margin-top:10px;grid-template-columns:repeat(3,1fr)"><div class="nf-tile"><b>' + last + '</b><span>Latest</span></div><div class="nf-tile"><b>' + bestS + '</b><span>Best</span></div><div class="nf-tile"><b>' + avg + '</b><span>Average</span></div></div>' +
+            (sc.length > 1 ? '<p class="nf-p" style="margin-top:8px">' + (last >= sc[sc.length - 2] ? '▲ Up ' : '▼ Down ') + Math.abs(last - sc[sc.length - 2]) + ' points from your previous mock.</p>' : '');
+    }
+    out += '<div class="nf-card"><div class="nf-h"><b>📈 Your mock scores</b><small>out of 400</small></div>' + body + '</div>';
+    // 2. Target score
+    var tg = parseInt(storage.get('nf_target'), 10); if (!(tg >= 150 && tg <= 400)) tg = 0;
+    var bestNow = sc.length ? Math.max.apply(null, sc) : 0;
+    out += '<div class="nf-card"><div class="nf-h"><b>🎯 My target score</b><small>' + (tg ? 'Target ' + tg : 'Not set') + '</small></div><div class="nf-chips" style="margin-bottom:10px">' +
+        [200, 250, 280, 300, 330, 360].map(function (v) { return '<button type="button" class="nf-chip' + (tg === v ? ' on' : '') + '" data-nf="target" data-v="' + v + '">' + v + '</button>'; }).join('') + '</div>' +
+        (tg ? '<div class="nf-bar"><i style="width:' + Math.min(100, Math.round(bestNow / tg * 100)) + '%"></i></div><p class="nf-p" style="margin-top:6px">' +
+            (!sc.length ? 'Take a mock to see how far you are from ' + tg + '.' : bestNow >= tg ? 'You have reached your target with ' + bestNow + '. Aim higher!' : 'Your best is ' + bestNow + '. You are ' + (tg - bestNow) + ' points away.') + '</p>'
+            : '<p class="nf-p">Pick the UTME score you are aiming for.</p>') + '</div>';
+    // 3. Mock-day checklist
+    var items = ['Phone charged or plugged in', 'Stable data or Wi-Fi', 'Quiet place, no distractions', 'Pen and rough paper ready', 'Water and a light snack'], ck = {};
+    try { ck = JSON.parse(storage.get('nf_chk') || '{}') || {}; } catch (e) {}
+    var n = items.filter(function (_, i) { return ck[i]; }).length;
+    out += '<div class="nf-card"><div class="nf-h"><b>✅ Before you start</b><small>' + n + '/' + items.length + ' ready</small></div>' +
+        items.map(function (t, i) { return '<button type="button" class="nf-chk' + (ck[i] ? ' on' : '') + '" data-nf="chk" data-i="' + i + '"><span class="bx">' + (ck[i] ? '✓' : '') + '</span><span class="tx">' + t + '</span></button>'; }).join('') +
+        (n ? '<button type="button" class="nf-chip" style="margin-top:6px" data-nf="chkreset">Reset</button>' : '') + '</div>';
+    return out;
+}
+
+/* ---------------- ACCOUNT ---------------- */
+function nfAccount() {
+    if (!state.authUser) return '';
+    var ents = nfEntries(), pcts = ents.map(nfPct).filter(function (x) { return x !== null; });
+    var avg = pcts.length ? Math.round(pcts.reduce(function (a, b) { return a + b; }, 0) / pcts.length) : null;
+    var best = pcts.length ? Math.round(Math.max.apply(null, pcts)) : null;
+    var qs = ents.reduce(function (t, e) { return t + nfQs(e); }, 0), st = getLocalStreak();
+    return '<div class="nf-card" style="margin-top:12px"><div class="nf-h"><b>My stats</b></div><div class="nf-grid">' +
+        '<div class="nf-tile"><b>' + ents.length + '</b><span>Tests taken</span></div>' +
+        '<div class="nf-tile"><b>' + fmtNum(qs) + '</b><span>Questions answered</span></div>' +
+        '<div class="nf-tile"><b>' + (avg === null ? '--' : avg + '%') + '</b><span>Average score</span></div>' +
+        '<div class="nf-tile"><b>' + (best === null ? '--' : best + '%') + '</b><span>Best score</span></div></div>' +
+        '<p class="nf-p" style="margin-top:10px">🔥 ' + st + '-day streak</p>' +
+        '<div class="nf-row" style="margin-top:12px"><button type="button" class="nf-btn" style="flex:1" data-nf="share">Share progress</button>' +
+        '<button type="button" class="nf-btn alt" style="flex:1" data-nf="export">Export (CSV)</button></div></div>';
+}
+function nfShareText() {
+    var ents = nfEntries(), pcts = ents.map(nfPct).filter(function (x) { return x !== null; });
+    var avg = pcts.length ? Math.round(pcts.reduce(function (a, b) { return a + b; }, 0) / pcts.length) : null;
+    return 'I am preparing for JAMB on MyUTME: ' + ents.length + ' tests taken, ' + getLocalStreak() + '-day streak' + (avg === null ? '' : ', ' + avg + '% average') + '. Practise with me: https://myutme.com.ng';
+}
+function nfExportCsv() {
+    var ents = nfEntries();
+    if (!ents.length) { showToast('No results to export yet.', 'error'); return; }
+    var q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+    var rows = [['Date', 'Title', 'Mode', 'Subjects', 'Score', 'Out of', 'Percent', 'Questions', 'Answered'].map(q).join(',')];
+    ents.forEach(function (e) {
+        var p = nfPct(e);
+        rows.push([new Date(e.submitted_at).toISOString().slice(0, 16).replace('T', ' '), e.exam_title || '', e.mode || '', (e.subjects || []).join('; '), e.total_score, e.max_score, p === null ? '' : Math.round(p), e.total_questions, e.answered_count].map(q).join(','));
+    });
+    try {
+        var blob = new Blob(['\ufeff' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'myutme-progress.csv'; document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+        showToast('Progress exported.', 'success');
+    } catch (e) { showToast('Could not export on this device.', 'error'); }
+}
+document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('[data-nf]'); if (!t) return;
+    e.stopPropagation();
+    var a = t.getAttribute('data-nf');
+    if (a === 'target') { storage.set('nf_target', t.getAttribute('data-v')); render(); return; }
+    if (a === 'chk') { var ck = {}; try { ck = JSON.parse(storage.get('nf_chk') || '{}') || {}; } catch (x) {} var i = t.getAttribute('data-i'); ck[i] = !ck[i]; storage.set('nf_chk', JSON.stringify(ck)); render(); return; }
+    if (a === 'chkreset') { storage.set('nf_chk', '{}'); render(); return; }
+    if (a === 'export') { nfExportCsv(); return; }
+    if (a === 'share') {
+        var txt = nfShareText();
+        if (navigator.share) { navigator.share({ title: 'MyUTME', text: txt }).catch(function () {}); }
+        else if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(function () { showToast('Copied. Paste it to share.', 'success'); }, function () { showToast('Could not copy.', 'error'); }); }
+        return;
+    }
+}, true);
+</script>
+
+<style id="sb-style">
+/* ===== Study Buddy: clean, Claude-style chat ===== */
+.ai-chat-page{max-width:760px!important;margin:0 auto;padding:6px 14px 0!important}
+.sb-top{display:flex;align-items:center;justify-content:space-between;padding:2px 2px 8px;flex:0 0 auto}
+.sb-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:var(--ink)}
+.sb-dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px var(--green-light)}
+.sb-pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--card-bg);color:var(--ink);border-radius:99px;font:inherit;font-size:12px;font-weight:700;padding:7px 12px;cursor:pointer}
+.ai-chat-page .chat-window{gap:6px!important;padding:6px 2px 16px!important;scroll-behavior:smooth}
+.ai-chat-page .chat-row.me{max-width:86%!important}
+.ai-chat-page .chat-bubble.me{background:var(--green-light)!important;color:var(--ink)!important;border:0!important;box-shadow:none!important;border-radius:20px 20px 6px 20px!important;padding:11px 15px!important;font-size:15.5px!important;line-height:1.55!important}
+.ai-chat-page .chat-row.them{margin-top:10px}
+.ai-chat-page .chat-sender{display:flex;align-items:center;gap:7px;font-size:13px!important;font-weight:800;color:var(--ink)!important;margin-bottom:6px!important;padding:0!important}
+.ai-chat-page .chat-avatar.enzo-av{width:24px!important;height:24px!important;border-radius:8px!important;display:inline-grid;place-items:center;font:700 13px/1 system-ui!important}
+.ai-chat-page .chat-bubble.ai{background:transparent!important;border:0!important;box-shadow:none!important;padding:0 2px!important;border-radius:0!important;font-size:16px!important;line-height:1.75!important;color:var(--ink)!important;animation:sbIn .25s ease both}
+.ai-chat-page .chat-bubble.ai p{margin:0 0 12px!important}
+.ai-chat-page .chat-bubble.ai .chat-heading{border-bottom:0!important;padding-bottom:0!important;margin:18px 0 6px!important;font-size:1.02em!important;color:var(--ink)!important}
+.ai-chat-page .chat-bubble.ai .chat-list{margin:6px 0 14px!important;padding-left:22px!important}
+.ai-chat-page .chat-bubble.ai .chat-list li{margin-bottom:6px!important;line-height:1.7!important}
+.ai-chat-page .chat-time{display:none!important}
+.ai-chat-page .chat-msg-actions{opacity:.7}
+@keyframes sbIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.sb-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:34px 6px 10px;gap:8px}
+.sb-orb{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;font-size:26px;color:#fff;background:linear-gradient(145deg,#0B8A55,#0a4a2c);box-shadow:0 8px 24px rgba(11,138,85,.3);margin-bottom:6px}
+.sb-empty h3{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.sb-empty p{margin:0;max-width:300px;font-size:14px;line-height:1.5;color:var(--muted)}
+.sb-sugs{display:grid;grid-template-columns:1fr;gap:8px;width:100%;max-width:420px;margin-top:16px}
+.sb-sug{display:flex;align-items:center;gap:10px;width:100%;border:1px solid var(--line);background:var(--card-bg);color:var(--ink);border-radius:14px;font:inherit;font-size:14px;font-weight:600;text-align:left;padding:13px 14px;cursor:pointer}
+.sb-sug span{font-size:18px}
+.sb-composer-wrap{flex:0 0 auto;padding:6px 0 calc(8px + env(safe-area-inset-bottom,0px));background:var(--bg)}
+.sb-composer{border:1.5px solid var(--line);background:var(--card-bg);border-radius:24px;padding:8px 8px 8px 14px;box-shadow:0 4px 18px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:2px}
+.sb-composer:focus-within{border-color:var(--green)}
+.sb-composer textarea.sb-ta{width:100%;border:0!important;background:transparent!important;box-shadow:none!important;outline:none;resize:none;font:inherit;font-size:16px!important;line-height:1.45;color:var(--ink);padding:8px 2px 4px!important;min-height:28px!important;max-height:160px;border-radius:0!important}
+.sb-tools{display:flex;align-items:center;gap:4px}
+.sb-ic{width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.sb-ic.rec{background:#E5484D;color:#fff}
+.sb-send{width:38px;height:38px;border:0;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;cursor:pointer;transition:opacity .15s,transform .1s}
+.sb-send:active{transform:scale(.92)}.sb-send:disabled{opacity:.45}
+.sb-note{margin:6px 0 0;text-align:center;font-size:11px;color:var(--faint)}
+/* Practice screen entry */
+.sb-entry{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 12px;padding:14px;border:0;border-radius:18px;background:linear-gradient(135deg,#0B8A55,#0a4a2c);color:#fff;font:inherit;text-align:left;cursor:pointer;box-shadow:0 8px 22px rgba(11,138,85,.25)}
+.sb-entry .o{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:22px;flex:0 0 auto}
+.sb-entry .t{flex:1;min-width:0}.sb-entry .t b{display:block;font-size:16px;font-weight:800}.sb-entry .t small{font-size:12px;opacity:.85}
+.sb-entry .g{opacity:.9;display:flex}
+</style>
+<script id="sb-helpers">
+function sbEntry() {
+    return '<button type="button" class="sb-entry" data-action="set-view" data-view="ai-assistant">' +
+        '<span class="o">\u2726</span><span class="t"><b>' + AI_NAME + '</b><small>Ask any study question and get a quick answer</small></span>' +
+        '<span class="g">' + svg('chevleft', 18).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span></button>';
+}
+// Enter sends on computers (Shift+Enter = new line); wake the AI server as soon as the box is tapped so the first answer is quick
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+    var t = e.target;
+    if (!t || t.id !== 'ai-chat-input') return;
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return;
+    e.preventDefault();
+    var b = document.querySelector('.sb-send'); if (b && !b.disabled) b.click();
+});
+document.addEventListener('focusin', function (e) {
+    if (e.target && e.target.id === 'ai-chat-input') { try { warmAiAssistant(); } catch (x) {} }
+});
+</script>
 </body>
 </html>
