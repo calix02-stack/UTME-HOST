@@ -273,7 +273,7 @@
 <link rel="apple-touch-icon" href="https://myutme.com.ng/icon-192.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="https://myutme.com.ng/icon-192.png" />
 <link rel="shortcut icon" href="https://myutme.com.ng/icon-192.png" />
-<title>MyUTME – JAMB CBT Practice App</title>
+<title>MyUTME – JAMB & WAEC CBT Practice App</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
@@ -389,13 +389,13 @@
 #mw-ptr.s svg{animation:mwspin .7s linear infinite}@keyframes mwspin{to{transform:rotate(360deg)}}
 </style>
 <meta name="description" content="MyUTME is a free JAMB CBT practice app that works completely offline. Practice UTME past questions and topic drills, and take mock exams on your phone, with simple explanations for every answer." />
-<meta property="og:title" content="MyUTME – JAMB CBT Practice App" />
+<meta property="og:title" content="MyUTME – JAMB & WAEC CBT Practice App" />
 <meta property="og:description" content="MyUTME is a free JAMB CBT practice app that works completely offline. Practice past questions, topic drills and mock exams." />
 <meta property="og:image" content="https://myutme.com.ng/icon-512.png" />
 <meta property="og:url" content="https://myutme.com.ng" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="MyUTME – JAMB CBT Practice App" />
+<meta name="twitter:title" content="MyUTME – JAMB & WAEC CBT Practice App" />
 <meta name="twitter:description" content="MyUTME is a free JAMB CBT practice app that works completely offline. Practice past questions, topic drills and mock exams." />
 <meta name="twitter:image" content="https://myutme.com.ng/icon-512.png" />
 <style>
@@ -7918,7 +7918,7 @@ input,select,textarea{border-radius:14px!important}
 .chat-bubble.ai .chat-list{margin:12px 0 18px!important;padding-left:24px!important}.chat-bubble.ai .chat-list li{margin-bottom:12px!important;line-height:1.8!important}
 .chat-bubble.ai .chat-code,.chat-bubble.ai code{font-size:.95em;padding:10px 12px;border-radius:10px}
 [data-theme="dark"] .chat-bubble.ai .chat-heading{color:#5fd49a}
-.chat-bubble.me{width:fit-content!important;min-width:min(max-content,82vw)!important;overflow-wrap:break-word!important;word-break:normal!important}
+.chat-bubble.me{max-width:100%!important;overflow-wrap:break-word!important;word-break:normal!important;white-space:pre-wrap!important}
 </style>
 <style id="exam-compact">
 /* Compact exam screens: question + options fit on one screen */
@@ -8555,7 +8555,7 @@ html, body, .view { overscroll-behavior-y: auto !important; }
      before or without executing JS. -->
 <div id="root"><div class="boot-spinner" aria-label="Loading"></div></div>
 <noscript>
-  <h1>MyUTME – JAMB CBT Practice App for UTME</h1>
+  <h1>MyUTME – JAMB & WAEC CBT Practice App for UTME</h1>
   <p>MyUTME is a free JAMB CBT practice app for UTME candidates that works offline. Practice real JAMB CBT-style questions, take timed mock exams, access past questions from previous years, and drill topics subject by subject — with an AI available anytime you're stuck. Please enable JavaScript in your browser to use MyUTME.</p>
 </noscript>
 
@@ -13051,6 +13051,8 @@ function saveSessionSnapshot() {
             cbtSubjectOrder: state.cbtSubjectOrder,
             cbtCurrentSubject: state.cbtCurrentSubject,
             cbtTimeLeft: state.cbtTimeLeft,
+            cbtWaec: state.cbtWaec,
+            cbtQuestionCount: state.cbtQuestionCount,
             examQuestions: state.examQuestions,
             examIndex: state.examIndex,
             examAnswers: state.examAnswers,
@@ -15238,7 +15240,10 @@ async function sendAiMessage(text, questionContext) {
             return;
         }
         if (!res.ok) {
-            showNetworkAwareError('AI is having trouble right now. Please try again.', new Error('AI request failed: ' + res.status));
+            const busyMsg = res.status >= 500
+                ? 'The AI server is overloaded right now. Please wait a moment and send your message again.'
+                : 'The AI could not answer that. Please try again.';
+            showNetworkAwareError(busyMsg, new Error('AI request failed: ' + res.status));
             state.aiSending = false;
             render();
             return;
@@ -15256,7 +15261,8 @@ async function sendAiMessage(text, questionContext) {
         } else { aiInserted = { id: 'g' + Date.now() + 'a', sender: 'ai', message: aiMessage, created_at: new Date().toISOString() }; saveGuestAiMessage(sessionId, 'ai', aiMessage); }
         if (aiInserted) { state.aiMessages.push(aiInserted); state.aiMsgVer = (state.aiMsgVer || 0) + 1; }
     } catch (e) {
-        showNetworkAwareError('Could not reach AI assistant. Please try again.', e);
+        const timedOut = /timeout|timed out/i.test(String(e && e.message));
+        showNetworkAwareError(timedOut ? 'The AI took too long to reply. Please try again.' : 'Could not reach the AI assistant. Please try again.', e);
     }
     state.aiSending = false;
     render();
@@ -15607,16 +15613,16 @@ function renderReviewPage() {
 // Retries once if the AI server hiccups (the first try often failed while it woke up).
 async function fetchAiAssistant(init) {
     var res = null, lastErr = null;
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 4; i++) {
         try {
             var ini = init;
-            if (i === 2) {  // last try: ask for an answer from the model's own knowledge (no web search / tools)
+            if (i >= 2) {  // after 2 failed tries: ask for an answer from the model's own knowledge (no web search / tools) — usually much faster and avoids repeating a slow path that just failed
                 try { var bd = JSON.parse(init.body); bd.message = (bd.message || '') + '\n\n[Answer from your own knowledge. Do not use web search or external tools.]'; ini = Object.assign({}, init, { body: JSON.stringify(bd) }); } catch (e) {}
             }
             res = await fetch(AI_ASSISTANT_URL, ini);
             if (res.status < 500) return res;
         } catch (e) { lastErr = e; res = null; }
-        if (i < 2) await new Promise(function(r) { setTimeout(r, 120); });
+        if (i < 3) await new Promise(function(r) { setTimeout(r, 150 * (i + 1)); });
     }
     if (res) return res;
     throw lastErr || new Error('AI request failed');
@@ -15951,7 +15957,7 @@ function finalizeSupportReply(r) {
 // that veto the topic (e.g. "paid" vetoes the how-to-activate answer).
 const SUPPORT_KB = [
     { k: ['start cbt', 'take cbt', 'cbt mode', 'jamb cbt', 'full cbt', 'how does cbt', 'cbt practice', 'how to use cbt'],
-      a: 'JAMB CBT is in Practice Hub → JAMB CBT. It is a full timed practice with English plus your other chosen subjects, like the real UTME.\n1. Open Practice Hub → JAMB CBT\n2. Confirm your subjects and tap Start\n3. Answer and Submit before time runs out\nYour result is saved in Account → Result Analysis. The time limit and questions per subject are set by the admin.' },
+      a: 'JAMB CBT is in Practice Hub → JAMB → CBT Practice. WAEC has its own CBT under Practice Hub → WAEC → CBT Practice, with random questions from every WAEC year.\n\nJAMB CBT:  It is a full timed practice with English plus your other chosen subjects, like the real UTME.\n1. Open Practice Hub → JAMB CBT\n2. Confirm your subjects and tap Start\n3. Answer and Submit before time runs out\nYour result is saved in Account → Result Analysis. The time limit and questions per subject are set by the admin.' },
     { k: ['past question', 'past paper', 'exam mode', 'previous year', 'jamb year'],
       not: ['not loading', 'not showing', 'no question', 'missing'],
       a: 'Past Questions (Practice Hub → Past Questions) has real questions from 2000 to 2026.\n1. Pick a subject\n2. Pick a year\n3. Start\nIf a year has no questions, it has not been uploaded yet — tell me the subject and year and I\'ll flag it.' },
@@ -16443,6 +16449,7 @@ function trialAiRateLimitCheck() {
 // ============================================================
 async function startCbt() {
     if (!freeAttemptAllowed('cbt', 'CBT')) return;
+    state.cbtWaec = false;
 
     const isFull = state.cbtMode === 'full';
     const selected = state.cbtSelected;
@@ -17272,7 +17279,17 @@ async function startFlashcards(subjectId) {
         const settings = await loadSettings();
         const perSubject = settings.subjectQuestionsPerSubject || 40;
         const s = SUBJECTS.find(function(x) { return x.id === subjectId; });
-        const questions = await window.OfflineDB.loadQuestionsOffline('cbt', subjectId, null, perSubject);
+        let questions;
+        if (state.fcBody === 'waec') {
+            const wr = await fetch('questions-waec-' + subjectId + '.json?v=' + Date.now());
+            if (!wr.ok) throw new Error('HTTP ' + wr.status);
+            const wd = await wr.json();
+            questions = (Array.isArray(wd) ? wd : ((wd && wd.questions) || [])).filter(function(q) { return q && q.options && q.options.length; }).map(function(q) {
+                return q;
+            });
+        } else {
+            questions = await window.OfflineDB.loadQuestionsOffline('cbt', subjectId, null, perSubject);
+        }
         const qs = shuffleArray((questions || []).slice()).map(function(q) {
             return Object.assign({}, q, { subject_id: subjectId, subject_name: s ? s.name : subjectId });
         });
@@ -18970,6 +18987,7 @@ const PAGE_TITLES = {
     'marked': 'Marked Questions',
     'review': 'Review Questions',
     'flashcards': 'Flashcards',
+    'waec-cbt': 'WAEC CBT',
     'topic': 'Topic Practice',
     'videos': 'Video Lessons',
     'topic-list': 'Topic Practice',
@@ -18982,7 +19000,7 @@ const PAGE_TITLES = {
     // Shown only once a mode's Result/Review screen is up (see
     // EXAM_RESULT_SHOWING in renderApp) — while the timed question screen
     // itself is showing, isExamTaking hides this bar entirely.
-    'cbt-exam': 'JAMB CBT Result',
+    'cbt-exam': 'CBT Result',
     'exam-exam': 'Past Questions Result',
     'lit-exam': 'Novel (CBT) Result',
 };
@@ -19184,6 +19202,7 @@ function renderView() {
     if (v === "ai-assistant") return renderAiAssistant();
     if (v === "admin" && isAdmin()) return renderAdmin();
     if (v === "cbt") return renderCbtMode();
+    if (v === "waec-cbt") return renderWaecCbtSetup();
     if (v === "exam") return renderExamMode();
     if (v === "exam-soon") return renderExamSoon();
     if (v === "mockexam") return renderMockExamPicker();
@@ -19488,47 +19507,155 @@ function phIconRow(ex) {
     }).join('') + '</div>';
     return row + (p ? nfHub(ex, p) : '');
 }
-function renderPracticeHubV2() {
-    var ex = phCurrentExam(), info = phExamInfo(ex), soon = !info.live;
 
+(function(){
+    if (document.getElementById('px2-style')) return;
+    var css = [
+    '.pxh{border-radius:20px;padding:18px 16px;margin:0 0 14px;color:#fff;position:relative;overflow:hidden}',
+    '.pxh small{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;opacity:.85}',
+    '.pxh h2{margin:4px 0 4px;font-size:24px;font-weight:900;letter-spacing:-.03em;color:#fff}',
+    '.pxh p{margin:0;font-size:12px;line-height:1.5;opacity:.92;color:#fff}',
+    '.pxh .pxh-big{position:absolute;right:-6px;bottom:-18px;font-size:84px;font-weight:900;opacity:.14;letter-spacing:-.05em}',
+    '.pxg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 6px}',
+    '.pxt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 4px;border:1.5px solid var(--line);border-radius:16px;background:var(--card-bg);color:var(--ink);font:inherit;cursor:pointer;position:relative;min-height:92px}',
+    '.pxt:active{transform:scale(.96)}',
+    '.pxt b{font-size:11.5px;font-weight:800;text-align:center;line-height:1.2}',
+    '.pxt .px-ic{width:42px;height:42px;font-size:21px}',
+    '.pxt .px-chip{position:absolute;top:6px;right:6px;padding:2px 6px;font-size:8px}',
+    '.pxs-back{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:flex;align-items:flex-end;justify-content:center}',
+    '.pxs{width:100%;max-width:560px;max-height:78vh;overflow:auto;background:var(--card-bg);border-radius:22px 22px 0 0;padding:16px 14px calc(18px + env(safe-area-inset-bottom,0px))}',
+    '.pxs-x{float:right;border:0;background:var(--bg);color:var(--ink);border-radius:99px;width:30px;height:30px;font-size:16px;cursor:pointer}',
+    '.waec-year-tag{display:inline-block;margin:0 0 8px;padding:5px 12px;border-radius:99px;background:#1D4ED8;color:#fff;font-size:12px;font-weight:900;letter-spacing:.04em}',
+    '.wq-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}',
+    '.wq-chip{padding:10px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--card-bg);color:var(--ink);font:inherit;font-weight:800;font-size:14px;cursor:pointer}',
+    '.wq-chip.on{background:#1D4ED8;border-color:#1D4ED8;color:#fff}'
+    ].join('');
+    var st=document.createElement('style'); st.id='px2-style'; st.textContent=css; document.head.appendChild(st);
+})();
+var PH_THEME = {
+    jamb: { c1: '#0B8A55', c2: '#065A49', kick: 'JAMB UTME', title: 'JAMB Practice', tag: 'CBT, past questions 2000 \u2013 2026, flashcards, mock arena and novels.', big: 'JAMB' },
+    waec: { c1: '#1D4ED8', c2: '#1E3A8A', kick: 'WAEC / WASSCE', title: 'WAEC Practice', tag: 'Past questions by year. CBT and flashcards pull random questions from every WAEC year.', big: 'WAEC' },
+    neco: { c1: '#7C3AED', c2: '#4C1D95', kick: 'NECO', title: 'NECO Practice', tag: 'Coming soon. We will switch it on as the questions are ready.', big: 'NECO' }
+};
+function pxTile(o) {
+    var attrs = o.attrs || '';
+    return '<button type="button" class="pxt" style="border-color:' + o.tint + '33" ' + attrs + '>' +
+        '<span class="px-ic" style="background:' + o.tint + '1F;color:' + o.tint + '">' + (o.emoji ? o.emoji : svg(o.icon, 22)) + '</span>' +
+        '<b>' + esc(o.label) + '</b>' + (o.soon ? '<span class="px-chip">Soon</span>' : '') + '</button>';
+}
+function renderPracticeHubV2() {
+    var ex = phCurrentExam(), info = phExamInfo(ex), th = PH_THEME[ex] || PH_THEME.jamb, soon = !info.live;
     var seg = '<div class="px-seg" role="tablist" aria-label="Choose exam">' +
         PH_EXAMS.map(function(e) {
-            return '<button type="button" role="tab" aria-selected="' + (e.key === ex) + '" class="px-seg-b' + (e.key === ex ? ' on' : '') + '" data-action="ph-set-exam" data-exam="' + e.key + '">' + e.label + (!e.live && !e.pastLive ? '<span style="display:block;font-size:9px;font-weight:700;opacity:.8;margin-top:1px">Coming soon</span>' : '') + '</button>';
+            return '<button type="button" role="tab" aria-selected="' + (e.key === ex) + '" class="px-seg-b' + (e.key === ex ? ' on' : '') + '" style="' + (e.key === ex ? 'background:' + (PH_THEME[e.key] || th).c1 : '') + '" data-action="ph-set-exam" data-exam="' + e.key + '">' + e.label + '</button>';
         }).join('') + '</div>';
+    var banner = '<div class="pxh" style="background:linear-gradient(135deg,' + th.c1 + ',' + th.c2 + ')"><small>' + esc(th.kick) + '</small><h2>' + esc(th.title) + '</h2><p>' + esc(th.tag) + '</p><span class="pxh-big">' + th.big + '</span></div>';
 
-    var note = soon
-        ? (info.pastLive
-            ? '<p class="px-note">WAEC Past Questions are now open, starting with English (2015). More subjects and years are being added. CBT Practice and Flashcards for WAEC are coming soon.</p>'
-            : '<p class="px-note"><b>' + esc(info.full) + ' is coming soon.</b> It is not available yet. Every subject is already listed, and we will switch them on as the questions are ready.</p>')
-        : '';
-
-    var tools = [
-        { view: 'topic', label: 'Topic Practice', icon: 'list', tint: '#8B5CF6' },
-        { view: 'revise', label: 'Missed questions', icon: 'rotate', tint: '#0A7B63' },
-        { view: 'marked', label: 'Marked questions', icon: 'bookmark', tint: '#F59E0B' }
+    var examTiles = [];
+    if (ex === 'waec') {
+        examTiles = [
+            { label: 'CBT Practice', icon: 'monitor', tint: '#1D4ED8', attrs: 'data-action="ph-open-waec-cbt"' },
+            { label: 'Past Questions', icon: 'clipboard', tint: '#F0662B', attrs: 'data-action="ph-open-past" data-exam="waec"' },
+            { label: 'Flashcards', icon: 'cards', tint: '#E04C8E', attrs: 'data-action="ph-open-waec-flash"' }
+        ];
+    } else if (ex === 'jamb') {
+        examTiles = [
+            { label: 'CBT Practice', icon: 'monitor', tint: '#2F6BFF', attrs: 'data-action="set-view" data-view="cbt"' },
+            { label: 'Past Questions', icon: 'clipboard', tint: '#F0662B', attrs: 'data-action="ph-open-past" data-exam="jamb"' },
+            { label: 'Flashcards', icon: 'cards', tint: '#E04C8E', attrs: 'data-action="ph-open-jamb-flash"' },
+            { label: 'Mock Arena', icon: 'target', tint: '#8B5CF6', attrs: 'data-action="set-view" data-view="mockexam"' },
+            { label: 'Novel (CBT)', icon: 'book', tint: '#14A3A3', attrs: 'data-action="set-view" data-view="literature"' }
+        ];
+    } else {
+        examTiles = [
+            { label: 'CBT Practice', icon: 'monitor', tint: '#7C3AED', soon: 1, attrs: 'data-action="ph-soon" data-exam="neco" data-mode="cbt"' },
+            { label: 'Past Questions', icon: 'clipboard', tint: '#F0662B', soon: 1, attrs: 'data-action="ph-soon" data-exam="neco" data-mode="past"' },
+            { label: 'Flashcards', icon: 'cards', tint: '#E04C8E', soon: 1, attrs: 'data-action="ph-soon" data-exam="neco" data-mode="flash"' }
+        ];
+    }
+    var gen = [
+        { label: 'Topic Practice', icon: 'list', tint: '#8B5CF6', attrs: 'data-action="set-view" data-view="topic"' },
+        { label: 'Missed', icon: 'rotate', tint: '#0A7B63', attrs: 'data-action="set-view" data-view="revise"' },
+        { label: 'Marked', icon: 'bookmark', tint: '#F59E0B', attrs: 'data-action="set-view" data-view="marked"' },
+        { label: 'Results', icon: 'clock', tint: '#6366F1', attrs: 'data-action="set-view" data-view="history"' }
     ];
-    var toolsHtml = '<p class="px-gt">For every exam</p><div class="px-tools">' + tools.map(function(t) {
-        return '<button type="button" class="px-tool" data-action="set-view" data-view="' + t.view + '">' +
-            '<span class="px-ic" style="background:' + t.tint + '1F;color:' + t.tint + '">' + svg(t.icon, 20) + '</span>' +
-            '<b>' + esc(t.label) + '</b></button>';
-    }).join('') + '</div>';
+    if (ex === 'jamb') {
+        gen.push({ label: 'Daily', emoji: '\uD83C\uDFAF', tint: '#0B8A55', attrs: 'data-action="ph-panel" data-panel="daily"' });
+        gen.push({ label: 'Weak spot', emoji: '\uD83D\uDCC9', tint: '#E5484D', attrs: 'data-action="ph-panel" data-panel="weak"' });
+        gen.push({ label: 'Recent', emoji: '\uD83D\uDD58', tint: '#0EA5E9', attrs: 'data-action="ph-panel" data-panel="recent"' });
+    }
+    var tk = TOOL_PLACES.practice || [];
+    tk.forEach(function(k) {
+        var m = TOOL_META[k];
+        gen.push({ label: m[1], emoji: m[0], tint: '#64748B', attrs: 'data-action="tool-open" data-place="practice" data-tool="' + k + '"' });
+    });
+    var sheet = '';
+    var p = state.phPanel || '', open = (state.toolOpen && state.toolOpen.practice) || '';
+    if (ex === 'jamb' && p) {
+        sheet = '<div class="pxs-back" data-action="ph-panel" data-panel=""><div class="pxs" onclick="event.stopPropagation()"><button class="pxs-x" data-action="ph-panel" data-panel="">\u2715</button>' + nfHub(ex, p) + '</div></div>';
+    } else if (open) {
+        sheet = '<div class="pxs-back" data-action="tool-open" data-place="practice" data-tool=""><div class="pxs" onclick="event.stopPropagation()"><button class="pxs-x" data-action="tool-open" data-place="practice" data-tool="">\u2715</button>' + toolPanel(open) + '</div></div>';
+    }
+    return '<section style="padding-bottom:12px">' + sbEntry() + seg + banner +
+        '<p class="px-gt" style="margin-top:4px">' + esc(info.label) + ' modes</p><div class="pxg">' + examTiles.map(pxTile).join('') + '</div>' +
+        '<p class="px-gt">More tools</p><div class="pxg">' + gen.map(pxTile).join('') + '</div>' + sheet + '</section>';
+}
 
-    var examRows = [
-        { mode: 'cbt', view: 'cbt', label: 'CBT Practice', sub: 'Timed, exam-style practice', icon: 'monitor', tint: '#2F6BFF', soon: soon },
-        { mode: 'past', view: 'exam', label: 'Past Questions', sub: ex === 'jamb' ? 'Pick a year, 2000 \u2013 2026' : (info.pastLive ? 'English 2015 is ready' : 'Year by year, subject by subject'), icon: 'clipboard', tint: '#F0662B', soon: soon && !info.pastLive },
-        { mode: 'flash', view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#E04C8E', soon: soon }
-    ];
-    if (ex === 'jamb') examRows.push({ view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#14A3A3' });
-    var examHtml = '<p class="px-gt">' + esc(info.label) + ' practice</p><div class="px-list">' +
-        examRows.map(function(r) { return phRowHtml(r, ex); }).join('') + '</div>';
-
-    var jambOnly = '';
-
-    return '<section style="padding-bottom:12px">' +
-        '<h1 class="px-h">Practice</h1>' +
-        '<p class="px-sub">Choose your exam, then how you want to practise.</p>' +
-        sbEntry() + seg + note + phIconRow(ex) + toolsRow('practice') + toolsHtml + examHtml + jambOnly +
-        '</section>';
+/* ---------- WAEC CBT (random questions from every year, year shown on each question) ---------- */
+function renderWaecCbtSetup() {
+    var subs = SUBJECTS.filter(function(s) { return WAEC_SUBJECTS.indexOf(s.id) !== -1; });
+    var sel = state.waecCbtSubject || (subs[0] && subs[0].id);
+    state.waecCbtSubject = sel;
+    var n = state.waecCbtCount || 40; state.waecCbtCount = n;
+    var cards = subs.map(function(s) { return exSubjCard(s, 'waec-cbt-subject', 'data-subject', s.id === sel, 'WAEC'); }).join('');
+    var chips = [10, 20, 30, 40].map(function(c) { return '<button type="button" class="wq-chip' + (c === n ? ' on' : '') + '" data-action="waec-cbt-count" data-n="' + c + '">' + c + '</button>'; }).join('');
+    return '<button class="back-link" data-action="set-view" data-view="mysubjects">' + svg('chevleft', 14) + ' Practice Hub</button>' +
+        '<div class="pxh" style="background:linear-gradient(135deg,#1D4ED8,#1E3A8A)"><small>WAEC</small><h2>CBT Practice</h2><p>Random questions from every WAEC year. The year shows on each question.</p></div>' +
+        '<p class="px-gt">1. Subject</p><div class="ex-list">' + cards + '</div>' +
+        '<p class="px-gt">2. Number of questions</p><div class="wq-chips">' + chips + '</div>' +
+        '<p class="px-gs">Your score is marked over 100.' + ((isUserActive() || trialActive()) ? '' : ' Free accounts can open the first ' + FREE_QUESTION_LIMIT + ' questions; activate to unlock the rest.') + '</p>' +
+        '<button class="btn btn-green" style="width:100%;padding:14px;font-size:15px;margin-top:8px;background:#1D4ED8" data-action="start-waec-cbt">Start CBT</button>';
+}
+async function startWaecCbt() {
+    var sid = state.waecCbtSubject, n = state.waecCbtCount || 40;
+    var s = SUBJECTS.find(function(x) { return x.id === sid; });
+    if (!sid || !s) { showToast('Please select a subject.', 'error'); return; }
+    state.isLoading = true; render();
+    var pool = [];
+    try {
+        var res = await fetch('questions-waec-' + sid + '.json?v=' + Date.now());
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var d = await res.json();
+        pool = (Array.isArray(d) ? d : ((d && d.questions) || [])).filter(function(q) { return q && q.options && q.options.length && (!q.type || q.type === 'exam'); });
+    } catch (e) {
+        state.isLoading = false; showNetworkAwareError('Could not load WAEC questions. Please try again.', e); render(); return;
+    }
+    state.isLoading = false;
+    if (!pool.length) { showToast('No WAEC questions for this subject yet.', 'error'); render(); return; }
+    var picked = shuffleArray(__pickFresh(pool, Math.min(n, pool.length), 'waec_' + sid));
+    var qs = picked.map(function(q) { return Object.assign({}, q, { subject_id: sid, subject_name: s.name }); });
+    state.currentEnglishPassage = null; state.hasPassage = false; state.passageRead = true; state.passageQuestionIds = []; state.cbtEngBatch = null;
+    notifyTrialCapIfNeeded(qs.length);
+    state.cbtWaec = true; state.cbtMode = 'full'; state.cbtSelected = [sid];
+    state.cbtQuestionCount = qs.length;
+    state.cbtQuestions = qs;
+    state.cbtIndex = 0;
+    state.cbtAnswers = new Array(qs.length).fill(null);
+    state.cbtMarked = new Array(qs.length).fill(false);
+    state.cbtFinished = false; state.cbtSubmitted = false; state.cbtHistorySaved = false; state.cbtShowExplanation = false; state.cbtReviewMode = false;
+    state.cbtTimeLeft = Math.round(qs.length * 72);
+    buildCbtSubjectGroups(state.cbtQuestions);
+    state.view = 'cbt-exam';
+    render();
+    if (state.cbtTimer) clearInterval(state.cbtTimer);
+    state.cbtTimer = setInterval(function() {
+        state.cbtTimeLeft--;
+        if (state.cbtTimeLeft <= 0) {
+            clearInterval(state.cbtTimer); state.cbtTimer = null;
+            if (!state.cbtSubmitted) { state.cbtSubmitted = true; state.cbtFinished = true; showToast('Time is up! Your answers have been submitted.', ''); }
+            render();
+        } else { if (!tickTimerDisplay(state.cbtTimeLeft)) render(); }
+    }, 1000);
 }
 
 function renderExamSoon() {
@@ -20255,7 +20382,7 @@ function renderCbtExam() {
                 total_questions: state.cbtQuestions.length,
                 answered_count: state.cbtAnswers.filter(function(a) { return a !== null && a !== undefined; }).length,
                 submitted_at: new Date().toISOString(),
-                exam_title: isFullCbt ? 'JAMB CBT' : (subjectName || 'Subject Practice'),
+                exam_title: isFullCbt ? (state.cbtWaec ? 'WAEC CBT' : 'JAMB CBT') : (subjectName || 'Subject Practice'),
             });
             const cbtTimeLimitMin = isFullCbt ? state.settingsCache.cbtTimeLimit : state.settingsCache.subjectTimeLimit;
             saveAnalyticsTimeSample(isFullCbt ? 'cbt-full' : 'cbt-single', (cbtTimeLimitMin || 0) * 60 - state.cbtTimeLeft, state.cbtQuestions.length);
@@ -20278,14 +20405,14 @@ function renderCbtExam() {
 
         const slipHtml = renderResultBlock({
             candidateName: candidateName,
-            subtitle: isFullCbt ? 'JAMB CBT' : 'Subject Practice',
+            subtitle: isFullCbt ? (state.cbtWaec ? 'WAEC CBT' : 'JAMB CBT') : 'Subject Practice',
             score: totalScore,
             maxScore: maxScore,
             rows: resultRows,
         });
 
         return (
-            '<h2 class="title">' + (isFullCbt ? 'JAMB CBT' : 'Subject') + ' — Result</h2>' +
+            '<h2 class="title">' + (isFullCbt ? (state.cbtWaec ? 'WAEC CBT' : 'JAMB CBT') : 'Subject') + ' — Result</h2>' +
             slipHtml +
             '<button class="btn btn-green" style="margin-bottom:10px" data-action="cbt-exit">Back to Home</button>' +
             '<button class="btn btn-outline" data-action="cbt-toggle-review">' +
@@ -20400,7 +20527,7 @@ function renderCbtExam() {
         (state.cbtSubjectOrder.length > 1 ? '<div class="subject-tabs">' + subjectTabs + '</div>' : '') +
         (qLocked
             ? renderExamLockCard()
-            : (renderExamQCardHeader(currentSubjectIndex + 1, item?.text, item?.image) +
+            : ((state.cbtWaec && item && item.year ? '<div class="waec-year-tag">WAEC ' + esc(String(item.year)) + '</div>' : '') + renderExamQCardHeader(currentSubjectIndex + 1, item?.text, item?.image) +
                '<div class="exam-options-wrap">' + opts + '</div>' + instantBox)
         ) +
         '</div>' +
@@ -21867,7 +21994,7 @@ function renderFlashcards() {
             '<button class="back-link" data-action="flashcard-exp-close">' + svg("chevleft", 14) + ' Back to card</button>' +
             '<h2 class="title" style="margin-bottom:2px;font-size:18px">Explanation</h2>' +
             '<p class="sub" style="font-size:11px">' + esc(subjName || 'Flashcards') + ' &nbsp;·&nbsp; Card ' + (state.flashcardIndex + 1) + ' of ' + total + '</p>' +
-            '<div class="fc-xp-q"><span class="fc-label">Question</span><p class="fc-text">' + escQ(q.text) + '</p></div>' +
+            '<div class="fc-xp-q"><span class="fc-label">Question</span>' + (state.fcBody === 'waec' && q.year ? '<span class="waec-year-tag">WAEC ' + esc(String(q.year)) + '</span>' : '') + '<p class="fc-text">' + escQ(q.text) + '</p></div>' +
             ansHtml + toolsHtml +
             '<div class="explanation-box fc-xp-box"><span class="label">💡 Explanation</span><div class="exp-body">' +
             (hasExp ? fmtExp(q.explanation) : '<p class="exp-p">No explanation provided for this card.</p>') + '</div></div>' +
@@ -21933,7 +22060,7 @@ function renderFlashcards() {
         '<div class="flashcard-progress-track"><div class="flashcard-progress-fill" style="width:' + pct + '%"></div></div>' +
         fcControlsHtml(choiceMode && !answered) +
         '<div class="flashcard-stage"><div class="flashcard fc-card2">' +
-        '<span class="fc-label">Question</span>' +
+        '<span class="fc-label">Question</span>' + (state.fcBody === 'waec' && q.year ? '<span class="waec-year-tag">WAEC ' + esc(String(q.year)) + '</span>' : '') +
         '<p class="fc-text">' + escQ(q.text) + '</p>' +
         optionsHtml + revealHtml +
         '<div style="display:flex;justify-content:flex-end;margin-top:10px">' + renderFlagButton(q.id, state.flashcardSubject, 'flashcard', q) + '</div>' +
@@ -22081,7 +22208,7 @@ function fcControlsHtml(showTimer) {
 }
 
 function renderFlashcardSubjectPicker() {
-    const mySubjectIds = getBrowsableSubjectIds();
+    const mySubjectIds = state.fcBody === 'waec' ? WAEC_SUBJECTS.slice() : getBrowsableSubjectIds();
     let subjChips = "";
     SUBJECTS.filter(function(s) { return mySubjectIds.indexOf(s.id) !== -1; }).forEach(function(s) {
         subjChips += exSubjCard(s, 'start-flashcards', 'data-subject', false, 'Flashcards');
@@ -22093,8 +22220,8 @@ function renderFlashcardSubjectPicker() {
     return (
         '<button class="back-link" data-action="set-view" data-view="home">' + svg("chevleft", 14) + ' Home</button>' +
         '<div class="feature-icon" style="background:#97527A">' + svg("cards", 30) + '</div>' +
-        '<h2 class="title">Flashcards</h2>' +
-        '<p class="sub">Flip through questions fast, subject by subject</p>' +
+        '<h2 class="title">' + (state.fcBody === 'waec' ? 'WAEC ' : '') + 'Flashcards</h2>' +
+        '<p class="sub">' + (state.fcBody === 'waec' ? 'Random questions from every WAEC year' : 'Flip through questions fast, subject by subject') + '</p>' +
         '<div class="mode-note">Pick a subject to start a flashcard deck.</div>' +
         '<p class="section-label">Select a subject</p>' +
         '<div class="ex-list">' + subjChips + '</div>'
@@ -27131,6 +27258,12 @@ document.addEventListener('click', function(e) {
         return;
     }
 
+    if (action === 'ph-open-waec-cbt') { state.phExam = 'waec'; setView('waec-cbt'); return; }
+    if (action === 'ph-open-waec-flash') { state.fcBody = 'waec'; state.flashcardSubject = null; setView('flashcards'); return; }
+    if (action === 'ph-open-jamb-flash') { state.fcBody = 'jamb'; state.flashcardSubject = null; setView('flashcards'); return; }
+    if (action === 'waec-cbt-subject') { state.waecCbtSubject = el.getAttribute('data-subject'); render(); return; }
+    if (action === 'waec-cbt-count') { state.waecCbtCount = parseInt(el.getAttribute('data-n'), 10) || 40; render(); return; }
+    if (action === 'start-waec-cbt') { startWaecCbt(); return; }
     if (action === 'ph-set-exam') {
         var _pe = el.getAttribute('data-exam') || 'jamb';
         state.phExam = phExamInfo(_pe).key;
@@ -27154,6 +27287,7 @@ document.addEventListener('click', function(e) {
     }
     if (action === 'set-view') {
         if (el.getAttribute('data-view') === 'exam') state.examBody = 'jamb';
+        if (el.getAttribute('data-view') === 'flashcards') state.fcBody = 'jamb';
         setView(el.getAttribute('data-view'));
         return;
     }
@@ -33559,7 +33693,8 @@ document.addEventListener('click', function (e) {
 .sb-composer-wrap{flex:0 0 auto;padding:6px 0 calc(8px + env(safe-area-inset-bottom,0px));background:var(--bg)}
 .sb-composer{border:1.5px solid var(--line);background:var(--card-bg);border-radius:24px;padding:8px 8px 8px 14px;box-shadow:0 4px 18px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:2px}
 .sb-composer:focus-within{border-color:var(--green)}
-.sb-composer textarea.sb-ta{width:100%;border:0!important;background:transparent!important;box-shadow:none!important;outline:none;resize:none;font:inherit;font-size:16px!important;line-height:1.45;color:var(--ink);padding:8px 2px 4px!important;min-height:28px!important;max-height:160px;border-radius:0!important}
+.sb-composer textarea.sb-ta{width:100%;border:0!important;background:transparent!important;box-shadow:none!important;outline:none!important;-webkit-tap-highlight-color:transparent;resize:none;font:inherit;font-size:16px!important;line-height:1.45;color:var(--ink);padding:8px 2px 4px!important;min-height:28px!important;max-height:160px;border-radius:0!important}
+.sb-composer textarea.sb-ta:focus,.sb-composer textarea.sb-ta:focus-visible{outline:none!important;box-shadow:none!important}
 .sb-tools{display:flex;align-items:center;gap:4px}
 .sb-ic{width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}
 .sb-ic.rec{background:#E5484D;color:#fff}
