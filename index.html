@@ -11409,8 +11409,20 @@ function adminQuestionTotals() {
         else if (t === 'mock') c.mock++;
         else if (t === 'NOVEL (CBT)') c.novel++;
     });
+    // The phone's local store often only holds JAMB CBT, so also read the real question files and take the larger number.
+    const L = state.liveQ;
+    if (L) { ['cbt', 'exam', 'mock', 'topic', 'novel', 'waec'].forEach(function(k) { c[k] = Math.max(c[k], Number(L[k]) || 0); }); }
     c.total = c.cbt + c.exam + c.mock + c.topic + c.novel + c.waec;
     return c;
+}
+function adminEnsureLiveCounts() {
+    if (state.waecLoaded || state.__waecLoading) return;
+    state.__waecLoading = true;
+    loadLiveQuestionCounts({ fresh: true }).then(function (w) {
+        state.liveQ = w;
+        state.waecQCount = w.waec || 0; state.waecBySubject = w.waecBySubject || {};
+        state.waecLoaded = true; state.__waecLoading = false; render();
+    }).catch(function () { state.waecLoaded = true; state.__waecLoading = false; });
 }
 function fmtNum(n) { try { return Number(n).toLocaleString('en-US'); } catch (e) { return String(n); } }
 async function loadAllQuestionsForAdmin() {
@@ -13373,9 +13385,9 @@ const LIVE_EXAM_START_PRESETS = [
 // ============================================================
 //  FRIDAY MOCK — offline, one exam per Friday, saved on this device
 // ============================================================
-// Daily Mock: open every night 6:00 pm to 12:00 am (device time); results show immediately. One schedule for the 7 days,
+// Daily Mock: created automatically and open every night 7:00 pm to 12:00 am (device time); results show immediately. One schedule for the 7 days,
 // and no two subjects from the same department share a day.
-var MOCK_OPEN_HOUR = 18, MOCK_CLOSE_HOUR = 24, MOCK_RELEASE_HOUR = 0, MOCK_Q_PER_SUBJECT = 40, MOCK_SECS_PER_Q = 45;
+var MOCK_OPEN_HOUR = 19, MOCK_CLOSE_HOUR = 24, MOCK_RELEASE_HOUR = 0, MOCK_Q_PER_SUBJECT = 40, MOCK_SECS_PER_Q = 45;
 var MOCK_SCHEDULE = {
     1: ['eng'],            // Monday
     2: ['lit', 'agr'],     // Tuesday   Arts + Science
@@ -13434,9 +13446,29 @@ function mockExamMeta(ex) {
     return bits.join(' · ');
 }
 function mockReadList(key) { try { var l = JSON.parse(storage.get(key) || '[]'); return Array.isArray(l) ? l.filter(function(x) { return x && Array.isArray(x.subs) && x.start && x.end; }) : []; } catch (e) { return []; } }
+// Automatic daily Mocks: built from MOCK_SCHEDULE (subjects for each weekday) for yesterday, today and tomorrow.
+// Nobody has to press anything. The id comes from the subjects and start time, so every phone makes the identical exam.
+var MOCK_AUTO_ON = true, MOCK_AUTO_FREE = true;
+function mockAutoExams() {
+    if (!MOCK_AUTO_ON) return [];
+    var out = [], now = new Date();
+    for (var off = -1; off <= 1; off++) {
+        var day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off);
+        var subs = MOCK_SCHEDULE[day.getDay()];
+        if (!subs || !subs.length) continue;
+        var st = new Date(day.getFullYear(), day.getMonth(), day.getDate(), MOCK_OPEN_HOUR, 0, 0, 0).getTime();
+        var en = new Date(day.getFullYear(), day.getMonth(), day.getDate(), MOCK_CLOSE_HOUR, 0, 0, 0).getTime();   // 24 = 12:00 am next day
+        var ex = mockMakeExam(subs.slice(), st, en, { free: MOCK_AUTO_FREE });
+        ex.auto = true;
+        out.push(ex);
+    }
+    return out;
+}
 function mockExams() {
     var cutoff = Date.now() - 36 * 3600 * 1000;
-    return mockReadList('myMocks').filter(function(x) { return x.end > cutoff; }).sort(function(a, b) { return a.start - b.start; });
+    var seen = {}, all = [];
+    mockAutoExams().concat(mockReadList('myMocks')).forEach(function(x) { if (!seen[x.id]) { seen[x.id] = 1; all.push(x); } });
+    return all.filter(function(x) { return x.end > cutoff; }).sort(function(a, b) { return a.start - b.start; });
 }
 function mockAddToMine(ex) {
     var l = mockReadList('myMocks').filter(function(x) { return x.id !== ex.id; });
@@ -13616,6 +13648,12 @@ function renderAdminMocks() {
         '<label style="font-size:12px;font-weight:700">Ends</label><input id="am-end" type="datetime-local" style="' + field + '" value="' + esc(state.adminMockEnd || '') + '">' +
         '<button class="btn btn-green" style="width:100%;padding:12px" data-action="adminmock-create">Create Mock</button></div>';
     const list = mockReadList('adminMocks').sort(function(a, b) { return b.start - a.start; });
+    h += '<div class="card"><p style="font-size:14px;font-weight:800;margin:0 0 4px">🤖 Automatic daily Mocks</p>' +
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 8px;line-height:1.5">' + (MOCK_AUTO_ON ? 'ON: each day\'s Mock is created by itself and is open from 7:00 PM to 12:00 AM (device time). No button needed.' : 'OFF') + '</p>' +
+        [1, 2, 3, 4, 5, 6, 0].map(function(dow) {
+            const isT = new Date().getDay() === dow;
+            return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:12px;' + (isT ? 'font-weight:800;color:var(--green)' : '') + '"><span>' + MOCK_DAY_NAMES[dow] + (isT ? ' · today' : '') + '</span><span>' + MOCK_SCHEDULE[dow].map(function(sid) { return esc(mockSubjectName(sid)); }).join(' + ') + '</span></div>';
+        }).join('') + '</div>';
     h += '<div class="card"><p style="font-size:14px;font-weight:800;margin:0 0 10px">📋 Your Mocks</p>';
     if (!list.length) h += '<p style="font-size:12px;color:var(--muted);margin:0">No Mock created yet.</p>';
     list.forEach(function(ex) {
@@ -13635,14 +13673,7 @@ function renderAdminMocks() {
 }
 
 // ---------- Weekly Mock timetable (Mon–Sat) ----------
-var MOCK_TIMETABLE = [
-    { d: 1, day: 'Monday',    subs: ['eng'] },
-    { d: 2, day: 'Tuesday',   subs: ['math', 'eco'] },
-    { d: 3, day: 'Wednesday', subs: ['bio', 'gov'] },
-    { d: 4, day: 'Thursday',  subs: ['phy', 'acc'] },
-    { d: 5, day: 'Friday',    subs: ['crs', 'chem'] },
-    { d: 6, day: 'Saturday',  subs: [], full: true }   // all subjects: your 4-subject combination
-];
+var MOCK_TIMETABLE = [1, 2, 3, 4, 5, 6, 0].map(function(dow) { return { d: dow === 0 ? 7 : dow, day: MOCK_DAY_NAMES[dow], subs: MOCK_SCHEDULE[dow] }; });   // same table the automatic Mocks use
 function renderMockTimetable() {
     var recs = fridayRecords();
     var now = new Date(), todayKey = fridayKey(now);
@@ -13673,7 +13704,7 @@ function renderMockTimetable() {
             '<div style="flex:0 0 78px"><b style="font-size:12px">' + r.day + '</b>' + (isToday ? '<div style="font-size:9.5px;font-weight:800;color:var(--green)">TODAY</div>' : '') + '</div>' + body + '</div>';
     });
     return '<div class="card"><p style="font-size:14px;font-weight:800;margin:0 0 2px">🗓️ Weekly Mock timetable</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + doneCount + ' of ' + total + ' done this week · Sunday is rest day</p>' + rows + '</div>';
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + doneCount + ' of ' + total + ' done this week · opens 7 PM to 12 AM every day</p><div class="mk-tt">' + rows + '</div></div>';
 }
 function renderMockExamPicker() {
     fridayFlushReleased();
@@ -24693,15 +24724,16 @@ function renderAdminPayments() {
 //  ADMIN ANALYTICS DASHBOARD
 // ============================================================
 function dayKey(d) {
+    // Device (Nigerian) local date, NOT UTC, so a late-night payment lands on the right day.
     const dt = new Date(d);
-    return dt.toISOString().slice(0, 10);
+    return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
 }
 function lastNDays(n) {
     const out = [];
     for (let i = n - 1; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        out.push(d.toISOString().slice(0, 10));
+        out.push(dayKey(d));
     }
     return out;
 }
@@ -24738,6 +24770,35 @@ function adashBars(rows) {
     }).join('');
 }
 function adashNaira(n) { return '₦' + Math.round(n || 0).toLocaleString(); }
+
+function adashWhen(ms) {
+    if (!ms) return 'No date';
+    return new Date(ms).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+}
+function adashPayRow(r, showPlan) {
+    return '<div style="padding:9px 0;border-top:1px solid #eef0f2;font-size:12px"><div style="display:flex;justify-content:space-between;gap:8px"><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(r.name) + '</b><b style="color:#0B8A55;flex-shrink:0">' + adashNaira(r.amount) + '</b></div>' +
+        '<div style="color:#6b7280;font-size:10.5px;margin-top:2px;word-break:break-all">' + (r.username ? '@' + esc(r.username) + ' · ' : '') + esc(r.email || '') + '</div>' +
+        '<div style="color:#6b7280;font-size:10.5px;margin-top:2px">' + esc(adashWhen(r.when)) + ' · ' + esc(r.method) + (showPlan ? ' · ' + esc(r.plan) : '') + '</div>' +
+        (r.code ? '<div style="color:#9ca3af;font-size:9.5px;margin-top:2px;word-break:break-all">Key: ' + esc(r.code) + '</div>' : '') + '</div>';
+}
+// People who bought one plan (shown when the plan is tapped in Revenue by plan).
+function adashPlanBuyers(d, plan) {
+    if (state.revPlanOpen !== plan) return '';
+    const rows = (d.payments || []).filter(function(r) { return r.plan === plan; });
+    return '<div style="margin-top:8px;padding:6px 10px;background:#f9fafb;border-radius:12px">' +
+        (rows.length ? rows.map(function(r) { return adashPayRow(r, false); }).join('').replace('border-top:1px solid #eef0f2;', '') : '<p style="font-size:11px;color:#6b7280;margin:6px 0">No paid keys for this plan.</p>') + '</div>';
+}
+// Every payment, newest first, with who paid and when.
+function adashPaymentHistory(d) {
+    const all = d.payments || [];
+    const show = state.revHistAll ? all : all.slice(0, 15);
+    const CARD = 'background:#fff;color:#111827;border:1px solid #e5e7eb;border-radius:18px;padding:14px;';
+    const sum = all.reduce(function(t, r) { return t + r.amount; }, 0);
+    return '<div style="' + CARD + 'margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><p style="font-size:13px;font-weight:800;margin:0">Payment history</p>' +
+        '<p style="font-size:11px;color:#6b7280;margin:0">' + all.length + ' payments · <b style="color:#111827">' + adashNaira(sum) + '</b></p></div>' +
+        (all.length ? show.map(function(r) { return adashPayRow(r, true); }).join('') : '<p style="font-size:12px;color:#6b7280;margin:0">No payments yet.</p>') +
+        (all.length > 15 ? '<button class="mini-btn" data-action="rev-hist-toggle" style="font-size:11px;margin-top:8px;width:100%">' + (state.revHistAll ? 'Show fewer' : 'Show all ' + all.length) + '</button>' : '') + '</div>';
+}
 async function loadAnalyticsData() {
     if (state.analyticsLoading) return;
     state.analyticsLoading = true;
@@ -24748,8 +24809,8 @@ async function loadAnalyticsData() {
         await loadAllUsers();
         const profiles = state.allUsers || [];
         const rs = await Promise.all([
-            supabase.from('payment_claims').select('id, plan_name, status, amount, created_at'),
-            supabase.from('activation_keys').select('id, plan_name, price, is_used, used_at'),
+            supabase.from('payment_claims').select('*'),
+            supabase.from('activation_keys').select('*'),
             Promise.resolve({ data: [] }),
             supabase.from('support_messages').select('id, sender, read_by_admin'),
             supabase.from('flagged_questions').select('id').eq('resolved', false),
@@ -24782,7 +24843,27 @@ async function loadAnalyticsData() {
             byPlan[name] = byPlan[name] || { n: 0, amt: 0 };
             byPlan[name].n++; byPlan[name].amt += price;
         });
+        // Payment history: one row per paid (used) key, the same rows Revenue is added up from,
+        // so the history and the total always agree.
+        const claimByKey = {};
+        claims.forEach(function(c) { if (c.key_code) claimByKey[c.key_code] = c; });
+        const userById = {};
+        profiles.forEach(function(p) { userById[p.id] = p; });
+        const payments = used.filter(function(k) { return Number(k.price) > 0; }).map(function(k) {
+            const u = userById[k.used_by] || {};
+            const code = String(k.key_code || '');
+            const cl = claimByKey[code];
+            const method = /^ADM-/i.test(code) ? 'Added by admin' : (cl ? 'Manual transfer' : 'Online / key');
+            return {
+                id: k.id, when: k.used_at ? new Date(k.used_at).getTime() : 0, amount: Number(k.price) || 0,
+                plan: k.plan_name || 'Plan',
+                name: u.full_name || cl && cl.payer_name || k.used_by_username || u.username || 'Unknown user',
+                username: u.username || k.used_by_username || '', email: u.email || (cl && cl.email) || '',
+                method: method, code: code
+            };
+        }).sort(function(a, b) { return b.when - a.when; });
         state.analyticsData = {
+            payments: payments,
             rangeDays: rangeDays, days: days, signups: signups, sales: sales, byPlan: byPlan,
             totalUsers: profiles.length,
             activated: profiles.filter(function(p) { return p.is_active && (!p.activation_expiry || new Date(p.activation_expiry).getTime() > now); }).length,
@@ -24812,13 +24893,7 @@ function renderAdminAnalytics() {
     }
     if (state.analyticsLoading) return '<div class="loading-spinner"><div class="spinner"></div><p>Loading analytics...</p></div>';
     if (!state.allQuestionsLoaded && !state.__aqLoading) { state.__aqLoading = true; loadAllQuestionsForAdmin(); }
-    if (!state.waecLoaded && !state.__waecLoading) {
-        state.__waecLoading = true;
-        loadLiveQuestionCounts({ waecOnly: true, fresh: true }).then(function (w) {
-            state.waecQCount = w.waec || 0; state.waecBySubject = w.waecBySubject || {};
-            state.waecLoaded = true; state.__waecLoading = false; render();
-        }).catch(function () { state.waecLoaded = true; state.__waecLoading = false; });
-    }
+    adminEnsureLiveCounts();
     const qt = adminQuestionTotals();
     const d = state.analyticsData;
     if (!d) return adashCard('Analytics', '<p style="font-size:12px;color:#6b7280;margin:0">No data available.</p>');
@@ -24879,15 +24954,17 @@ function renderAdminAnalytics() {
     const planTotal = plans.reduce(function(t, n) { return t + d.byPlan[n].amt; }, 0) || 1;
     html += '<div style="' + CARD + 'margin-bottom:12px"><p style="font-size:13px;font-weight:800;margin:0 0 10px">Revenue by plan</p>' + (plans.length ? plans.map(function(n) {
         const sh = Math.round(d.byPlan[n].amt / planTotal * 100);
-        return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;font-size:12px"><span style="font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(n) + ' <span style="color:#6b7280;font-weight:500">· ' + d.byPlan[n].n + ' sold</span></span>' +
+        return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;font-size:12px"><span data-action="rev-plan-open" data-plan="' + esc(n) + '" style="font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;color:#0B8A55;text-decoration:underline dotted">' + esc(n) + ' <span style="color:#6b7280;font-weight:500">· ' + d.byPlan[n].n + ' sold ' + (state.revPlanOpen === n ? '▴' : '▾') + '</span></span>' +
             '<span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><b>' + adashNaira(d.byPlan[n].amt) + '</b><button data-action="rev-hide-plan" data-plan="' + esc(n) + '" title="Leave this plan out" style="border:0;background:none;color:#9ca3af;font-size:15px;line-height:1;cursor:pointer;padding:0 2px">×</button></span></div>' +
-            '<div style="height:6px;background:#eef0f2;border-radius:99px;margin-top:5px;overflow:hidden"><div style="height:100%;width:' + sh + '%;background:linear-gradient(90deg,#0B8A55,#34a96b);border-radius:99px"></div></div></div>';
+            '<div style="height:6px;background:#eef0f2;border-radius:99px;margin-top:5px;overflow:hidden"><div style="height:100%;width:' + sh + '%;background:linear-gradient(90deg,#0B8A55,#34a96b);border-radius:99px"></div></div>' + adashPlanBuyers(d, n) + '</div>';
     }).join('') : '<p style="font-size:12px;color:#6b7280;margin:0">No sales yet.</p>') +
         '<details style="margin-top:4px"><summary style="font-size:11px;color:#6b7280;cursor:pointer">Revenue filter' + ((d.revFrom || (d.revHidden && d.revHidden.length)) ? ' · on' : '') + '</summary>' +
         '<div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap"><span style="font-size:10px;color:#6b7280">Count revenue from</span>' +
         '<input id="rev-from-input" type="date" value="' + esc(d.revFrom || '') + '" style="font-size:11px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:8px;color:#111827;background:#fff" />' +
         '<button class="mini-btn primary" data-action="rev-from-apply" style="font-size:10px">Apply</button>' +
         ((d.revFrom || (d.revHidden && d.revHidden.length)) ? '<button class="mini-btn" data-action="rev-reset" style="font-size:10px">Reset</button>' : '') + '</div></details></div>';
+
+    html += adashPaymentHistory(d);
 
     // needs attention
     const att = function(label, n, tab, color) {
@@ -25041,6 +25118,14 @@ function renderAdminOverview() {
     // Topic Practice questions come from the topic store, not the 'questions' store.
     modeCounts.topic = state.topicQCount || 0;
     subjectBreakdown['subject'] = state.topicQBySubject || {};
+    adminEnsureLiveCounts();
+    if (state.liveQ) {   // real counts from the question files (local store can hold only JAMB CBT)
+        modeCounts.cbt = Math.max(modeCounts.cbt, state.liveQ.cbt || 0);
+        modeCounts.exam = Math.max(modeCounts.exam, (state.liveQ.exam || 0) + (state.liveQ.waec || 0));
+        modeCounts.mock = Math.max(modeCounts.mock, state.liveQ.mock || 0);
+        modeCounts.topic = Math.max(modeCounts.topic, state.liveQ.topic || 0);
+        modeCounts.literature = Math.max(modeCounts.literature, state.liveQ.novel || 0);
+    }
     const grandTotal = modeCounts.cbt + modeCounts.exam + modeCounts.mock + modeCounts.topic + modeCounts.literature;
 
     function renderSubjectBreakdown(type) {
@@ -29151,6 +29236,7 @@ document.addEventListener('click', function(e) {
         state.adminTab = el.getAttribute('data-tab');
         if (state.adminTab === 'overview' || state.adminTab === 'questions') {
             state.allQuestionsLoaded = false;
+            state.waecLoaded = false;
         }
         state.adminQuestionsLoaded = false;
         state.adminQuestionsList = [];
@@ -29243,6 +29329,12 @@ document.addEventListener('click', function(e) {
         storage.set('revHiddenPlans', JSON.stringify(h));
         state.analyticsLoaded = false; loadAnalyticsData(); return;
     }
+    if (action === 'rev-plan-open') {
+        const nm = el.getAttribute('data-plan') || '';
+        state.revPlanOpen = (state.revPlanOpen === nm) ? null : nm;
+        render(); return;
+    }
+    if (action === 'rev-hist-toggle') { state.revHistAll = !state.revHistAll; render(); return; }
     if (action === 'rev-from-apply') {
         storage.set('revFrom', (document.getElementById('rev-from-input') || {}).value || '');
         state.analyticsLoaded = false; loadAnalyticsData(); return;
@@ -31558,14 +31650,16 @@ function renderAdminActivated() {
         var k = keys.filter(function (x) { return x.used_at && ((x.used_by && x.used_by === u.id) || (x.used_by_username && x.used_by_username === u.username)); })
             .sort(function (a, b) { return new Date(b.used_at) - new Date(a.used_at); })[0];
         var due = new Date(u.activation_expiry).getTime();
-        return { u: u, k: k, due: due, left: Math.ceil((due - now) / DAY) };
-    }).sort(function (a, b) { return a.due - b.due; });
+        var at = k && k.used_at ? new Date(k.used_at).getTime() : 0;
+        if (!at && k && (k.days || k.plan_days)) at = due - (k.days || k.plan_days) * DAY;
+        return { u: u, k: k, due: due, at: at, left: Math.ceil((due - now) / DAY) };
+    }).sort(function (a, b) { return (b.at - a.at) || (b.due - a.due); });   // latest activation = No. 1
     var expired = list.filter(function (r) { return r.left < 0; }).length, soon = list.filter(function (r) { return r.left >= 0 && r.left <= 3; }).length;
-    var rows = list.map(function (r) {
+    var rows = list.map(function (r, i) {
         var u = r.u, plan = r.k ? (r.k.plan_name || '') + ((r.k.days || r.k.plan_days) ? ' \u00B7 ' + (r.k.days || r.k.plan_days) + ' days' : '') : 'Activated by admin';
         var tone = r.left < 0 ? '#B23420' : r.left <= 3 ? '#B7791F' : '#0B8A55';
         var txt = r.left < 0 ? 'Expired ' + Math.abs(r.left) + 'd ago' : r.left === 0 ? 'Due today' : r.left + ' day' + (r.left === 1 ? '' : 's') + ' left';
-        return '<div class="admin-user-row" style="flex-wrap:wrap;gap:8px"><div class="user-info" style="flex:1;min-width:180px"><span class="user-name">' + esc(u.full_name || u.username || 'User') + '</span>' +
+        return '<div class="admin-user-row" style="flex-wrap:wrap;gap:8px"><div class="user-info" style="flex:1;min-width:180px"><span class="user-name">' + (i + 1) + '. ' + esc(u.full_name || u.username || 'User') + '</span>' +
             '<span class="user-email">@' + esc(u.username || '') + ' \u00B7 ' + esc(u.email || '') + '</span>' +
             '<span style="font-size:11px;color:var(--muted);margin-top:3px">Activated: <b>' + (r.k ? fmt(r.k.used_at) : 'Not recorded') + '</b> \u00B7 ' + esc(plan) + '</span>' +
             '<span style="font-size:11px;color:var(--muted)">Due: <b>' + fmt(r.due) + '</b></span></div>' +
@@ -31573,7 +31667,7 @@ function renderAdminActivated() {
             '<button class="mini-btn danger" data-action="admin-deactivate-user" data-userid="' + u.id + '" style="font-size:10px">Deactivate</button></div>';
     }).join('');
     return '<div class="card" style="margin-bottom:10px;padding:12px 14px"><p style="font-weight:800;font-size:14px;margin:0 0 4px">Activated users (' + list.length + ')</p>' +
-        '<p style="font-size:12px;margin:0;color:var(--muted)"><b style="color:#B23420">' + expired + ' expired</b> \u00B7 <b style="color:#B7791F">' + soon + ' due in 3 days</b> \u00B7 sorted by soonest due date</p></div>' +
+        '<p style="font-size:12px;margin:0;color:var(--muted)"><b style="color:#B23420">' + expired + ' expired</b> \u00B7 <b style="color:#B7791F">' + soon + ' due in 3 days</b> \u00B7 sorted by latest activation first</p></div>' +
         (rows || '<div class="card"><p style="text-align:center;padding:16px 0;font-size:13px;color:var(--faint)">No activated users yet.</p></div>');
 }
 async function lpExplain() {
@@ -33101,6 +33195,29 @@ document.addEventListener('click', function (e) {
 .sb-entry .o{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:22px;flex:0 0 auto}
 .sb-entry .t{flex:1;min-width:0}.sb-entry .t b{display:block;font-size:16px;font-weight:800}.sb-entry .t small{font-size:12px;opacity:.85}
 .sb-entry .g{opacity:.9;display:flex}
+
+/* ===== Compact layouts: less scrolling on Home, Practice, Mock and Account. Icons keep their size. ===== */
+.ph-mode-list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-bottom:10px!important}
+.ph-mode-card{flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:8px!important;padding:12px!important;min-height:0!important;width:100%!important;min-width:0!important}
+.ph-mode-text{width:100%!important;flex:0 0 auto!important}
+.ph-mode-label{font-size:13.5px!important;line-height:1.25!important;overflow-wrap:anywhere}
+.ph-mode-sub{font-size:10.5px!important;line-height:1.35!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ph-mode-chevron{display:none!important}
+.ph-mode-list>.ph-mode-card:last-child:nth-child(odd){grid-column:1/-1;flex-direction:row!important;align-items:center!important;gap:12px!important}
+.ph-mode-list>.ph-mode-card:last-child:nth-child(odd) .ph-mode-text{flex:1!important;width:auto!important}
+@media(min-width:700px){.ph-mode-list{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+/* Account */
+.acct-hero{padding:12px 14px!important;margin-bottom:8px!important}
+.toggle-row{margin-bottom:8px!important}
+/* Mock Arena timetable: two days per row instead of one long list */
+.mk-tt{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.mk-tt>div{flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:4px!important;margin-bottom:0!important;padding:8px 10px!important}
+.mk-tt>div>div:first-child{flex:0 0 auto!important;display:flex;align-items:baseline;gap:6px}
+.mk-tt>div>div:last-child{width:100%}
+.mk-tt>div:last-child:nth-child(odd){grid-column:1/-1}
+/* Home: tighter gaps between sections */
+.quick-actions{margin:6px 0 14px!important;gap:8px!important}
+.home-hero{margin-bottom:10px!important}
 </style>
 <script id="sb-helpers">
 function sbEntry() {
