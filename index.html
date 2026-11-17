@@ -11171,8 +11171,20 @@ async function loadAllUsers() {
         // through the admin-get-users Edge Function fixes it at the root:
         // the function verifies your login server-side, then reads every
         // row with the service role key, which always bypasses RLS.
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData && sessionData.session && sessionData.session.access_token;
+        let accessToken = null;
+        try {
+            const { data: sessionData } = await withNetworkTimeout(supabase.auth.getSession(), 8000, 'Session check');
+            accessToken = sessionData && sessionData.session && sessionData.session.access_token;
+        } catch (sessErr) {
+            // A stale or half-saved login can make the session read throw a JSON error.
+            // Try one forced refresh before giving up, and say which step failed.
+            try {
+                const rf = await withNetworkTimeout(supabase.auth.refreshSession(), 8000, 'Session refresh');
+                accessToken = rf && rf.data && rf.data.session && rf.data.session.access_token;
+            } catch (rfErr) {
+                throw new Error('[Step 1: login session] ' + ((sessErr && sessErr.message) || 'failed') + ' - log out and log in again.');
+            }
+        }
         if (!accessToken) {
             state.allUsers = [];
             state.allUsersError = 'You must be logged in to load users.';
@@ -11189,19 +11201,22 @@ async function loadAllUsers() {
                     'apikey': SUPABASE_ANON_KEY,
                 },
             }),
-            8000, 'Users load'
+            15000, 'Users load'
         );
 
         const rawText = await res.text();
         let json;
+        if (!rawText || !rawText.trim()) {
+            throw new Error('[Step 2: admin-get-users] Empty reply (HTTP ' + res.status + '). The function crashed or timed out - check its logs in Supabase.');
+        }
         try {
             json = JSON.parse(rawText);
         } catch (parseErr) {
-            throw new Error('Unexpected response (HTTP ' + res.status + '): ' + rawText.slice(0, 120));
+            throw new Error('[Step 2: admin-get-users] Not JSON (HTTP ' + res.status + '): ' + rawText.slice(0, 120));
         }
 
         if (!res.ok || !json.ok) {
-            throw new Error(json.error || ('HTTP ' + res.status));
+            throw new Error('[Step 2: admin-get-users] ' + (json.error || ('HTTP ' + res.status)));
         }
 
         state.allUsers = json.users || [];
