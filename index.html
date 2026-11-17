@@ -13776,7 +13776,7 @@ function renderMockExamPicker() {
     const electives = SUBJECTS.filter(function(x) { return x.id !== 'eng' && x.id !== 'lhm'; });
     const sel = (state.mockSelectedSubjects || []).filter(function(id) { return electives.some(function(x) { return x.id === id; }); }).slice(0, 3);
     state.mockSelectedSubjects = sel;
-    let html = back + '<h2 class="title">Mock Arena</h2><p class="sub">Your Mocks · set by MyUTME</p>' + renderMockRetakeNote(false);
+    let html = back + '<div class="pxh" style="background:linear-gradient(135deg,#F59E0B,#B45309)"><small>THE FRIDAY MOCK</small><h2>\uD83C\uDFC6 Mock Arena</h2><p>Real exam pressure. Your Mocks are set by MyUTME.</p><span class="pxh-big">MOCK</span></div>' + renderMockRetakeNote(false);
     const __tab = state.mockArenaTab === 'board' ? 'board' : 'mock';
     html += '<div class="leaderboard-tabs">' +
         '<button class="leaderboard-tab' + (__tab === 'mock' ? ' active' : '') + '" data-action="friday-tab" data-tab="mock">📝 Mock</button>' +
@@ -15244,6 +15244,8 @@ async function sendAiMessage(text, questionContext) {
                 ? 'The AI server is overloaded right now. Please wait a moment and send your message again.'
                 : 'The AI could not answer that. Please try again.';
             showNetworkAwareError(busyMsg, new Error('AI request failed: ' + res.status));
+            state.aiMessages.push({ id: 'e' + Date.now() + 'a', sender: 'ai', message: (data && data.code === 'config') ? 'Sorry, the AI is not working right now (server setting problem). Please tell support.' : 'Sorry, the AI is busy right now. Please send your message again in a moment.', created_at: new Date().toISOString() });
+            state.aiMsgVer = (state.aiMsgVer || 0) + 1;
             state.aiSending = false;
             render();
             return;
@@ -15613,14 +15615,14 @@ function renderReviewPage() {
 // Retries once if the AI server hiccups (the first try often failed while it woke up).
 async function fetchAiAssistant(init) {
     var res = null, lastErr = null;
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 2; i++) {   // at most 2 tries: retrying a broken key / busy server 4 times only made the wait much longer
         try {
             var ini = init;
-            if (i >= 2) {  // after 2 failed tries: ask for an answer from the model's own knowledge (no web search / tools) — usually much faster and avoids repeating a slow path that just failed
+            if (i >= 1) {  // after 2 failed tries: ask for an answer from the model's own knowledge (no web search / tools) — usually much faster and avoids repeating a slow path that just failed
                 try { var bd = JSON.parse(init.body); bd.message = (bd.message || '') + '\n\n[Answer from your own knowledge. Do not use web search or external tools.]'; ini = Object.assign({}, init, { body: JSON.stringify(bd) }); } catch (e) {}
             }
             res = await fetch(AI_ASSISTANT_URL, ini);
-            if (res.status < 500) return res;
+            if (res.status < 500 || res.status === 500) return res;   // 500 = a real fault (e.g. bad key): do not retry; 502/503/504 = busy: retry once
         } catch (e) { lastErr = e; res = null; }
         if (i < 3) await new Promise(function(r) { setTimeout(r, 150 * (i + 1)); });
     }
@@ -19160,18 +19162,18 @@ function renderApp() {
 
 function renderBottomNav() {
     const items = [
-    { key: 'home', label: 'Home', icon: 'home' },
-    { key: 'mysubjects', label: 'Practice Hub', icon: 'bookopen' },
-    { key: 'mockexam', label: 'Mock Arena', icon: 'target' },
-    { key: 'profile', label: 'Account', icon: 'user' },
+    { key: 'home', label: 'Home', icon: 'home', emoji: '\uD83C\uDFE0', c: '#0B8A55' },
+    { key: 'mysubjects', label: 'Practice Hub', icon: 'bookopen', emoji: '\uD83D\uDCDA', c: '#2F6BFF' },
+    { key: 'mockexam', label: 'Mock Arena', icon: 'target', emoji: '\uD83C\uDFC6', c: '#F59E0B' },
+    { key: 'profile', label: 'Account', icon: 'user', emoji: '\uD83D\uDC64', c: '#E04C8E' },
 ];
     let html = '<div class="bottom-nav">';
     items.forEach(function(it) {
         const isActive = state.view === it.key;
         html += '<button class="bottom-nav-item' + (isActive ? ' active' : '') +
             '" data-action="set-view" data-view="' + it.key + '">' +
-            svg(it.icon, 20) +
-            '<span>' + it.label + '</span>' +
+            '<span class="bn-emoji" style="' + (isActive ? 'background:' + it.c + '22;' : '') + '">' + it.emoji + '</span>' +
+            '<span' + (isActive ? ' style="color:' + it.c + '"' : '') + '>' + it.label + '</span>' +
             '</button>';
     });
     html += '</div>';
@@ -19510,7 +19512,8 @@ function phIconRow(ex) {
 
 (function(){
     if (document.getElementById('px2-style')) return;
-    var css = [
+    var __extraCss = "\n.pxh-logo{position:absolute;right:12px;top:12px;height:44px;width:auto;max-width:90px;object-fit:contain;background:rgba(255,255,255,.92);border-radius:10px;padding:4px}\n.bn-emoji{display:grid;place-items:center;width:38px;height:26px;border-radius:99px;font-size:17px;line-height:1;transition:background .2s,transform .15s}\n.bottom-nav-item.active .bn-emoji{transform:translateY(-1px) scale(1.08)}\n.acct-menu-item{border-left:4px solid var(--green);background:linear-gradient(90deg,rgba(11,138,85,.07),transparent 60%)}\n.acct-menu-item:nth-child(4n+2){border-left-color:#2F6BFF;background:linear-gradient(90deg,rgba(47,107,255,.07),transparent 60%)}\n.acct-menu-item:nth-child(4n+3){border-left-color:#F59E0B;background:linear-gradient(90deg,rgba(245,158,11,.08),transparent 60%)}\n.acct-menu-item:nth-child(4n){border-left-color:#E04C8E;background:linear-gradient(90deg,rgba(224,76,142,.07),transparent 60%)}\n.section-label{color:var(--green);font-weight:800;letter-spacing:.04em}\n.card{box-shadow:0 2px 10px rgba(15,23,42,.06)}\n.course-card-h{border-top:3px solid #2F6BFF}\n.nf-card{border-left:4px solid #0EA5E9}\n.px-gt{display:flex;align-items:center;gap:8px}\n.px-gt::before{content:'';width:4px;height:14px;border-radius:4px;background:var(--green)}\n.pxt{background:linear-gradient(160deg,var(--card-bg),var(--bg))}\n.pxt .px-ic{box-shadow:0 3px 8px rgba(0,0,0,.08)}\n";
+    var css = __extraCss + [
     '.pxh{border-radius:20px;padding:18px 16px;margin:0 0 14px;color:#fff;position:relative;overflow:hidden}',
     '.pxh small{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;opacity:.85}',
     '.pxh h2{margin:4px 0 4px;font-size:24px;font-weight:900;letter-spacing:-.03em;color:#fff}',
@@ -19537,7 +19540,9 @@ var PH_THEME = {
     waec: { c1: '#1D4ED8', c2: '#1E3A8A', kick: 'WAEC / WASSCE', title: 'WAEC Practice', tag: 'Past questions by year. CBT and flashcards pull random questions from every WAEC year.', big: 'WAEC' },
     neco: { c1: '#7C3AED', c2: '#4C1D95', kick: 'NECO', title: 'NECO Practice', tag: 'Coming soon. We will switch it on as the questions are ready.', big: 'NECO' }
 };
+var PX_EMOJI = { monitor: '\uD83D\uDDA5\uFE0F', clipboard: '\uD83D\uDCDC', cards: '\uD83C\uDCCF', book: '\uD83D\uDCD6', list: '\uD83D\uDCDA', rotate: '\uD83D\uDD01', bookmark: '\uD83D\uDD16', clock: '\uD83D\uDCCA' };
 function pxTile(o) {
+    if (!o.emoji && PX_EMOJI[o.icon]) o.emoji = PX_EMOJI[o.icon];
     var attrs = o.attrs || '';
     return '<button type="button" class="pxt" style="border-color:' + o.tint + '33" ' + attrs + '>' +
         '<span class="px-ic" style="background:' + o.tint + '1F;color:' + o.tint + '">' + (o.emoji ? o.emoji : svg(o.icon, 22)) + '</span>' +
@@ -19549,7 +19554,7 @@ function renderPracticeHubV2() {
         PH_EXAMS.map(function(e) {
             return '<button type="button" role="tab" aria-selected="' + (e.key === ex) + '" class="px-seg-b' + (e.key === ex ? ' on' : '') + '" style="' + (e.key === ex ? 'background:' + (PH_THEME[e.key] || th).c1 : '') + '" data-action="ph-set-exam" data-exam="' + e.key + '">' + e.label + '</button>';
         }).join('') + '</div>';
-    var banner = '<div class="pxh" style="background:linear-gradient(135deg,' + th.c1 + ',' + th.c2 + ')"><small>' + esc(th.kick) + '</small><h2>' + esc(th.title) + '</h2><p>' + esc(th.tag) + '</p><span class="pxh-big">' + th.big + '</span></div>';
+    var banner = '<div class="pxh" style="background:linear-gradient(135deg,' + th.c1 + ',' + th.c2 + ')"><small>' + esc(th.kick) + '</small><h2>' + esc(th.title) + '</h2><p>' + esc(th.tag) + '</p><span class="pxh-big">' + th.big + '</span><img class="pxh-logo" src="logo-' + ex + '.png" alt="" onerror="this.style.display=\'none\'"></div>';
 
     var examTiles = [];
     if (ex === 'waec') {
@@ -19563,7 +19568,6 @@ function renderPracticeHubV2() {
             { label: 'CBT Practice', icon: 'monitor', tint: '#2F6BFF', attrs: 'data-action="set-view" data-view="cbt"' },
             { label: 'Past Questions', icon: 'clipboard', tint: '#F0662B', attrs: 'data-action="ph-open-past" data-exam="jamb"' },
             { label: 'Flashcards', icon: 'cards', tint: '#E04C8E', attrs: 'data-action="ph-open-jamb-flash"' },
-            { label: 'Mock Arena', icon: 'target', tint: '#8B5CF6', attrs: 'data-action="set-view" data-view="mockexam"' },
             { label: 'Novel (CBT)', icon: 'book', tint: '#14A3A3', attrs: 'data-action="set-view" data-view="literature"' }
         ];
     } else {
@@ -23366,11 +23370,11 @@ function renderProfileCore() {
         '<div class="profile-fill">' +
         '<h2 class="title" style="margin-bottom:6px;font-size:14px">Account</h2>' +
         heroHtml +
+        toolsRow('account') +
         activateCardHtml +
         menuHtml +
         settingsRowHtml +
         socialHtml +
-        toolsRow('account') +
         nfAccount() +
         editHtml +
         '<div class="profile-bottom-pin">' + bottomHtml + '</div>' +
