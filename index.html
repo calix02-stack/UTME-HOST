@@ -13395,8 +13395,10 @@ var MOCK_SCHEDULE = {
     4: ['bio', 'gov'],     // Thursday  Science + Arts
     5: ['math', 'crs'],    // Friday    Science + Arts
     6: ['chem', 'com'],    // Saturday  Science + Commercial
-    0: ['geo', 'eco']      // Sunday    Arts + Commercial
+    0: ['eng']             // Sunday    FULL MOCK: English + any 3 subjects the student picks (built in mockAutoExams)
 };
+// Each weekday lists two subjects from different departments. They are SEPARATE exams: the student picks ONE of the two for that day.
+function mockDayText(dow) { return dow === 0 ? 'Full mock: English + any 3 subjects' : MOCK_SCHEDULE[dow].map(function(sid) { return mockSubjectName(sid); }).join(' or '); }
 var MOCK_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 // Mocks are created by the admin (Admin Panel > Mocks) and shared as a link:
 //   /?mock=bio,gov&s=<start seconds, base36>&e=<end seconds, base36>
@@ -13435,12 +13437,14 @@ function mockMakeExam(subs, start, end, opts) {
 function mockQCount(ex) { return (ex && ex.n) || MOCK_Q_PER_SUBJECT; }
 function mockAllowsFree(ex) { return !ex || ex.free !== false; }
 function mockExamTitle(ex) {
+    if (ex.full) return 'Sunday Full Mock';
     if (ex.topics && ex.topics.length) return mockSubjectName(ex.subs[0]) + ' · ' + ex.topics.map(function(t) { return t.name || 'Topic'; }).join(', ');
     var __nm = mockSubjectNames(ex.subs).join(' + ');
     return ex.subs.length >= 3 ? 'Full Mock · ' + __nm : __nm;
 }
 function mockExamMeta(ex) {
     var bits = [mockQCount(ex) + ' questions' + (ex.subs.length > 1 ? ' per subject' : '')];
+    if (ex.full) bits.push('English + 3 subjects of your choice');
     if (ex.topics && ex.topics.length) bits.unshift('Topic Mock');
     bits.push(mockAllowsFree(ex) ? 'Open to all students' : 'Activated students only');
     return bits.join(' · ');
@@ -13452,28 +13456,71 @@ var MOCK_AUTO_ON = true, MOCK_AUTO_FREE = true;
 function mockAutoExams() {
     if (!MOCK_AUTO_ON) return [];
     var out = [], now = new Date();
-    for (var off = -1; off <= 1; off++) {
+    for (var off = 0; off <= 0; off++) {   // today only
         var day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off);
         var subs = MOCK_SCHEDULE[day.getDay()];
         if (!subs || !subs.length) continue;
         var st = new Date(day.getFullYear(), day.getMonth(), day.getDate(), MOCK_OPEN_HOUR, 0, 0, 0).getTime();
         var en = new Date(day.getFullYear(), day.getMonth(), day.getDate(), MOCK_CLOSE_HOUR, 0, 0, 0).getTime();   // 24 = 12:00 am next day
-        var ex = mockMakeExam(subs.slice(), st, en, { free: MOCK_AUTO_FREE });
-        ex.auto = true;
-        out.push(ex);
+        if (day.getDay() === 0) {   // Sunday: ONE full mock, English + 3 subjects the student picks
+            var fx = mockMakeExam(mockAllBoardSubjects(), st, en, { free: MOCK_AUTO_FREE });
+            fx.id = 'full-' + Math.floor(st / 60000).toString(36); fx.full = true; fx.auto = true;
+            out.push(fx);
+            continue;
+        }
+        subs.forEach(function(sid) {   // weekdays: each subject is its own exam (the student picks one)
+            var ex = mockMakeExam([sid], st, en, { free: MOCK_AUTO_FREE });
+            ex.auto = true;
+            out.push(ex);
+        });
     }
     return out;
 }
 function mockExams() {
-    var cutoff = Date.now() - 36 * 3600 * 1000;
+    // Only today's Mock: ended ones are deleted (not shown as "closed"), tomorrow's are not shown yet.
+    var now = Date.now(), d0 = new Date(), endToday = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + 1, 0, 0, 0, 0).getTime();
+    try {
+        var stored = mockReadList('myMocks'), alive = stored.filter(function(x) { return x.end > now; });
+        if (alive.length !== stored.length) storage.set('myMocks', JSON.stringify(alive));
+    } catch (e) {}
     var seen = {}, all = [];
     mockAutoExams().concat(mockReadList('myMocks')).forEach(function(x) { if (!seen[x.id]) { seen[x.id] = 1; all.push(x); } });
-    return all.filter(function(x) { return x.end > cutoff; }).sort(function(a, b) { return a.start - b.start; });
+    return all.filter(function(x) { return x.end > now && x.start < endToday; }).sort(function(a, b) { return a.start - b.start; });
+}
+// Live countdown for the Mock page: every element with data-mk-t counts down to that time, then the page refreshes.
+function mockClockText(ms) { ms = Math.max(0, ms); var h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), sc = Math.floor(ms % 60000 / 1000); return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (sc < 10 ? '0' : '') + sc; }
+if (!window.__mkTicker) {
+    window.__mkTicker = setInterval(function() {
+        var els = document.querySelectorAll('[data-mk-t]'); if (!els.length) return;
+        var now = Date.now(), again = false;
+        els.forEach(function(e) {
+            var ms = Number(e.getAttribute('data-mk-t')) - now;
+            if (ms <= 0) { again = true; return; }
+            var h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), sc = Math.floor(ms % 60000 / 1000);
+            e.textContent = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (sc < 10 ? '0' : '') + sc;
+        });
+        if (again && !window.__mkAgain) { window.__mkAgain = 1; setTimeout(function() { window.__mkAgain = 0; try { render(); } catch (e) {} }, 500); }
+    }, 1000);
 }
 function mockAddToMine(ex) {
     var l = mockReadList('myMocks').filter(function(x) { return x.id !== ex.id; });
     l.push(ex);
     try { storage.set('myMocks', JSON.stringify(l.slice(-30))); } catch (e) {}
+}
+function mockDaySiblings(ex) { if (!ex || !ex.auto || ex.full) return []; return (MOCK_SCHEDULE[new Date(ex.start).getDay()] || []).slice(); }
+function mockPickedSibling(ex, rec) {   // the subject already taken today (when today has two to choose from)
+    var sib = mockDaySiblings(ex);
+    if (sib.length < 2 || !rec || !rec.scores) return null;
+    for (var i = 0; i < sib.length; i++) { if (sib[i] in rec.scores) return sib[i]; }
+    return null;
+}
+function mockFullPickKey(ex) { return 'mockFullPick_' + (state.authUser ? state.authUser.id : 'guest') + '_' + (ex ? ex.id : ''); }
+function mockFullAllowed(ex, rec) {   // the 3 electives this student is doing on the full-mock day (picked + already taken), max 3
+    var picked = []; try { picked = JSON.parse(storage.get(mockFullPickKey(ex)) || '[]') || []; } catch (e) {}
+    var taken = Object.keys((rec && rec.scores) || {}).filter(function(id) { return id !== 'eng'; });
+    var out = taken.slice();
+    picked.forEach(function(id) { if (id !== 'eng' && out.indexOf(id) === -1) out.push(id); });
+    return out.slice(0, 3);
 }
 function mockExamById(id) { return mockExams().find(function(x) { return x.id === id; }) || null; }
 function mockExamStatus(ex) { var n = Date.now(); return n < ex.start ? 'upcoming' : (n <= ex.end ? 'open' : 'closed'); }
@@ -13652,7 +13699,7 @@ function renderAdminMocks() {
         '<p style="font-size:11px;color:var(--muted);margin:0 0 8px;line-height:1.5">' + (MOCK_AUTO_ON ? 'ON: each day\'s Mock is created by itself and is open from 7:00 PM to 12:00 AM (device time). No button needed.' : 'OFF') + '</p>' +
         [1, 2, 3, 4, 5, 6, 0].map(function(dow) {
             const isT = new Date().getDay() === dow;
-            return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:12px;' + (isT ? 'font-weight:800;color:var(--green)' : '') + '"><span>' + MOCK_DAY_NAMES[dow] + (isT ? ' · today' : '') + '</span><span>' + MOCK_SCHEDULE[dow].map(function(sid) { return esc(mockSubjectName(sid)); }).join(' + ') + '</span></div>';
+            return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:12px;' + (isT ? 'font-weight:800;color:var(--green)' : '') + '"><span>' + MOCK_DAY_NAMES[dow] + (isT ? ' · today' : '') + '</span><span>' + esc(mockDayText(dow)) + '</span></div>';
         }).join('') + '</div>';
     h += '<div class="card"><p style="font-size:14px;font-weight:800;margin:0 0 10px">📋 Your Mocks</p>';
     if (!list.length) h += '<p style="font-size:12px;color:var(--muted);margin:0">No Mock created yet.</p>';
@@ -13673,7 +13720,7 @@ function renderAdminMocks() {
 }
 
 // ---------- Weekly Mock timetable (Mon–Sat) ----------
-var MOCK_TIMETABLE = [1, 2, 3, 4, 5, 6, 0].map(function(dow) { return { d: dow === 0 ? 7 : dow, day: MOCK_DAY_NAMES[dow], subs: MOCK_SCHEDULE[dow] }; });   // same table the automatic Mocks use
+var MOCK_TIMETABLE = [1, 2, 3, 4, 5, 6, 0].map(function(dow) { return { d: dow === 0 ? 7 : dow, day: MOCK_DAY_NAMES[dow], subs: MOCK_SCHEDULE[dow], full: dow === 0 }; });   // same table the automatic Mocks use
 function renderMockTimetable() {
     var recs = fridayRecords();
     var now = new Date(), todayKey = fridayKey(now);
@@ -13690,21 +13737,22 @@ function renderMockTimetable() {
             var n = rec && rec.scores ? Object.keys(rec.scores).length : 0;
             var fullDone = n >= 4;
             total++; if (fullDone) doneCount++;
-            body = '<span style="font-size:12px;line-height:1.5">All subjects Mock (your 4 subjects)</span>' +
+            body = '<span style="font-size:12px;line-height:1.5">Full Mock: English + 3 subjects you pick</span>' +
                 (fullDone ? tick : (n ? '<span style="flex:0 0 auto;font-size:10px;font-weight:700;color:var(--muted)">' + n + '/4 done</span>' : (past ? '<span style="flex:0 0 auto;font-size:10px;font-weight:700;color:#B7791F">Not taken</span>' : '')));
         } else {
+            var anyDone = r.subs.some(function(sid) { return !!(rec && rec.scores && (sid in rec.scores)); });
+            total++; if (anyDone) doneCount++;
             var subsHtml = r.subs.map(function(sid) {
                 var d = !!(rec && rec.scores && (sid in rec.scores));
-                total++; if (d) doneCount++;
-                return '<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 2px 0;font-size:12px;' + (d ? 'color:var(--green);font-weight:800' : '') + '">' + (d ? '✓ ' : '○ ') + esc(mockSubjectName(sid)) + '</span>';
-            }).join('');
+                return '<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 0;font-size:12px;' + (d ? 'color:var(--green);font-weight:800' : (anyDone ? 'opacity:.45' : '')) + '">' + (d ? '✓ ' : '○ ') + esc(mockSubjectName(sid)) + '</span>';
+            }).join('<span style="font-size:10.5px;color:var(--muted);margin:0 6px">or</span>');
             body = '<div style="flex:1;min-width:0">' + subsHtml + '</div>';
         }
         rows += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:12px;margin-bottom:6px;background:' + (isToday ? 'rgba(15,107,63,.12)' : 'var(--bg)') + ';' + (isToday ? 'border:1.5px solid var(--green)' : 'border:1.5px solid transparent') + '">' +
             '<div style="flex:0 0 78px"><b style="font-size:12px">' + r.day + '</b>' + (isToday ? '<div style="font-size:9.5px;font-weight:800;color:var(--green)">TODAY</div>' : '') + '</div>' + body + '</div>';
     });
     return '<div class="card"><p style="font-size:14px;font-weight:800;margin:0 0 2px">🗓️ Weekly Mock timetable</p>' +
-        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + doneCount + ' of ' + total + ' done this week · opens 7 PM to 12 AM every day</p><div class="mk-tt">' + rows + '</div></div>';
+        '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + doneCount + ' of ' + total + ' days done this week · opens 7 PM to 12 AM every day</p><div class="mk-tt">' + rows + '</div></div>';
 }
 function renderMockExamPicker() {
     fridayFlushReleased();
@@ -13726,14 +13774,20 @@ function renderMockExamPicker() {
         '<button class="leaderboard-tab' + (__tab === 'mock' ? ' active' : '') + '" data-action="friday-tab" data-tab="mock">📝 Mock</button>' +
         '<button class="leaderboard-tab' + (__tab === 'board' ? ' active' : '') + '" data-action="friday-tab" data-tab="board">🏆 Leaderboard</button></div>';
     if (__tab === 'board') return html + renderFridayBoard();
-    html += renderMockTimetable();
-    html += nfMock();
-
+    const __panel = state.mockPanel || '';
+    if (__panel) {
+        const pt = { tt: '🗓️ Timetable', rec: '🕘 My past records', ana: '📈 Analytics' }[__panel] || '';
+        return html + '<button class="back-link" data-action="mock-panel" data-panel="">' + svg('chevleft', 14) + ' Back to today\'s Mock</button>' +
+            '<p style="font-size:15px;font-weight:800;margin:4px 0 10px">' + pt + '</p>' +
+            (__panel === 'tt' ? renderMockTimetable() : __panel === 'rec' ? renderMockRecords(recs, wk) : nfMock());
+    }
+    const __ib = function(k, ic, lb) { return '<button type="button" data-action="mock-panel" data-panel="' + k + '" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;border:1.5px solid var(--line);background:var(--card-bg);color:var(--ink);font:inherit;font-size:11px;font-weight:700;cursor:pointer"><span style="font-size:20px;line-height:1">' + ic + '</span>' + lb + '</button>'; };
+    html += '<div style="display:flex;gap:8px;margin:0 0 12px">' + __ib('tt', '🗓️', 'Timetable') + __ib('rec', '🕘', 'My records') + __ib('ana', '📈', 'Analytics') + '</div>';
     const exams = mockExams();
     if (!exams.length) {
         html += '<div class="card" style="text-align:center;padding:24px"><p style="font-size:34px;margin:0">📝</p>' +
-            '<h3 class="title" style="font-size:15px">No Mock yet</h3>' +
-            '<p style="font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.5">When MyUTME shares a Mock link, open it and your Mock will show here with its time.</p></div>';
+            '<h3 class="title" style="font-size:15px">No Mock right now</h3>' +
+            '<p style="font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.5">Today\'s Mock appears here by itself. Past Mocks are removed after 12:00 AM.</p></div>';
     }
     let anyReleased = null;
     exams.slice().reverse().forEach(function(ex) {
@@ -13743,9 +13797,40 @@ function renderMockExamPicker() {
             : st === 'upcoming' ? '<span style="background:#B7791F;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">UPCOMING</span>'
             : '<span style="background:#7a8580;color:#fff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:800">CLOSED</span>';
         let card = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><p style="font-size:14px;font-weight:800;margin:0">' + esc(mockExamTitle(ex)) + '</p>' + badge + '</div>' +
-            '<p style="font-size:11.5px;color:var(--muted);margin:0 0 4px">🕒 ' + esc(mockFmtRange(ex)) + '</p>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg);border-radius:12px;padding:9px 12px;margin:2px 0 8px"><span style="font-size:11.5px;color:var(--muted)">🕒 ' + esc(new Date(ex.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + ' to ' + esc(new Date(ex.end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + '</span>' +
+            '<span style="font-size:11px;color:var(--muted);text-align:right">' + (st === 'open' ? 'Closes in' : 'Opens in') + ' <b data-mk-t="' + (st === 'open' ? ex.end : ex.start) + '" style="font-size:15px;color:' + (st === 'open' ? 'var(--green)' : '#B7791F') + ';font-variant-numeric:tabular-nums">' + mockClockText((st === 'open' ? ex.end : ex.start) - Date.now()) + '</b></span></div>' +
             '<p style="font-size:11px;color:var(--muted);margin:0 0 10px">' + esc(mockExamMeta(ex)) + '</p>';
-        ex.subs.forEach(function(sid) {
+        const __picked = mockPickedSibling(ex, rec);
+        let __subsList = ex.subs.slice();
+        if (ex.full) {
+            const __allow = mockFullAllowed(ex, rec);
+            const __anyTaken = Object.keys((rec && rec.scores) || {}).length > 0;
+            let __lk = false; try { __lk = storage.get(mockFullPickKey(ex) + '_lock') === '1'; } catch (e) {}
+            const __lockedIn = (__anyTaken || __lk) ? __allow.slice() : [];
+            const __electives = ex.subs.filter(function(id) { return id !== 'eng'; });
+            card += '<p style="font-size:12px;font-weight:700;margin:2px 0 4px">' + (__anyTaken || __lk ? 'Your 4 subjects (locked):' : 'English is compulsory. Choose 3 more (' + __allow.length + '/3):') + '</p>' +
+                (__anyTaken || __lk ? '' : '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">You write all 4 together in one sitting. You cannot change them once you start.</p>') + '<div style="margin-bottom:8px">' +
+                __electives.map(function(id) {
+                    const on = __allow.indexOf(id) !== -1, lock = __anyTaken || __lk || (!on && __allow.length >= 3);
+                    if ((__anyTaken || __lk) && !on) return '';
+                    return '<button type="button" ' + (lock ? 'disabled ' : '') + 'data-action="mock-full-pick" data-exam="' + esc(ex.id) + '" data-subject="' + id + '" style="padding:7px 11px;border-radius:999px;font-size:12px;font-weight:700;border:1.5px solid var(--green);margin:0 6px 6px 0;background:' + (on ? 'var(--green)' : 'transparent') + ';color:' + (on ? '#fff' : 'var(--green)') + ';opacity:' + (lock && !on ? '.35' : '1') + '">' + esc(mockSubjectName(id)) + '</button>';
+                }).join('') + '</div>';
+            if (__anyTaken) __subsList = ['eng'].concat(__allow);
+            else {
+                __subsList = [];
+                if (st === 'open') {
+                    if (!mockAllowsFree(ex) && !isPaidUser()) card += '<button class="btn btn-gold" style="width:100%;padding:12px;margin-top:6px" data-action="mock-activate-go">🔒 Activate to take the Full Mock</button>';
+                    else card += '<button class="btn btn-green" style="width:100%;padding:12px;margin-top:6px;' + (__allow.length < 3 ? 'opacity:.45' : '') + '" ' + (__allow.length < 3 ? 'data-action="mock-need-3"' : 'data-action="friday-start" data-subject="eng" data-exam="' + esc(ex.id) + '"') + '>Start Full Mock (' + (__allow.length < 3 ? 'pick ' + (3 - __allow.length) + ' more' : '4 subjects') + ')</button>';
+                } else card += '<div style="padding:9px 0;border-top:1px solid var(--line);font-size:12px;color:var(--muted)">🔒 Opens at ' + esc(new Date(ex.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + '</div>';
+            }
+        } else if (ex.auto && mockDaySiblings(ex).length > 1 && !__picked) {
+            card += '<p style="font-size:11.5px;color:var(--muted);margin:0 0 8px">Today you pick <b>one</b> subject: ' + mockDaySiblings(ex).map(function(i) { return esc(mockSubjectName(i)); }).join(' or ') + '.</p>';
+        }
+        if (__picked && __picked !== ex.subs[0] && !ex.full) {
+            card += '<div style="padding:9px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)">🔒 You chose ' + esc(mockSubjectName(__picked)) + ' for today, so this one is closed for you.</div>';
+            __subsList = [];
+        }
+        __subsList.forEach(function(sid) {
             const taken = mockTaken(rec, sid, ex);
             if (taken) {
                 const rel = fridayReleased(rec);
@@ -13758,10 +13843,10 @@ function renderMockExamPicker() {
             } else if (st === 'open') {
                 card += '<button class="btn btn-green" style="width:100%;padding:12px;margin-top:6px" data-action="friday-start" data-subject="' + sid + '" data-exam="' + esc(ex.id) + '">Start ' + esc(mockSubjectName(sid)) + '</button>';
             } else {
-                card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span><span style="color:var(--muted);font-size:11.5px">' + (st === 'upcoming' ? 'Opens ' + esc(mockFmtTime(ex.start)) : 'Closed') + '</span></div>';
+                card += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px"><span>' + esc(mockSubjectName(sid)) + '</span><span style="color:var(--muted);font-size:11.5px">' + '🔒 Opens at ' + esc(new Date(ex.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + '</span></div>';
             }
         });
-        if (st === 'open') card += '<p style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.5">' + mockQCount(ex) + ' questions' + (ex.subs.length > 1 ? ' per subject' : '') + ' · scored out of 100 · results show immediately after you submit' + (ex.subs.length > 1 ? ' · take one subject, then the other' : '') + '</p>';
+        if (st === 'open') card += '<p style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.5">' + mockQCount(ex) + ' questions' + (ex.subs.length > 1 ? ' per subject' : '') + ' · scored out of 100 · results show immediately after you submit' + '</p>';
         html += card + '</div>';
     });
     if (anyReleased) {
@@ -13769,6 +13854,10 @@ function renderMockExamPicker() {
             '<button class="btn btn-green" style="flex:1;padding:9px;font-size:12px" data-action="friday-tab" data-tab="board" data-week="' + esc(anyReleased.week) + '">🏆 Leaderboard</button></div>';
     }
 
+    return html;
+}
+function renderMockRecords(recs, wk) {
+    let html = '';
     // Weekly progress — only results that have been released
     const weeks = [];
     const base = new Date(wk + 'T00:00:00');
@@ -13972,10 +14061,18 @@ async function startMockExam(subjects, examId) {
     const __sid = subjects && subjects[0];
     if (!__sid || __ex.subs.indexOf(__sid) === -1) { showToast('That subject is not in this Mock.', 'error'); return; }
     subjects = [__sid];
+    if (__ex.full) {
+        const __al = mockFullAllowed(__ex, fridayRecords().find(function(r) { return r.week === mockExamWeek(__ex); }));
+        if (__al.length < 3) { showToast('Choose your 3 subjects first (English is already included).', 'error'); return; }
+        subjects = ['eng'].concat(__al);
+    }
     const __wk = mockExamWeek(__ex);
     const __rec = fridayRecords().find(function(r) { return r.week === __wk; });
-    if (mockTaken(__rec, __sid, __ex)) { showToast('You have already taken ' + mockSubjectName(__sid) + '.', 'error'); return; }
+    if (__ex.full ? (__rec && __rec.scores && Object.keys(__rec.scores).length) : mockTaken(__rec, __sid, __ex)) { showToast(__ex.full ? 'You have already taken today\'s full mock.' : 'You have already taken ' + mockSubjectName(__sid) + '.', 'error'); return; }
+    const __pk = mockPickedSibling(__ex, __rec);
+    if (__pk && __pk !== __sid) { showToast('You already chose ' + mockSubjectName(__pk) + ' for today.', 'error'); return; }
     if (!mockAllowsFree(__ex) && !isPaidUser()) { mockGoActivate('This Mock is only open to activated students. Activate to take it.'); return; }
+    if (__ex.full) { try { storage.set(mockFullPickKey(__ex), JSON.stringify(subjects.slice(1))); storage.set(mockFullPickKey(__ex) + '_lock', '1'); } catch (e) {} }
     state.isLoading = true;
     render();
     try {
@@ -14779,8 +14876,9 @@ async function loadAiSessions() {
         // is reset to null in setView) — old chats stay one tap away via
         // the history panel (switchAiSession).
         if (state.aiCurrentSessionId) {
-            await loadAiMessages(state.aiCurrentSessionId);
-        } else {
+            if (!(state.aiMessages && state.aiMessages.length)) await loadAiMessages(state.aiCurrentSessionId);
+            else state.aiMessagesLoaded = true;
+        } else if (!(state.aiMessages && state.aiMessages.length)) {
             state.aiMessages = [];
             state.aiMessagesLoaded = true;
         }
@@ -14824,6 +14922,8 @@ async function loadAiMessages(sessionId) {
         render();
         return;
     }
+    if (state.aiSending && state.aiCurrentSessionId === sessionId) return;   // a chat is live on screen: keep it
+    const __ver0 = state.aiMsgVer || 0;
     state.aiMessagesLoaded = false;
     render();
     try {
@@ -14833,6 +14933,9 @@ async function loadAiMessages(sessionId) {
             .eq('user_id', state.authUser.id)
             .eq('session_id', sessionId)
             .order('created_at', { ascending: true });
+        if ((state.aiMsgVer || 0) !== __ver0 || state.aiCurrentSessionId !== sessionId) {   // new messages appeared (or the chat changed) while loading: do not wipe them
+            state.aiMessagesLoaded = true; render(); return;
+        }
         state.aiMessages = error ? [] : (data || []);
         state.aiMessagesLoaded = true;
         render();
@@ -14913,7 +15016,22 @@ function toggleAiVoiceRecording() {
             }
             segs.push(t);
         }
-        const text = baseText + segs.join(' ');
+        // Second pass: some phones re-send the last few words at the start of the next piece
+        // ("what is the" then "is the capital"). Cut that overlap so no word is spoken-and-typed twice.
+        const wnorm = function(w) { return w.toLowerCase().replace(/[^a-z0-9']/g, ''); };
+        let spoken = [];
+        segs.join(' ').split(' ').forEach(function(w) { if (w) spoken.push(w); });
+        const merged = [];
+        spoken.forEach(function(w) {
+            merged.push(w);
+            // if the last 2+ words just repeated the 2+ words before them, drop the repeat
+            for (let k = Math.min(6, Math.floor(merged.length / 2)); k >= 2; k--) {
+                let same = true;
+                for (let q = 0; q < k; q++) { if (wnorm(merged[merged.length - 1 - q]) !== wnorm(merged[merged.length - 1 - k - q])) { same = false; break; } }
+                if (same) { merged.length -= k; break; }
+            }
+        });
+        const text = baseText + merged.join(' ');
         const liveEl = document.getElementById('ai-chat-input');
         if (liveEl) {
             liveEl.value = text;
@@ -15035,7 +15153,7 @@ async function sendAiMessage(text, questionContext) {
         inserted = { id: 't' + Date.now(), sender: 'user', message: storedMsg, created_at: new Date().toISOString() };
         supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'user', message: storedMsg }]).then(function() {}, function() {});  // save in background: don't make the student wait
     } else { inserted = { id: 'g' + Date.now(), sender: 'user', message: storedMsg, created_at: new Date().toISOString() }; saveGuestAiMessage(sessionId, 'user', storedMsg); }
-    if (inserted) state.aiMessages.push(inserted);
+    if (inserted) { state.aiMessages.push(inserted); state.aiMsgVer = (state.aiMsgVer || 0) + 1; }
 
     const session = state.aiSessions.find(function(s) { return s.id === sessionId; });
     const titleSource = msg || (pendingImage ? 'Image' : '') || (pendingDocument ? pendingDocument.name : '') || 'New chat';
@@ -15062,8 +15180,48 @@ async function sendAiMessage(text, questionContext) {
                 imageBase64: pendingImage || null,
                 documentBase64: pendingDocument ? pendingDocument.data : null,
                 documentName: pendingDocument ? pendingDocument.name : null,
+                stream: true,
             }),
         });
+        // STREAMING: show the answer word by word as it arrives (much faster to first words)
+        if (res.ok && res.body && (res.headers.get('content-type') || '').indexOf('text/event-stream') !== -1) {
+            const reader = res.body.getReader(), dec = new TextDecoder();
+            let buf = '', full = '', msgObj = null, lastDraw = 0;
+            try {
+                while (true) {
+                    const chunk = await reader.read();
+                    if (chunk.done) break;
+                    buf += dec.decode(chunk.value, { stream: true });
+                    let ix;
+                    while ((ix = buf.indexOf('\n\n')) >= 0) {
+                        const line = buf.slice(0, ix).replace(/^data:\s*/, '').trim();
+                        buf = buf.slice(ix + 2);
+                        if (!line || line === '[DONE]') continue;
+                        let j = null; try { j = JSON.parse(line); } catch (e) {}
+                        if (!j || !j.t) continue;
+                        full += j.t;
+                        if (!msgObj) {
+                            msgObj = { id: (state.authUser ? 't' : 'g') + Date.now() + 'a', sender: 'ai', message: full, created_at: new Date().toISOString() };
+                            state.aiMessages.push(msgObj); state.aiMsgVer = (state.aiMsgVer || 0) + 1;
+                            state.aiSending = false;
+                            render(); lastDraw = Date.now();
+                        } else {
+                            msgObj.message = full;
+                            if (Date.now() - lastDraw > 140) { lastDraw = Date.now(); render(); }
+                        }
+                    }
+                }
+            } catch (streamErr) { console.warn('AI stream interrupted:', streamErr); }
+            if (!msgObj) {
+                msgObj = { id: 'e' + Date.now() + 'a', sender: 'ai', message: 'Sorry, I could not generate a response. Please try again.', created_at: new Date().toISOString() };
+                state.aiMessages.push(msgObj); state.aiMsgVer = (state.aiMsgVer || 0) + 1;
+            } else if (state.authUser) {
+                supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'ai', message: full }]).then(function() {}, function() {});
+            } else { saveGuestAiMessage(sessionId, 'ai', full); }
+            state.aiSending = false;
+            render();
+            return;
+        }
         const data = await res.json();
 
         if (res.status === 429) {
@@ -15089,7 +15247,7 @@ async function sendAiMessage(text, questionContext) {
             aiInserted = { id: 't' + Date.now() + 'a', sender: 'ai', message: aiMessage, created_at: new Date().toISOString() };
             supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'ai', message: aiMessage }]).then(function() {}, function() {});  // show the answer first, save after
         } else { aiInserted = { id: 'g' + Date.now() + 'a', sender: 'ai', message: aiMessage, created_at: new Date().toISOString() }; saveGuestAiMessage(sessionId, 'ai', aiMessage); }
-        if (aiInserted) state.aiMessages.push(aiInserted);
+        if (aiInserted) { state.aiMessages.push(aiInserted); state.aiMsgVer = (state.aiMsgVer || 0) + 1; }
     } catch (e) {
         showNetworkAwareError('Could not reach AI assistant. Please try again.', e);
     }
@@ -19342,18 +19500,11 @@ function renderPracticeHubV2() {
         { mode: 'past', view: 'exam', label: 'Past Questions', sub: ex === 'jamb' ? 'Pick a year, 2000 \u2013 2026' : (info.pastLive ? 'English 2015 is ready' : 'Year by year, subject by subject'), icon: 'clipboard', tint: '#F0662B', soon: soon && !info.pastLive },
         { mode: 'flash', view: 'flashcards', label: 'Flashcards', sub: 'Flip through Q&A fast', icon: 'cards', tint: '#E04C8E', soon: soon }
     ];
+    if (ex === 'jamb') examRows.push({ view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#14A3A3' });
     var examHtml = '<p class="px-gt">' + esc(info.label) + ' practice</p><div class="px-list">' +
         examRows.map(function(r) { return phRowHtml(r, ex); }).join('') + '</div>';
 
     var jambOnly = '';
-    if (ex === 'jamb') {
-        jambOnly = '<p class="px-gt">JAMB only</p><div class="px-list">' +
-            phRowHtml({ view: 'mockexam', label: 'Mock Arena', sub: 'Scheduled, timed UTME mock exams', icon: 'target', tint: '#6E5296' }, ex) +
-            phRowHtml({ view: 'literature', label: 'Novel (CBT)', sub: 'Set texts', icon: 'book', tint: '#14A3A3' }, ex) +
-            '</div>';
-    } else {
-        jambOnly = '<p class="px-gs" style="margin-top:14px">Mock Arena and Novel (CBT) are for JAMB only.</p>';
-    }
 
     return '<section style="padding-bottom:12px">' +
         '<h1 class="px-h">Practice</h1>' +
@@ -22232,7 +22383,7 @@ function renderAiAssistant() {
         });
     }
     if (state.aiSending) {
-        bubbles += '<div class="typing-indicator"><span>✨</span><span class="enzo-thinking">' + AI_NAME + ' is thinking</span><span class="dots"><span></span><span></span><span></span></span></div>';
+        bubbles += '<div class="ai-think"><span class="ai-think-t">' + AI_NAME + ' is thinking</span><span class="ai-think-d"><i></i><i></i><i></i></span></div>';
     }
 
     let historyPanel = '';
@@ -22332,6 +22483,7 @@ function renderAiAssistant() {
         '<input type="file" id="ai-document-input" accept=".pdf,.doc,.docx,.txt" hidden>' +
         '<p class="sb-note">' + AI_NAME + ' can make mistakes. Double-check important answers.</p>' +
         '</div>' +
+        attachMenu +
         historyPanel
     );
 }
@@ -23002,7 +23154,7 @@ function renderProfileCore() {
         
         menuHtml += (
             '<button class="ph-mode-card" style="--tint:' + item.color + ';background:' + item.color + '14;border-color:' + item.color + '40" ' + dataAttr + '>' +
-            '<span class="ph-mode-icon" style="background:' + item.color + '26;color:' + item.color + '">' + svg(item.icon, 22) + '</span>' +
+            '<span class="ph-mode-icon" style="background:' + item.color + '26;color:' + item.color + '">' + (item.icon === 'telegram' ? socialSvg('telegram', 22) : svg(item.icon, 22)) + '</span>' +
             '<span class="ph-mode-text"><span class="ph-mode-label">' + esc(item.title) + badgeHtml + '</span><span class="ph-mode-sub">' + esc(item.sub) + '</span></span>' +
             '<span class="ph-mode-chevron" style="color:' + item.color + '">' + svg('chevleft', 16).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span>' +
             '</button>'
@@ -23056,11 +23208,11 @@ function renderProfileCore() {
         '<div class="profile-fill">' +
         '<h2 class="title" style="margin-bottom:6px;font-size:14px">Account</h2>' +
         heroHtml +
-        nfAccount() +
         activateCardHtml +
-        socialHtml +
-        settingsRowHtml +
         menuHtml +
+        settingsRowHtml +
+        socialHtml +
+        nfAccount() +
         editHtml +
         '<div class="profile-bottom-pin">' + bottomHtml + '</div>' +
         '</div>'
@@ -24779,7 +24931,13 @@ function adashPayRow(r, showPlan) {
     return '<div style="padding:9px 0;border-top:1px solid #eef0f2;font-size:12px"><div style="display:flex;justify-content:space-between;gap:8px"><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(r.name) + '</b><b style="color:#0B8A55;flex-shrink:0">' + adashNaira(r.amount) + '</b></div>' +
         '<div style="color:#6b7280;font-size:10.5px;margin-top:2px;word-break:break-all">' + (r.username ? '@' + esc(r.username) + ' · ' : '') + esc(r.email || '') + '</div>' +
         '<div style="color:#6b7280;font-size:10.5px;margin-top:2px">' + esc(adashWhen(r.when)) + ' · ' + esc(r.method) + (showPlan ? ' · ' + esc(r.plan) : '') + '</div>' +
-        (r.code ? '<div style="color:#9ca3af;font-size:9.5px;margin-top:2px;word-break:break-all">Key: ' + esc(r.code) + '</div>' : '') + '</div>';
+        '<div style="font-size:10px;margin-top:3px;color:' + (r.repeat ? '#B7791F' : '#0B8A55') + ';font-weight:700">' + (r.repeat ? 'Renewal: this user paid before' : 'First purchase') + '</div>' +
+        (r.claimAt || r.approvedAt ? '<div style="color:#6b7280;font-size:10px;margin-top:2px;line-height:1.5">' +
+            (r.claimAt ? 'Payment sent: ' + esc(adashWhen(r.claimAt)) + '<br>' : '') +
+            (r.approvedAt ? 'Approved by admin: ' + esc(adashWhen(r.approvedAt)) + '<br>' : '') +
+            (r.usedAt ? 'Key activated: ' + esc(adashWhen(r.usedAt)) : '') + '</div>' : '') +
+        (r.code ? '<div style="color:#9ca3af;font-size:9.5px;margin-top:2px;word-break:break-all">Key: ' + esc(r.code) + '</div>' : '') +
+        '<button class="mini-btn danger" data-action="rev-exclude" data-id="' + esc(String(r.id)) + '" data-name="' + esc(r.name) + '" data-amt="' + r.amount + '" style="font-size:10px;margin-top:6px">Not a real payment: remove from revenue</button></div>';
 }
 // People who bought one plan (shown when the plan is tapped in Revenue by plan).
 function adashPlanBuyers(d, plan) {
@@ -24832,36 +24990,49 @@ async function loadAnalyticsData() {
             if (_fromMs && (!k.used_at || new Date(k.used_at).getTime() < _fromMs)) return false;
             return true;
         });
+        const claimByKey = {};
+        claims.forEach(function(c) { if (c.key_code) claimByKey[String(c.key_code).toUpperCase()] = c; });
+        // Date of the payment itself: for a manual payment it is when the payer sent the "I've paid" request,
+        // not when the key was later typed in. Paystack/online keys use the moment the key was used.
+        const payTime = function(k) {
+            const cl = claimByKey[String(k.key_code || '').toUpperCase()];
+            const t = cl && cl.created_at ? new Date(cl.created_at).getTime() : (k.used_at ? new Date(k.used_at).getTime() : 0);
+            return t || 0;
+        };
         const byPlan = {};
         let revenueRange = 0, revenueAll = 0;
         used.forEach(function(k) {
             const price = Number(k.price) || 0;
             revenueAll += price;
-            const when = k.used_at ? new Date(k.used_at).getTime() : 0;
-            if (when >= sinceMs) { revenueRange += price; const dk = dayKey(k.used_at); if (sales[dk] !== undefined) sales[dk] += price; }
+            const when = payTime(k);
+            if (when >= sinceMs) { revenueRange += price; const dk = dayKey(when); if (sales[dk] !== undefined) sales[dk] += price; }
             const name = k.plan_name || 'Plan';
             byPlan[name] = byPlan[name] || { n: 0, amt: 0 };
             byPlan[name].n++; byPlan[name].amt += price;
         });
         // Payment history: one row per paid (used) key, the same rows Revenue is added up from,
         // so the history and the total always agree.
-        const claimByKey = {};
-        claims.forEach(function(c) { if (c.key_code) claimByKey[c.key_code] = c; });
         const userById = {};
         profiles.forEach(function(p) { userById[p.id] = p; });
         const payments = used.filter(function(k) { return Number(k.price) > 0; }).map(function(k) {
             const u = userById[k.used_by] || {};
             const code = String(k.key_code || '');
-            const cl = claimByKey[code];
-            const method = /^ADM-/i.test(code) ? 'Added by admin' : (cl ? 'Manual transfer' : 'Online / key');
+            const cl = claimByKey[code.toUpperCase()];
+            const method = /^ADM-/i.test(code) ? 'Added by admin' : (cl ? 'Manual payment (user sent "I\'ve paid", admin approved)' : 'Online / key');
             return {
-                id: k.id, when: k.used_at ? new Date(k.used_at).getTime() : 0, amount: Number(k.price) || 0,
+                id: k.id, uid: k.used_by || k.used_by_username || '', usedAt: k.used_at ? new Date(k.used_at).getTime() : 0,
+                claimAt: cl && cl.created_at ? new Date(cl.created_at).getTime() : 0,
+                approvedAt: cl && cl.confirmed_at ? new Date(cl.confirmed_at).getTime() : 0,
+                when: payTime(k), amount: Number(k.price) || 0,
                 plan: k.plan_name || 'Plan',
                 name: u.full_name || cl && cl.payer_name || k.used_by_username || u.username || 'Unknown user',
                 username: u.username || k.used_by_username || '', email: u.email || (cl && cl.email) || '',
                 method: method, code: code
             };
         }).sort(function(a, b) { return b.when - a.when; });
+        payments.forEach(function(r) {   // first purchase or a renewal by someone who already paid before
+            r.repeat = !!r.uid && payments.some(function(o) { return o !== r && o.uid === r.uid && o.when < r.when; });
+        });
         state.analyticsData = {
             payments: payments,
             rangeDays: rangeDays, days: days, signups: signups, sales: sales, byPlan: byPlan,
@@ -25086,7 +25257,8 @@ function renderAdminOverview() {
         exam: 0,
         mock: 0,
         topic: 0,
-        literature: 0
+        literature: 0,
+        waec: 0
     };
     
     // Subject breakdown per mode
@@ -25121,12 +25293,15 @@ function renderAdminOverview() {
     adminEnsureLiveCounts();
     if (state.liveQ) {   // real counts from the question files (local store can hold only JAMB CBT)
         modeCounts.cbt = Math.max(modeCounts.cbt, state.liveQ.cbt || 0);
-        modeCounts.exam = Math.max(modeCounts.exam, (state.liveQ.exam || 0) + (state.liveQ.waec || 0));
+        modeCounts.exam = Math.max(modeCounts.exam, state.liveQ.exam || 0);
+        modeCounts.waec = Math.max(state.waecQCount || 0, state.liveQ.waec || 0);
         modeCounts.mock = Math.max(modeCounts.mock, state.liveQ.mock || 0);
         modeCounts.topic = Math.max(modeCounts.topic, state.liveQ.topic || 0);
         modeCounts.literature = Math.max(modeCounts.literature, state.liveQ.novel || 0);
     }
-    const grandTotal = modeCounts.cbt + modeCounts.exam + modeCounts.mock + modeCounts.topic + modeCounts.literature;
+    modeCounts.waec = Math.max(modeCounts.waec, state.waecQCount || 0);
+    subjectBreakdown['waec'] = state.waecBySubject || {};
+    const grandTotal = modeCounts.cbt + modeCounts.exam + modeCounts.mock + modeCounts.topic + modeCounts.literature + modeCounts.waec;
 
     function renderSubjectBreakdown(type) {
         const breakdown = subjectBreakdown[type] || {};
@@ -25198,6 +25373,16 @@ function renderAdminOverview() {
         '<div class="mode-actions">' +
         '<span class="count-badge">' + modeCounts.literature + '</span>' +
         '<span class="edit-icon" data-action="admin-edit-mode" data-mode="literature">✏️</span>' +
+        '</div>' +
+        '</div>' +
+        '<div class="admin-mode-card">' +
+        '<div class="mode-info">' +
+        '<span class="mode-name">🎓 WAEC Questions</span>' +
+        '<span class="mode-count">' + modeCounts.waec + ' questions</span>' +
+        renderSubjectBreakdown('waec') +
+        '</div>' +
+        '<div class="mode-actions">' +
+        '<span class="count-badge">' + modeCounts.waec + '</span>' +
         '</div>' +
         '</div>' +
         '<div class="card" style="margin-top:10px">' +
@@ -29003,8 +29188,22 @@ document.addEventListener('click', function(e) {
     
 
     if (action === 'friday-toggle-subject') { return; }
+    if (action === 'mock-need-3') { showToast('Choose 3 subjects first. English is already included.', 'error'); return; }
+    if (action === 'mock-panel') { state.mockPanel = el.getAttribute('data-panel') || ''; render(); return; }
+    if (action === 'mock-full-pick') {
+        const __fx = mockExamById(el.getAttribute('data-exam')), __sj = el.getAttribute('data-subject');
+        if (__fx && __sj) {
+            let cur = []; try { cur = JSON.parse(storage.get(mockFullPickKey(__fx)) || '[]') || []; } catch (e) {}
+            const ix = cur.indexOf(__sj);
+            if (ix !== -1) cur.splice(ix, 1); else if (cur.length < 3) cur.push(__sj);
+            try { storage.set(mockFullPickKey(__fx), JSON.stringify(cur)); } catch (e) {}
+            render();
+        }
+        return;
+    }
     if (action === 'friday-tab') {
         state.mockArenaTab = el.getAttribute('data-tab') === 'board' ? 'board' : 'mock';
+        state.mockPanel = '';
         const w = el.getAttribute('data-week'); if (w) state.fridayBoardWeek = w;
         if (state.mockArenaTab === 'board') { state.fridayBoardMode = 'overall'; try { fridaySyncScores(true); } catch (e) {} loadSubjAll(true); }
         render();
@@ -29333,6 +29532,16 @@ document.addEventListener('click', function(e) {
         const nm = el.getAttribute('data-plan') || '';
         state.revPlanOpen = (state.revPlanOpen === nm) ? null : nm;
         render(); return;
+    }
+    if (action === 'rev-exclude') {
+        const kid = el.getAttribute('data-id');
+        if (!kid || !confirm('Remove ₦' + Number(el.getAttribute('data-amt') || 0).toLocaleString() + ' from ' + (el.getAttribute('data-name') || 'this user') + ' out of revenue?\n\nThe user stays activated. Only the money amount is set to ₦0.')) return;
+        supabase.from('activation_keys').update({ price: 0 }).eq('id', kid).then(function(r) {
+            if (r && r.error) { showToast('Could not update: ' + r.error.message, 'error'); return; }
+            showToast('Removed from revenue.', 'success');
+            state.analyticsLoaded = false; loadAnalyticsData();
+        });
+        return;
     }
     if (action === 'rev-hist-toggle') { state.revHistAll = !state.revHistAll; render(); return; }
     if (action === 'rev-from-apply') {
@@ -31630,7 +31839,7 @@ function renderAdminDeptCard() {
         (seen ? '' : '<p style="font-size:11px;color:#B7791F;margin:6px 0 0">Department is not coming through yet. Run admin_general_activation_and_department.sql in the Supabase SQL Editor, then reload this page.' + (state.deptFixError ? ' (' + String(state.deptFixError).replace(/[<>&]/g, '') + ')' : '') + '</p>') + '</div>';
 }
 
-var AI_CHAT_HINT = '\n\n[Reply format: answer the question directly in the first line, then explain briefly. Short paragraphs, simple words, use steps or a short list when helpful, one quick example if it helps. Keep it concise and fast; go deeper only if the student asks.]';
+var AI_CHAT_HINT = '\n\n[Reply format: answer the question directly in the first line, then explain briefly. Short paragraphs, simple words, use steps or a short list when helpful, one quick example if it helps. Keep it concise (about 120 words at most) and fast; go deeper only if the student asks.]';
 var AI_STYLE_HINT = '\n\n[Reply format: explain like clear study notes. Use short headed sections, simple steps, one worked example, and short paragraphs with a blank line between them. Be thorough but get to the point fast.]';
 function renderHomeFeatures() {
     var f = [
@@ -33105,12 +33314,12 @@ function nfAccount() {
     var avg = pcts.length ? Math.round(pcts.reduce(function (a, b) { return a + b; }, 0) / pcts.length) : null;
     var best = pcts.length ? Math.round(Math.max.apply(null, pcts)) : null;
     var qs = ents.reduce(function (t, e) { return t + nfQs(e); }, 0), st = getLocalStreak();
-    return '<div class="nf-card" style="margin-top:12px"><div class="nf-h"><b>My stats</b></div><div class="nf-grid">' +
+    return '<div class="nf-card acct-stats-4" style="margin-top:12px"><div class="nf-h"><b>My stats</b></div><div class="nf-grid">' +
         '<div class="nf-tile"><b>' + ents.length + '</b><span>Tests taken</span></div>' +
         '<div class="nf-tile"><b>' + fmtNum(qs) + '</b><span>Questions answered</span></div>' +
         '<div class="nf-tile"><b>' + (avg === null ? '--' : avg + '%') + '</b><span>Average score</span></div>' +
         '<div class="nf-tile"><b>' + (best === null ? '--' : best + '%') + '</b><span>Best score</span></div></div>' +
-        '<p class="nf-p" style="margin-top:10px">🔥 ' + st + '-day streak</p>' +
+        '<p class="nf-p" style="margin-top:8px">🔥 ' + st + '-day streak</p>' +
         '<div class="nf-row" style="margin-top:12px"><button type="button" class="nf-btn" style="flex:1" data-nf="share">Share progress</button>' +
         '<button type="button" class="nf-btn alt" style="flex:1" data-nf="export">Export (CSV)</button></div></div>';
 }
@@ -33218,12 +33427,31 @@ document.addEventListener('click', function (e) {
 /* Home: tighter gaps between sections */
 .quick-actions{margin:6px 0 14px!important;gap:8px!important}
 .home-hero{margin-bottom:10px!important}
+
+.acct-stats-4 .nf-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+.acct-stats-4 .nf-tile{padding:8px 4px!important;text-align:center}
+.acct-stats-4 .nf-tile b{font-size:16px!important}
+.acct-stats-4 .nf-tile span{font-size:9px!important;line-height:1.2;display:block}
+.acct-stats-4{padding:12px!important}
+
+/* Practice Hub lists: two per row */
+.px-list:has(>.px-row){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
+.px-list>.px-row{flex-direction:column!important;align-items:flex-start!important;gap:8px!important;padding:12px!important;border:1px solid var(--line)!important;border-radius:14px!important;background:var(--card-bg)!important;width:auto!important;min-width:0!important}
+.px-list>.px-row .px-go{display:none!important}
+.px-list>.px-row .px-rt{width:100%!important;flex:0 0 auto!important}
+.px-list>.px-row .px-rt small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.px-list:has(>.px-row)>.px-row:last-child:nth-child(odd){grid-column:1/-1;flex-direction:row!important;align-items:center!important;gap:12px!important}
+.px-list:has(>.px-row)>.px-row:last-child:nth-child(odd) .px-rt{flex:1!important;width:auto!important}
 </style>
 <script id="sb-helpers">
 function sbEntry() {
-    return '<button type="button" class="sb-entry" data-action="set-view" data-view="ai-assistant">' +
-        '<span class="o">\u2726</span><span class="t"><b>' + AI_NAME + '</b><small>Ask any study question and get a quick answer</small></span>' +
-        '<span class="g">' + svg('chevleft', 18).replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(180deg)"') + '</span></button>';
+    return '<button type="button" class="sb-ai" data-action="set-view" data-view="ai-assistant" aria-label="Chat with ' + AI_NAME + ', the AI tutor">' +
+        '<span class="sb-ai-top"><span class="sb-ai-orb">\u2726</span>' +
+        '<span class="sb-ai-name"><b>' + AI_NAME + '</b><em>AI</em></span>' +
+        '<span class="sb-ai-live"><i></i>Online</span></span>' +
+        '<span class="sb-ai-bubble">Hi \ud83d\udc4b I\u2019m your AI tutor. Ask me any question and I\u2019ll explain it step by step.</span>' +
+        '<span class="sb-ai-input"><span>Ask ' + AI_NAME + ' anything\u2026</span><span class="sb-ai-send">' + svg('send', 15) + '</span></span>' +
+        '</button>';
 }
 // Enter sends on computers (Shift+Enter = new line); wake the AI server as soon as the box is tapped so the first answer is quick
 document.addEventListener('keydown', function (e) {
@@ -33238,5 +33466,49 @@ document.addEventListener('focusin', function (e) {
     if (e.target && e.target.id === 'ai-chat-input') { try { warmAiAssistant(); } catch (x) {} }
 });
 </script>
+
+<style id="ai-fixes">
+.sb-ai{display:block;width:100%;margin:0 0 12px;padding:12px;border:1.5px solid var(--line);border-radius:20px;background:var(--card-bg);color:var(--ink);font:inherit;text-align:left;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.05)}
+.sb-ai-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sb-ai-orb{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-size:17px;color:#fff;background:linear-gradient(145deg,#0B8A55,#0a4a2c);flex:0 0 auto}
+.sb-ai-name{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.sb-ai-name b{font-size:15px;font-weight:800}
+.sb-ai-name em{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:99px;background:rgba(11,138,85,.14);color:#0B8A55}
+.sb-ai-live{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--muted)}
+.sb-ai-live i{width:7px;height:7px;border-radius:50%;background:#22c55e}
+.sb-ai-bubble{display:block;max-width:92%;padding:10px 12px;border-radius:16px 16px 16px 4px;background:var(--bg);font-size:13px;line-height:1.45;color:var(--ink);margin-bottom:10px}
+.sb-ai-input{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:999px;padding:6px 6px 6px 14px;font-size:13px;color:var(--muted)}
+.sb-ai-input>span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-ai-send{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;flex:0 0 auto}
+
+.sb-composer textarea.sb-ta{box-sizing:border-box!important;width:100%!important;min-width:100%!important;white-space:pre-wrap!important;overflow-wrap:break-word!important;word-break:normal!important;overflow-x:hidden;display:block;field-sizing:fixed}
+.sb-composer{min-width:0}
+.sb-composer-wrap{position:relative}
+.sb-composer-wrap .chat-attach-menu{position:absolute!important;left:6px!important;bottom:calc(100% - 22px)!important;z-index:20!important}
+.sb-composer-wrap .chat-attach-overlay{z-index:19!important}
+.ai-think{display:flex;align-items:center;gap:8px;align-self:flex-start;padding:10px 14px;margin:4px 0;background:var(--card-bg);border:1px solid var(--line);border-radius:16px;font-size:13px;color:var(--muted)}
+.ai-think-d{display:inline-flex;gap:4px;align-items:center}
+.ai-think-d i{width:6px;height:6px;border-radius:50%;background:var(--green);opacity:.2;animation:aiBlink 1.2s infinite ease-in-out!important}
+.ai-think-d i:nth-child(2){animation-delay:.2s!important}
+.ai-think-d i:nth-child(3){animation-delay:.4s!important}
+@keyframes aiBlink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+</style>
+<script id="ai-autosize">
+(function(){
+  function fit(t){ if(!t||t.id!=='ai-chat-input') return; t.style.height='auto'; var h=t.scrollHeight; t.style.height=Math.min(h,160)+'px'; t.style.overflowY=h>160?'auto':'hidden'; }
+  document.addEventListener('input',function(e){fit(e.target);},true);
+  document.addEventListener('focusin',function(e){fit(e.target);});
+  new MutationObserver(function(){ fit(document.getElementById('ai-chat-input')); }).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+<style id="native-refresh">
+/* Let Chrome's normal drag-down-to-refresh work. The page used to be locked with
+   position:fixed + overflow:hidden on html/body, which makes the browser ignore the gesture. */
+html{overflow-x:hidden!important;overflow-y:auto!important;height:100%!important;overscroll-behavior-y:auto!important}
+body{position:static!important;inset:auto!important;overflow:visible!important;height:100%!important;width:100%;overscroll-behavior-y:auto!important}
+#app-shell,#root{height:100%}
+.view{overscroll-behavior-y:auto!important}
+</style>
 </body>
 </html>
