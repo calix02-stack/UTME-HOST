@@ -1,4 +1,3 @@
-
 // offline-db.js
 // ============================================================
 // REBUILT FROM SCRATCH — the original file was lost (not in the
@@ -47,7 +46,7 @@
     // connection every time the tab becomes visible again, before any
     // question load even gets a chance to run into a dead connection.
     function invalidateConnection(reason) {
-        try { console.info('offline-db: recycling IndexedDB connection: ' + reason); } catch (e) {}
+        reportDiagnostic('recycling IndexedDB connection: ' + reason);
         if (currentDb) { try { currentDb.close(); } catch (e) {} }
         dbPromise = null;
         currentDb = null;
@@ -55,21 +54,8 @@
 
     if (typeof document !== 'undefined') {
         document.addEventListener('visibilitychange', function () {
-            if (document.visibilityState !== 'visible' || !dbPromise || !currentDb) return;
-            // Health-check first: a live connection answers a tiny read at
-            // once, so leave it alone. Only a dead one (throws or hangs)
-            // gets recycled — closing a healthy connection on every tab
-            // switch was itself causing hangs and log spam.
-            var checked = currentDb, answered = false;
-            var t = setTimeout(function () {
-                if (!answered && currentDb === checked) invalidateConnection('connection unresponsive after resume');
-            }, 1500);
-            try {
-                var r = checked.transaction('meta', 'readonly').objectStore('meta').count();
-                r.onsuccess = r.onerror = function () { answered = true; clearTimeout(t); };
-            } catch (err) {
-                clearTimeout(t);
-                if (currentDb === checked) invalidateConnection('connection threw on resume: ' + (err && err.message));
+            if (document.visibilityState === 'visible' && dbPromise) {
+                invalidateConnection('tab became visible again (defensive resume)');
             }
         });
     }
@@ -86,12 +72,8 @@
     // already loaded by the time this file runs), so the next
     // occurrence shows the real cause instead of just "timed out".
     // Never throws — a broken diagnostic must never break the app.
-    var lastDiag = {};
     function reportDiagnostic(context, extra) {
         try {
-            var now = Date.now();
-            if (lastDiag[context] && now - lastDiag[context] < 300000) return; // same message at most once / 5 min
-            lastDiag[context] = now;
             var detail = extra ? ' | ' + JSON.stringify(extra) : '';
             if (typeof window.logAppError === 'function') {
                 window.logAppError('offline-db diagnostic: ' + context, { message: context + detail });
@@ -240,15 +222,6 @@
         });
     }
 
-    // Delete many records inside ONE transaction (instead of one transaction
-    // per record, which flooded IndexedDB and made topic loads time out).
-    function storeDeleteAll(storeName, keys) {
-        if (!keys || !keys.length) return Promise.resolve();
-        return tx(storeName, 'readwrite').then(function (store) {
-            return Promise.all(keys.map(function (k) { return reqToPromise(store.delete(k)); }));
-        });
-    }
-
     function uid() {
         if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
         return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
@@ -261,38 +234,6 @@
             var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
         }
         return a;
-    }
-
-    // ------------------------------------------------------------
-    // CONCURRENCY LIMITER
-    // ------------------------------------------------------------
-    // Used by reconcileAllSubjectFiles below. Browsers cap concurrent
-    // HTTP connections to one origin at roughly 6. reconcileAllSubjectFiles
-    // used to Promise.all() a full-file network fetch for every subject at
-    // once (often 9-10) the instant the app opened. If the person tapped
-    // into a mode right away, that mode's own subject-file fetch (see
-    // loadQuestionsOffline's network fallback below) had to queue behind
-    // this whole burst before it could even start — which is exactly why
-    // the very first mode opened after a cold start/refresh felt slow,
-    // while everything after that (once the burst finished) was instant.
-    // Running only a few subjects at a time takes about the same total
-    // time to finish, but leaves real headroom in the connection pool for
-    // whatever the person taps first.
-    function mapWithConcurrency(items, limit, worker) {
-        var idx = 0;
-        var results = new Array(items.length);
-        function runNext() {
-            if (idx >= items.length) return Promise.resolve();
-            var i = idx++;
-            return Promise.resolve(worker(items[i], i)).then(function (r) {
-                results[i] = r;
-                return runNext();
-            });
-        }
-        var runners = [];
-        var n = Math.max(1, Math.min(limit, items.length));
-        for (var k = 0; k < n; k++) runners.push(runNext());
-        return Promise.all(runners).then(function () { return results; });
     }
 
     function downloadJson(filename, data) {
@@ -384,6 +325,16 @@
 
     // ---- Questions (cbt / mock / exam / NOVEL (CBT) / subject) ----
 
+    // Local DB has been observed hanging on some devices/browsers 100% of
+    // the time (not just occasionally) — so waiting on it FIRST before even
+    // trying the network, as the previous version of this function did, was
+    // itself the source of the multi-second spinner. Fix: fire off the
+    // local read and a direct network fetch of the subject file AT THE
+    // SAME TIME, and resolve with whichever comes back first with usable
+    // data. On a device where local IndexedDB genuinely works and is fast,
+    // it still wins the race with no perceptible delay. On a device where
+    // it's broken/hanging, the response time is simply how long the
+    // network fetch takes — no artificial wait tacked on first.
     function filterQuestions(rows, type, year, limit) {
         var filtered = rows.filter(function (q) { return !type || q.type === type; });
         if (year !== undefined && year !== null) {
@@ -395,34 +346,9 @@
         return filtered;
     }
 
-    // Local DB has been observed hanging on some devices/browsers 100% of
-    // the time (not just occasionally) — so waiting on it FIRST before even
-    // trying the network, as an earlier version of this function did, was
-    // itself a source of a multi-second (or infinite) spinner on those
-    // devices. The safety net for that is a network fetch of the same
-    // subject's question file as a fallback.
-    //
-    // Previously that network fetch was started unconditionally, in
-    // parallel, on every single call — meaning every mode load also fired
-    // a full-subject-file network request even on the (overwhelmingly
-    // common) devices where local IndexedDB is perfectly healthy and fast.
-    // That's wasted data/battery for the person, and — worse — a burst of
-    // these from several question loads plus the startup reconcile could
-    // all compete for the browser's small per-origin connection pool at
-    // once, adding to the "first load after a cold start is slow" problem.
-    //
-    // Fix: start the local read; give it a short 350ms head start. If it
-    // answers with real data before that, use it and never touch the
-    // network at all. Only fall back to a network fetch if local hasn't
-    // answered within 350ms (the hang/slow case this exists for), or if
-    // local answers but has nothing for this subject yet, or if local
-    // errors outright. The hang-safety guarantee is unchanged: once the
-    // network fallback has actually been started, its outcome is what
-    // this resolves/rejects with — it does not keep waiting on local,
-    // since local may never come back at all on the affected devices.
     OfflineDB.loadQuestionsOffline = function (type, subjectId, year, limit) {
         var localPromise = storeGetAllByIndex('questions', 'by_type_subject', [type, subjectId]);
-        var networkStarted = false;
+        var networkPromise = fetchSubjectFile(subjectId); // starts immediately, in parallel — not after waiting on local
 
         return new Promise(function (resolve, reject) {
             var settled = false;
@@ -435,81 +361,55 @@
             }
 
             function maybeFail() {
-                if (settled) return;
-                // Once the network fallback has actually been tried, its
-                // result is authoritative — local may never finish on a
-                // hung connection, and that hang is exactly what this
-                // fallback exists to route around.
-                if (networkStarted) {
-                    if (!networkDone) return;
-                    reject(localErr || networkErr || new Error('No questions available'));
-                    return;
-                }
-                if (localDone) reject(localErr || new Error('No questions available'));
+                if (settled || !localDone || !networkDone) return;
+                reject(localErr || networkErr || new Error('No questions available'));
             }
-
-            function onNetworkResult(file) {
-                networkDone = true;
-                if (settled) return;
-                if (file.notFound || !file.questions || !file.questions.length) {
-                    reportDiagnostic('loadQuestionsOffline: network file ' + (file.notFound ? 'NOT FOUND (404)' : 'has no questions') + ' for ' + subjectId, { type: type, subjectId: subjectId });
-                    maybeFail(); return;
-                }
-                var filtered = filterQuestions(file.questions, type, year, limit);
-                if (filtered.length > 0) {
-                    finish(filtered);
-                    // Best-effort: save the whole subject file (questions, topics, passages) on the
-                    // phone so next time it is instant and works offline. Topics used to be left out
-                    // here, which is why Topic Practice said "no topics".
-                    trackSubjectSave(subjectId, saveSubjectFileLocal(subjectId, file));
-                } else {
-                    maybeFail();
-                }
-            }
-            function onNetworkError(err) {
-                networkDone = true;
-                networkErr = err;
-                reportDiagnostic('loadQuestionsOffline: network fetch failed for ' + subjectId, { type: type, subjectId: subjectId, error: err && err.message, online: navigator.onLine });
-                maybeFail();
-            }
-            function startNetwork() {
-                if (networkStarted) return;
-                networkStarted = true;
-                fetchSubjectFile(subjectId).then(onNetworkResult, onNetworkError);
-            }
-
-            // The head start: only reached for — and thus only costs
-            // network data on — a device where local hasn't answered
-            // within 350ms.
-            var localWaitTimer = setTimeout(function () {
-                if (!settled && !localDone) startNetwork();
-            }, 350);
 
             localPromise.then(function (rows) {
-                clearTimeout(localWaitTimer);
                 localDone = true;
                 if (settled) return;
                 var filtered = filterQuestions(rows, type, year, limit);
                 if (filtered.length > 0) { finish(filtered); return; }
-                // Nothing locally for this subject/type yet — go straight
-                // to network rather than waiting out the rest of the window.
-                startNetwork();
+                maybeFail();
             }, function (err) {
-                clearTimeout(localWaitTimer);
                 localDone = true;
                 localErr = err;
                 if (settled) return;
                 reportDiagnostic('loadQuestionsOffline: local DB error', { type: type, subjectId: subjectId, error: err && err.message });
-                startNetwork();
+                maybeFail();
+            });
+
+            networkPromise.then(function (file) {
+                networkDone = true;
+                if (settled) return;
+                if (file.notFound || !file.questions || !file.questions.length) { maybeFail(); return; }
+                var filtered = filterQuestions(file.questions, type, year, limit);
+                if (filtered.length > 0) {
+                    finish(filtered);
+                    // Best-effort: cache what we fetched for next time, so a
+                    // working local DB has this data available offline later.
+                    storePutAll('questions', file.questions.map(function (q) {
+                        var copy = Object.assign({}, q);
+                        if (!copy.id) copy.id = uid();
+                        copy.subject_id = subjectId;
+                        return copy;
+                    })).catch(function () {});
+                } else {
+                    maybeFail();
+                }
+            }, function (err) {
+                networkDone = true;
+                networkErr = err;
+                maybeFail();
             });
 
             // Purely informational — does not delay or change the result,
-            // just tells us in the Errors log if this is taking a while,
-            // so a slow case is visible without slowing anything down.
+            // just tells us in the Errors log if BOTH sources are taking a
+            // while, so a slow case is visible without slowing anything down.
             setTimeout(function () {
                 if (!settled) {
                     reportDiagnostic('loadQuestionsOffline: still waiting after 1200ms', {
-                        type: type, subjectId: subjectId, localDone: localDone, networkStarted: networkStarted, networkDone: networkDone
+                        type: type, subjectId: subjectId, localDone: localDone, networkDone: networkDone
                     });
                 }
             }, 1200);
@@ -667,25 +567,19 @@
         if (navigator.onLine === false) {
             return Promise.reject(new TypeError('Failed to fetch (offline)'));
         }
-        // 'no-cache' = ask the server "changed?" (ETag) and reuse the saved copy on a
-        // tiny 304 reply. Was 'no-store' + a ?v=timestamp, which re-downloaded every
-        // subject file (up to 1.6 MB each) on EVERY open and starved other requests.
-        var fetchOpts = { cache: 'no-cache' };
+        var fetchOpts = { cache: 'no-store' };
         var abortTimer;
         if (typeof AbortController !== 'undefined') {
             var ctrl = new AbortController();
-            abortTimer = setTimeout(function () { ctrl.abort(); }, 20000);
+            abortTimer = setTimeout(function () { ctrl.abort(); }, 8000);
             fetchOpts.signal = ctrl.signal;
         }
-        return fetch('questions-' + subjectId + '.json', fetchOpts)
+        return fetch('questions-' + subjectId + '.json?v=' + Date.now(), fetchOpts)
             .finally(function () { clearTimeout(abortTimer); })
             .then(function (res) {
                 if (res.status === 404) return { notFound: true };
-                if (!res.ok) throw new Error('HTTP ' + res.status + ' for questions-' + subjectId + '.json');
-                return res.text().then(function (txt) {
-                    try { return JSON.parse(txt); }
-                    catch (pe) { throw new Error('questions-' + subjectId + '.json is not valid JSON (host returned: ' + String(txt).slice(0, 40).replace(/\s+/g, ' ') + ')'); }
-                }).then(function (data) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json().then(function (data) {
                     // Real export shape (confirmed from an actual exported file):
                     // { version, subject_id, exportedAt, questions: [...], passages: [...],
                     //   topics: [...], topic_questions: [...] }
@@ -694,7 +588,7 @@
                     var passages = (data && !Array.isArray(data) && data.passages) || [];
                     var topics = (data && !Array.isArray(data) && data.topics) || [];
                     var topicQuestions = (data && !Array.isArray(data) && data.topic_questions) || [];
-                    return { notFound: false, exportedAt: (data && !Array.isArray(data) && data.exportedAt) || '', questions: arr, passages: passages, topics: topics, topic_questions: topicQuestions };
+                    return { notFound: false, questions: arr, passages: passages, topics: topics, topic_questions: topicQuestions };
                 });
             });
     }
@@ -726,117 +620,52 @@
         });
     };
 
-    // Removes every topic (and its questions) stored for a subject so a
-    // fresh copy from the subject file can replace it. Without this,
-    // topics added/renamed in the file never reached devices that had
-    // an older copy.
-    function clearSubjectTopics(subjectId) {
-        return storeGetAllByIndex('topics', 'by_subject', subjectId).then(function (topics) {
-            return Promise.all(topics.map(function (t) {
-                return storeGetAllByIndex('topic_questions', 'by_topic', t.id);
-            })).then(function (lists) {
-                var qIds = [];
-                lists.forEach(function (qs) { qs.forEach(function (q) { qIds.push(q.id); }); });
-                return storeDeleteAll('topic_questions', qIds);
-            }).then(function () {
-                return storeDeleteAll('topics', topics.map(function (t) { return t.id; }));
-            });
-        });
-    }
-
-    // Additive: writes ALL topics (even ones with no questions yet) and
-    // their questions from a subject file, never deleting anything.
-    function putSubjectTopics(subjectId, file) {
-        var topics = (file.topics || []).map(function (t) {
-            var copy = Object.assign({}, t, { subject_id: subjectId });
-            if (!copy.id) copy.id = uid();
-            return copy;
-        });
-        var tqs = (file.topic_questions || []).map(function (tq) {
-            var copy = Object.assign({}, tq);
-            if (!copy.id) copy.id = uid();
-            return copy;
-        });
-        return Promise.all([
-            topics.length ? storePutAll('topics', topics) : Promise.resolve(),
-            tqs.length ? storePutAll('topic_questions', tqs) : Promise.resolve()
-        ]);
-    }
-
     OfflineDB.reconcileAllSubjectFiles = function (subjectIds) {
         var results = {};
         var networkReached = false;
 
-        // Fingerprint of a subject file. If it matches what is already saved on
-        // this device AND the local copy is complete, we skip the (slow) rewrite
-        // entirely. Before, EVERY app open / return-to-app deleted and re-wrote
-        // every subject one record at a time, which blocked topic practice.
-        function fingerprint(file) {
-            return [file.exportedAt || '', file.questions.length, (file.topics || []).length, (file.topic_questions || []).length].join('|');
-        }
-
-        return mapWithConcurrency(subjectIds, 2, function (subjectId) {
+        return Promise.all(subjectIds.map(function (subjectId) {
             return fetchSubjectFile(subjectId).then(function (file) {
                 networkReached = true;
                 if (file.notFound) {
-                    // A 404 does NOT mean the subject was removed on purpose — it is just as
-                    // likely a failed/partial deploy or a host hiccup. Deleting the local copy
-                    // here is what left every mode empty while Topic Practice (separate store)
-                    // kept working. Keep what is on the device and log it instead.
-                    reportDiagnostic('reconcile: questions-' + subjectId + '.json returned 404 - local copy kept', { subjectId: subjectId });
-                    results[subjectId] = { status: 'missing-kept' };
-                    return;
-                }
-                if (!file.questions || !file.questions.length) {
-                    reportDiagnostic('reconcile: questions-' + subjectId + '.json has 0 questions - local copy kept', { subjectId: subjectId });
-                    results[subjectId] = { status: 'empty-kept' };
-                    return;
-                }
-                var fp = fingerprint(file);
-                return Promise.all([
-                    storeGet('meta', 'sync_' + subjectId),
-                    storeGetAllByIndex('questions', 'by_subject', subjectId),
-                    storeGetAllByIndex('topics', 'by_subject', subjectId)
-                ]).then(function (cur) {
-                    var saved = cur[0], localQs = cur[1], localTopics = cur[2];
-                    if (saved && saved.fp === fp && localQs.length === file.questions.length && localTopics.length === (file.topics || []).length) {
-                        results[subjectId] = { status: 'unchanged', count: localQs.length };
-                        return;
-                    }
-                    return storeDeleteAll('questions', localQs.map(function (q) { return q.id; })).then(function () {
-                        return clearSubjectTopics(subjectId);
+                    return storeGetAllByIndex('questions', 'by_subject', subjectId).then(function (existing) {
+                        return Promise.all(existing.map(function (q) { return storeDelete('questions', q.id); }));
                     }).then(function () {
-                        var normalized = file.questions.map(function (q) {
-                            var copy = Object.assign({}, q);
-                            if (!copy.id) copy.id = uid();
-                            copy.subject_id = subjectId;
-                            return copy;
-                        });
-                        var passages = (file.passages || []).map(function (p) {
-                            var copy = Object.assign({}, p, { subject_id: p.subject_id || subjectId });
-                            copy.id = copy.subject_id + '_' + copy.mode + '_' + copy.batch_number;
-                            return copy;
-                        });
-                        var topicIdMap = {};
-                        var topics = (file.topics || []).map(function (t) {
-                            var copy = Object.assign({}, t, { subject_id: subjectId });
-                            if (!copy.id) copy.id = uid();
-                            topicIdMap[t.id] = copy.id;
-                            return copy;
-                        });
-                        var tqs = (file.topic_questions || []).map(function (tq) {
-                            var copy = Object.assign({}, tq);
-                            if (!copy.id) copy.id = uid();
-                            if (copy.topic_id && topicIdMap[copy.topic_id]) copy.topic_id = topicIdMap[copy.topic_id];
-                            return copy;
-                        });
-                        // Topics first so the topic list is never empty for long, then the rest.
-                        return (topics.length ? storePutAll('topics', topics) : Promise.resolve())
-                            .then(function () { return tqs.length ? storePutAll('topic_questions', tqs) : Promise.resolve(); })
-                            .then(function () { return normalized.length ? storePutAll('questions', normalized) : Promise.resolve(); })
-                            .then(function () { return passages.length ? storePutAll('passages', passages) : Promise.resolve(); })
-                            .then(function () { return storePut('meta', { key: 'sync_' + subjectId, fp: fp }); })
-                            .then(function () { results[subjectId] = { status: 'reconciled', count: normalized.length }; });
+                        results[subjectId] = { status: 'wiped' };
+                    });
+                }
+                return storeGetAllByIndex('questions', 'by_subject', subjectId).then(function (existing) {
+                    return Promise.all(existing.map(function (q) { return storeDelete('questions', q.id); }));
+                }).then(function () {
+                    var normalized = file.questions.map(function (q) {
+                        var copy = Object.assign({}, q);
+                        if (!copy.id) copy.id = uid();
+                        copy.subject_id = subjectId;
+                        return copy;
+                    });
+                    var passagePuts = (file.passages || []).map(function (p) {
+                        var copy = Object.assign({}, p, { subject_id: p.subject_id || subjectId });
+                        copy.id = copy.subject_id + '_' + copy.mode + '_' + copy.batch_number;
+                        return storePut('passages', copy);
+                    });
+                    var topicIdMap = {};
+                    var topicPuts = (file.topics || []).map(function (t) {
+                        var copy = Object.assign({}, t, { subject_id: subjectId });
+                        if (!copy.id) copy.id = uid();
+                        topicIdMap[t.id] = copy.id;
+                        return storePut('topics', copy);
+                    });
+                    var topicQuestionPuts = (file.topic_questions || []).map(function (tq) {
+                        var copy = Object.assign({}, tq);
+                        if (!copy.id) copy.id = uid();
+                        if (copy.topic_id && topicIdMap[copy.topic_id]) copy.topic_id = topicIdMap[copy.topic_id];
+                        return storePut('topic_questions', copy);
+                    });
+                    return Promise.all(
+                        [normalized.length ? storePutAll('questions', normalized) : Promise.resolve()]
+                            .concat(passagePuts).concat(topicPuts).concat(topicQuestionPuts)
+                    ).then(function () {
+                        results[subjectId] = { status: 'reconciled', count: normalized.length };
                     });
                 });
             }).catch(function (e) {
@@ -844,7 +673,7 @@
                 // one subject — leave its local data untouched.
                 results[subjectId] = { status: 'error', error: e && e.message };
             });
-        }).then(function () {
+        })).then(function () {
             results.__networkReached = networkReached;
             return results;
         });
@@ -863,7 +692,6 @@
                     return copy;
                 });
                 return (normalized.length ? storePutAll('questions', normalized) : Promise.resolve())
-                    .then(function () { return putSubjectTopics(subjectId, file); })
                     .then(function () { return { added: normalized.length }; });
             });
         }).catch(function () { return null; });
@@ -883,89 +711,9 @@
                     copy.subject_id = subjectId;
                     return copy;
                 });
-                return (normalized.length ? storePutAll('questions', normalized) : Promise.resolve())
-                    .then(function () { return putSubjectTopics(subjectId, file); });
+                return normalized.length ? storePutAll('questions', normalized) : Promise.resolve();
             }).catch(function () { /* ignore — additive best-effort */ });
         }));
-    };
-
-    // ---- Download once, then use offline ----
-    // Questions load from the internet instantly when they are not on the phone yet. The first
-    // time a subject loads, its whole file (questions + topics + passages) is saved on the phone,
-    // and from then on that subject also works offline and never needs downloading again.
-    var __dlInflight = {};
-    var __dlMissing = {};
-
-    function subjectFp(file) {
-        return [file.exportedAt || '', file.questions.length, (file.topics || []).length, (file.topic_questions || []).length].join('|');
-    }
-
-    function saveSubjectFileLocal(subjectId, file) {
-        var normalized = (file.questions || []).map(function (q) {
-            var copy = Object.assign({}, q);
-            if (!copy.id) copy.id = uid();
-            copy.subject_id = subjectId;
-            return copy;
-        });
-        var passages = (file.passages || []).map(function (p) {
-            var copy = Object.assign({}, p, { subject_id: p.subject_id || subjectId });
-            copy.id = copy.subject_id + '_' + copy.mode + '_' + copy.batch_number;
-            return copy;
-        });
-        return Promise.all([
-            normalized.length ? storePutAll('questions', normalized) : Promise.resolve(),
-            passages.length ? storePutAll('passages', passages) : Promise.resolve(),
-            putSubjectTopics(subjectId, file)
-        ]).then(function () {
-            return storePut('meta', { key: 'sync_' + subjectId, fp: subjectFp(file) });
-        });
-    }
-
-    function trackSubjectSave(subjectId, promise) {
-        var p = promise.then(function () { return { ok: true }; }, function () { return { ok: false }; })
-            .then(function (r) { delete __dlInflight[subjectId]; return r; });
-        __dlInflight[subjectId] = p;
-        return p;
-    }
-
-    // Makes sure one subject is saved on this phone. Never rejects. Downloads only if it has not
-    // been downloaded before and the phone is online.
-    OfflineDB.ensureSubjectLocal = function (subjectId) {
-        if (__dlInflight[subjectId]) return __dlInflight[subjectId];
-        var p = storeGet('meta', 'sync_' + subjectId).then(function (m) {
-            if (m) return { ok: true, already: true };
-            if (__dlMissing[subjectId] || navigator.onLine === false) return { ok: false };
-            return fetchSubjectFile(subjectId).then(function (file) {
-                if (file.notFound || (!(file.questions || []).length && !(file.topics || []).length)) {
-                    __dlMissing[subjectId] = true;
-                    return { ok: false };
-                }
-                return saveSubjectFileLocal(subjectId, file).then(function () { return { ok: true }; });
-            });
-        }).catch(function () { return { ok: false }; }).then(function (r) {
-            delete __dlInflight[subjectId];
-            return r;
-        });
-        __dlInflight[subjectId] = p;
-        return p;
-    };
-
-    // If a subject's topics / questions are not on the phone yet, load them from the internet
-    // right now, save them, then read again.
-    var __getTopicsLocal = OfflineDB.getTopicsOffline;
-    OfflineDB.getTopicsOffline = function (subjectId) {
-        return __getTopicsLocal(subjectId).then(function (rows) {
-            if (rows && rows.length) return rows;
-            return OfflineDB.ensureSubjectLocal(subjectId).then(function () { return __getTopicsLocal(subjectId); });
-        });
-    };
-
-    var __getQuestionsLocal = OfflineDB.getQuestionsOffline;
-    OfflineDB.getQuestionsOffline = function (type, subjectId) {
-        return __getQuestionsLocal(type, subjectId).then(function (rows) {
-            if (rows && rows.length) return rows;
-            return OfflineDB.ensureSubjectLocal(subjectId).then(function () { return __getQuestionsLocal(type, subjectId); });
-        });
     };
 
     // Expose the real implementation. index.html's readiness shim
