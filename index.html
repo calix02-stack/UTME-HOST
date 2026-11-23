@@ -15190,6 +15190,13 @@ async function editAiMessage(msgId) {
     if (box) { box.focus(); box.value = state.aiInput; }
 }
 
+function aiWithTimeout(promise, ms) {
+    return new Promise(function(resolve, reject) {
+        var t = setTimeout(function() { reject(new Error('timeout')); }, ms);
+        Promise.resolve(promise).then(function(v) { clearTimeout(t); resolve(v); }, function(e) { clearTimeout(t); reject(e); });
+    });
+}
+function aiReadWithTimeout(reader, ms) { return aiWithTimeout(reader.read(), ms); }
 function guestAiId() { let g = storage.get('guestAiId'); if (!g) { g = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'guest-' + Date.now() + '-' + Math.random().toString(16).slice(2); storage.set('guestAiId', g); } return g; }
 async function sendAiMessage(text, questionContext) {
     const msg = (text || '').trim();
@@ -15213,6 +15220,15 @@ async function sendAiMessage(text, questionContext) {
     state.aiPendingImage = null;
     state.aiPendingDocument = null;
     state.aiSending = true;
+    const sendTok = Date.now() + '-' + Math.random();
+    state.aiSendTok = sendTok;
+    // Safety net: if anything ever hangs, unlock the chat after 90s so the student can send again
+    setTimeout(function() {
+        if (state.aiSending && state.aiSendTok === sendTok) {
+            state.aiSending = false; render();
+            showToast('The AI took too long. Please send your message again.', 'error');
+        }
+    }, 90000);
     render();
 
     let storedMsg = '';
@@ -15224,8 +15240,8 @@ async function sendAiMessage(text, questionContext) {
     let inserted = null;
     if (state.authUser) {
         inserted = { id: 't' + Date.now(), sender: 'user', message: storedMsg, created_at: new Date().toISOString() };
-        const userSave = await supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'user', message: storedMsg }]);
-        if (userSave && userSave.error) console.warn('Could not save AI user message:', userSave.error);
+        // saved in the background so the question goes to the AI immediately
+        Promise.resolve(supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'user', message: storedMsg }])).then(function(r) { if (r && r.error) console.warn('Could not save AI user message:', r.error); }, function(e) { console.warn('Could not save AI user message:', e); });
     } else { inserted = { id: 'g' + Date.now(), sender: 'user', message: storedMsg, created_at: new Date().toISOString() }; saveGuestAiMessage(sessionId, 'user', storedMsg); }
     if (inserted) { state.aiMessages.push(inserted); state.aiMsgVer = (state.aiMsgVer || 0) + 1; }
 
@@ -15263,7 +15279,7 @@ async function sendAiMessage(text, questionContext) {
             let buf = '', full = '', msgObj = null, lastDraw = 0;
             try {
                 while (true) {
-                    const chunk = await reader.read();
+                    const chunk = await aiReadWithTimeout(reader, msgObj ? 25000 : 60000);
                     if (chunk.done) break;
                     buf += dec.decode(chunk.value, { stream: true });
                     let ix;
@@ -15284,19 +15300,18 @@ async function sendAiMessage(text, questionContext) {
                         }
                     }
                 }
-            } catch (streamErr) { console.warn('AI stream interrupted:', streamErr); }
+            } catch (streamErr) { console.warn('AI stream interrupted:', streamErr); try { reader.cancel(); } catch (e2) {} }
             if (!msgObj) {
                 msgObj = { id: 'e' + Date.now() + 'a', sender: 'ai', message: 'Sorry, I could not generate a response. Please try again.', created_at: new Date().toISOString() };
                 state.aiMessages.push(msgObj); state.aiMsgVer = (state.aiMsgVer || 0) + 1;
             } else if (state.authUser) {
-                const aiSave = await supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'ai', message: full }]);
-                if (aiSave && aiSave.error) console.warn('Could not save streamed AI reply:', aiSave.error);
+                Promise.resolve(supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'ai', message: full }])).then(function(r) { if (r && r.error) console.warn('Could not save streamed AI reply:', r.error); }, function(e) { console.warn('Could not save streamed AI reply:', e); });
             } else { saveGuestAiMessage(sessionId, 'ai', full); }
             state.aiSending = false;
             render();
             return;
         }
-        const data = await res.json();
+        const data = await aiWithTimeout(res.json(), 30000);
 
         if (res.status === 429) {
             showToast("You've reached today's AI question limit. Try again tomorrow!", 'error');
@@ -15324,8 +15339,7 @@ async function sendAiMessage(text, questionContext) {
         let aiInserted = null;
         if (state.authUser) {
             aiInserted = { id: 't' + Date.now() + 'a', sender: 'ai', message: aiMessage, created_at: new Date().toISOString() };
-            const aiSave = await supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'ai', message: aiMessage }]);
-            if (aiSave && aiSave.error) console.warn('Could not save AI reply:', aiSave.error);
+            Promise.resolve(supabase.from('ai_assistant_messages').insert([{ user_id: state.authUser.id, session_id: sessionId, sender: 'ai', message: aiMessage }])).then(function(r) { if (r && r.error) console.warn('Could not save AI reply:', r.error); }, function(e) { console.warn('Could not save AI reply:', e); });
         } else { aiInserted = { id: 'g' + Date.now() + 'a', sender: 'ai', message: aiMessage, created_at: new Date().toISOString() }; saveGuestAiMessage(sessionId, 'ai', aiMessage); }
         if (aiInserted) { state.aiMessages.push(aiInserted); state.aiMsgVer = (state.aiMsgVer || 0) + 1; }
     } catch (e) {
@@ -15687,9 +15701,11 @@ async function fetchAiAssistant(init) {
             if (i >= 1) {  // after 2 failed tries: ask for an answer from the model's own knowledge (no web search / tools) — usually much faster and avoids repeating a slow path that just failed
                 try { var bd = JSON.parse(init.body); bd.message = (bd.message || '') + '\n\n[Answer from your own knowledge. Do not use web search or external tools.]'; ini = Object.assign({}, init, { body: JSON.stringify(bd) }); } catch (e) {}
             }
-            res = await fetch(AI_ASSISTANT_URL, ini);
+            var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+            var tmr = ctl ? setTimeout(function() { try { ctl.abort(); } catch (e3) {} }, 35000) : null;   // no answer started within 35s -> try again / give up instead of waiting forever
+            try { res = await fetch(AI_ASSISTANT_URL, ctl ? Object.assign({}, ini, { signal: ctl.signal }) : ini); } finally { if (tmr) clearTimeout(tmr); }
             if (res.status < 500 || res.status === 500) return res;   // 500 = a real fault (e.g. bad key): do not retry; 502/503/504 = busy: retry once
-        } catch (e) { lastErr = e; res = null; }
+        } catch (e) { lastErr = (e && e.name === 'AbortError') ? new Error('AI request timed out') : e; res = null; }
         if (i < 3) await new Promise(function(r) { setTimeout(r, 150 * (i + 1)); });
     }
     if (res) return res;
@@ -22517,7 +22533,8 @@ function renderAiAssistant() {
             );
         });
     }
-    if (state.aiSending) {
+    var _lastAiMsg = state.aiMessages && state.aiMessages.length ? state.aiMessages[state.aiMessages.length - 1] : null;
+    if (state.aiSending && !(_lastAiMsg && _lastAiMsg.sender === 'ai')) {   // hide the dots once the answer starts appearing
         bubbles += '<div class="ai-think"><span class="ai-think-t">' + AI_NAME + ' is thinking</span><span class="ai-think-d"><i></i><i></i><i></i></span></div>';
     }
 
@@ -33924,6 +33941,20 @@ input,select,textarea{border-radius:14px}
 input:focus,select:focus,textarea:focus{outline:0;border-color:var(--green)!important;box-shadow:0 0 0 3px rgba(11,138,85,.16)}
 @media (min-width:900px){.pxg{gap:16px!important}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style id="sb-fixes">
+/* Study Buddy / top bar fixes */
+.topbar .icon-btn.labeled,.topbar .nav-pair .icon-btn.labeled{width:auto!important;min-width:0!important;height:36px!important;padding:0 12px 0 8px!important;gap:4px!important;border-radius:999px!important;background:rgba(255,255,255,.18)!important;border:1.5px solid rgba(255,255,255,.6)!important;color:#fff!important;font-size:13px!important;font-weight:700!important;white-space:nowrap!important;display:inline-flex!important;align-items:center!important}
+.topbar .icon-btn.labeled.home,.topbar .nav-pair .icon-btn.labeled.home{padding:0 12px 0 10px!important}
+.topbar .icon-btn.labeled span{display:inline!important;color:#fff!important;opacity:1!important}
+.topbar .icon-btn.labeled svg{flex:none;stroke:#fff!important}
+.topbar .icon-btn.labeled:active{background:rgba(255,255,255,.3)!important}
+/* chat box sits at the very bottom of the screen */
+.view.view-chat{padding:0!important}
+.view-chat .ai-chat-page{padding-top:16px!important;padding-bottom:0!important}
+.sb-composer-wrap{padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px))!important}
+.sb-note{margin:4px 0 0!important}
+@media (max-height:780px){.sb-empty .sb-orb{display:none!important}}
 </style>
 </body>
 </html>
